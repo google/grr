@@ -10,7 +10,6 @@ from absl import app
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import mig_client_fs
-from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_proto import flows_pb2
 from grr_response_proto import jobs_pb2
 from grr_response_proto import objects_pb2
@@ -19,6 +18,7 @@ from grr_response_server import data_store
 from grr_response_server import flow
 from grr_response_server import flow_base
 from grr_response_server.databases import db
+from grr_response_server.flows import file as file_flows
 from grr_response_server.flows.general import discovery
 from grr_response_server.flows.general import filesystem
 from grr_response_server.flows.general import transfer
@@ -28,7 +28,6 @@ from grr_response_server.rdfvalues import mig_objects
 from grr_response_server.rdfvalues import objects as rdf_objects
 from grr.test_lib import fixture_test_lib
 from grr.test_lib import flow_test_lib
-from grr.test_lib import notification_test_lib
 from grr.test_lib import test_lib
 from grr.test_lib import vfs_test_lib
 
@@ -55,22 +54,33 @@ class VfsTestMixin:
       vfs_test_lib.CreateFile(client_path, "Goodbye World".encode("utf-8"))
 
   def CreateRecursiveListFlow(self, client_id):
-    flow_args = filesystem.RecursiveListDirectoryArgs()
+    flow_args = flows_pb2.RecursiveListDirectoryArgs()
 
     return flow.StartFlow(
         client_id=client_id,
         flow_cls=filesystem.RecursiveListDirectory,
-        flow_args=flow_args,
+        proto_flow_args=flow_args,
     )
 
   def CreateMultiGetFileFlow(self, client_id, file_path):
-    pathspec = rdf_paths.PathSpec(
-        path=file_path, pathtype=rdf_paths.PathSpec.PathType.OS
+    pathspec = jobs_pb2.PathSpec(
+        path=file_path, pathtype=jobs_pb2.PathSpec.PathType.OS
     )
-    flow_args = transfer.MultiGetFileArgs(pathspecs=[pathspec])
+    flow_args = flows_pb2.MultiGetFileArgs(pathspecs=[pathspec])
 
     return flow.StartFlow(
-        client_id=client_id, flow_cls=transfer.MultiGetFile, flow_args=flow_args
+        client_id=client_id,
+        flow_cls=transfer.MultiGetFile,
+        proto_flow_args=flow_args,
+    )
+
+  def CreateCollectFilesByKnownPathFlow(self, client_id, file_path):
+    flow_args = flows_pb2.CollectFilesByKnownPathArgs(paths=[file_path])
+
+    return flow.StartFlow(
+        client_id=client_id,
+        flow_cls=file_flows.CollectFilesByKnownPath,
+        proto_flow_args=flow_args,
     )
 
 
@@ -143,29 +153,6 @@ class ApiGetFileDetailsHandlerTest(
         self.time_1,
         delta=rdfvalue.Duration.From(1, rdfvalue.SECONDS),
     )
-
-  def testResultIncludesDetails(self):
-    """Checks if the details include certain attributes.
-
-    Instead of using a (fragile) regression test, we enumerate important
-    attributes here and make sure they are returned.
-    """
-
-    args = vfs_pb2.ApiGetFileDetailsArgs(
-        client_id=self.client_id, file_path=self.file_path
-    )
-    result = self.handler.Handle(args, context=self.context)
-
-    attributes_by_type = {}
-    attributes_by_type["VFSFile"] = ["STAT"]
-    attributes_by_type["AFF4Stream"] = ["HASH", "SIZE"]
-    attributes_by_type["AFF4Object"] = ["TYPE"]
-
-    details = result.file.details
-    for type_name, attrs in attributes_by_type.items():
-      type_obj = next(t for t in details.types if t.name == type_name)
-      all_attrs = set([a.name for a in type_obj.attributes])
-      self.assertContainsSubset(attrs, all_attrs)
 
   def testIsDirectoryFlag(self):
     # Set up a directory.
@@ -769,7 +756,6 @@ class ApiGetFileDownloadCommandHandlerTest(
 
 
 class ApiCreateVfsRefreshOperationHandlerTest(
-    notification_test_lib.NotificationTestMixin,
     api_test_lib.ApiCallHandlerTest,
     VfsTestMixin,
 ):
@@ -856,7 +842,9 @@ class ApiCreateVfsRefreshOperationHandlerTest(
         self.client_id, result.operation_id, check_flow_errors=False
     )
 
-    pending_notifications = self.GetUserNotifications(self.context.username)
+    pending_notifications = data_store.REL_DB.ReadUserNotifications(
+        self.context.username
+    )
 
     self.assertIn(
         "Recursive Directory Listing complete", pending_notifications[0].message
@@ -992,7 +980,8 @@ class ApiUpdateVfsFileContentHandlerTest(api_test_lib.ApiCallHandlerTest):
     super().setUp()
     self.handler = vfs_plugin.ApiUpdateVfsFileContentHandler()
     self.client_id = self.SetupClient(0)
-    self.file_path = "fs/os/c/bin/bash"
+    self.vfs_file_path = "fs/os/c/bin/bash"
+    self.base_file_path = "/c/bin/bash"
 
   def testRaisesOnEmptyPath(self):
     args = vfs_pb2.ApiUpdateVfsFileContentArgs(
@@ -1019,14 +1008,20 @@ class ApiUpdateVfsFileContentHandlerTest(api_test_lib.ApiCallHandlerTest):
     fixture_test_lib.ClientFixture(self.client_id)
 
     args = vfs_pb2.ApiUpdateVfsFileContentArgs(
-        client_id=self.client_id, file_path=self.file_path
+        client_id=self.client_id, file_path=self.vfs_file_path
     )
     result = self.handler.Handle(args, context=self.context)
 
     flow_obj = data_store.REL_DB.ReadFlowObject(
         self.client_id, result.operation_id
     )
-    self.assertEqual(flow_obj.flow_class_name, transfer.MultiGetFile.__name__)
+    self.assertEqual(
+        flow_obj.flow_class_name, file_flows.CollectFilesByKnownPath.__name__
+    )
+    flow_args = flows_pb2.CollectFilesByKnownPathArgs()
+    flow_obj.args.Unpack(flow_args)
+    # The flow expects a path without the VFS prefix.
+    self.assertEqual(flow_args.paths, [self.base_file_path])
     self.assertEqual(flow_obj.creator, self.context.username)
 
 
@@ -1041,31 +1036,33 @@ class ApiGetVfsFileContentUpdateStateHandlerTest(
     self.client_id = self.SetupClient(0)
 
   def testHandlerReturnsCorrectStateForFlow(self):
-    # Create a mock refresh operation.
-    flow_id = self.CreateMultiGetFileFlow(
-        self.client_id, file_path="fs/os/c/bin/bash"
-    )
+    for create_flow_fn in [
+        self.CreateMultiGetFileFlow,
+        self.CreateCollectFilesByKnownPathFlow,
+    ]:
+      # Create a mock refresh operation.
+      flow_id = create_flow_fn(self.client_id, file_path="fs/os/c/bin/bash")
 
-    args = vfs_pb2.ApiGetVfsFileContentUpdateStateArgs(
-        client_id=self.client_id, operation_id=flow_id
-    )
+      args = vfs_pb2.ApiGetVfsFileContentUpdateStateArgs(
+          client_id=self.client_id, operation_id=flow_id
+      )
 
-    # Flow was started and should be running.
-    result = self.handler.Handle(args, context=self.context)
-    self.assertEqual(
-        result.state,
-        vfs_pb2.ApiGetVfsFileContentUpdateStateResult.State.RUNNING,
-    )
+      # Flow was started and should be running.
+      result = self.handler.Handle(args, context=self.context)
+      self.assertEqual(
+          result.state,
+          vfs_pb2.ApiGetVfsFileContentUpdateStateResult.State.RUNNING,
+      )
 
-    # Terminate flow.
-    flow_base.TerminateFlow(self.client_id, flow_id, "Fake error")
+      # Terminate flow.
+      flow_base.TerminateFlow(self.client_id, flow_id, "Fake error")
 
-    # Recheck status and see if it changed.
-    result = self.handler.Handle(args, context=self.context)
-    self.assertEqual(
-        result.state,
-        vfs_pb2.ApiGetVfsFileContentUpdateStateResult.State.FINISHED,
-    )
+      # Recheck status and see if it changed.
+      result = self.handler.Handle(args, context=self.context)
+      self.assertEqual(
+          result.state,
+          vfs_pb2.ApiGetVfsFileContentUpdateStateResult.State.FINISHED,
+      )
 
   def testHandlerRaisesOnArbitraryFlowId(self):
     # Create a mock flow.

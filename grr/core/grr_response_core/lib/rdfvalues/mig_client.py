@@ -7,48 +7,12 @@ from grr_response_proto import knowledge_base_pb2
 from grr_response_proto import sysinfo_pb2
 
 
-def ToProtoPackageRepository(
-    rdf: rdf_client.PackageRepository,
-) -> sysinfo_pb2.PackageRepository:
-  return rdf.AsPrimitiveProto()
-
-
-def ToRDFPackageRepository(
-    proto: sysinfo_pb2.PackageRepository,
-) -> rdf_client.PackageRepository:
-  return rdf_client.PackageRepository.FromSerializedBytes(
-      proto.SerializeToString()
-  )
-
-
-def ToProtoManagementAgent(
-    rdf: rdf_client.ManagementAgent,
-) -> sysinfo_pb2.ManagementAgent:
-  return rdf.AsPrimitiveProto()
-
-
-def ToRDFManagementAgent(
-    proto: sysinfo_pb2.ManagementAgent,
-) -> rdf_client.ManagementAgent:
-  return rdf_client.ManagementAgent.FromSerializedBytes(
-      proto.SerializeToString()
-  )
-
-
 def ToProtoPwEntry(rdf: rdf_client.PwEntry) -> knowledge_base_pb2.PwEntry:
   return rdf.AsPrimitiveProto()
 
 
 def ToRDFPwEntry(proto: knowledge_base_pb2.PwEntry) -> rdf_client.PwEntry:
   return rdf_client.PwEntry.FromSerializedBytes(proto.SerializeToString())
-
-
-def ToProtoGroup(rdf: rdf_client.Group) -> knowledge_base_pb2.Group:
-  return rdf.AsPrimitiveProto()
-
-
-def ToRDFGroup(proto: knowledge_base_pb2.Group) -> rdf_client.Group:
-  return rdf_client.Group.FromSerializedBytes(proto.SerializeToString())
 
 
 def ToProtoUserFromUser(rdf: rdf_client.User) -> knowledge_base_pb2.User:
@@ -83,18 +47,6 @@ def ToRDFKnowledgeBase(
     proto: knowledge_base_pb2.KnowledgeBase,
 ) -> rdf_client.KnowledgeBase:
   return rdf_client.KnowledgeBase.FromSerializedBytes(proto.SerializeToString())
-
-
-def ToProtoHardwareInfo(
-    rdf: rdf_client.HardwareInfo,
-) -> sysinfo_pb2.HardwareInfo:
-  return rdf.AsPrimitiveProto()
-
-
-def ToRDFHardwareInfo(
-    proto: sysinfo_pb2.HardwareInfo,
-) -> rdf_client.HardwareInfo:
-  return rdf_client.HardwareInfo.FromSerializedBytes(proto.SerializeToString())
 
 
 def ToProtoClientInformation(

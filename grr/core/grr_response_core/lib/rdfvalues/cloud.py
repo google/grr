@@ -31,7 +31,7 @@ class CloudMetadataRequest(rdf_structs.RDFProtoStruct):
         **kwargs,
         bios_version_regex=AMAZON_BIOS_REGEX,
         service_name_regex=AMAZON_SERVICE_REGEX,
-        instance_type=CloudInstance.InstanceType.AMAZON,
+        instance_type=CloudInstance.InstanceType.AMAZON,  # pyrefly: ignore[missing-attribute]
         timeout=1.0,
     )
 
@@ -43,7 +43,7 @@ class CloudMetadataRequest(rdf_structs.RDFProtoStruct):
         bios_version_regex=GOOGLE_BIOS_REGEX,
         service_name_regex=GOOGLE_SERVICE_REGEX,
         headers={"Metadata-Flavor": "Google"},
-        instance_type=CloudInstance.InstanceType.GOOGLE,
+        instance_type=CloudInstance.InstanceType.GOOGLE,  # pyrefly: ignore[missing-attribute]
         timeout=1.0,
     )
 
@@ -82,7 +82,7 @@ class CloudInstance(rdf_structs.RDFProtoStruct):
   ]
 
 
-# TODO: Return a proto instead of an RDFValue.
+# TODO - Return a proto instead of an RDFValue.
 def BuildCloudMetadataRequests():
   """Build the standard set of cloud metadata to collect during interrogate.
 

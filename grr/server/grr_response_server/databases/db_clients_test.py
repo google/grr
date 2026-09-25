@@ -1651,11 +1651,6 @@ class DatabaseTestClientsMixin(object):
         )
     ])
 
-    # A flow processing request.
-    self.db.WriteFlowProcessingRequests(
-        [flows_pb2.FlowProcessingRequest(client_id=client_id, flow_id=flow_id)]
-    )
-
     return flow_id
 
   def _CheckClientKeyedDataWasDeleted(self, client_id, flow_id):

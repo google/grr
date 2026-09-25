@@ -9,7 +9,6 @@ from grr_response_client import actions
 from grr_response_client.client_actions.file_finder_utils import conditions
 from grr_response_client.client_actions.file_finder_utils import globbing
 from grr_response_client.client_actions.file_finder_utils import subactions
-from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.util import filesystem
@@ -30,10 +29,10 @@ class FileFinderOS(actions.ActionPlugin):
   out_rdfvalues = [rdf_file_finder.FileFinderResult]
 
   def Run(self, args: rdf_file_finder.FileFinderArgs):
-    if args.pathtype != rdf_paths.PathSpec.PathType.OS:
+    if args.pathtype != rdf_paths.PathSpec.PathType.OS:  # pyrefly: ignore[missing-attribute]
       raise ValueError(
           "FileFinderOS can only be used with OS paths, got {}".format(
-              args.pathspec
+              args.pathspec  # pyrefly: ignore[missing-attribute]
           )
       )
 
@@ -41,18 +40,17 @@ class FileFinderOS(actions.ActionPlugin):
 
     action = self._ParseAction(args)
     self._metadata_conditions = list(
-        conditions.MetadataCondition.Parse(args.conditions)
+        conditions.MetadataCondition.Parse(args.conditions)  # pyrefly: ignore[missing-attribute]
     )
     self._content_conditions = list(
-        conditions.ContentCondition.Parse(args.conditions)
+        conditions.ContentCondition.Parse(args.conditions)  # pyrefly: ignore[missing-attribute]
     )
 
     for path in GetExpandedPaths(args, heartbeat_cb=self.Progress):
       self.Progress()
       try:
-        matches = self._Validate(args, path)
+        self._Validate(args, path)
         result = rdf_file_finder.FileFinderResult()
-        result.matches = matches
         action.Execute(path, result)
         self.SendReply(result)
       except _SkipFileException:
@@ -61,13 +59,13 @@ class FileFinderOS(actions.ActionPlugin):
   def _ParseAction(
       self, args: rdf_file_finder.FileFinderArgs
   ) -> subactions.Action:
-    action_type = args.action.action_type
-    if action_type == rdf_file_finder.FileFinderAction.Action.STAT:
-      return subactions.StatAction(self, args.action.stat)
-    if action_type == rdf_file_finder.FileFinderAction.Action.HASH:
-      return subactions.HashAction(self, args.action.hash)
-    if action_type == rdf_file_finder.FileFinderAction.Action.DOWNLOAD:
-      return subactions.DownloadAction(self, args.action.download)
+    action_type = args.action.action_type  # pyrefly: ignore[missing-attribute]
+    if action_type == rdf_file_finder.FileFinderAction.Action.STAT:  # pyrefly: ignore[missing-attribute]
+      return subactions.StatAction(self, args.action.stat)  # pyrefly: ignore[missing-attribute]
+    if action_type == rdf_file_finder.FileFinderAction.Action.HASH:  # pyrefly: ignore[missing-attribute]
+      return subactions.HashAction(self, args.action.hash)  # pyrefly: ignore[missing-attribute]
+    if action_type == rdf_file_finder.FileFinderAction.Action.DOWNLOAD:  # pyrefly: ignore[missing-attribute]
+      return subactions.DownloadAction(self, args.action.download)  # pyrefly: ignore[missing-attribute]
     raise ValueError("Incorrect action type: %s" % action_type)
 
   def _GetStat(self, filepath, follow_symlink=True):
@@ -77,15 +75,11 @@ class FileFinderOS(actions.ActionPlugin):
       logging.info("Failed to stat '%s': %s", filepath, e)
       raise _SkipFileException() from e
 
-  def _Validate(
-      self, args: rdf_file_finder.FileFinderArgs, filepath: str
-  ) -> list[rdf_client.BufferReference]:
-    matches = []
-    stat = self._GetStat(filepath, follow_symlink=bool(args.follow_links))
+  def _Validate(self, args: rdf_file_finder.FileFinderArgs, filepath: str):
+    stat = self._GetStat(filepath, follow_symlink=bool(args.follow_links))  # pyrefly: ignore[missing-attribute]
     self._ValidateRegularity(stat, args, filepath)
     self._ValidateMetadata(stat, filepath)
-    self._ValidateContent(stat, filepath, matches)
-    return matches
+    self._ValidateContent(stat, filepath)
 
   def _ValidateRegularity(self, stat, args, filepath):
     if args.process_non_regular_files:
@@ -113,7 +107,7 @@ class FileFinderOS(actions.ActionPlugin):
       if not metadata_condition.Check(stat):
         raise _SkipFileException()
 
-  def _ValidateContent(self, stat, filepath, matches):
+  def _ValidateContent(self, stat, filepath):
     if self._content_conditions and not stat.IsRegular():
       # This check ensures consistent behavior between the legacy file finder
       # and the client file finder. The legacy file finder was automatically
@@ -139,7 +133,6 @@ class FileFinderOS(actions.ActionPlugin):
         raise _SkipFileException() from e
       if not result:
         raise _SkipFileException()
-      matches.extend(result)
 
 
 def GetExpandedPaths(
@@ -159,15 +152,15 @@ def GetExpandedPaths(
   Raises:
     ValueError: For unsupported path types.
   """
-  if args.pathtype == rdf_paths.PathSpec.PathType.OS:
-    pathtype = rdf_paths.PathSpec.PathType.OS
+  if args.pathtype == rdf_paths.PathSpec.PathType.OS:  # pyrefly: ignore[missing-attribute]
+    pathtype = rdf_paths.PathSpec.PathType.OS  # pyrefly: ignore[missing-attribute]
   else:
     raise ValueError("Unsupported path type: ", args.pathtype)
 
   opts = globbing.PathOpts(
-      follow_links=args.follow_links, xdev=args.xdev, pathtype=pathtype
+      follow_links=args.follow_links, xdev=args.xdev, pathtype=pathtype  # pyrefly: ignore[missing-attribute]
   )
 
-  for path in args.paths:
+  for path in args.paths:  # pyrefly: ignore[missing-attribute]
     for expanded_path in globbing.ExpandPath(str(path), opts, heartbeat_cb):
       yield expanded_path

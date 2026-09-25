@@ -290,7 +290,7 @@ class NoMatchingSignedCommandError(NotFoundError):
 
     self.operating_system = operating_system
     self.path = path
-    self.args = list(args)
+    self.args = list(args)  # pyrefly: ignore[bad-assignment]
 
     self.message = (
         f"Signed command for path {path!r} and arguments {args!r} not found"
@@ -649,6 +649,13 @@ class ClientPath(object):
         self.path_type,
         self.components,
     )
+
+
+@dataclasses.dataclass(frozen=True)
+class FlowProcessingRequest:
+  client_id: str
+  flow_id: str
+  creation_time: rdfvalue.RDFDatetime
 
 
 class Database(metaclass=abc.ABCMeta):
@@ -1593,7 +1600,7 @@ class Database(metaclass=abc.ABCMeta):
         cutoff=cutoff,
     )
 
-    return histories[components]
+    return histories[components]  # pyrefly: ignore[bad-index]
 
   @abc.abstractmethod
   def ReadLatestPathInfosWithHashBlobReferences(
@@ -1861,14 +1868,14 @@ class Database(metaclass=abc.ABCMeta):
       self,
       cronjob_id: str,
       last_run_status: Union[
-          "flows_pb2.CronJobRun.CronJobRunStatus", Literal[UNCHANGED]
+          "flows_pb2.CronJobRun.CronJobRunStatus", Literal[UNCHANGED]  # pyrefly: ignore[not-a-type]
       ] = UNCHANGED,
       last_run_time: Union[
-          rdfvalue.RDFDatetime, Literal[UNCHANGED]
+          rdfvalue.RDFDatetime, Literal[UNCHANGED]  # pyrefly: ignore[not-a-type]
       ] = UNCHANGED,
-      current_run_id: Union[str, Literal[UNCHANGED]] = UNCHANGED,
-      state: Union[jobs_pb2.AttributedDict, Literal[UNCHANGED]] = UNCHANGED,
-      forced_run_requested: Union[bool, Literal[UNCHANGED]] = UNCHANGED,
+      current_run_id: Union[str, Literal[UNCHANGED]] = UNCHANGED,  # pyrefly: ignore[not-a-type]
+      state: Union[jobs_pb2.AttributedDict, Literal[UNCHANGED]] = UNCHANGED,  # pyrefly: ignore[not-a-type]
+      forced_run_requested: Union[bool, Literal[UNCHANGED]] = UNCHANGED,  # pyrefly: ignore[not-a-type]
   ) -> None:
     """Updates run information for an existing cron job.
 
@@ -2220,7 +2227,6 @@ class Database(metaclass=abc.ABCMeta):
           Union[
               flows_pb2.FlowResponse,
               flows_pb2.FlowStatus,
-              flows_pb2.FlowIterator,
           ],
       ],
   ) -> None:
@@ -2234,8 +2240,7 @@ class Database(metaclass=abc.ABCMeta):
     for processing, it also writes a FlowProcessingRequest to notify the worker.
 
     Args:
-      responses: List of FlowResponses, FlowStatuses or FlowIterators values to
-        write.
+      responses: List of FlowResponses or FlowStatuses values to write.
     """
 
   @abc.abstractmethod
@@ -2252,7 +2257,6 @@ class Database(metaclass=abc.ABCMeta):
                   Union[
                       flows_pb2.FlowResponse,
                       flows_pb2.FlowStatus,
-                      flows_pb2.FlowIterator,
                   ],
               ],
           ],
@@ -2295,7 +2299,6 @@ class Database(metaclass=abc.ABCMeta):
               Union[
                   flows_pb2.FlowResponse,
                   flows_pb2.FlowStatus,
-                  flows_pb2.FlowIterator,
               ],
           ],
       ],
@@ -2312,35 +2315,29 @@ class Database(metaclass=abc.ABCMeta):
     """
 
   @abc.abstractmethod
-  def WriteFlowProcessingRequests(
-      self,
-      requests: Sequence[flows_pb2.FlowProcessingRequest],
-  ) -> None:
-    """Writes a list of flow processing requests to the database.
-
-    Args:
-      requests: List of FlowProcessingRequest.
-    """
-
-  @abc.abstractmethod
   def ReadFlowProcessingRequests(
       self,
-  ) -> Sequence[flows_pb2.FlowProcessingRequest]:
+  ) -> Sequence[FlowProcessingRequest]:
     """Reads all flow processing requests from the database.
 
     Returns:
-      A list of FlowProcessingRequest, sorted by timestamp,
-      newest first.
+      A list of requests, sorted by timestamp, newest first.
     """
 
   @abc.abstractmethod
-  def AckFlowProcessingRequests(
-      self, requests: Iterable[flows_pb2.FlowProcessingRequest]
-  ) -> None:
-    """Acknowledges and deletes flow processing requests.
+  def AckFlowProcessingRequest(
+      self,
+      request: FlowProcessingRequest,
+  ) -> bool:
+    """Acknowledges and deletes a flow processing request.
 
     Args:
-      requests: List of rdf_flows.FlowProcessingRequest.
+      request: A request to acknowledge.
+
+    Returns:
+      `True` if acknowledgement was successful and `False` if the request was
+      no longer available (which can happen if it was already acknowledged by
+      another thread).
     """
 
   @abc.abstractmethod
@@ -2349,13 +2346,13 @@ class Database(metaclass=abc.ABCMeta):
 
   @abc.abstractmethod
   def RegisterFlowProcessingHandler(
-      self, handler: Callable[[flows_pb2.FlowProcessingRequest], None]
+      self,
+      handler: Callable[[FlowProcessingRequest], None],
   ) -> None:
     """Registers a handler to receive flow processing messages.
 
     Args:
-      handler: Method, which will be called repeatedly with lists of
-        rdf_flows.FlowProcessingRequest. Required.
+      handler: Method, which will be called repeatedly with lists of requests.
     """
 
   @abc.abstractmethod
@@ -2990,7 +2987,7 @@ class Database(metaclass=abc.ABCMeta):
       descending order.
     """
 
-  # TODO: Cleanup `with_creator`(single user) in favor of
+  # TODO - Cleanup `with_creator`(single user) in favor of
   # `created_by`(list).
   @abc.abstractmethod
   def ListHuntObjects(
@@ -3032,6 +3029,42 @@ class Database(metaclass=abc.ABCMeta):
     Returns:
       A list of rdf_hunt_objects.HuntMetadata objects sorted by create_time in
       descending order.
+    """
+
+  @abc.abstractmethod
+  def CountHuntObjects(
+      self,
+      with_creator: Optional[str] = None,
+      created_after: Optional[rdfvalue.RDFDatetime] = None,
+      with_description_match: Optional[str] = None,
+      created_by: Optional[Set[str]] = None,
+      not_created_by: Optional[Set[str]] = None,
+      with_states: Optional[
+          Collection[hunts_pb2.Hunt.HuntState.ValueType]
+      ] = None,
+  ) -> int:
+    """Counts hunt objects from the database.
+
+    Args:
+      with_creator: When specified, should be a string corresponding to a GRR
+        username. Only metadata for hunts created by the matching user will be
+        returned.
+      created_after: When specified, should be a rdfvalue.RDFDatetime. Only
+        metadata for hunts with create_time after created_after timestamp will
+        be returned.
+      with_description_match: When specified, will only return metadata for
+        hunts with descriptions containing a given substring.
+      created_by: When specified, should be a list of strings corresponding to
+        GRR usernames. Only metadata for hunts created by the matching users
+        will be returned.
+      not_created_by: When specified, should be a list of strings corresponding
+        to GRR usernames. Only metadata for hunts NOT created by any of the
+        matching users will be returned.
+      with_states: When specified should be a list of `Hunt.HuntState`s. Only
+        metadata for hunts with states on the list will be returned.
+
+    Returns:
+      Number of hunt objects matching the specified conditions.
     """
 
   @abc.abstractmethod
@@ -3232,13 +3265,13 @@ class Database(metaclass=abc.ABCMeta):
     ):
       flow_obj = mig_flow_objects.ToRDFFlow(flow_obj)
       info = FlowErrorInfo(
-          message=flow_obj.error_message,
-          time=flow_obj.last_update_time,
+          message=flow_obj.error_message,  # pyrefly: ignore[missing-attribute]
+          time=flow_obj.last_update_time,  # pyrefly: ignore[missing-attribute]
       )
       if flow_obj.HasField("backtrace"):
-        info.backtrace = flow_obj.backtrace
+        info.backtrace = flow_obj.backtrace  # pyrefly: ignore[missing-attribute]
 
-      results[flow_obj.client_id] = info
+      results[flow_obj.client_id] = info  # pyrefly: ignore[missing-attribute]
 
     return results
 
@@ -3681,7 +3714,7 @@ class DatabaseValidationWrapper(Database):
   ) -> Sequence[objects_pb2.ClientSnapshot]:
     precondition.ValidateClientId(client_id)
     if timerange is not None:
-      self._ValidateTimeRange(timerange)
+      self._ValidateTimeRange(timerange)  # pyrefly: ignore[bad-argument-type]
 
     return self.delegate.ReadClientSnapshotHistory(
         client_id, timerange=timerange
@@ -3697,7 +3730,7 @@ class DatabaseValidationWrapper(Database):
   ) -> Sequence[jobs_pb2.StartupInfo]:
     precondition.ValidateClientId(client_id)
     if timerange is not None:
-      self._ValidateTimeRange(timerange)
+      self._ValidateTimeRange(timerange)  # pyrefly: ignore[bad-argument-type]
 
     return self.delegate.ReadClientStartupInfoHistory(
         client_id,
@@ -4221,14 +4254,14 @@ class DatabaseValidationWrapper(Database):
       self,
       cronjob_id: str,
       last_run_status: Union[
-          "flows_pb2.CronJobRun.CronJobRunStatus", Literal[UNCHANGED]
+          "flows_pb2.CronJobRun.CronJobRunStatus", Literal[UNCHANGED]  # pyrefly: ignore[not-a-type]
       ] = UNCHANGED,
       last_run_time: Union[
-          rdfvalue.RDFDatetime, Literal[UNCHANGED]
+          rdfvalue.RDFDatetime, Literal[UNCHANGED]  # pyrefly: ignore[not-a-type]
       ] = UNCHANGED,
-      current_run_id: Union[str, Literal[UNCHANGED]] = UNCHANGED,
-      state: Union[jobs_pb2.AttributedDict, Literal[UNCHANGED]] = UNCHANGED,
-      forced_run_requested: Union[bool, Literal[UNCHANGED]] = UNCHANGED,
+      current_run_id: Union[str, Literal[UNCHANGED]] = UNCHANGED,  # pyrefly: ignore[not-a-type]
+      state: Union[jobs_pb2.AttributedDict, Literal[UNCHANGED]] = UNCHANGED,  # pyrefly: ignore[not-a-type]
+      forced_run_requested: Union[bool, Literal[UNCHANGED]] = UNCHANGED,  # pyrefly: ignore[not-a-type]
   ) -> None:
     _ValidateCronJobId(cronjob_id)
     if current_run_id is not None and current_run_id != Database.UNCHANGED:
@@ -4474,7 +4507,6 @@ class DatabaseValidationWrapper(Database):
           Union[
               flows_pb2.FlowResponse,
               flows_pb2.FlowStatus,
-              flows_pb2.FlowIterator,
           ],
       ],
   ) -> None:
@@ -4499,7 +4531,6 @@ class DatabaseValidationWrapper(Database):
                   Union[
                       flows_pb2.FlowResponse,
                       flows_pb2.FlowStatus,
-                      flows_pb2.FlowIterator,
                   ],
               ],
           ],
@@ -4530,7 +4561,6 @@ class DatabaseValidationWrapper(Database):
               Union[
                   flows_pb2.FlowResponse,
                   flows_pb2.FlowStatus,
-                  flows_pb2.FlowIterator,
               ],
           ],
       ],
@@ -4539,29 +4569,23 @@ class DatabaseValidationWrapper(Database):
     precondition.ValidateFlowId(flow_id)
     return self.delegate.ReadFlowRequests(client_id, flow_id)
 
-  def WriteFlowProcessingRequests(
-      self,
-      requests: Sequence[flows_pb2.FlowProcessingRequest],
-  ) -> None:
-    precondition.AssertIterableType(requests, flows_pb2.FlowProcessingRequest)
-    return self.delegate.WriteFlowProcessingRequests(requests)
-
   def ReadFlowProcessingRequests(
       self,
-  ) -> Sequence[flows_pb2.FlowProcessingRequest]:
+  ) -> Sequence[FlowProcessingRequest]:
     return self.delegate.ReadFlowProcessingRequests()
 
-  def AckFlowProcessingRequests(
-      self, requests: Iterable[flows_pb2.FlowProcessingRequest]
-  ) -> None:
-    precondition.AssertIterableType(requests, flows_pb2.FlowProcessingRequest)
-    return self.delegate.AckFlowProcessingRequests(requests)
+  def AckFlowProcessingRequest(
+      self,
+      request: FlowProcessingRequest,
+  ) -> bool:
+    return self.delegate.AckFlowProcessingRequest(request)
 
   def DeleteAllFlowProcessingRequests(self) -> None:
     return self.delegate.DeleteAllFlowProcessingRequests()
 
   def RegisterFlowProcessingHandler(
-      self, handler: Callable[[flows_pb2.FlowProcessingRequest], None]
+      self,
+      handler: Callable[[FlowProcessingRequest], None],
   ) -> None:
     if handler is None:
       raise ValueError("handler must be provided")
@@ -4938,7 +4962,7 @@ class DatabaseValidationWrapper(Database):
     if hunt_state is not None:
       _ValidateProtoEnumType(hunt_state, hunts_pb2.Hunt.HuntState)
     if hunt_state_reason is not None:
-      _ValidateProtoEnumType(hunt_state, hunts_pb2.Hunt.HuntStateReason)
+      _ValidateProtoEnumType(hunt_state, hunts_pb2.Hunt.HuntStateReason)  # pyrefly: ignore[bad-argument-type]
 
     precondition.AssertOptionalType(hunt_state_comment, str)
     precondition.AssertOptionalType(start_time, rdfvalue.RDFDatetime)
@@ -5028,6 +5052,37 @@ class DatabaseValidationWrapper(Database):
     return self.delegate.ReadHuntObjects(
         offset,
         count,
+        with_creator=with_creator,
+        created_after=created_after,
+        with_description_match=with_description_match,
+        created_by=created_by,
+        not_created_by=not_created_by,
+        with_states=with_states,
+    )
+
+  def CountHuntObjects(
+      self,
+      with_creator: Optional[str] = None,
+      created_after: Optional[rdfvalue.RDFDatetime] = None,
+      with_description_match: Optional[str] = None,
+      created_by: Optional[Set[str]] = None,
+      not_created_by: Optional[Set[str]] = None,
+      with_states: Optional[
+          Collection[hunts_pb2.Hunt.HuntState.ValueType]
+      ] = None,
+  ) -> int:
+    precondition.AssertOptionalType(with_creator, str)
+    precondition.AssertOptionalType(created_after, rdfvalue.RDFDatetime)
+    precondition.AssertOptionalType(with_description_match, str)
+    if created_by is not None:
+      precondition.AssertIterableType(created_by, str)
+    if not_created_by is not None:
+      precondition.AssertIterableType(not_created_by, str)
+    if with_states is not None:
+      for state in with_states:
+        _ValidateProtoEnumType(state, hunts_pb2.Hunt.HuntState)
+
+    return self.delegate.CountHuntObjects(
         with_creator=with_creator,
         created_after=created_after,
         with_description_match=with_description_match,
@@ -5302,12 +5357,28 @@ class DatabaseValidationWrapper(Database):
       _ValidateSignedCommandId(signed_command.id)
       _ValidateOperatingSystem(signed_command.operating_system)
       _ValidateEd25519Signature(signed_command.ed25519_signature)
-      _ValidateStringLength(
-          "signed_command.command.path",
-          command.path.raw_bytes,
-          max_length=65535,
-          min_length=1,
-      )
+
+      if command.path.raw_bytes:
+        if not 1 <= len(command.path.raw_bytes) <= 65535:
+          raise ValueError(
+              f"Invalid length of command path: {command.path} for "
+              f"{signed_command.id}",
+          )
+      elif command.filestore_file_sha256:
+        if len(command.filestore_file_sha256) * 8 != 256:
+          raise ValueError(
+              "Invalid command executable file SHA256 for "
+              f"{signed_command.id}: {command.filestore_file_sha256}",
+          )
+        if not signed_command.server_executable_path:
+          raise ValueError(
+              f"No server executable path specified for {signed_command.id}",
+          )
+      else:
+        raise ValueError(
+            "Neither local nor server executable path specified for "
+            f"{signed_command.id}",
+        )
 
     return self.delegate.WriteSignedCommands(signed_commands)
 

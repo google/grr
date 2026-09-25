@@ -4,12 +4,11 @@ import ipaddress
 
 from absl import app
 
-from grr_response_core.lib.rdfvalues import client as rdf_client
-from grr_response_core.lib.rdfvalues import client_network as rdf_client_network
+from grr_response_proto import jobs_pb2
+from grr_response_proto import objects_pb2
 from grr_response_server import client_index
 from grr_response_server import data_store
 from grr_response_server.databases import db_test_utils
-from grr_response_server.rdfvalues import objects as rdf_objects
 from grr.test_lib import test_lib
 
 CLIENT_ID = "C.00aaeccbb45f33a3"
@@ -20,20 +19,18 @@ class ClientIndexTest(test_lib.GRRBaseTest):
   def testAnalyzeClient(self):
     index = client_index.ClientIndex()
 
-    client = rdf_objects.ClientSnapshot(client_id="C.0000000000000000")
+    client = objects_pb2.ClientSnapshot(client_id="C.0000000000000000")
     client.knowledge_base.os = "Windows"
     client.hardware_info.serial_number = "123abc"
     client.hardware_info.system_uuid = "a-b-c-1-2-3"
     client.startup_info.client_info.client_name = "grr monitor"
-    client.startup_info.client_info.labels = ["client-label-23"]
+    client.startup_info.client_info.labels.append("client-label-23")
     kb = client.knowledge_base
-    kb.users = [
-        rdf_client.User(
-            username="Bert",
-            full_name="Eric (Bertrand ) 'Russell' \"Logician\" Jacobson",
-        ),
-        rdf_client.User(username="Ernie", full_name="Steve O'Bryan"),
-    ]
+    kb.users.add(
+        username="Bert",
+        full_name="Eric (Bertrand ) 'Russell' \"Logician\" Jacobson",
+    )
+    kb.users.add(username="Ernie", full_name="Steve O'Bryan")
     keywords = index.AnalyzeClient(client)
 
     # Should not contain an empty string.
@@ -64,25 +61,22 @@ class ClientIndexTest(test_lib.GRRBaseTest):
     res = {}
     for i in range(1, n + 1):
       client_id = "C.100000000000000%d" % i
-      client = rdf_objects.ClientSnapshot(client_id=client_id)
+      client = objects_pb2.ClientSnapshot(client_id=client_id)
       client.knowledge_base.os = "Windows"
       client.knowledge_base.fqdn = "host-%d.example.com" % i
 
-      ipv4_addr = rdf_client_network.NetworkAddress(
-          address_type=rdf_client_network.NetworkAddress.Family.INET,
+      ipv4_addr = jobs_pb2.NetworkAddress(
+          address_type=jobs_pb2.NetworkAddress.Family.INET,
           packed_bytes=ipaddress.IPv4Address("192.168.0.%d" % i).packed,
       )
-      ipv6_addr = rdf_client_network.NetworkAddress(
-          address_type=rdf_client_network.NetworkAddress.Family.INET6,
+      ipv6_addr = jobs_pb2.NetworkAddress(
+          address_type=jobs_pb2.NetworkAddress.Family.INET6,
           packed_bytes=ipaddress.IPv6Address("2001:abcd::%d" % i).packed,
       )
 
-      client.interfaces = [
-          rdf_client_network.Interface(
-              addresses=[ipv4_addr, ipv6_addr],
-              mac_address=binascii.unhexlify("aabbccddee0%d" % i),
-          )
-      ]
+      iface = client.interfaces.add()
+      iface.addresses.extend([ipv4_addr, ipv6_addr])
+      iface.mac_address = binascii.unhexlify("aabbccddee0%d" % i)
       res[client_id] = client
     return res
 
@@ -219,7 +213,7 @@ class ClientIndexTest(test_lib.GRRBaseTest):
       data = client_data[client_id]
       if not data:
         continue
-      labelled_hosts.append(data.hostname)
+      labelled_hosts.append(data.knowledge_base.fqdn)
     self.assertCountEqual(expected_hosts, labelled_hosts)
 
 

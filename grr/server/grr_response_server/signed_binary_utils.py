@@ -196,7 +196,7 @@ def FetchBlobsForSignedBinaryByID(
   blob_ids = [models_blob.BlobID(r.blob_id) for r in references.items]
   raw_blobs = (data_store.BLOBS.ReadBlob(blob_id) for blob_id in blob_ids)
   blobs = (
-      rdf_crypto.SignedBlob.FromSerializedBytes(raw_blob)
+      rdf_crypto.SignedBlob.FromSerializedBytes(raw_blob)  # pyrefly: ignore[bad-argument-type]
       for raw_blob in raw_blobs
   )
   return blobs, timestamp
@@ -234,7 +234,7 @@ def FetchBlobForSignedBinaryByID(
 
   blob_id = models_blob.BlobID(blob_id_bytes)
   raw_blob = data_store.BLOBS.ReadBlob(blob_id)
-  return rdf_crypto.SignedBlob.FromSerializedBytes(raw_blob)
+  return rdf_crypto.SignedBlob.FromSerializedBytes(raw_blob)  # pyrefly: ignore[bad-argument-type]
 
 
 def FetchBlobsForSignedBinaryByURN(
@@ -273,7 +273,7 @@ def FetchSizeOfSignedBinary(
   else:
     binary_id = binary_id_or_urn
   try:
-    references, _ = data_store.REL_DB.ReadSignedBinaryReferences(binary_id)
+    references, _ = data_store.REL_DB.ReadSignedBinaryReferences(binary_id)  # pyrefly: ignore[bad-argument-type]
   except db.UnknownSignedBinaryError:
     raise SignedBinaryNotFoundError(binary_id)
   last_reference = references.items[-1]

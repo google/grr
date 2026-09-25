@@ -178,14 +178,14 @@ def _XmlChild(node: xml.dom.minidom.Element,
 
 def _XmlChildValue(node: xml.dom.minidom.Element, name: str) -> str:
   text_nodes = _XmlChild(node, name).childNodes
-  return text_nodes[0].data
+  return text_nodes[0].data  # pyrefly: ignore[missing-attribute]
 
 
 def _SetXmlChildValue(
     node: xml.dom.minidom.Element, name: str, value: Any
 ) -> None:
   text_nodes = _XmlChild(node, name).childNodes
-  text_nodes[0].data = str(value)
+  text_nodes[0].data = str(value)  # pyrefly: ignore[missing-attribute]
 
 
 def _SetXmlChildAttribute(
@@ -225,8 +225,8 @@ def _BuildToc(src_toc_path: str, files_dir: str) -> _BuildTocResult:
   file_order = []
   dom = xml.dom.minidom.parse(src_toc_path)
 
-  _SetXmlChildAttribute(dom, "checksum", "style", "sha1")  # pytype: disable=wrong-arg-types
-  checksum_elem = _XmlChild(dom, "checksum")  # pytype: disable=wrong-arg-types
+  _SetXmlChildAttribute(dom, "checksum", "style", "sha1")  # pyrefly: ignore[bad-argument-type]
+  checksum_elem = _XmlChild(dom, "checksum")  # pyrefly: ignore[bad-argument-type]
   _SetXmlChildValue(checksum_elem, "offset", 0)
   _SetXmlChildValue(checksum_elem, "size", hashlib.sha1().digest_size)
 

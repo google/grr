@@ -9,7 +9,6 @@ import {
 } from '@angular/core';
 import {MatButtonModule} from '@angular/material/button';
 import {MatIconModule} from '@angular/material/icon';
-import {Title} from '@angular/platform-browser';
 
 import {Flow, FlowType} from '../../../lib/models/flow';
 import {ClientStore, FlowResultsQuery} from '../../../store/client_store';
@@ -59,8 +58,6 @@ export class FlowResults {
   });
 
   constructor() {
-    inject(Title).setTitle('GRR | Client > Flow > Results');
-
     this.clientStore.pollFlowResults(
       computed<FlowResultsQuery>(() => {
         return {
@@ -69,6 +66,7 @@ export class FlowResults {
           count: this.resultsCount(),
           withTag: this.resultsTag(),
           withType: this.resultsType(),
+          hasAccess: this.clientStore.hasAccess(),
         };
       }),
     );

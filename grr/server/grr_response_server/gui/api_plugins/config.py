@@ -163,7 +163,7 @@ class ApiGetConfigHandler(api_call_handler_base.ApiCallHandler):
       section = sections[section_name]
 
       api_section = config_pb2.ApiConfigSection(name=section_name)
-      # TODO: Replace with `clear()` once upgraded.
+      # TODO - Replace with `clear()` once upgraded.
       del api_section.options[:]
       for param_name in sorted(section):
         api_section.options.append(section[param_name])
@@ -338,7 +338,7 @@ class ApiGetUiConfigHandler(api_call_handler_base.ApiCallHandler):
   ) -> config_pb2.ApiUiConfig:
     del args, context  # Unused.
 
-    default_hunt_runner_args = models_hunts.CreateHuntRunnerArgs()
+    default_hunt_runner_args = models_hunts.CreateDefaultHuntRunnerArgs()
     hunt_config = config.CONFIG["AdminUI.hunt_config"]
     if hunt_config:
       hunt_config = hunt_config.AsPrimitiveProto()

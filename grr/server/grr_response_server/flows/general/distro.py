@@ -6,7 +6,6 @@ import re
 
 from google.protobuf import any_pb2
 from grr_response_core.lib import rdfvalue
-from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import distro_pb2
 from grr_response_proto import flows_pb2
 from grr_response_proto import jobs_pb2
@@ -20,25 +19,15 @@ from grr_response_server.models import blobs as models_blobs
 from grr_response_proto.rrg.action import get_file_contents_pb2 as rrg_get_file_contents_pb2
 
 
-class CollectDistroInfoResult(rdf_structs.RDFProtoStruct):
-  """RDF wrapper for the `CollectDistroInfoResult` message."""
-
-  protobuf = distro_pb2.CollectDistroInfoResult
-  rdf_deps = []
-
-
 class CollectDistroInfo(flow_base.FlowBase):
   """Flow that collects information about the endpoint Linux distribution."""
 
   category = "/Collectors/"
   behaviours = flow_base.BEHAVIOUR_DEBUG
 
-  result_types = [CollectDistroInfoResult]
   proto_result_types = [distro_pb2.CollectDistroInfoResult]
 
   proto_store_type = distro_pb2.CollectDistroInfoStore
-
-  only_protos_allowed = True
 
   def Start(self) -> None:
     if self.client_os != "Linux":
@@ -46,33 +35,33 @@ class CollectDistroInfo(flow_base.FlowBase):
 
     if self.rrg_support:
       action = rrg_stubs.GetFileContents()
-      # TODO: Use a single RRG call for collecting these (this is
+      # TODO - Use a single RRG call for collecting these (this is
       # now possible since https://github.com/google/rrg/pull/128).
       action.args.paths.add()
 
       action.args.paths[0].raw_bytes = "/etc/enterprise-release".encode("utf-8")
-      action.Call(self._ProcessRRGEnterpriseRelease)
+      action.Call(self._ProcessRRGEnterpriseRelease)  # pyrefly: ignore[bad-argument-type]
 
       action.args.paths[0].raw_bytes = "/etc/oracle-release".encode("utf-8")
-      action.Call(self._ProcessRRGOracleRelease)
+      action.Call(self._ProcessRRGOracleRelease)  # pyrefly: ignore[bad-argument-type]
 
       action.args.paths[0].raw_bytes = "/etc/redhat-release".encode("utf-8")
-      action.Call(self._ProcessRRGRedHatRelease)
+      action.Call(self._ProcessRRGRedHatRelease)  # pyrefly: ignore[bad-argument-type]
 
       action.args.paths[0].raw_bytes = "/etc/rocky-release".encode("utf-8")
-      action.Call(self._ProcessRRGRockyRelease)
+      action.Call(self._ProcessRRGRockyRelease)  # pyrefly: ignore[bad-argument-type]
 
       action.args.paths[0].raw_bytes = "/etc/system-release".encode("utf-8")
-      action.Call(self._ProcessRRGSystemRelease)
+      action.Call(self._ProcessRRGSystemRelease)  # pyrefly: ignore[bad-argument-type]
 
       action.args.paths[0].raw_bytes = "/etc/lsb-release".encode("utf-8")
-      action.Call(self._ProcessRRGLSBRelease)
+      action.Call(self._ProcessRRGLSBRelease)  # pyrefly: ignore[bad-argument-type]
 
       action.args.paths[0].raw_bytes = "/etc/os-release".encode("utf-8")
-      action.Call(self._ProcessRRGOSRelease)
+      action.Call(self._ProcessRRGOSRelease)  # pyrefly: ignore[bad-argument-type]
 
       action.args.paths[0].raw_bytes = "/usr/lib/os-release".encode("utf-8")
-      action.Call(self._ProcessRRGOSRelease)
+      action.Call(self._ProcessRRGOSRelease)  # pyrefly: ignore[bad-argument-type]
 
       return
 
@@ -99,7 +88,7 @@ class CollectDistroInfo(flow_base.FlowBase):
         next_state=self._ProcessRelease.__name__,
     )
 
-  @flow_base.UseProto2AnyResponses
+  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
   def _ProcessRRGLSBRelease(
       self,
       responses: flow_responses.Responses[any_pb2.Any],
@@ -119,7 +108,7 @@ class CollectDistroInfo(flow_base.FlowBase):
     content = _GetFileContentResponsesToContent(responses)
     _ParseLSBRelease(content, self.store.result)
 
-  @flow_base.UseProto2AnyResponses
+  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
   def _ProcessRRGSystemRelease(
       self,
       responses: flow_responses.Responses[any_pb2.Any],
@@ -140,7 +129,7 @@ class CollectDistroInfo(flow_base.FlowBase):
     if not self.store.result.release:
       self.store.result.release = content.strip()
 
-  @flow_base.UseProto2AnyResponses
+  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
   def _ProcessRRGOracleRelease(
       self,
       responses: flow_responses.Responses[any_pb2.Any],
@@ -163,7 +152,7 @@ class CollectDistroInfo(flow_base.FlowBase):
     content = _GetFileContentResponsesToContent(responses)
     _ParseRedHatRelease(content, self.store.result)
 
-  @flow_base.UseProto2AnyResponses
+  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
   def _ProcessRRGEnterpriseRelease(
       self,
       responses: flow_responses.Responses[any_pb2.Any],
@@ -186,7 +175,7 @@ class CollectDistroInfo(flow_base.FlowBase):
     content = _GetFileContentResponsesToContent(responses)
     _ParseRedHatRelease(content, self.store.result)
 
-  @flow_base.UseProto2AnyResponses
+  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
   def _ProcessRRGRockyRelease(
       self,
       responses: flow_responses.Responses[any_pb2.Any],
@@ -209,7 +198,7 @@ class CollectDistroInfo(flow_base.FlowBase):
     content = _GetFileContentResponsesToContent(responses)
     _ParseRedHatRelease(content, self.store.result)
 
-  @flow_base.UseProto2AnyResponses
+  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
   def _ProcessRRGRedHatRelease(
       self,
       responses: flow_responses.Responses[any_pb2.Any],
@@ -232,7 +221,7 @@ class CollectDistroInfo(flow_base.FlowBase):
     content = _GetFileContentResponsesToContent(responses)
     _ParseRedHatRelease(content, self.store.result)
 
-  @flow_base.UseProto2AnyResponses
+  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
   def _ProcessRRGOSRelease(
       self,
       responses: flow_responses.Responses[any_pb2.Any],
@@ -260,7 +249,7 @@ class CollectDistroInfo(flow_base.FlowBase):
 
     self.SendReplyProto(self.store.result)
 
-  @flow_base.UseProto2AnyResponses
+  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
   def _ProcessRelease(
       self,
       responses: flow_responses.Responses[any_pb2.Any],
@@ -292,7 +281,7 @@ class CollectDistroInfo(flow_base.FlowBase):
     )
 
     blobs_by_path: dict[str, bytes] = {
-        path: b"".join(blobs_by_blob_id[blob_id] for blob_id in blob_ids)
+        path: b"".join(blobs_by_blob_id[blob_id] for blob_id in blob_ids)  # pyrefly: ignore[bad-argument-type]
         for path, blob_ids in blob_ids_by_path.items()
     }
 
@@ -442,5 +431,5 @@ def _GetFileContentResponsesToContent(
       timeout=rdfvalue.Duration.From(30, rdfvalue.SECONDS),
   )
 
-  content = b"".join(blobs_by_blob_id[blob_id] for blob_id in blob_ids)
+  content = b"".join(blobs_by_blob_id[blob_id] for blob_id in blob_ids)  # pyrefly: ignore[bad-argument-type]
   return content.decode("utf-8")

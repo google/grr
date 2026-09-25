@@ -15,7 +15,6 @@ import {
   MultiGetFileArgs,
   NetstatArgs,
   OsqueryFlowArgs,
-  ReadLowLevelArgs,
   RecursiveListDirectoryArgs,
   RegistryFinderArgs,
   StatMultipleFilesArgs,
@@ -77,13 +76,6 @@ export class FlowArgsPreviewPipe implements PipeTransform {
         if (listProcessesArgs.fetchBinaries) {
           summary.push('with binaries');
         }
-        if (listProcessesArgs.connectionStates) {
-          summary.push(
-            listProcessesArgs.connectionStates
-              .map((state) => state.toString())
-              .join(', '),
-          );
-        }
         if (listProcessesArgs.pids) {
           summary.push(listProcessesArgs.pids.join(', '));
         }
@@ -101,9 +93,6 @@ export class FlowArgsPreviewPipe implements PipeTransform {
       case FlowType.OS_QUERY_FLOW:
         const osqueryFlowArgs = flowArgs as OsqueryFlowArgs;
         return osqueryFlowArgs.query || '';
-      case FlowType.READ_LOW_LEVEL:
-        const readLowLevelArgs = flowArgs as ReadLowLevelArgs;
-        return readLowLevelArgs.path || '';
       case FlowType.RECURSIVE_LIST_DIRECTORY:
         const recursiveListDirectoryArgs =
           flowArgs as RecursiveListDirectoryArgs;

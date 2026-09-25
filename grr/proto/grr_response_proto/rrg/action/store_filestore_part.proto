@@ -1,0 +1,71 @@
+// Copyright 2025 Google LLC
+//
+// Use of this source code is governed by an MIT-style license that can be found
+// in the LICENSE file or at https://opensource.org/licenses/MIT.
+syntax = "proto3";
+
+package rrg.action.store_filestore_part;
+
+enum Status {
+  UNKNOWN = 0;
+  // More parts are needed to complete the transfer.
+  PENDING = 1;
+  // All the parts were delivered, the file is ready to be used.
+  COMPLETE = 2;
+}
+
+message Args {
+  // SHA-256 digest of the content of the whole file.
+  //
+  // This is used to verify the integrity of the transferred file once all parts
+  // are ready.
+  //
+  // All parts belonging to the same file are expected to have the same digest.
+  // In case of digest discrepancies between parts, there is no guarantee which
+  // digest value will be used for verification.
+  bytes file_sha256 = 1;
+
+  // Total size of the file.
+  //
+  // This is used to determine whether we received all the parts of the file.
+  //
+  // All parts belonging to the same file are expected to use the same total
+  // size value. In case of total size discrepancies between parts, there is no
+  // guarantee which total size value will be used for verification.
+  uint64 file_size = 2;
+
+  // Determines whether the file gets the executable bit.
+  //
+  // By default files stored in filestore are regular files that can be read by
+  // RRG (and its subprocesses). However, sometimes files also need to be execu-
+  // ted and Unix derivatives this requires the executable bit on the file to be
+  // set.
+  //
+  // This has no effect on Windows (which determines whether a file's executable
+  // by inspecting its magic bytes).
+  //
+  // All parts belonging to the same file are expected to use the same value for
+  // the executable bit. In case of executable bit discrepancies between parts,
+  // there is no guarantee about the final mode of the file.
+  bool file_executable = 5;
+
+  // Offset within the file of the content transferred in this action call.
+  //
+  // All parts belonging to the same file must not overlap (in particular it
+  // means all offsets must be unique).
+  uint64 part_offset = 3;
+
+  // Actual content of the part of the file transferred in this action call.
+  //
+  // All parts belonging to the same file must not overlap and the content must
+  // not be empty.
+  bytes part_content = 4;
+}
+
+message Result {
+  // SHA-256 digest of the file which the transferred part belongs to.
+  bytes file_sha256 = 1;
+
+  // Status of the overall file transfer after receiving this part.
+  Status status = 2;
+}

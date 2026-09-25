@@ -8,10 +8,8 @@ def IPShell(argv=None, user_ns=None, banner=None):
 
   try:
     # pylint: disable=g-import-not-at-top
-    # pytype: disable=import-error
     from IPython.terminal.embed import InteractiveShellEmbed
-    from IPython.config.loader import Config
-    # pytype: enable=import-error
+    from IPython.config.loader import Config  # pyrefly: ignore[missing-import]
     # pylint: enable=g-import-not-at-top
 
     cfg = Config()
@@ -21,7 +19,7 @@ def IPShell(argv=None, user_ns=None, banner=None):
     shell(local_ns=user_ns)
   except ImportError:
     # pylint: disable=g-import-not-at-top
-    from IPython import Shell  # pytype: disable=import-error
+    from IPython import Shell  # pyrefly: ignore[missing-module-attribute]
     # pylint: enable=g-import-not-at-top
 
     # IPython < 0.11

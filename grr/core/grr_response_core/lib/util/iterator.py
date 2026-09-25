@@ -116,7 +116,7 @@ class Lookahead(Iterator[_T]):
     if self.done:
       raise ValueError("No more items available")
 
-    return self._item
+    return self._item  # pyrefly: ignore[bad-return]
 
   @property
   def done(self) -> bool:

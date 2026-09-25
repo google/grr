@@ -5,6 +5,7 @@ from collections.abc import Sequence
 from typing import Optional, Union
 
 from google.protobuf import message
+
 from grr_api_client import client
 from grr_api_client import context as context_lib
 from grr_api_client import utils

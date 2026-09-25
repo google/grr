@@ -6,6 +6,7 @@ from collections.abc import Sequence
 from typing import Optional
 
 from google.protobuf import message
+
 from grr_api_client import context as api_context
 from grr_api_client import utils
 from grr_response_proto.api import vfs_pb2
@@ -74,7 +75,7 @@ class FileOperation(metaclass=abc.ABCMeta):
     utils.Poll(
         generator=self.GetState,
         condition=lambda s: s != self.__class__.RunningState(),
-        timeout=timeout,
+        timeout=timeout,  # pyrefly: ignore[bad-argument-type]
     )
     self.target_file = self.target_file.Get()
     return self

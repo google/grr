@@ -1,0 +1,51 @@
+# proto-file: grr_response_proto/api/signed_commands.proto
+# proto-message: ApiCommands
+
+commands {
+  id: "e2e_hello"
+  operating_system: LINUX
+
+  path_on_server_template: "${E2E_TEST_EXECUTABLES}/hello.sh"
+}
+
+commands {
+  id: "e2e_hello"
+  operating_system: MACOS
+
+  path_on_server_template: "${E2E_TEST_EXECUTABLES}/hello.sh"
+}
+
+commands {
+  id: "e2e_hello"
+  operating_system: WINDOWS
+
+  path_on_server_template: "${E2E_TEST_EXECUTABLES}/win_hello.exe"
+}
+
+commands {
+  id: "e2e_exit42"
+  operating_system: LINUX
+
+  path_on_server_template: "${E2E_TEST_EXECUTABLES}/exit42.sh"
+}
+
+commands {
+  id: "e2e_exit42"
+  operating_system: MACOS
+
+  path_on_server_template: "${E2E_TEST_EXECUTABLES}/exit42.sh"
+}
+
+commands {
+  id: "e2e_sleep"
+  operating_system: LINUX
+
+  path_on_server_template: "${E2E_TEST_EXECUTABLES}/sleep.sh"
+}
+
+commands {
+  id: "e2e_sleep"
+  operating_system: MACOS
+
+  path_on_server_template: "${E2E_TEST_EXECUTABLES}/sleep.sh"
+}

@@ -8,6 +8,7 @@ import {
   HuntType,
   ListHuntErrorsArgs,
   ListHuntErrorsResult,
+  ListHuntLogsArgs,
   ListHuntLogsResult,
   ListHuntResultsArgs,
   ListHuntResultsResult,
@@ -33,6 +34,7 @@ import {
   ApiHuntStateReason,
   ApiListHuntErrorsArgs,
   ApiListHuntErrorsResult,
+  ApiListHuntLogsArgs,
   ApiListHuntLogsResult,
   ApiListHuntResultsArgs,
   ApiListHuntResultsResult,
@@ -233,6 +235,18 @@ export function toApiListHuntResultsArgs(
 export function toApiListHuntErrorsArgs(
   args: ListHuntErrorsArgs,
 ): ApiListHuntErrorsArgs {
+  return {
+    huntId: args.huntId,
+    count: args.count ? String(args.count) : undefined,
+    offset: args.offset ? String(args.offset) : undefined,
+    filter: args.filter ?? undefined,
+  };
+}
+
+/** Translates from internal ListHuntLogsArgs to ApiListHuntLogsArgs. */
+export function toApiListHuntLogsArgs(
+  args: ListHuntLogsArgs,
+): ApiListHuntLogsArgs {
   return {
     huntId: args.huntId,
     count: args.count ? String(args.count) : undefined,

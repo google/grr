@@ -11,4 +11,10 @@ mat-form-field {
   display: flex;
   align-items: center;
   gap: 16px;
+
+  // Ensure that the icon is centered in the chip, mat-option overrides the
+  // styling to be shifted left.
+  ::ng-deep online-chip mat-icon {
+    display: contents;
+  }
 }

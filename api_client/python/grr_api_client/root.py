@@ -3,7 +3,7 @@
 
 from collections.abc import Callable
 import hashlib
-from typing import IO, Optional
+from typing import IO, Iterable, Optional
 
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric import padding
@@ -63,7 +63,7 @@ class GrrUserBase(object):
     args = user_management_pb2.ApiModifyGrrUserArgs(username=self.username)
 
     if user_type is not None:
-      args.user_type = user_type
+      args.user_type = user_type  # pyrefly: ignore[bad-assignment]
 
     if password is not None:
       args.password = password
@@ -186,7 +186,7 @@ class RootGrrApi(object):
     args = user_management_pb2.ApiCreateGrrUserArgs(username=username)
 
     if user_type is not None:
-      args.user_type = user_type
+      args.user_type = user_type  # pyrefly: ignore[bad-assignment]
 
     if password is not None:
       args.password = password
@@ -231,11 +231,11 @@ class RootGrrApi(object):
 
   def CreateSignedCommands(
       self,
-      commands: signed_commands_pb2.ApiSignedCommands,
+      commands: Iterable[signed_commands_pb2.ApiSignedCommand],
   ) -> None:
     """Creates a command signer."""
     args = signed_commands_pb2.ApiCreateSignedCommandsArgs()
-    args.signed_commands.extend(commands.signed_commands)
+    args.signed_commands.extend(commands)
 
     self._context.SendRequest("CreateSignedCommands", args)
 

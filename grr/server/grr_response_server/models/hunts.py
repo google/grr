@@ -1,8 +1,7 @@
 #!/usr/bin/env python
 """Hunt related helpers."""
 
-from typing import Optional
-
+from google.protobuf import message as pb_message
 from grr_response_core import config
 from grr_response_core.lib.util import random
 from grr_response_proto import flows_pb2
@@ -71,20 +70,31 @@ def RandomHuntId() -> str:
   return "{:016X}".format(random.Id64())
 
 
-def _CreateDefaultHunt() -> hunts_pb2.Hunt:
+def CreateDefaultHunt() -> hunts_pb2.Hunt:
   """Creates a new Hunt with default values."""
   hunt_obj = hunts_pb2.Hunt()
   hunt_obj.hunt_id = RandomHuntId()
 
+  # Even if for this method we're not setting any flow arguments,
+  # foreman rules rely on this enum being set. So we already set
+  # it always by default (variable hunts are no longer supported)
+  hunt_obj.args.hunt_type = hunts_pb2.HuntArguments.HuntType.STANDARD
+
   hunt_obj.hunt_state = hunts_pb2.Hunt.HuntState.PAUSED
   hunt_obj.duration = 2 * 7 * 24 * 60 * 60  # 2 weeks
+
+  # This value is here for backward compatibility reasons. New hunts should use
+  # the default value from the config instead.
   hunt_obj.client_rate = 20.5
+
   hunt_obj.client_limit = 100
-  # TODO: We use default values only if the config has been
+
+  # TODO - We use default values only if the config has been
   # initialized and leave them blank if it has not been. Protobuf defaults
   # depending on the config initialization is a *very* questionable design
   # choice and likely should be revised.
   if config.CONFIG.initialized:
+    hunt_obj.client_rate = config.CONFIG["Hunt.default_client_rate"]
     hunt_obj.crash_limit = config.CONFIG["Hunt.default_crash_limit"]
     hunt_obj.avg_results_per_client_limit = config.CONFIG[
         "Hunt.default_avg_results_per_client_limit"
@@ -99,11 +109,25 @@ def _CreateDefaultHunt() -> hunts_pb2.Hunt:
   return hunt_obj
 
 
+def CreateDefaultHuntForFlow(
+    flow_name: str, flow_args: pb_message.Message, creator: str
+) -> hunts_pb2.Hunt:
+  """Creates a new Hunt with default values."""
+  hunt_obj = CreateDefaultHunt()
+
+  hunt_obj.args.hunt_type = hunts_pb2.HuntArguments.HuntType.STANDARD
+  hunt_obj.args.standard.flow_name = flow_name
+  hunt_obj.args.standard.flow_args.Pack(flow_args)
+  hunt_obj.creator = creator
+
+  return hunt_obj
+
+
 def CreateHuntFromHuntRunnerArgs(
     hra: flows_pb2.HuntRunnerArgs,
 ) -> hunts_pb2.Hunt:
   """Creates a new Hunt from HuntRunnerArgs, sets default values if fields are unset."""
-  hunt_obj = _CreateDefaultHunt()
+  hunt_obj = CreateDefaultHunt()
 
   if hra.HasField("expiry_time"):
     hunt_obj.duration = hra.expiry_time
@@ -139,35 +163,21 @@ def CreateHuntFromHuntRunnerArgs(
   return hunt_obj
 
 
-def CreateHuntRunnerArgs(
-    client_rate: Optional[float] = None,
-    crash_limit: Optional[float] = None,
-    avg_results_per_client_limit: Optional[float] = None,
-    avg_cpu_seconds_per_client_limit: Optional[float] = None,
-    avg_network_bytes_per_client_limit: Optional[float] = None,
-) -> flows_pb2.HuntRunnerArgs:
+def CreateDefaultHuntRunnerArgs() -> flows_pb2.HuntRunnerArgs:
   """Creates a HuntRunnerArgs proto with default values."""
 
   hunt_runner_args = flows_pb2.HuntRunnerArgs()
-
-  if client_rate is None:
-    hunt_runner_args.client_rate = config.CONFIG["Hunt.default_client_rate"]
-
-  if crash_limit is None:
-    hunt_runner_args.crash_limit = config.CONFIG["Hunt.default_crash_limit"]
-
-  if avg_results_per_client_limit is None:
-    hunt_runner_args.avg_results_per_client_limit = config.CONFIG[
-        "Hunt.default_avg_results_per_client_limit"
-    ]
-  if avg_cpu_seconds_per_client_limit is None:
-    hunt_runner_args.avg_cpu_seconds_per_client_limit = config.CONFIG[
-        "Hunt.default_avg_cpu_seconds_per_client_limit"
-    ]
-  if avg_network_bytes_per_client_limit is None:
-    hunt_runner_args.avg_network_bytes_per_client_limit = config.CONFIG[
-        "Hunt.default_avg_network_bytes_per_client_limit"
-    ]
+  hunt_runner_args.client_rate = config.CONFIG["Hunt.default_client_rate"]
+  hunt_runner_args.crash_limit = config.CONFIG["Hunt.default_crash_limit"]
+  hunt_runner_args.avg_results_per_client_limit = config.CONFIG[
+      "Hunt.default_avg_results_per_client_limit"
+  ]
+  hunt_runner_args.avg_cpu_seconds_per_client_limit = config.CONFIG[
+      "Hunt.default_avg_cpu_seconds_per_client_limit"
+  ]
+  hunt_runner_args.avg_network_bytes_per_client_limit = config.CONFIG[
+      "Hunt.default_avg_network_bytes_per_client_limit"
+  ]
 
   return hunt_runner_args
 

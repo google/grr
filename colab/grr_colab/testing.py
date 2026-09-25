@@ -28,7 +28,7 @@ class ColabTestMixin(object):
   def setUpClass(cls) -> None:
     """Performs all initialization needed to interface with GRR's API."""
     # This is a mixin class intended to be used with `absltest.TestCase`.
-    super(ColabTestMixin, cls).setUpClass()  # pytype: disable=attribute-error
+    super(ColabTestMixin, cls).setUpClass()  # pyrefly: ignore[missing-attribute]
 
     # TODO(hanuszczak): `TestInit` is awful, does a lot of unnecessary stuff and
     # should be avoided. However, because of all the global state that GRR has
@@ -48,11 +48,11 @@ class ColabTestMixin(object):
   def tearDownClass(cls) -> None:
     """Cleanups all the resources allocated during class initialization."""
     # This is a mixin class intended to be used with `absltest.TestCase`.
-    super(ColabTestMixin, cls).tearDownClass()  # pytype: disable=attribute-error
+    super(ColabTestMixin, cls).tearDownClass()  # pyrefly: ignore[missing-attribute]
 
     cls._server_thread.Stop()
 
-    _api._API = None  # pylint: disable=protected-access
+    _api._API = None  # pylint: disable=protected-access  # pyrefly: ignore[bad-assignment]
 
 
 class ColabE2ETest(client_action_test_lib.WithAllClientActionsMixin,

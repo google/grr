@@ -2,11 +2,7 @@ import {TestbedHarnessEnvironment} from '@angular/cdk/testing/testbed';
 import {TestBed, waitForAsync} from '@angular/core/testing';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 
-import {
-  FileFinderContentsLiteralMatchConditionMode,
-  FileFinderContentsRegexMatchConditionMode,
-  HashMultipleFilesArgs,
-} from '../../../lib/api/api_interfaces';
+import {HashMultipleFilesArgs} from '../../../lib/api/api_interfaces';
 import {HttpApiWithTranslationService} from '../../../lib/api/http_api_with_translation_service';
 import {mockHttpApiWithTranslationService} from '../../../lib/api/http_api_with_translation_test_util';
 import {initTestEnvironment} from '../../../testing';
@@ -59,11 +55,9 @@ describe('Hash Multiple Files Form Component', () => {
           pathExpressions: ['/some/path'],
           contentsLiteralMatch: {
             literal: btoa('test'),
-            mode: FileFinderContentsLiteralMatchConditionMode.ALL_HITS,
           },
           contentsRegexMatch: {
             regex: btoa('test'),
-            mode: FileFinderContentsRegexMatchConditionMode.ALL_HITS,
             length: '30000000',
           },
           modificationTime: {
@@ -101,16 +95,12 @@ describe('Hash Multiple Files Form Component', () => {
     const literalMatchSubform = await harness.literalMatchSubform();
     const literalInput = await literalMatchSubform!.literalInput();
     await literalInput.setValue('test');
-    const literalModeSelect = await literalMatchSubform!.modeSelect();
-    await literalModeSelect.clickOptions({text: 'All Hits'});
 
     const regexMatchFilterButton = await harness.regexMatchFilterButton();
     await regexMatchFilterButton.click();
     const regexMatchSubform = await harness.regexMatchSubform();
     const regexInput = await regexMatchSubform!.regexInput();
     await regexInput.setValue('test');
-    const regexModeSelect = await regexMatchSubform!.modeSelect();
-    await regexModeSelect.clickOptions({text: 'All Hits'});
     const lengthInput = await regexMatchSubform!.lengthInput();
     await lengthInput.setValue('30000000');
 
@@ -165,11 +155,9 @@ describe('Hash Multiple Files Form Component', () => {
       pathExpressions: ['/some/path/with/trailing/spaces/tabs/and/linebreaks'],
       contentsLiteralMatch: {
         literal: 'test',
-        mode: FileFinderContentsLiteralMatchConditionMode.ALL_HITS,
       },
       contentsRegexMatch: {
         regex: 'test',
-        mode: FileFinderContentsRegexMatchConditionMode.ALL_HITS,
         length: 30000000,
       },
       modificationTime: {
@@ -199,11 +187,9 @@ describe('Hash Multiple Files Form Component', () => {
       pathExpressions: ['/some/path/with/trailing/spaces/tabs/and/linebreaks'],
       contentsLiteralMatch: {
         literal: btoa('test'),
-        mode: FileFinderContentsLiteralMatchConditionMode.ALL_HITS,
       },
       contentsRegexMatch: {
         regex: btoa('test'),
-        mode: FileFinderContentsRegexMatchConditionMode.ALL_HITS,
         length: '30000000',
       },
       modificationTime: {
@@ -238,11 +224,9 @@ describe('Hash Multiple Files Form Component', () => {
       pathExpressions: ['/some/path/with/trailing/spaces/tabs/and/linebreaks'],
       contentsLiteralMatch: {
         literal: btoa('test'),
-        mode: FileFinderContentsLiteralMatchConditionMode.ALL_HITS,
       },
       contentsRegexMatch: {
         regex: btoa('test'),
-        mode: FileFinderContentsRegexMatchConditionMode.ALL_HITS,
         length: '30000000',
       },
       modificationTime: {
@@ -275,11 +259,9 @@ describe('Hash Multiple Files Form Component', () => {
       pathExpressions: ['/some/path/with/trailing/spaces/tabs/and/linebreaks'],
       contentsLiteralMatch: {
         literal: 'test',
-        mode: FileFinderContentsLiteralMatchConditionMode.ALL_HITS,
       },
       contentsRegexMatch: {
         regex: 'test',
-        mode: FileFinderContentsRegexMatchConditionMode.ALL_HITS,
         length: 30000000,
       },
       modificationTime: {

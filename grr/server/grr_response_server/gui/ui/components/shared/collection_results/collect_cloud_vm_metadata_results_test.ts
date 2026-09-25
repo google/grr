@@ -6,10 +6,7 @@ import {
   CloudInstance as ApiCloudInstance,
   CloudInstanceInstanceType,
 } from '../../../lib/api/api_interfaces';
-import {
-  newFlowResult,
-  newHuntResult,
-} from '../../../lib/models/model_test_util';
+import {newFlowResult} from '../../../lib/models/model_test_util';
 import {CollectionResult, PayloadType} from '../../../lib/models/result';
 import {initTestEnvironment} from '../../../testing';
 import {CollectCloudVmMetadataResults} from './collect_cloud_vm_metadata_results';
@@ -98,34 +95,5 @@ describe('Collect Cloud VM Metadata Results Component', () => {
     const cloudInstanceDetailsHarnesses =
       await harness.cloudInstanceDetailsHarnesses();
     expect(cloudInstanceDetailsHarnesses).toHaveSize(2);
-  }));
-
-  it('shows client id for hunt results', fakeAsync(async () => {
-    const {harness} = await createComponent([
-      newHuntResult({
-        clientId: 'C.1234',
-        payload: {
-          clientId: 'C.1234',
-        },
-      }),
-    ]);
-
-    const clientIds = await harness.clientIds();
-    expect(clientIds).toHaveSize(1);
-    expect(await clientIds[0].text()).toContain('Client ID: C.1234');
-  }));
-
-  it('does not show client id for flow results', fakeAsync(async () => {
-    const {harness} = await createComponent([
-      newFlowResult({
-        clientId: 'C.1234',
-        payload: {
-          clientId: 'C.1234',
-        },
-      }),
-    ]);
-
-    const clientIds = await harness.clientIds();
-    expect(clientIds).toHaveSize(0);
   }));
 });

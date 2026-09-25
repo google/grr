@@ -1,9 +1,5 @@
 
-@for (collectionResult of collectionResults(); track collectionResult; let i = $index) {
-  @if (isHuntResult(collectionResult)) {
-    <p class="client-id">Client ID: <copy-button>{{collectionResult.clientId}}</copy-button></p>
-  }
-  @let result = executeResponseResultFromCollectionResult(collectionResult);
+@for (result of collectionResults(); track result; let i = $index) {
   <div class="result">
     <p>
       <strong>cmd:</strong>

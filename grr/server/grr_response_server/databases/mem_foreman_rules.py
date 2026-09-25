@@ -16,7 +16,7 @@ class InMemoryDBForemanRulesMixin(object):
   @utils.Synchronized
   def WriteForemanRule(self, rule: jobs_pb2.ForemanCondition) -> None:
     self.RemoveForemanRule(rule.hunt_id)
-    self.foreman_rules.append(rule)
+    self.foreman_rules.append(rule)  # pyrefly: ignore[missing-attribute]
 
   @utils.Synchronized
   def RemoveForemanRule(self, hunt_id: str) -> None:

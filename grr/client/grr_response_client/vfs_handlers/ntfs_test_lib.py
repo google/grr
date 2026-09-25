@@ -14,7 +14,7 @@ from grr_response_core.lib.rdfvalues import paths as rdf_paths
 
 
 class NTFSTest(ntfs_image_test_lib.NTFSImageTest):
-  PATH_TYPE = rdf_paths.PathSpec.PathType.NTFS
+  PATH_TYPE = rdf_paths.PathSpec.PathType.NTFS  # pyrefly: ignore[missing-attribute]
 
   def _FileRefToInode(self, file_ref: int) -> int:
     return file_ref
@@ -23,9 +23,9 @@ class NTFSTest(ntfs_image_test_lib.NTFSImageTest):
       self, st: rdf_client_fs.StatEntry
   ) -> rdf_client_fs.StatEntry:
     # libfsntfs doesn't report these fields.
-    st.st_gid = None
-    st.st_uid = None
-    st.st_nlink = None
+    st.st_gid = None  # pyrefly: ignore[missing-attribute]
+    st.st_uid = None  # pyrefly: ignore[missing-attribute]
+    st.st_nlink = None  # pyrefly: ignore[missing-attribute]
     return st
 
 
@@ -40,17 +40,17 @@ class NTFSNativeWindowsTest(absltest.TestCase):
       with open(path, "w", encoding="utf-8") as f:
         f.write(file_data)
       pathspec = rdf_paths.PathSpec(
-          path=path, pathtype=rdf_paths.PathSpec.PathType.NTFS
+          path=path, pathtype=rdf_paths.PathSpec.PathType.NTFS  # pyrefly: ignore[missing-attribute]
       )
       fd = vfs.VFSOpen(pathspec)
       self.assertEqual(fd.Read(100).decode("utf-8"), file_data)
 
   def testGlobComponentGenerate(self):
-    opts = globbing.PathOpts(pathtype=rdf_paths.PathSpec.PathType.NTFS)
+    opts = globbing.PathOpts(pathtype=rdf_paths.PathSpec.PathType.NTFS)  # pyrefly: ignore[missing-attribute]
     paths = globbing.GlobComponent("Windows", opts=opts).Generate("C:\\")
     self.assertEqual(list(paths), ["C:\\Windows"])
 
   def testGlobbingExpandPath(self):
-    opts = globbing.PathOpts(pathtype=rdf_paths.PathSpec.PathType.NTFS)
+    opts = globbing.PathOpts(pathtype=rdf_paths.PathSpec.PathType.NTFS)  # pyrefly: ignore[missing-attribute]
     paths = globbing.ExpandPath("C:/Windows/System32/notepad.exe", opts=opts)
     self.assertEqual(list(paths), ["C:\\Windows\\System32\\notepad.exe"])

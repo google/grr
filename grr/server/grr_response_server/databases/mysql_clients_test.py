@@ -13,7 +13,7 @@ class MysqlClientsTest(
     absltest.TestCase,
 ):
 
-  # TODO: Enforce foreign key constraint on the `users` table.
+  # TODO - Enforce foreign key constraint on the `users` table.
   def testMultiAddClientLabelsUnknownUser(self):
     self.skipTest("Foreign key constraint on the `users` table not enforced.")
     super().testMultiAddClientLabelsUnknownUser()

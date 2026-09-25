@@ -1017,7 +1017,7 @@ def DirHierarchy(
     try:
       yield hierarchy
     finally:
-      # TODO: Required to clean-up the temp directory.
+      # TODO - Required to clean-up the temp directory.
       files.FlushHandleCache()
 
 

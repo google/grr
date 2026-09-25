@@ -1,5 +1,6 @@
+packaging==25.0
 pip==24.0
 pytest==6.2.5
 pytest-xdist==2.2.1
-setuptools==69.5.1
-wheel==0.43.0
+setuptools==77.0.3
+wheel==0.45.1

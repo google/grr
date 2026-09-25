@@ -94,11 +94,11 @@ def FieldDefinitionProtosFromTuples(field_def_tuples):
   field_def_protos = []
   for field_name, field_type in field_def_tuples:
     if field_type is int:
-      field_type = rdf_stats.MetricFieldDefinition.FieldType.INT
+      field_type = rdf_stats.MetricFieldDefinition.FieldType.INT  # pyrefly: ignore[missing-attribute]
     elif issubclass(field_type, str):
-      field_type = rdf_stats.MetricFieldDefinition.FieldType.STR
+      field_type = rdf_stats.MetricFieldDefinition.FieldType.STR  # pyrefly: ignore[missing-attribute]
     elif issubclass(field_type, bool):
-      field_type = rdf_stats.MetricFieldDefinition.FieldType.BOOL
+      field_type = rdf_stats.MetricFieldDefinition.FieldType.BOOL  # pyrefly: ignore[missing-attribute]
     else:
       raise ValueError("Invalid field type: %s" % field_type)
     field_def_protos.append(
@@ -113,11 +113,11 @@ def FieldDefinitionTuplesFromProtos(field_def_protos):
   """Converts MetricFieldDefinition protos to (field-name, type) tuples."""
   field_def_tuples = []
   for proto in field_def_protos:
-    if proto.field_type == rdf_stats.MetricFieldDefinition.FieldType.INT:
+    if proto.field_type == rdf_stats.MetricFieldDefinition.FieldType.INT:  # pyrefly: ignore[missing-attribute]
       field_type = int
-    elif proto.field_type == rdf_stats.MetricFieldDefinition.FieldType.STR:
+    elif proto.field_type == rdf_stats.MetricFieldDefinition.FieldType.STR:  # pyrefly: ignore[missing-attribute]
       field_type = str
-    elif proto.field_type == rdf_stats.MetricFieldDefinition.FieldType.BOOL:
+    elif proto.field_type == rdf_stats.MetricFieldDefinition.FieldType.BOOL:  # pyrefly: ignore[missing-attribute]
       field_type = bool
     else:
       raise ValueError("Unknown field type: %s" % proto.field_type)
@@ -128,18 +128,18 @@ def FieldDefinitionTuplesFromProtos(field_def_protos):
 def MetricValueTypeFromPythonType(python_type):
   """Converts Python types to MetricMetadata.ValueType enum values."""
   if python_type is int:
-    return rdf_stats.MetricMetadata.ValueType.INT
+    return rdf_stats.MetricMetadata.ValueType.INT  # pyrefly: ignore[missing-attribute]
   elif python_type == float:
-    return rdf_stats.MetricMetadata.ValueType.FLOAT
+    return rdf_stats.MetricMetadata.ValueType.FLOAT  # pyrefly: ignore[missing-attribute]
   else:
     raise ValueError("Invalid value type: %s" % python_type)
 
 
 def PythonTypeFromMetricValueType(value_type):
   """Converts MetricMetadata.ValueType enums to corresponding Python types."""
-  if value_type == rdf_stats.MetricMetadata.ValueType.INT:
+  if value_type == rdf_stats.MetricMetadata.ValueType.INT:  # pyrefly: ignore[missing-attribute]
     return int
-  elif value_type == rdf_stats.MetricMetadata.ValueType.FLOAT:
+  elif value_type == rdf_stats.MetricMetadata.ValueType.FLOAT:  # pyrefly: ignore[missing-attribute]
     return float
   else:
     raise ValueError("Unknown value type: %s" % value_type)

@@ -21,7 +21,6 @@ import {ListContainersFlowResults} from './list_containers_flow_results';
 import {NetworkConnections} from './network_connections';
 import {OsqueryResults} from './osquery_results';
 import {Processes} from './processes';
-import {ReadLowLevelFlowResults} from './read_low_level_flow_results';
 import {SoftwarePackagez} from './software_packagez';
 import {StatEntryResults} from './stat_entry_results';
 import {Users} from './users';
@@ -53,7 +52,6 @@ import {YaraProcessScanMatches} from './yara_process_scan_matches';
     NetworkConnections,
     OsqueryResults,
     Processes,
-    ReadLowLevelFlowResults,
     SoftwarePackagez,
     StatEntryResults,
     Users,

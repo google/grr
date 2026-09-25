@@ -28,10 +28,10 @@ export declare interface GrrActivatedRouteSnapshot
   data: GrrRouteData;
 }
 
-/** Returns a link to a flow, e.g. provides '#BASEURL/v2/clients/clientid/flow/flowid'. */
+/** Returns a link to a flow, e.g. provides '#BASEURL/clients/clientid/flow/flowid'. */
 export function makeFlowLink(clientId = '', flowId = ''): string {
   let flowlink = '';
   const url = new URL(window.location.origin);
-  flowlink = 'v2/clients/' + clientId + '/flows/' + flowId;
+  flowlink = 'clients/' + clientId + '/flows/' + flowId;
   return url.toString() + flowlink;
 }

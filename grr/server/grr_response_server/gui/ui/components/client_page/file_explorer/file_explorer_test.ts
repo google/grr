@@ -160,11 +160,11 @@ describe('File Explorer', () => {
     expect(rootFolderNames[0]).toContain('/');
     const nestedFolderNames = await harness.getFolderNames(1);
     expect(nestedFolderNames.length).toBe(2);
-    expect(nestedFolderNames[0]).toContain('/nested_1_1');
-    expect(nestedFolderNames[1]).toContain('/nested_1_2');
+    expect(nestedFolderNames[0]).toContain('nested_1_1');
+    expect(nestedFolderNames[1]).toContain('nested_1_2');
     const nestedNestedFolderNames = await harness.getFolderNames(2);
     expect(nestedNestedFolderNames.length).toBe(1);
-    expect(nestedNestedFolderNames[0]).toContain('/nested_2_1');
+    expect(nestedNestedFolderNames[0]).toContain('nested_2_1');
   });
 
   it('shows folder icon for folders', async () => {
@@ -285,12 +285,12 @@ describe('File Explorer', () => {
       expect(rootFolderNames[0]).toContain('/');
       const nestedFolderNames = await harness.getFolderNames(1);
       expect(nestedFolderNames.length).toBe(2);
-      expect(nestedFolderNames[0]).toContain('/foo');
-      expect(nestedFolderNames[1]).toContain('/qux');
+      expect(nestedFolderNames[0]).toContain('foo');
+      expect(nestedFolderNames[1]).toContain('qux');
       const nestedNestedFolderNames = await harness.getFolderNames(2);
       expect(nestedNestedFolderNames.length).toBe(2);
-      expect(nestedNestedFolderNames[0]).toContain('/bar');
-      expect(nestedNestedFolderNames[1]).toContain('/baz');
+      expect(nestedNestedFolderNames[0]).toContain('bar');
+      expect(nestedNestedFolderNames[1]).toContain('baz');
     }));
 
     it('shows the full tree to a nested folder that matches the search query', fakeAsync(async () => {
@@ -341,10 +341,10 @@ describe('File Explorer', () => {
       expect(rootFolderNames[0]).toContain('/');
       const nestedFolderNames = await harness.getFolderNames(1);
       expect(nestedFolderNames.length).toBe(1);
-      expect(nestedFolderNames[0]).toContain('/foo');
+      expect(nestedFolderNames[0]).toContain('foo');
       const nestedNestedFolderNames = await harness.getFolderNames(2);
       expect(nestedNestedFolderNames.length).toBe(1);
-      expect(nestedNestedFolderNames[0]).toContain('/baz');
+      expect(nestedNestedFolderNames[0]).toContain('baz');
     }));
 
     it('shows all subfolders of a folder that matches the search query', fakeAsync(async () => {
@@ -395,11 +395,11 @@ describe('File Explorer', () => {
       expect(rootFolderNames[0]).toContain('/');
       const nestedFolderNames = await harness.getFolderNames(1);
       expect(nestedFolderNames.length).toBe(1);
-      expect(nestedFolderNames[0]).toContain('/foo');
+      expect(nestedFolderNames[0]).toContain('foo');
       const nestedNestedFolderNames = await harness.getFolderNames(2);
       expect(nestedNestedFolderNames.length).toBe(2);
-      expect(nestedNestedFolderNames[0]).toContain('/bar');
-      expect(nestedNestedFolderNames[1]).toContain('/baz');
+      expect(nestedNestedFolderNames[0]).toContain('bar');
+      expect(nestedNestedFolderNames[1]).toContain('baz');
     }));
 
     it('only includes full folder matches for search results', fakeAsync(async () => {
@@ -442,8 +442,8 @@ describe('File Explorer', () => {
       expect(rootFolderNames[0]).toContain('/');
       const nestedFolderNames = await harness.getFolderNames(1);
       expect(nestedFolderNames.length).toBe(2);
-      expect(nestedFolderNames[0]).toContain('/foobar');
-      expect(nestedFolderNames[1]).toContain('/foobarbaz');
+      expect(nestedFolderNames[0]).toContain('foobar');
+      expect(nestedFolderNames[1]).toContain('foobarbaz');
     }));
 
     it('shows no folders if the search query does not match any folders', fakeAsync(async () => {
@@ -519,7 +519,7 @@ describe('File Explorer', () => {
 
     const folderNames = await harness.getFolderNames(2);
     expect(folderNames.length).toBe(1);
-    expect(folderNames[0]).toContain('/testFolder/testFile');
+    expect(folderNames[0]).toContain('testFolder/testFile');
   }));
 
   it('shows refresh button for folders that are loaded', async () => {
@@ -613,7 +613,7 @@ describe('File Explorer', () => {
 
     const folderNames = await harness.getFolderNames(0);
     expect(folderNames.length).toBe(1);
-    expect(folderNames[0]).toContain('/test');
+    expect(folderNames[0]).toContain('test');
     const collapsibleContainers = await harness.getCollapsibleContainers(0);
     expect(collapsibleContainers.length).toBe(0);
   });
@@ -781,7 +781,7 @@ describe('File Explorer', () => {
     });
     const {harness} = await createComponent('C.1234567890123456');
 
-    await harness.selectFileOrDirectory('/testFile');
+    await harness.selectFileOrDirectory('testFile');
 
     const fileResultsTable = await harness.fileResultsTable();
     expect(fileResultsTable).toBeNull();
@@ -812,7 +812,7 @@ describe('File Explorer', () => {
     });
     const {harness} = await createComponent('C.1234567890123456');
 
-    await harness.selectFileOrDirectory('/testFolder');
+    await harness.selectFileOrDirectory('testFolder');
     const listDirectoryButton = await harness.listDirectoryButton();
     await listDirectoryButton!.click();
 
@@ -840,7 +840,7 @@ describe('File Explorer', () => {
     });
     const {harness} = await createComponent('C.1234567890123456');
 
-    await harness.selectFileOrDirectory('/testFolder');
+    await harness.selectFileOrDirectory('testFolder');
     const listDirectoryAndSubdirectoriesButton =
       await harness.listDirectoryAndSubdirectoriesButton();
     await listDirectoryAndSubdirectoriesButton!.click();
@@ -884,7 +884,7 @@ describe('File Explorer', () => {
     });
     const {harness} = await createComponent('C.1234567890123456');
 
-    await harness.selectFileOrDirectory('/testFolder');
+    await harness.selectFileOrDirectory('testFolder');
     const downloadAllButton = await harness.downloadAllButton();
     expect(downloadAllButton).toBeNull();
   }));

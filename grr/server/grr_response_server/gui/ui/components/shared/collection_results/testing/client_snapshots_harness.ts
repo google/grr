@@ -12,8 +12,6 @@ import {VolumesDetailsHarness} from '../data_renderer/testing/volumes_details_ha
 export class ClientSnapshotsHarness extends ComponentHarness {
   static hostSelector = 'client-snapshots';
 
-  readonly clientIds = this.locatorForAll('.client-id-container');
-
   readonly clientSnapshots = this.locatorForAll('.client-snapshot-table');
 
   private readonly operatingSystemTables = this.locatorForAll(

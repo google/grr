@@ -281,8 +281,12 @@ class ApiCallRobotRouter(api_call_router.ApiCallRouterStub):
     """Verify the requesting user has at least one flow on this client.
 
     Used for endpoints that take a client_id but no flow_id, such as
-    GetFileBlob.  This ensures the robot user has some prior relationship
+    GetFileBlob. This ensures the robot user has some prior relationship
     with the client, consistent with the per-flow checks on other methods.
+
+    Args:
+      client_id: The client id.
+      context: The API call context.
     """
     flows = data_store.REL_DB.ReadAllFlowObjects(
         client_id=str(client_id),

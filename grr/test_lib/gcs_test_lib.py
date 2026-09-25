@@ -33,10 +33,10 @@ class FakeUploadHandler:
     chunk = request.body or b""
     headers = request.headers
 
-    if int(headers["Content-Length"]) != len(chunk):
+    if int(headers["Content-Length"]) != len(chunk):  # pyrefly: ignore[unsupported-operation]
       return 400, {}, "invalid content length"
 
-    content_range = re.match(self.CONTENT_RANGE_REGEX, headers["Content-Range"])
+    content_range = re.match(self.CONTENT_RANGE_REGEX, headers["Content-Range"])  # pyrefly: ignore[unsupported-operation]
     if content_range is None:
       return 400, {}, "invalid content range"
 

@@ -22,7 +22,7 @@ class Sink(abc.ABC):
       parcel: A parcel to process.
     """
 
-  # TODO: Make `AcceptMany abstract and provide default
+  # TODO - Make `AcceptMany abstract and provide default
   # implementation for the `Accept` method.
   def AcceptMany(
       self,

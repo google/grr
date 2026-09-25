@@ -33,7 +33,7 @@ def Serialize(
 
     with gzip.GzipFile(fileobj=buf, mode="wb") as filedesc:
       for data in stream:
-        chunked.Write(filedesc, data)  # pytype: disable=wrong-arg-types
+        chunked.Write(filedesc, data)  # pyrefly: ignore[bad-argument-type]
         buf_entry_count += 1
 
         if buf.tell() >= chunk_size:
@@ -63,7 +63,7 @@ def Deserialize(stream: Iterator[bytes]) -> Iterator[bytes]:
       filedesc.seek(0, os.SEEK_SET)
 
       while True:
-        data = chunked.Read(filedesc, max_chunk_size=fd_size)  # pytype: disable=wrong-arg-types
+        data = chunked.Read(filedesc, max_chunk_size=fd_size)  # pyrefly: ignore[bad-argument-type]
         if data is None:
           break
 

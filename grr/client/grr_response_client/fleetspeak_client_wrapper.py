@@ -16,8 +16,8 @@ import platform
 import subprocess
 
 from absl import app
-
 from google.protobuf import text_format
+
 from grr_response_core import config
 from grr_response_core.lib import config_lib
 from grr_response_core.lib import package

@@ -112,7 +112,7 @@ class RDFValue(metaclass=RDFValueMetaclass):  # pylint: disable=invalid-metaclas
         "Class {} does not implement FromSerializedBytes.".format(cls.__name__)
     )
 
-  # TODO: Remove legacy SerializeToWireFormat.
+  # TODO - Remove legacy SerializeToWireFormat.
   def SerializeToWireFormat(self):
     """Serialize to a datastore compatible form."""
     return self.SerializeToBytes()
@@ -161,8 +161,8 @@ class RDFValue(metaclass=RDFValueMetaclass):  # pylint: disable=invalid-metaclas
     return "<%s(%r)>" % (self.__class__.__name__, content)
 
 
-RDFValue.classes["bool"] = bool
-RDFValue.classes["RDFBool"] = bool
+RDFValue.classes["bool"] = bool  # pyrefly: ignore[unsupported-operation]
+RDFValue.classes["RDFBool"] = bool  # pyrefly: ignore[unsupported-operation]
 
 
 class RDFPrimitive(RDFValue):
@@ -175,7 +175,7 @@ class RDFPrimitive(RDFValue):
     self._primitive_value = initializer
 
   @property
-  def _value(self):
+  def _value(self):  # pyrefly: ignore[bad-override]
     return self._primitive_value
 
   @classmethod
@@ -540,7 +540,7 @@ class RDFDatetime(RDFPrimitive):
 
   def __str__(self) -> str:
     """Return the date in human readable (UTC)."""
-    # TODO: Display microseconds if applicable.
+    # TODO - Display microseconds if applicable.
     return self.Format("%Y-%m-%d %H:%M:%S")
 
   def AsDatetime(self) -> datetime.datetime:
@@ -985,7 +985,7 @@ class Duration(RDFPrimitive):
       unit_string = default_unit
 
     try:
-      unit_multiplier = cls._DIVIDERS[unit_string]
+      unit_multiplier = cls._DIVIDERS[unit_string]  # pyrefly: ignore[bad-index]
     except KeyError as ex:
       raise ValueError(
           "Invalid unit {!r} for duration in {!r}. Expected any of {}.".format(

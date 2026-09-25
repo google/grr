@@ -19,14 +19,12 @@ def InitSandbox(name: str, paths_read_only: Iterable[str]) -> None:
   if platform.system() != "Windows":
     return
   try:
-    # pytype:disable=import-error
     # pylint:disable=g-import-not-at-top
-    from grr_response_client.unprivileged.windows import sandbox
+    from grr_response_client.unprivileged.windows import sandbox  # pyrefly: ignore[missing-import]
     # pylint:enable=g-import-not-at-top
-    # pytype:enable=import-error
     sandbox.InitSandbox(name, paths_read_only)
   except:  # pylint:disable=bare-except
-    # TODO: Windows sandboxing is still experimental.
+    # TODO - Windows sandboxing is still experimental.
     # Don't crash the client if anything goes wrong.
     logging.error("IsSandbox failed.", exc_info=True)
 
@@ -38,14 +36,12 @@ def IsSandboxInitialized() -> bool:
   """
   if platform.system() == "Windows":
     try:
-      # pytype:disable=import-error
       # pylint:disable=g-import-not-at-top
-      from grr_response_client.unprivileged.windows import sandbox
+      from grr_response_client.unprivileged.windows import sandbox  # pyrefly: ignore[missing-import]
       # pylint:enable=g-import-not-at-top
-      # pytype:enable=import-error
       return sandbox.IsSandboxInitialized()
     except:  # pylint:disable=bare-except
-      # TODO: Windows sandboxing is still experimental.
+      # TODO - Windows sandboxing is still experimental.
       # Don't crash the client if anything goes wrong.
       logging.error("IsSandboxInitialized failed.", exc_info=True)
       return False
@@ -73,9 +69,7 @@ def EnterSandbox(user: str, group: str) -> None:
     # pylint: enable=g-import-not-at-top
     sandbox.EnterSandbox(user, group)
   elif platform.system() == "Darwin":
-    # pytype: disable=import-error
     # pylint: disable=g-import-not-at-top
     from grr_response_client.unprivileged.osx import sandbox
     # pylint: enable=g-import-not-at-top
-    # pytype: enable=import-error
     sandbox.EnterSandbox(user, group)

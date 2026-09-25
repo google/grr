@@ -169,7 +169,7 @@ class Chunk(object):
     self.data = data
     self.overlap = overlap
     if amount is None:
-      self.amount = len(data)
+      self.amount = len(data)  # pyrefly: ignore[bad-argument-type]
     else:
       self.amount = amount
 
@@ -199,7 +199,11 @@ class Chunk(object):
     """
 
     position = 0
-    while True:
+    # Despite the condition below, we need to have extra guard to account for
+    # cases where we are at the end (`position = len(self.data)`) but the regex
+    # we are given is trivially true (e.g. `.*`) even for empty input. Otherwise
+    # we will end up looping forever.
+    while position < len(self.data):  # pyrefly: ignore[bad-argument-type]
       span = matcher.Match(self.data, position)
       if span is None:
         return

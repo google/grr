@@ -32,8 +32,8 @@ class Timeline(actions.ActionPlugin):
 
   def Run(self, args: rdf_timeline.TimelineArgs) -> None:
     """Executes the client action."""
-    fstype = GetFilesystemType(args.root)
-    entries = iterator.Counted(Walk(args.root))
+    fstype = GetFilesystemType(args.root)  # pyrefly: ignore[missing-attribute]
+    entries = iterator.Counted(Walk(args.root))  # pyrefly: ignore[missing-attribute]
     proto_entries = (
         mig_timeline.ToProtoTimelineEntry(entry) for entry in entries
     )
@@ -44,9 +44,9 @@ class Timeline(actions.ActionPlugin):
       entry_batch_blob_id = hashlib.sha256(entry_batch).digest()
 
       result = rdf_timeline.TimelineResult()
-      result.entry_batch_blob_ids.append(entry_batch_blob_id)
-      result.entry_count = entries.count
-      result.filesystem_type = fstype
+      result.entry_batch_blob_ids.append(entry_batch_blob_id)  # pyrefly: ignore[missing-attribute]
+      result.entry_count = entries.count  # pyrefly: ignore[missing-attribute]
+      result.filesystem_type = fstype  # pyrefly: ignore[missing-attribute]
       self.SendReply(result)
 
       # Each result should contain information only about the number of entries

@@ -14,7 +14,7 @@ class StringValueToExportedStringConverter(
   """Converts StringValue to ExportedString."""
 
   input_proto_type = wrappers_pb2.StringValue
-  output_proto_types = (export_pb2.ExportedString,)
+  output_proto_types = (export_pb2.ExportedString,)  # pyrefly: ignore[bad-assignment]
 
   def Convert(
       self,
@@ -31,7 +31,7 @@ class BytesValueToExportedBytesConverter(
   """Converts BytesValue to ExportedBytes."""
 
   input_proto_type = wrappers_pb2.BytesValue
-  output_proto_types = (export_pb2.ExportedBytes,)
+  output_proto_types = (export_pb2.ExportedBytes,)  # pyrefly: ignore[bad-assignment]
 
   def Convert(
       self,

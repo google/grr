@@ -59,6 +59,41 @@ describe('Flow State Icon Component', () => {
     expect(await harness.errorIcon()).toBeNull();
   });
 
+  it('shows finished with subflows failed flow state icon', async () => {
+    const {harness} = await createComponent(
+      newFlow({
+        state: FlowState.FINISHED,
+        nestedFlows: [
+          newFlow({
+            state: FlowState.ERROR,
+          }),
+        ],
+      }),
+    );
+
+    expect(await harness.finishedWithSubflowsFailedIcon()).toBeDefined();
+  });
+
+  it('shows finished with subflows failed flow state icon if double nested flow returned error', async () => {
+    const {harness} = await createComponent(
+      newFlow({
+        state: FlowState.FINISHED,
+        nestedFlows: [
+          newFlow({
+            state: FlowState.FINISHED,
+            nestedFlows: [
+              newFlow({
+                state: FlowState.ERROR,
+              }),
+            ],
+          }),
+        ],
+      }),
+    );
+
+    expect(await harness.finishedWithSubflowsFailedIcon()).toBeDefined();
+  });
+
   it('shows error flow state icon', async () => {
     const {harness} = await createComponent(
       newFlow({

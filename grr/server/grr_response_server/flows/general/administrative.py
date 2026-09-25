@@ -3,14 +3,15 @@
 
 from collections.abc import Sequence
 import logging
+import os
 import shlex
 import time
 from typing import Optional
 
+from google.protobuf import message as pb_message
 import jinja2
 
 from google.protobuf import any_pb2
-from google.protobuf import message as pb_message
 from grr_response_core import config
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
@@ -19,34 +20,37 @@ from grr_response_core.lib.rdfvalues import client_action as rdf_client_action
 from grr_response_core.lib.rdfvalues import crypto as rdf_crypto
 from grr_response_core.lib.rdfvalues import mig_client
 from grr_response_core.lib.rdfvalues import mig_client_action
-from grr_response_core.lib.rdfvalues import paths as rdf_paths
-from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
-from grr_response_core.lib.rdfvalues import standard as rdf_standard
-from grr_response_core.lib.rdfvalues import structs as rdf_structs
+from grr_response_core.lib.rdfvalues import mig_protodict
 from grr_response_core.stats import metrics
 from grr_response_proto import flows_pb2
 from grr_response_proto import jobs_pb2
 from grr_response_proto import objects_pb2
+from grr_response_proto import signed_commands_pb2
 from grr_response_server import client_index
 from grr_response_server import data_store
 from grr_response_server import email_alerts
 from grr_response_server import events
+from grr_response_server import fleetspeak_utils
 from grr_response_server import flow
 from grr_response_server import flow_base
 from grr_response_server import flow_responses
 from grr_response_server import hunt
 from grr_response_server import message_handlers
+from grr_response_server import rrg_stubs
 from grr_response_server import server_stubs
 from grr_response_server import signed_binary_utils
 from grr_response_server.databases import db
 from grr_response_server.flows.general import discovery
 from grr_response_server.models import users as models_users
-from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
 from grr_response_server.rdfvalues import mig_objects
 from grr_response_server.rdfvalues import objects as rdf_objects
+from grr_response_proto.rrg import os_pb2 as rrg_os_pb2
+from grr_response_proto.rrg.action import execute_signed_command_pb2 as rrg_execute_signed_command_pb2
+from grr_response_proto.rrg.action import store_filestore_part_pb2 as rrg_store_filestore_part_pb2
 
 
 GRR_CLIENT_CRASHES = metrics.Counter("grr_client_crashes")
+FLEETSPEAK_UNLABELED_CLIENTS = metrics.Counter("fleetspeak_unlabeled_clients")
 
 
 def WriteAllCrashDetails(client_id, crash_details, flow_session_id=None):
@@ -81,7 +85,7 @@ class ClientCrashHandler(events.EventListener):
 <html><body><h1>GRR client crash report.</h1>
 
 Client {{ client_id }} ({{ hostname }}) just crashed while executing an action.
-Click <a href='{{ admin_ui }}v2{{ url }}'>here</a> to access this machine.
+Click <a href='{{ admin_ui }}{{ url }}'>here</a> to access this machine.
 
 <p>Thanks,</p>
 <p>{{ signature }}</p>
@@ -123,7 +127,7 @@ Click <a href='{{ admin_ui }}v2{{ url }}'>here</a> to access this machine.
           client_id,
           flow_id,
           reason="Client crashed.",
-          flow_state=rdf_flow_objects.Flow.FlowState.CRASHED,
+          flow_state=flows_pb2.Flow.FlowState.CRASHED,
       )
 
       crash_details = mig_client.ToProtoClientCrash(crash_details)
@@ -138,7 +142,7 @@ Click <a href='{{ admin_ui }}v2{{ url }}'>here</a> to access this machine.
           client_id=client_id,
           admin_ui=config.CONFIG["AdminUI.url"],
           hostname=utils.SmartUnicode(hostname),
-          url="/clients/%s" % client_id,
+          url="clients/%s" % client_id,
           signature=config.CONFIG["Email.signature"],
       )
 
@@ -156,7 +160,7 @@ Click <a href='{{ admin_ui }}v2{{ url }}'>here</a> to access this machine.
         logging.warning(e)
 
 
-# TODO: Remove by EOY2024.
+# TODO - Remove by EOY2024.
 class ClientStatsHandler(message_handlers.MessageHandler):
 
   handler_name = "StatsHandler"
@@ -246,13 +250,6 @@ class RecursiveBlobUploadMixin:
     )
 
 
-class DeleteGRRTempFilesArgs(rdf_structs.RDFProtoStruct):
-  protobuf = flows_pb2.DeleteGRRTempFilesArgs
-  rdf_deps = [
-      rdf_paths.PathSpec,
-  ]
-
-
 class DeleteGRRTempFiles(
     flow_base.FlowBase[
         flows_pb2.DeleteGRRTempFilesArgs,
@@ -269,9 +266,7 @@ class DeleteGRRTempFiles(
   """
 
   category = "/Administrative/"
-  args_type = DeleteGRRTempFilesArgs
   proto_args_type = flows_pb2.DeleteGRRTempFilesArgs
-  only_protos_allowed = True
 
   def Start(self):
     """Issue a request to delete tempfiles in directory."""
@@ -296,7 +291,6 @@ class Kill(flow_base.FlowBase):
   """Terminate a running client (does not disable, just kill)."""
 
   category = "/Administrative/"
-  only_protos_allowed = True
 
   def Start(self):
     """Call the kill function on the client."""
@@ -311,19 +305,6 @@ class Kill(flow_base.FlowBase):
       self.Log("Kill failed on the client.")
 
 
-class ExecutePythonHackArgs(rdf_structs.RDFProtoStruct):
-  protobuf = flows_pb2.ExecutePythonHackArgs
-  rdf_deps = [
-      rdf_protodict.Dict,
-  ]
-
-
-class ExecutePythonHackResult(rdf_structs.RDFProtoStruct):
-
-  protobuf = flows_pb2.ExecutePythonHackResult
-  rdf_deps = []
-
-
 class ExecutePythonHack(
     flow_base.FlowBase[
         flows_pb2.ExecutePythonHackArgs,
@@ -334,8 +315,6 @@ class ExecutePythonHack(
   """Execute a signed python hack on a client."""
 
   category = "/Administrative/"
-  args_type = ExecutePythonHackArgs
-  result_types = (ExecutePythonHackResult,)
   proto_args_type = flows_pb2.ExecutePythonHackArgs
   proto_result_types = (flows_pb2.ExecutePythonHackResult,)
   only_protos_allowed = True
@@ -343,7 +322,7 @@ class ExecutePythonHack(
   def Start(self):
     """The start method."""
     python_hack_urn = signed_binary_utils.GetAFF4PythonHackRoot().Add(
-        self.args.hack_name
+        self.proto_args.hack_name
     )
 
     try:
@@ -352,7 +331,7 @@ class ExecutePythonHack(
       )
     except signed_binary_utils.SignedBinaryNotFoundError as ex:
       raise flow_base.FlowError(
-          "Python hack %s not found." % self.args.hack_name
+          "Python hack %s not found." % self.proto_args.hack_name
       ) from ex
 
     # TODO(amoser): This will break if someone wants to execute lots of Python.
@@ -362,7 +341,7 @@ class ExecutePythonHack(
           mig_client_action.ToProtoExecutePythonRequest(
               rdf_client_action.ExecutePythonRequest(
                   python_code=python_blob,
-                  py_args=self.args.py_args,
+                  py_args=mig_protodict.ToRDFDict(self.proto_args.py_args),
               )
           ),
           next_state=self.Done.__name__,
@@ -391,13 +370,6 @@ class ExecutePythonHack(
       self.SendReplyProto(result)
 
 
-class OnlineNotificationArgs(rdf_structs.RDFProtoStruct):
-  protobuf = flows_pb2.OnlineNotificationArgs
-  rdf_deps = [
-      rdf_standard.DomainEmailAddress,
-  ]
-
-
 class OnlineNotification(
     flow_base.FlowBase[
         flows_pb2.OnlineNotificationArgs,
@@ -419,7 +391,7 @@ class OnlineNotification(
 
 <p>
   Client {{ client_id }} ({{ hostname }}) just came online. Click
-  <a href='{{ admin_ui }}/v2{{ url }}'>here</a> to access this machine.
+  <a href='{{ admin_ui }}{{ url }}'>here</a> to access this machine.
   <br />This notification was created by {{ creator }}.
 </p>
 
@@ -429,15 +401,17 @@ class OnlineNotification(
       autoescape=True,
   )
 
-  args_type = OnlineNotificationArgs
   proto_args_type = flows_pb2.OnlineNotificationArgs
   only_protos_allowed = True
 
-  # TODO: Review this method.
   @classmethod
   def GetDefaultArgs(cls, username=None):
     """Returns an args rdfvalue prefilled with sensible default values."""
-    args = cls.args_type()
+    args = flows_pb2.OnlineNotificationArgs()
+
+    if not username:
+      return args
+
     try:
       user = data_store.REL_DB.ReadGRRUser(username)
       args.email = models_users.GetEmail(user)
@@ -472,7 +446,7 @@ class OnlineNotification(
         client_id=self.client_id,
         admin_ui=config.CONFIG["AdminUI.url"],
         hostname=hostname,
-        url=f"/clients/{self.client_id}",
+        url=f"clients/{self.client_id}",
         creator=self.creator,
         signature=utils.SmartUnicode(config.CONFIG["Email.signature"]),
     )
@@ -480,11 +454,6 @@ class OnlineNotification(
     email_alerts.EMAIL_ALERTER.SendEmail(
         self.proto_args.email, "grr-noreply", subject, body, is_html=True
     )
-
-
-class UpdateClientArgs(rdf_structs.RDFProtoStruct):
-  protobuf = flows_pb2.UpdateClientArgs
-  rdf_deps = []
 
 
 class UpdateClient(
@@ -508,9 +477,6 @@ class UpdateClient(
   """
 
   category = "/Administrative/"
-
-  args_type = UpdateClientArgs
-  result_types = (rdf_client_action.ExecuteBinaryResponse,)
 
   proto_args_type = flows_pb2.UpdateClientArgs
   proto_store_type = flows_pb2.UpdateClientStore
@@ -584,7 +550,7 @@ The client {{ client_id }} ({{ hostname }}) just sent a message:<br>
 <br>
 {{ message }}
 <br>
-Click <a href='{{ admin_ui }}v2#{{ url }}'>here</a> to access this machine.
+Click <a href='{{ admin_ui }}{{ url }}'>here</a> to access this machine.
 
 <p>{{ signature }}</p>
 
@@ -623,7 +589,7 @@ Click <a href='{{ admin_ui }}v2#{{ url }}'>here</a> to access this machine.
 
     # Also send email.
     if config.CONFIG["Monitoring.alert_email"]:
-      url = "/clients/%s" % client_id
+      url = "clients/%s" % client_id
       body = self.__class__.mail_template.render(
           client_id=client_id,
           admin_ui=config.CONFIG["AdminUI.url"],
@@ -640,7 +606,7 @@ Click <a href='{{ admin_ui }}v2#{{ url }}'>here</a> to access this machine.
           is_html=True,
       )
 
-  def ProcessMessages(self, msgs):
+  def ProcessMessages(self, msgs: Sequence[rdf_objects.MessageHandlerRequest]):
     for message in msgs:
       self.SendEmail(message.client_id, message.request.payload.string)
 
@@ -650,13 +616,26 @@ class ClientStartupHandler(message_handlers.MessageHandler):
 
   handler_name = "ClientStartupHandler"
 
-  def ProcessMessages(self, msgs):
+  def ProcessMessages(self, msgs: Sequence[rdf_objects.MessageHandlerRequest]):
     for message in msgs:
       self.WriteClientStartupInfo(message.client_id, message.request.payload)
 
   def WriteClientStartupInfo(self, client_id, new_si):
     """Handle a startup event."""
     drift = rdfvalue.Duration.From(5, rdfvalue.MINUTES)
+
+    # The agent was restarted, so its labels might have changed.
+    #
+    # Fleetspeak is now the source of truth for labels and non-Fleetspeak agents
+    # are no longer supported.
+    labels = fleetspeak_utils.GetLabelsFromFleetspeak(client_id)
+    if labels:
+      data_store.REL_DB.AddClientLabels(client_id, "GRR", labels)
+      index = client_index.ClientIndex()
+      index.AddClientLabels(client_id, labels)
+    else:
+      FLEETSPEAK_UNLABELED_CLIENTS.Increment()
+      logging.warning("No labels for %s", client_id)
 
     current_si = data_store.REL_DB.ReadClientStartupInfo(client_id)
     if current_si is not None:
@@ -673,12 +652,6 @@ class ClientStartupHandler(message_handlers.MessageHandler):
       new_si_proto = mig_client.ToProtoStartupInfo(new_si)
       try:
         data_store.REL_DB.WriteClientStartupInfo(client_id, new_si_proto)
-        labels = new_si.client_info.labels
-        if labels:
-          data_store.REL_DB.AddClientLabels(client_id, "GRR", labels)
-          index = client_index.ClientIndex()
-          index.AddClientLabels(client_id, labels)
-
         # Reset foreman rules check so active hunts can match against the new
         # data
         data_store.REL_DB.WriteClientMetadata(
@@ -706,6 +679,19 @@ class ClientStartupHandler(message_handlers.MessageHandler):
       current_si: Optional[rdf_client.StartupInfo],
       new_si: rdf_client.StartupInfo,
   ) -> bool:
+    if exclude_labels := config.CONFIG["Interrogate.startup_exclude_labels"]:
+      # We should not use `StartupInfo` to determine endpoint's labels as they
+      # are provided by Fleetspeak now and written to the database.
+      #
+      # TODO - Currently we only update database tags during
+      # interrogation which obviously leads to a chicken-and-egg problem. We
+      # need to move it away from there to here.
+      if any(
+          label.name in exclude_labels
+          for label in data_store.REL_DB.ReadClientLabels(client_id)
+      ):
+        return False
+
     # Interrogate the client immediately after its version has been
     # updated or an interrogate was requested on the endpoint (by the user
     # creating a file in a predefined location).
@@ -744,13 +730,6 @@ class ClientStartupHandler(message_handlers.MessageHandler):
     return True
 
 
-class LaunchBinaryArgs(rdf_structs.RDFProtoStruct):
-  protobuf = flows_pb2.LaunchBinaryArgs
-  rdf_deps = [
-      rdfvalue.RDFURN,
-  ]
-
-
 class LaunchBinary(
     RecursiveBlobUploadMixin,
     flow_base.FlowBase[
@@ -762,9 +741,6 @@ class LaunchBinary(
   """Launch a signed binary on a client."""
 
   category = "/Administrative/"
-
-  args_type = LaunchBinaryArgs
-  result_types = (rdf_client_action.ExecuteBinaryResponse,)
 
   proto_args_type = flows_pb2.LaunchBinaryArgs
   proto_store_type = flows_pb2.LaunchBinaryStore
@@ -793,7 +769,7 @@ class LaunchBinary(
     if not self.proto_args.binary:
       raise flow_base.FlowError("Please specify a binary.")
 
-    binary_urn = rdfvalue.RDFURN(self.args.binary)
+    binary_urn = rdfvalue.RDFURN(self.proto_args.binary)
     self.store.write_path = "%d_%s" % (time.time(), binary_urn.Basename())
 
     self.StartBlobsUpload(
@@ -828,3 +804,147 @@ class LaunchBinary(
     self.Log("Stderr: %s", self._SanitizeOutput(response.stderr))
 
     self.SendReplyProto(response)
+
+
+class LaunchExecutable(
+    flow_base.FlowBase[
+        flows_pb2.LaunchExecutableArgs,
+        flows_pb2.DefaultFlowStore,
+        flows_pb2.DefaultFlowProgress,
+    ]
+):
+  """Launch a server-hosted executable."""
+
+  category = "/Administrative/"
+
+  proto_args_type = flows_pb2.LaunchExecutableArgs
+  proto_store_type = flows_pb2.DefaultFlowStore
+  proto_result_types = (flows_pb2.LaunchExecutableResult,)
+  only_protos_allowed = True
+
+  def Start(self):
+    if not self.rrg_version >= (0, 0, 8):
+      raise flow_base.FlowError(
+          "RRG version too old to support filestore operations",
+      )
+    if not (self.proto_args.timeout.seconds or self.proto_args.timeout.nanos):
+      raise flow_base.FlowError(
+          "Timeout has not been specified",
+      )
+
+    if self.rrg_os_type == rrg_os_pb2.LINUX:
+      operating_system = signed_commands_pb2.SignedCommand.LINUX
+    elif self.rrg_os_type == rrg_os_pb2.MACOS:
+      operating_system = signed_commands_pb2.SignedCommand.MACOS
+    elif self.rrg_os_type == rrg_os_pb2.WINDOWS:
+      operating_system = signed_commands_pb2.SignedCommand.WINDOWS
+    else:
+      raise flow_base.FlowError(
+          f"Unexpected operating system: {self.rrg_os_type}"
+      )
+
+    command = data_store.REL_DB.ReadSignedCommand(
+        self.proto_args.signed_command_id,
+        operating_system=operating_system,
+    )
+
+    if not command.server_executable_path:
+      raise flow_base.FlowError(
+          f"Signed command without server executable path: {command.id}",
+      )
+
+    rrg_command = rrg_execute_signed_command_pb2.Command()
+    rrg_command.ParseFromString(command.command)
+
+    with open(command.server_executable_path, mode="rb") as file:
+      # pylint: enable=line-too-long
+
+      file.seek(0, os.SEEK_END)
+      file_size = file.tell()
+      file.seek(0, os.SEEK_SET)
+
+      action = rrg_stubs.StoreFilestorePart()
+      action.args.file_sha256 = rrg_command.filestore_file_sha256
+      action.args.file_size = file_size
+      action.args.file_executable = True
+
+      while True:
+        action.args.part_offset = file.tell()
+        action.args.part_content = file.read(_LAUNCH_EXECUTABLE_PART_SIZE)
+        if not action.args.part_content:
+          break
+
+        action.Call(self._ProcessStoreFilestorePart)
+
+  @flow_base.UseProto2AnyResponses
+  def _ProcessStoreFilestorePart(
+      self,
+      responses_any: flow_responses.Responses[any_pb2.Any],
+  ) -> None:
+    if not responses_any.success:
+      raise flow_base.FlowError(
+          f"Failed to store part to filestore: {responses_any.status}",
+      )
+    if len(responses_any) != 1:
+      raise flow_base.FlowError(
+          f"Unexpected number of responses: {len(responses_any)}",
+      )
+
+    response = rrg_store_filestore_part_pb2.Result()
+    response.ParseFromString(list(responses_any)[0].value)
+
+    if response.status != rrg_store_filestore_part_pb2.COMPLETE:
+      return
+
+    # TODO - This should be moved to some utility.
+    if self.rrg_os_type == rrg_os_pb2.LINUX:
+      operating_system = signed_commands_pb2.SignedCommand.LINUX
+    elif self.rrg_os_type == rrg_os_pb2.MACOS:
+      operating_system = signed_commands_pb2.SignedCommand.MACOS
+    elif self.rrg_os_type == rrg_os_pb2.WINDOWS:
+      operating_system = signed_commands_pb2.SignedCommand.WINDOWS
+    else:
+      raise flow_base.FlowError(
+          f"Unexpected operating system: {self.rrg_os_type}"
+      )
+
+    command = data_store.REL_DB.ReadSignedCommand(
+        self.proto_args.signed_command_id,
+        operating_system=operating_system,
+    )
+
+    action = rrg_stubs.ExecuteSignedCommand()
+    action.args.command = command.command
+    action.args.command_ed25519_signature = command.ed25519_signature
+    action.args.timeout.CopyFrom(self.proto_args.timeout)
+    action.Call(self._ProcessExecuteSignedCommand)
+
+  @flow_base.UseProto2AnyResponses
+  def _ProcessExecuteSignedCommand(
+      self,
+      responses_any: flow_responses.Responses[any_pb2.Any],
+  ) -> None:
+    if not responses_any.success:
+      raise flow_base.FlowError(
+          f"Failed to store part to filestore: {responses_any.status}",
+      )
+    if len(responses_any) != 1:
+      raise flow_base.FlowError(
+          f"Unexpected number of responses: {len(responses_any)}",
+      )
+
+    response = rrg_execute_signed_command_pb2.Result()
+    response.ParseFromString(list(responses_any)[0].value)
+
+    result = flows_pb2.LaunchExecutableResult()
+    result.exit_code = response.exit_code
+    result.exit_signal = response.exit_signal
+    result.stdout = response.stdout
+    result.stderr = response.stderr
+    result.stdout_truncated = response.stdout_truncated
+    result.stderr_truncated = response.stderr_truncated
+    result.timeout_reached = response.timeout_reached
+    self.SendReplyProto(result)
+
+
+_LAUNCH_EXECUTABLE_PART_SIZE = 1024 * 1024  # 1 MiB.

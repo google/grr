@@ -224,16 +224,16 @@ class AbstractFileTransferTest(EndToEndTest):
     self.client.File(path).GetBlob().WriteToStream(s)
     return s.getvalue()[:num_bytes]
 
-  def TSKPathspecToVFSPath(self, pathspec):
-    path = "fs/tsk/"
+  def NTFSPathspecToVFSPath(self, pathspec):
+    path = "fs/ntfs/"
     while pathspec.path:
       path += pathspec.path
       pathspec = pathspec.nested_path
 
     return path
 
-  def NTFSPathspecToVFSPath(self, pathspec):
-    path = "fs/ntfs/"
+  def TempPathspecToVFSPath(self, pathspec):
+    path = "temp/"
     while pathspec.path:
       path += pathspec.path
       pathspec = pathspec.nested_path

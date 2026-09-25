@@ -3,8 +3,9 @@
 
 from typing import Any, Union
 
-from google.protobuf import any_pb2
 from google.protobuf import message
+
+from google.protobuf import any_pb2
 from grr_api_client import context as api_context
 from grr_api_client import errors
 from grr_api_client import utils
@@ -36,7 +37,7 @@ class Types(object):
     """Creates hunt runner args object."""
     return flows_pb2.HuntRunnerArgs()
 
-  # TODO: Delete this method as it is not really type-safe.
+  # TODO - Delete this method as it is not really type-safe.
   def CreateFlowArgs(
       self,
       flow_name: str,
@@ -57,7 +58,7 @@ class Types(object):
     except KeyError:
       raise UnknownFlowName(flow_name)
 
-    return utils.CopyProto(utils.UnpackAny(flow_descriptor.default_args))
+    return utils.CopyProto(utils.UnpackAny(flow_descriptor.default_args))  # pyrefly: ignore[bad-specialization]
 
   def UnpackAny(
       self,

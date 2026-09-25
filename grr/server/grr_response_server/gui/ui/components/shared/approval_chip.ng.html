@@ -5,12 +5,12 @@
   </mat-chip>
 } @else if (status() === 'valid') {
   <mat-chip class="green-chip">
-    <mat-icon matChipAvatar>vpn_key</mat-icon>
+    <mat-icon matChipAvatar>key</mat-icon>
     Access granted {{ timeUntilExpiry() }}
   </mat-chip>
 } @else {
   <mat-chip class="red-chip">
-    <mat-icon matChipAvatar>lock_outline</mat-icon>
+    <mat-icon matChipAvatar>lock</mat-icon>
     No access
   </mat-chip>
 }

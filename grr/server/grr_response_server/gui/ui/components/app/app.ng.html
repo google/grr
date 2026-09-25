@@ -2,7 +2,7 @@
   <mat-toolbar-row>
     <a mat-button routerLink="/">
       <div class="brand">
-        <img src="/static/images/v2/favicon.ico" alt="GRR logo" />
+        <img src="/static/images/favicon.ico" alt="GRR logo" />
         <div class="title">
           GRR
           @if (globalStore.uiConfig()?.heading; as heading) {
@@ -28,6 +28,11 @@
         matTooltip="Preview to the refactored fleet collection page, this will replace the current
         fleet collection page in the future. (Not all features are supported yet)"
         >Collect from fleet</a>
+      <a mat-tab-link
+        routerLink="/administration"
+        routerLinkActive
+        #administrationLink="routerLinkActive"
+        [active]="administrationLink.isActive">Administration</a>
     </nav>
 
     <span class="spacer"></span>

@@ -26,7 +26,6 @@ export enum PayloadType {
   OSX_SERVICE_INFORMATION = 'OsxServiceInformation',
   PROCESS = 'Process',
   PROCESS_MEMORY_ERROR = 'ProcessMemoryError',
-  READ_LOW_LEVEL_FLOW_RESULT = 'ReadLowLevelFlowResult',
   SOFTWARE_PACKAGES = 'SoftwarePackages',
   STAT_ENTRY = 'StatEntry',
   STENOGRAPHER_UPLOAD_FLOW_RESULT = 'StenographerUploadFlowResult',
@@ -93,8 +92,6 @@ export function typeUrlToPayloadType(
       return PayloadType.PROCESS;
     case 'ProcessMemoryError':
       return PayloadType.PROCESS_MEMORY_ERROR;
-    case 'ReadLowLevelFlowResult':
-      return PayloadType.READ_LOW_LEVEL_FLOW_RESULT;
     case 'SoftwarePackages':
       return PayloadType.SOFTWARE_PACKAGES;
     case 'StatEntry':

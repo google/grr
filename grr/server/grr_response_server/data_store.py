@@ -49,10 +49,10 @@ _LIST_STORAGE = flags.DEFINE_bool(
 )
 
 # The global relational db handle.
-REL_DB: db.Database = None
+REL_DB: db.Database = db.DatabaseValidationWrapper(None)
 
 # The global blobstore handle.
-BLOBS: blob_store.BlobStore = None
+BLOBS: blob_store.BlobStore = blob_store.BlobStoreValidationWrapper(None)
 
 
 def _ListStorageOptions():
@@ -65,9 +65,6 @@ def InitializeDataStore():
 
   Depends on the stats module being initialized.
   """
-  global REL_DB  # pylint: disable=global-statement
-  global BLOBS  # pylint: disable=global-statement
-
   if _LIST_STORAGE.value:
     _ListStorageOptions()
     sys.exit(0)
@@ -75,16 +72,14 @@ def InitializeDataStore():
   # Initialize the relational DB.
   rel_db_name = config.CONFIG["Database.implementation"]
   if not rel_db_name:
-    # TODO(hanuszczak): I think we should raise here instead of silently doing
-    # nothing.
-    return
+    raise ValueError("No database implementation specified in the config.")
 
   try:
     cls = registry_init.REGISTRY[rel_db_name]
-  except KeyError:
-    raise ValueError("Database %s not found." % rel_db_name)
+  except KeyError as e:
+    raise ValueError("Database %s not found." % rel_db_name) from e
   logging.info("Using database implementation %s", rel_db_name)
-  REL_DB = db.DatabaseValidationWrapper(cls())
+  REL_DB.delegate = cls()
 
   # Initialize the blobstore. This has to be done after the database has been
   # already initialized as it might be possible that users want to use the data-
@@ -92,6 +87,6 @@ def InitializeDataStore():
   blobstore_name = config.CONFIG.Get("Blobstore.implementation")
   try:
     cls = blob_store.REGISTRY[blobstore_name]
-  except KeyError:
-    raise ValueError("No blob store %s found." % blobstore_name)
-  BLOBS = blob_store.BlobStoreValidationWrapper(cls())
+  except KeyError as e:
+    raise ValueError("No blob store %s found." % blobstore_name) from e
+  BLOBS.delegate = cls()

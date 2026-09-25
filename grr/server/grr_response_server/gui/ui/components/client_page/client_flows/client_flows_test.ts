@@ -80,8 +80,18 @@ describe('Client Flows Component', () => {
     expect(await harness.newFlowButton()).toBeNull();
   }));
 
-  it('displays "New Flow" button when client is available', fakeAsync(async () => {
+  it('does not display "New Flow" button when access is unknown', fakeAsync(async () => {
     clientStoreMock.client = signal(newClient({clientId: 'C.1234'}));
+    clientStoreMock.hasAccess = signal(null);
+
+    const {harness} = await createComponent();
+    expect(await harness.newFlowButton()).toBeNull();
+  }));
+
+  it('displays "New Flow" button when client and access status are available', fakeAsync(async () => {
+    clientStoreMock.client = signal(newClient({clientId: 'C.1234'}));
+    clientStoreMock.hasAccess = signal(false);
+
     const {harness} = await createComponent();
 
     expect(await harness.newFlowButton()).toBeDefined();
@@ -90,6 +100,7 @@ describe('Client Flows Component', () => {
   it('opens the new flow dialog when "New Flow" button is clicked', async () => {
     const client = newClient({clientId: 'C.1234'});
     clientStoreMock.client = signal(client);
+    clientStoreMock.hasAccess = signal(true);
     const {harness} = await createComponent();
 
     const newFlowButton = await harness.newFlowButton();
@@ -102,7 +113,7 @@ describe('Client Flows Component', () => {
       onSubmit: jasmine.any(Function),
       client,
     };
-    expectedDialogConfig.autoFocus = false;
+    expectedDialogConfig.autoFocus = true;
     expectedDialogConfig.minWidth = '60vw';
     expectedDialogConfig.height = '70vh';
 
@@ -110,6 +121,22 @@ describe('Client Flows Component', () => {
       CreateFlowDialog,
       expectedDialogConfig,
     );
+  });
+
+  it('displays error message when user does not have access to the client', async () => {
+    clientStoreMock.hasAccess = signal(false);
+    clientStoreMock.client = signal(newClient({clientId: 'C.1234'}));
+    const {harness} = await createComponent();
+
+    expect(await harness.hasNoAccessMessage()).toBeTrue();
+  });
+
+  it('does not display error message when user has access to the client', async () => {
+    clientStoreMock.hasAccess = signal(true);
+    clientStoreMock.client = signal(newClient({clientId: 'C.1234'}));
+    const {harness} = await createComponent();
+
+    expect(await harness.hasNoAccessMessage()).toBeFalse();
   });
 
   it('can create empty flow list', fakeAsync(async () => {
@@ -198,7 +225,7 @@ describe('Client Flows Component', () => {
       onSubmit: jasmine.any(Function),
       client: newClient({clientId: 'C.1234'}),
     };
-    expectedDialogConfig.autoFocus = false;
+    expectedDialogConfig.autoFocus = true;
     expectedDialogConfig.minWidth = '60vw';
     expectedDialogConfig.height = '70vh';
 

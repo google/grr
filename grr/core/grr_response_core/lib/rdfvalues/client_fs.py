@@ -9,7 +9,6 @@ from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr_response_core.lib.rdfvalues import standard as rdf_standard
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
-from grr_response_proto import flows_pb2
 from grr_response_proto import jobs_pb2
 from grr_response_proto import sysinfo_pb2
 
@@ -52,20 +51,20 @@ class Volume(rdf_structs.RDFProtoStruct):
   def FreeSpacePercent(self):
     try:
       return (
-          self.actual_available_allocation_units / self.total_allocation_units
+          self.actual_available_allocation_units / self.total_allocation_units  # pyrefly: ignore[missing-attribute]
       ) * 100.0
     except ZeroDivisionError:
       return 100
 
   def FreeSpaceBytes(self):
-    return self.AUToBytes(self.actual_available_allocation_units)
+    return self.AUToBytes(self.actual_available_allocation_units)  # pyrefly: ignore[missing-attribute]
 
   def AUToBytes(self, allocation_units):
     """Convert a number of allocation units to bytes."""
     return (
         allocation_units
-        * self.sectors_per_allocation_unit
-        * self.bytes_per_sector
+        * self.sectors_per_allocation_unit  # pyrefly: ignore[missing-attribute]
+        * self.bytes_per_sector  # pyrefly: ignore[missing-attribute]
     )
 
   def AUToGBytes(self, allocation_units):
@@ -75,10 +74,10 @@ class Volume(rdf_structs.RDFProtoStruct):
   def Name(self):
     """Return the best available name for this volume."""
     return (
-        self.name
-        or self.device_path
-        or self.windowsvolume.drive_letter
-        or self.unixvolume.mount_point
+        self.name  # pyrefly: ignore[missing-attribute]
+        or self.device_path  # pyrefly: ignore[missing-attribute]
+        or self.windowsvolume.drive_letter  # pyrefly: ignore[missing-attribute]
+        or self.unixvolume.mount_point  # pyrefly: ignore[missing-attribute]
         or None
     )
 
@@ -173,7 +172,7 @@ class StatEntry(rdf_structs.RDFProtoStruct):
   ]
 
   def AFF4Path(self, client_urn):
-    return self.pathspec.AFF4Path(client_urn)
+    return self.pathspec.AFF4Path(client_urn)  # pyrefly: ignore[missing-attribute]
 
 
 class FindSpec(rdf_structs.RDFProtoStruct):
@@ -193,30 +192,20 @@ class FindSpec(rdf_structs.RDFProtoStruct):
 
   def Validate(self):
     """Ensure the pathspec is valid."""
-    self.pathspec.Validate()
+    self.pathspec.Validate()  # pyrefly: ignore[missing-attribute]
 
     if (
         self.HasField("start_time")
         and self.HasField("end_time")
-        and self.start_time > self.end_time
+        and self.start_time > self.end_time  # pyrefly: ignore[missing-attribute]
     ):
       raise ValueError("Start time must be before end time.")
 
-    if not self.path_regex and not self.data_regex and not self.path_glob:
+    if not self.path_regex and not self.data_regex and not self.path_glob:  # pyrefly: ignore[missing-attribute]
       raise ValueError(
           "A Find specification can not contain both an empty "
           "path regex and an empty data regex"
       )
-
-
-class BareGrepSpec(rdf_structs.RDFProtoStruct):
-  """A GrepSpec without a target."""
-
-  protobuf = flows_pb2.BareGrepSpec
-  rdf_deps = [
-      rdf_standard.LiteralExpression,
-      rdf_standard.RegularExpression,
-  ]
 
 
 class GrepSpec(rdf_structs.RDFProtoStruct):
@@ -228,7 +217,7 @@ class GrepSpec(rdf_structs.RDFProtoStruct):
   ]
 
   def Validate(self):
-    self.target.Validate()
+    self.target.Validate()  # pyrefly: ignore[missing-attribute]
 
 
 class BlobImageChunkDescriptor(rdf_structs.RDFProtoStruct):

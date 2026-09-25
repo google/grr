@@ -5,9 +5,9 @@ import io
 import logging
 import os
 
+from google.protobuf import message
 import xattr
 
-from google.protobuf import message
 from grr_response_core import config
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils

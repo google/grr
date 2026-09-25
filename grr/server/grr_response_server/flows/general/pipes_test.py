@@ -25,23 +25,23 @@ class ListNamedPipesFlowTest(flow_test_lib.FlowTestsBaseclass):
   def testPlatformNotSupported(self):
     self.client_id = self.SetupClient(0, system="Linux")
 
-    args = pipes.ListNamedPipesFlowArgs()
+    args = pipes_pb2.ListNamedPipesFlowArgs()
 
     with self.assertRaisesRegex(RuntimeError, "Unsupported platform"):
       self._RunListNamedPipesFlow(args)
 
   def testNoPipes(self):
-    args = pipes.ListNamedPipesFlowArgs()
+    args = pipes_pb2.ListNamedPipesFlowArgs()
 
     results = self._RunListNamedPipesFlow(args, pipe_results=[])
     self.assertEmpty(results)
 
   def testSinglePipe(self):
-    args = pipes.ListNamedPipesFlowArgs()
+    args = pipes_pb2.ListNamedPipesFlowArgs()
 
     pipe = rdf_client.NamedPipe()
-    pipe.name = "foo"
-    pipe.server_pid = 1337
+    pipe.name = "foo"  # pyrefly: ignore[missing-attribute]
+    pipe.server_pid = 1337  # pyrefly: ignore[missing-attribute]
 
     results = self._RunListNamedPipesFlow(args, pipe_results=[pipe])
     self.assertLen(results, 1)
@@ -49,15 +49,15 @@ class ListNamedPipesFlowTest(flow_test_lib.FlowTestsBaseclass):
     self.assertEqual(results[0].pipe.server_pid, 1337)
 
   def testMultiplePipes(self):
-    args = pipes.ListNamedPipesFlowArgs()
+    args = pipes_pb2.ListNamedPipesFlowArgs()
 
     pipe_foo = rdf_client.NamedPipe()
-    pipe_foo.name = "foo"
-    pipe_foo.server_pid = 0xF00
+    pipe_foo.name = "foo"  # pyrefly: ignore[missing-attribute]
+    pipe_foo.server_pid = 0xF00  # pyrefly: ignore[missing-attribute]
 
     pipe_baz = rdf_client.NamedPipe()
-    pipe_baz.name = "baz"
-    pipe_baz.server_pid = 0xB45
+    pipe_baz.name = "baz"  # pyrefly: ignore[missing-attribute]
+    pipe_baz.server_pid = 0xB45  # pyrefly: ignore[missing-attribute]
 
     results = self._RunListNamedPipesFlow(
         args,
@@ -70,17 +70,17 @@ class ListNamedPipesFlowTest(flow_test_lib.FlowTestsBaseclass):
     self.assertEqual(results_by_name["baz"].pipe.server_pid, 0xB45)
 
   def testPipeNameRegex(self):
-    args = pipes.ListNamedPipesFlowArgs()
+    args = pipes_pb2.ListNamedPipesFlowArgs()
     args.pipe_name_regex = "ba."
 
     pipe_foo = rdf_client.NamedPipe()
-    pipe_foo.name = "foo"
+    pipe_foo.name = "foo"  # pyrefly: ignore[missing-attribute]
 
     pipe_bar = rdf_client.NamedPipe()
-    pipe_bar.name = "bar"
+    pipe_bar.name = "bar"  # pyrefly: ignore[missing-attribute]
 
     pipe_baz = rdf_client.NamedPipe()
-    pipe_baz.name = "baz"
+    pipe_baz.name = "baz"  # pyrefly: ignore[missing-attribute]
 
     results = self._RunListNamedPipesFlow(
         args,
@@ -93,32 +93,32 @@ class ListNamedPipesFlowTest(flow_test_lib.FlowTestsBaseclass):
     self.assertIn("baz", result_names)
 
   def testProcExeRegex(self):
-    args = pipes.ListNamedPipesFlowArgs()
+    args = pipes_pb2.ListNamedPipesFlowArgs()
     args.proc_exe_regex = r"C:\\Windows\\ba.\.exe"
 
     pipe_foo = rdf_client.NamedPipe()
-    pipe_foo.name = "foo"
-    pipe_foo.server_pid = 123
+    pipe_foo.name = "foo"  # pyrefly: ignore[missing-attribute]
+    pipe_foo.server_pid = 123  # pyrefly: ignore[missing-attribute]
 
     proc_foo = rdf_client.Process()
-    proc_foo.pid = 123
-    proc_foo.exe = r"C:\Windows\foo.exe"
+    proc_foo.pid = 123  # pyrefly: ignore[missing-attribute]
+    proc_foo.exe = r"C:\Windows\foo.exe"  # pyrefly: ignore[missing-attribute]
 
     pipe_bar = rdf_client.NamedPipe()
-    pipe_bar.name = "bar"
-    pipe_bar.server_pid = 456
+    pipe_bar.name = "bar"  # pyrefly: ignore[missing-attribute]
+    pipe_bar.server_pid = 456  # pyrefly: ignore[missing-attribute]
 
     proc_bar = rdf_client.Process()
-    proc_bar.pid = 456
-    proc_bar.exe = r"C:\Windows\bar.exe"
+    proc_bar.pid = 456  # pyrefly: ignore[missing-attribute]
+    proc_bar.exe = r"C:\Windows\bar.exe"  # pyrefly: ignore[missing-attribute]
 
     pipe_baz = rdf_client.NamedPipe()
-    pipe_baz.name = "baz"
-    pipe_baz.server_pid = 789
+    pipe_baz.name = "baz"  # pyrefly: ignore[missing-attribute]
+    pipe_baz.server_pid = 789  # pyrefly: ignore[missing-attribute]
 
     proc_baz = rdf_client.Process()
-    proc_baz.pid = 789
-    proc_baz.exe = r"C:\Windows\baz.exe"
+    proc_baz.pid = 789  # pyrefly: ignore[missing-attribute]
+    proc_baz.exe = r"C:\Windows\baz.exe"  # pyrefly: ignore[missing-attribute]
 
     results = self._RunListNamedPipesFlow(
         args,
@@ -132,107 +132,107 @@ class ListNamedPipesFlowTest(flow_test_lib.FlowTestsBaseclass):
     self.assertIn("baz", result_names)
 
   def testPipeTypeFilterByteMatch(self):
-    args = pipes.ListNamedPipesFlowArgs()
+    args = pipes_pb2.ListNamedPipesFlowArgs()
     args.pipe_type_filter = pipes_pb2.ListNamedPipesFlowArgs.BYTE_TYPE
 
     pipe = rdf_client.NamedPipe()
-    pipe.name = "foo"
-    pipe.flags = pipes.PIPE_TYPE_BYTE | pipes.PIPE_CLIENT_END
+    pipe.name = "foo"  # pyrefly: ignore[missing-attribute]
+    pipe.flags = pipes.PIPE_TYPE_BYTE | pipes.PIPE_CLIENT_END  # pyrefly: ignore[missing-attribute]
 
     results = self._RunListNamedPipesFlow(args, pipe_results=[pipe])
     self.assertLen(results, 1)
     self.assertEqual(results[0].pipe.name, "foo")
 
   def testPipeTypeFilterByteNoMatch(self):
-    args = pipes.ListNamedPipesFlowArgs()
+    args = pipes_pb2.ListNamedPipesFlowArgs()
     args.pipe_type_filter = pipes_pb2.ListNamedPipesFlowArgs.BYTE_TYPE
 
     pipe = rdf_client.NamedPipe()
-    pipe.name = "foo"
-    pipe.flags = pipes.PIPE_TYPE_MESSAGE | pipes.PIPE_CLIENT_END
+    pipe.name = "foo"  # pyrefly: ignore[missing-attribute]
+    pipe.flags = pipes.PIPE_TYPE_MESSAGE | pipes.PIPE_CLIENT_END  # pyrefly: ignore[missing-attribute]
 
     results = self._RunListNamedPipesFlow(args, pipe_results=[pipe])
     self.assertEmpty(results)
 
   def testPipeTypeFilterMessageMatch(self):
-    args = pipes.ListNamedPipesFlowArgs()
+    args = pipes_pb2.ListNamedPipesFlowArgs()
     args.pipe_type_filter = pipes_pb2.ListNamedPipesFlowArgs.MESSAGE_TYPE
 
     pipe = rdf_client.NamedPipe()
-    pipe.name = "foo"
-    pipe.flags = pipes.PIPE_TYPE_MESSAGE | pipes.PIPE_CLIENT_END
+    pipe.name = "foo"  # pyrefly: ignore[missing-attribute]
+    pipe.flags = pipes.PIPE_TYPE_MESSAGE | pipes.PIPE_CLIENT_END  # pyrefly: ignore[missing-attribute]
 
     results = self._RunListNamedPipesFlow(args, pipe_results=[pipe])
     self.assertLen(results, 1)
     self.assertEqual(results[0].pipe.name, "foo")
 
   def testPipeTypeFilterMessageNoMatch(self):
-    args = pipes.ListNamedPipesFlowArgs()
+    args = pipes_pb2.ListNamedPipesFlowArgs()
     args.pipe_type_filter = pipes_pb2.ListNamedPipesFlowArgs.MESSAGE_TYPE
 
     pipe = rdf_client.NamedPipe()
-    pipe.name = "foo"
-    pipe.flags = pipes.PIPE_TYPE_BYTE | pipes.PIPE_CLIENT_END
+    pipe.name = "foo"  # pyrefly: ignore[missing-attribute]
+    pipe.flags = pipes.PIPE_TYPE_BYTE | pipes.PIPE_CLIENT_END  # pyrefly: ignore[missing-attribute]
 
     results = self._RunListNamedPipesFlow(args, pipe_results=[pipe])
     self.assertEmpty(results)
 
   def testPipeEndFilterClientMatch(self):
-    args = pipes.ListNamedPipesFlowArgs()
+    args = pipes_pb2.ListNamedPipesFlowArgs()
     args.pipe_end_filter = pipes_pb2.ListNamedPipesFlowArgs.CLIENT_END
 
     pipe = rdf_client.NamedPipe()
-    pipe.name = "foo"
-    pipe.flags = pipes.PIPE_TYPE_MESSAGE | pipes.PIPE_CLIENT_END
+    pipe.name = "foo"  # pyrefly: ignore[missing-attribute]
+    pipe.flags = pipes.PIPE_TYPE_MESSAGE | pipes.PIPE_CLIENT_END  # pyrefly: ignore[missing-attribute]
 
     results = self._RunListNamedPipesFlow(args, pipe_results=[pipe])
     self.assertLen(results, 1)
     self.assertEqual(results[0].pipe.name, "foo")
 
   def testPipeEndFilterClientNoMatch(self):
-    args = pipes.ListNamedPipesFlowArgs()
+    args = pipes_pb2.ListNamedPipesFlowArgs()
     args.pipe_end_filter = pipes_pb2.ListNamedPipesFlowArgs.CLIENT_END
 
     pipe = rdf_client.NamedPipe()
-    pipe.name = "foo"
-    pipe.flags = pipes.PIPE_TYPE_MESSAGE | pipes.PIPE_SERVER_END
+    pipe.name = "foo"  # pyrefly: ignore[missing-attribute]
+    pipe.flags = pipes.PIPE_TYPE_MESSAGE | pipes.PIPE_SERVER_END  # pyrefly: ignore[missing-attribute]
 
     results = self._RunListNamedPipesFlow(args, pipe_results=[pipe])
     self.assertEmpty(results)
 
   def testPipeEndFilterServerMatch(self):
-    args = pipes.ListNamedPipesFlowArgs()
+    args = pipes_pb2.ListNamedPipesFlowArgs()
     args.pipe_end_filter = pipes_pb2.ListNamedPipesFlowArgs.SERVER_END
 
     pipe = rdf_client.NamedPipe()
-    pipe.name = "foo"
-    pipe.flags = pipes.PIPE_TYPE_MESSAGE | pipes.PIPE_SERVER_END
+    pipe.name = "foo"  # pyrefly: ignore[missing-attribute]
+    pipe.flags = pipes.PIPE_TYPE_MESSAGE | pipes.PIPE_SERVER_END  # pyrefly: ignore[missing-attribute]
 
     results = self._RunListNamedPipesFlow(args, pipe_results=[pipe])
     self.assertLen(results, 1)
     self.assertEqual(results[0].pipe.name, "foo")
 
   def testPipeEndFilterServerNoMatch(self):
-    args = pipes.ListNamedPipesFlowArgs()
+    args = pipes_pb2.ListNamedPipesFlowArgs()
     args.pipe_end_filter = pipes_pb2.ListNamedPipesFlowArgs.SERVER_END
 
     pipe = rdf_client.NamedPipe()
-    pipe.name = "foo"
-    pipe.flags = pipes.PIPE_TYPE_MESSAGE | pipes.PIPE_CLIENT_END
+    pipe.name = "foo"  # pyrefly: ignore[missing-attribute]
+    pipe.flags = pipes.PIPE_TYPE_MESSAGE | pipes.PIPE_CLIENT_END  # pyrefly: ignore[missing-attribute]
 
     results = self._RunListNamedPipesFlow(args, pipe_results=[pipe])
     self.assertEmpty(results)
 
   def testSinglePipeWithServerPid(self):
-    args = pipes.ListNamedPipesFlowArgs()
+    args = pipes_pb2.ListNamedPipesFlowArgs()
 
     pipe = rdf_client.NamedPipe()
-    pipe.name = "foo"
-    pipe.server_pid = 42
+    pipe.name = "foo"  # pyrefly: ignore[missing-attribute]
+    pipe.server_pid = 42  # pyrefly: ignore[missing-attribute]
 
     proc = rdf_client.Process()
-    proc.pid = 42
-    proc.exe = r"C:\Windows\foo.exe"
+    proc.pid = 42  # pyrefly: ignore[missing-attribute]
+    proc.exe = r"C:\Windows\foo.exe"  # pyrefly: ignore[missing-attribute]
 
     results = self._RunListNamedPipesFlow(
         args,
@@ -245,15 +245,15 @@ class ListNamedPipesFlowTest(flow_test_lib.FlowTestsBaseclass):
     self.assertEqual(results[0].proc.exe, r"C:\Windows\foo.exe")
 
   def testSinglePipeWithClientPid(self):
-    args = pipes.ListNamedPipesFlowArgs()
+    args = pipes_pb2.ListNamedPipesFlowArgs()
 
     pipe = rdf_client.NamedPipe()
-    pipe.name = "foo"
-    pipe.client_pid = 1337
+    pipe.name = "foo"  # pyrefly: ignore[missing-attribute]
+    pipe.client_pid = 1337  # pyrefly: ignore[missing-attribute]
 
     proc = rdf_client.Process()
-    proc.pid = 1337
-    proc.exe = r"C:\Windows\foo.exe"
+    proc.pid = 1337  # pyrefly: ignore[missing-attribute]
+    proc.exe = r"C:\Windows\foo.exe"  # pyrefly: ignore[missing-attribute]
 
     results = self._RunListNamedPipesFlow(
         args,
@@ -266,19 +266,19 @@ class ListNamedPipesFlowTest(flow_test_lib.FlowTestsBaseclass):
     self.assertEqual(results[0].proc.exe, r"C:\Windows\foo.exe")
 
   def testSinglePipeWithNoMatchingPid(self):
-    args = pipes.ListNamedPipesFlowArgs()
+    args = pipes_pb2.ListNamedPipesFlowArgs()
 
     pipe = rdf_client.NamedPipe()
-    pipe.name = "foo"
-    pipe.server_pid = 1
+    pipe.name = "foo"  # pyrefly: ignore[missing-attribute]
+    pipe.server_pid = 1  # pyrefly: ignore[missing-attribute]
 
     proc_bar = rdf_client.Process()
-    proc_bar.pid = 2
-    proc_bar.exe = r"C:\Windows\bar.exe"
+    proc_bar.pid = 2  # pyrefly: ignore[missing-attribute]
+    proc_bar.exe = r"C:\Windows\bar.exe"  # pyrefly: ignore[missing-attribute]
 
     proc_baz = rdf_client.Process()
-    proc_baz.pid = 3
-    proc_baz.exe = r"C:\Windows\baz.exe"
+    proc_baz.pid = 3  # pyrefly: ignore[missing-attribute]
+    proc_baz.exe = r"C:\Windows\baz.exe"  # pyrefly: ignore[missing-attribute]
 
     results = self._RunListNamedPipesFlow(
         args,
@@ -291,27 +291,27 @@ class ListNamedPipesFlowTest(flow_test_lib.FlowTestsBaseclass):
     self.assertEmpty(results[0].proc.exe)
 
   def testMultiplePipesWithPids(self):
-    args = pipes.ListNamedPipesFlowArgs()
+    args = pipes_pb2.ListNamedPipesFlowArgs()
 
     pipe_foo = rdf_client.NamedPipe()
-    pipe_foo.name = "foo-pipe"
-    pipe_foo.client_pid = 42
+    pipe_foo.name = "foo-pipe"  # pyrefly: ignore[missing-attribute]
+    pipe_foo.client_pid = 42  # pyrefly: ignore[missing-attribute]
 
     pipe_bar = rdf_client.NamedPipe()
-    pipe_bar.name = "bar-pipe"
-    pipe_bar.server_pid = 1337
+    pipe_bar.name = "bar-pipe"  # pyrefly: ignore[missing-attribute]
+    pipe_bar.server_pid = 1337  # pyrefly: ignore[missing-attribute]
 
     pipe_baz = rdf_client.NamedPipe()
-    pipe_baz.name = "baz-pipe"
-    pipe_baz.server_pid = 108
+    pipe_baz.name = "baz-pipe"  # pyrefly: ignore[missing-attribute]
+    pipe_baz.server_pid = 108  # pyrefly: ignore[missing-attribute]
 
     proc_foo = rdf_client.Process()
-    proc_foo.exe = r"C:\Temp\foo.exe"
-    proc_foo.pid = 42
+    proc_foo.exe = r"C:\Temp\foo.exe"  # pyrefly: ignore[missing-attribute]
+    proc_foo.pid = 42  # pyrefly: ignore[missing-attribute]
 
     proc_baz = rdf_client.Process()
-    proc_baz.exe = r"C:\Temp\baz.exe"
-    proc_baz.pid = 108
+    proc_baz.exe = r"C:\Temp\baz.exe"  # pyrefly: ignore[missing-attribute]
+    proc_baz.pid = 108  # pyrefly: ignore[missing-attribute]
 
     results = self._RunListNamedPipesFlow(
         args,
@@ -326,19 +326,19 @@ class ListNamedPipesFlowTest(flow_test_lib.FlowTestsBaseclass):
     self.assertEmpty(results_by_name["bar-pipe"].proc.exe)
 
   def testMultiplePipesWithPid0(self):
-    args = pipes.ListNamedPipesFlowArgs()
+    args = pipes_pb2.ListNamedPipesFlowArgs()
 
     pipe_foo = rdf_client.NamedPipe()
-    pipe_foo.name = "foo-pipe"
-    pipe_foo.client_pid = 0
+    pipe_foo.name = "foo-pipe"  # pyrefly: ignore[missing-attribute]
+    pipe_foo.client_pid = 0  # pyrefly: ignore[missing-attribute]
 
     pipe_bar = rdf_client.NamedPipe()
-    pipe_bar.name = "bar-pipe"
-    pipe_bar.server_pid = 0
+    pipe_bar.name = "bar-pipe"  # pyrefly: ignore[missing-attribute]
+    pipe_bar.server_pid = 0  # pyrefly: ignore[missing-attribute]
 
     proc = rdf_client.Process()
-    proc.pid = 0
-    proc.exe = r"C:\Windows\system32\notepad.exe"
+    proc.pid = 0  # pyrefly: ignore[missing-attribute]
+    proc.exe = r"C:\Windows\system32\notepad.exe"  # pyrefly: ignore[missing-attribute]
 
     results = self._RunListNamedPipesFlow(
         args,
@@ -352,10 +352,10 @@ class ListNamedPipesFlowTest(flow_test_lib.FlowTestsBaseclass):
 
   def _RunListNamedPipesFlow(
       self,
-      args: pipes.ListNamedPipesFlowArgs,
+      args: pipes_pb2.ListNamedPipesFlowArgs,
       pipe_results: Iterable[rdf_client.NamedPipe] = (),
       proc_results: Iterable[rdf_client.Process] = (),
-  ) -> Sequence[pipes.ListNamedPipesFlowResult]:
+  ) -> Sequence[pipes_pb2.ListNamedPipesFlowResult]:
     """Runs the flow listing named pipes with the given fake action results."""
 
     class ActionMock(action_mocks.ActionMock):
@@ -386,7 +386,9 @@ class ListNamedPipesFlowTest(flow_test_lib.FlowTestsBaseclass):
     )
 
     flow_test_lib.FinishAllFlowsOnClient(self.client_id)
-    return flow_test_lib.GetFlowResults(self.client_id, flow_id)
+    return flow_test_lib.GetUnpackedFlowResults(
+        self.client_id, flow_id, pipes_pb2.ListNamedPipesFlowResult
+    )
 
 
 if __name__ == "__main__":

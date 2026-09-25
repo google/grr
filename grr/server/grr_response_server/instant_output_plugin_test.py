@@ -3,9 +3,9 @@ import io
 from typing import Iterable, Iterator
 
 from absl import app
+from google.protobuf import message
 
 from google.protobuf import any_pb2
-from google.protobuf import message
 from grr_response_core.lib import rdfvalue
 from grr_response_proto import export_pb2
 from grr_response_proto import flows_pb2

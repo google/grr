@@ -5,166 +5,13 @@ import tempfile
 from absl import app
 from absl.testing import absltest
 
-from google.protobuf import text_format
 from grr_response_core.lib import rdfvalue
-from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import test_base as rdf_test_base
 from grr_response_proto import objects_pb2
 from grr_response_server.rdfvalues import objects as rdf_objects
 from grr.test_lib import test_lib
-
-
-def MakeClient():
-  base_pb = objects_pb2.ClientSnapshot()
-  # pylint: disable=line-too-long
-  text_format.Merge(
-      r"""
-    os_release: "Ubuntu"
-    os_version: "14.4"
-    interfaces: {
-      addresses: {
-        address_type: INET
-        packed_bytes: "\177\000\000\001"
-      }
-      addresses: {
-        address_type: INET6
-        packed_bytes: "\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\001"
-      }
-    }
-    interfaces: {
-    mac_address: "\001\002\003\004\001\002\003\004\001\002\003\004"
-      addresses: {
-        address_type: INET
-        packed_bytes: "\010\010\010\010"
-      }
-      addresses: {
-        address_type: INET6
-        packed_bytes: "\376\200\001\002\003\000\000\000\000\000\000\000\000\000\000\000"
-      }
-    }
-    knowledge_base: {
-      users: {
-        username: "joe"
-        full_name: "Good Guy Joe"
-      }
-      users: {
-        username: "fred"
-        full_name: "Ok Guy Fred"
-      }
-      fqdn: "test123.examples.com"
-      os: "Linux"
-    }
-    cloud_instance: {
-      cloud_type: GOOGLE
-      google: {
-        unique_id: "us-central1-a/myproject/1771384456894610289"
-      }
-    }
-    """,
-      base_pb,
-  )
-  # pylint: enable=line-too-long
-
-  client = rdf_objects.ClientSnapshot.FromSerializedBytes(
-      base_pb.SerializeToString()
-  )
-  client.client_id = "C.0000000000000000"
-  return client
-
-
-class ObjectTest(absltest.TestCase):
-
-  def testDeserializeClientSnapshot(self):
-    snapshot = rdf_objects.ClientSnapshot(client_id="C.1234567890123456")
-    client_info = rdf_objects.ClientFullInfo(last_snapshot=snapshot)
-    deserialized = rdf_objects.ClientFullInfo.FromSerializedBytes(
-        client_info.SerializeToBytes()
-    )
-    self.assertEqual(deserialized.last_snapshot, snapshot)
-
-  def testClientBasics(self):
-    client = MakeClient()
-    self.assertIsNone(client.timestamp)
-
-    self.assertEqual(client.knowledge_base.fqdn, "test123.examples.com")
-
-  def testClientAddresses(self):
-    client = MakeClient()
-    self.assertCountEqual(
-        client.GetIPAddresses(), ["8.8.8.8", "fe80:102:300::"]
-    )
-    self.assertEqual(client.GetMacAddresses(), ["010203040102030401020304"])
-
-  def testClientSummary(self):
-    client = MakeClient()
-    summary = client.GetSummary()
-    self.assertEqual(summary.system_info.fqdn, "test123.examples.com")
-    self.assertEqual(
-        summary.cloud_instance_id, "us-central1-a/myproject/1771384456894610289"
-    )
-    self.assertCountEqual([u.username for u in summary.users], ["fred", "joe"])
-
-  def testClientSummaryTimestamp(self):
-    client = MakeClient()
-    client.timestamp = rdfvalue.RDFDatetime.Now()
-    summary = client.GetSummary()
-    self.assertEqual(client.timestamp, summary.timestamp)
-
-
-class ClientSnapshotTest(absltest.TestCase):
-
-  def testGetSummaryEdrAgents(self):
-    snapshot = rdf_objects.ClientSnapshot()
-    snapshot.client_id = "C.0123456789012345"
-    snapshot.edr_agents.append(rdf_client.EdrAgent(name="foo", agent_id="1337"))
-    snapshot.edr_agents.append(rdf_client.EdrAgent(name="bar", agent_id="108"))
-
-    summary = snapshot.GetSummary()
-    self.assertLen(summary.edr_agents, 2)
-    self.assertEqual(summary.edr_agents[0].name, "foo")
-    self.assertEqual(summary.edr_agents[1].name, "bar")
-    self.assertEqual(summary.edr_agents[0].agent_id, "1337")
-    self.assertEqual(summary.edr_agents[1].agent_id, "108")
-
-  def testGetSummaryOsReleaseSnapshot(self):
-    snapshot = rdf_objects.ClientSnapshot()
-    snapshot.client_id = "C.0123456789012345"
-    snapshot.os_release = "Rocky Linux"
-    snapshot.knowledge_base.os_release = "RedHat Linux"
-
-    summary = snapshot.GetSummary()
-    self.assertEqual(summary.system_info.release, "Rocky Linux")
-
-  def testGetSummaryOsReleaseKnowledgeBase(self):
-    snapshot = rdf_objects.ClientSnapshot()
-    snapshot.client_id = "C.0123456789012345"
-    snapshot.knowledge_base.os_release = "RedHat Linux"
-
-    summary = snapshot.GetSummary()
-    self.assertEqual(summary.system_info.release, "RedHat Linux")
-
-  def testGetSummaryOsVersionSnapshot(self):
-    snapshot = rdf_objects.ClientSnapshot()
-    snapshot.client_id = "C.0123456789012345"
-    snapshot.os_version = "13.37"
-    snapshot.knowledge_base.os_release = "RedHat Linux"
-    snapshot.knowledge_base.os_major_version = 4
-    snapshot.knowledge_base.os_minor_version = 2
-
-    summary = snapshot.GetSummary()
-    self.assertEqual(summary.system_info.version, "13.37")
-
-  def testGetSummaryOsVersionKnowledgeBase(self):
-    snapshot = rdf_objects.ClientSnapshot()
-    snapshot.client_id = "C.0123456789012345"
-    snapshot.knowledge_base.os_release = "RedHat Linux"
-    snapshot.knowledge_base.os_major_version = 4
-    snapshot.knowledge_base.os_minor_version = 2
-
-    summary = snapshot.GetSummary()
-    self.assertEqual(summary.system_info.version, "4.2")
 
 
 class PathIDTest(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
@@ -571,71 +418,55 @@ class CategorizedPathTest(absltest.TestCase):
       rdf_objects.ToCategorizedPath("MEMORY", ("foo", "bar"))
 
 
-class VfsFileReferenceTest(absltest.TestCase):
+class VfsFileReferenceToPathTest(absltest.TestCase):
 
   def setUp(self):
     super().setUp()
     self.client_id = "C.0000000000000000"
 
   def testOsPathIsConvertedVfsPathStringCorrectly(self):
-    v = rdf_objects.VfsFileReference(
+    v = objects_pb2.VfsFileReference(
         client_id=self.client_id,
-        path_type="OS",
+        path_type=objects_pb2.PathInfo.PathType.OS,
         path_components=["a", "b", "c"],
     )
-    self.assertEqual(v.ToPath(), "fs/os/a/b/c")
+    self.assertEqual(rdf_objects.VfsFileReferenceToPath(v), "fs/os/a/b/c")
 
   def testTskPathIsConvertedVfsPathStringCorrectly(self):
-    v = rdf_objects.VfsFileReference(
+    v = objects_pb2.VfsFileReference(
         client_id=self.client_id,
-        path_type="TSK",
+        path_type=objects_pb2.PathInfo.PathType.TSK,
         path_components=["a", "b", "c"],
     )
-    self.assertEqual(v.ToPath(), "fs/tsk/a/b/c")
+    self.assertEqual(rdf_objects.VfsFileReferenceToPath(v), "fs/tsk/a/b/c")
 
   def testNtfsPathIsConvertedVfsPathStringCorrectly(self):
-    v = rdf_objects.VfsFileReference(
+    v = objects_pb2.VfsFileReference(
         client_id=self.client_id,
-        path_type="NTFS",
+        path_type=objects_pb2.PathInfo.PathType.NTFS,
         path_components=["a", "b", "c"],
     )
-    self.assertEqual(v.ToPath(), "fs/ntfs/a/b/c")
+    self.assertEqual(rdf_objects.VfsFileReferenceToPath(v), "fs/ntfs/a/b/c")
 
   def testRegistryPathIsConvertedVfsPathStringCorrectly(self):
-    v = rdf_objects.VfsFileReference(
+    v = objects_pb2.VfsFileReference(
         client_id=self.client_id,
-        path_type="REGISTRY",
+        path_type=objects_pb2.PathInfo.PathType.REGISTRY,
         path_components=["a", "b", "c"],
     )
-    self.assertEqual(v.ToPath(), "registry/a/b/c")
+    self.assertEqual(rdf_objects.VfsFileReferenceToPath(v), "registry/a/b/c")
 
   def testTempPathIsConvertedVfsPathStringCorrectly(self):
-    v = rdf_objects.VfsFileReference(
+    v = objects_pb2.VfsFileReference(
         client_id=self.client_id,
-        path_type="TEMP",
+        path_type=objects_pb2.PathInfo.PathType.TEMP,
         path_components=["a", "b", "c"],
     )
-    self.assertEqual(v.ToPath(), "temp/a/b/c")
+    self.assertEqual(rdf_objects.VfsFileReferenceToPath(v), "temp/a/b/c")
 
   def testConvertingPathVfsPathStringWithUnknownTypeRaises(self):
     with self.assertRaises(ValueError):
-      rdf_objects.VfsFileReference().ToPath()
-
-
-class BlobReferenceTest(absltest.TestCase):
-
-  def testFromBlobImageChunkDescriptor(self):
-    blob_id = os.urandom(32)
-
-    chunk = rdf_client_fs.BlobImageChunkDescriptor()
-    chunk.offset = 42
-    chunk.length = 1337
-    chunk.digest = blob_id
-
-    blob_ref = rdf_objects.BlobReference.FromBlobImageChunkDescriptor(chunk)
-    self.assertEqual(blob_ref.offset, 42)
-    self.assertEqual(blob_ref.size, 1337)
-    self.assertEqual(blob_ref.blob_id, blob_id)
+      rdf_objects.VfsFileReferenceToPath(objects_pb2.VfsFileReference())
 
 
 def main(argv):

@@ -6,6 +6,5 @@ import {CodeblockHarness} from '../data_renderer/testing/codeblock_harness';
 export class ExecuteBinaryResponsesHarness extends ComponentHarness {
   static hostSelector = 'execute-binary-responses';
 
-  readonly clientIds = this.locatorForAll('.client-id');
   readonly codeblocks = this.locatorForAll(CodeblockHarness);
 }

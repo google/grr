@@ -1,0 +1,18 @@
+<split-panel direction="horizontal" [initialSize]="25">
+  <div slot="panel1" class="selection-panel">
+    <mat-nav-list>
+      <a mat-list-item
+        routerLink="artifacts"
+        routerLinkActive
+        #active="routerLinkActive"
+        [activated]="active.isActive"
+      >
+        Artifacts
+      </a>
+      <a mat-list-item disabled>Commands</a>
+    </mat-nav-list>
+  </div>
+  <div slot="panel2" class="content-panel">
+    <router-outlet />
+  </div>
+</split-panel>

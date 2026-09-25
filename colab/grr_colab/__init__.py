@@ -8,9 +8,9 @@ import datetime
 import io
 from typing import Optional, Union
 
+from google.protobuf import message
 from IPython.lib import pretty
 
-from google.protobuf import message
 from grr_api_client import client
 from grr_api_client import errors as api_errors
 from grr_api_client import utils as api_utils
@@ -102,7 +102,7 @@ class Client(object):
 
   def __init__(self, client_: client.Client) -> None:
     self._client = client_
-    self._snapshot: objects_pb2.ClientSnapshot = None
+    self._snapshot: objects_pb2.ClientSnapshot = None  # pyrefly: ignore[bad-assignment]
 
   @classmethod
   def with_id(cls, client_id: str) -> 'Client':
@@ -333,33 +333,9 @@ class Client(object):
     """
     return self.os.glob(path)
 
-  def grep(
-      self, path: str, pattern: bytes
-  ) -> Sequence[jobs_pb2.BufferReference]:
-    """Greps for given content on the specified path.
-
-    Args:
-      path: A path to a file to be searched.
-      pattern: A regular expression on search for.
-
-    Returns:
-      A list of buffer references to the matched content.
-    """
-    return self.os.grep(path, pattern)
-
-  def fgrep(
-      self, path: str, literal: bytes
-  ) -> Sequence[jobs_pb2.BufferReference]:
-    """Greps for given content on the specified path.
-
-    Args:
-      path: A path to a file to be searched.
-      literal: A literal expression on search for.
-
-    Returns:
-      A list of buffer references to the matched content.
-    """
-    return self.os.fgrep(path, literal)
+  # TODO - `grep` and `fgrep` methods could be implemented by using
+  # the RRG `GREP_FILE_CONTENTS` action (e.g. through some simple pass-through
+  # flow).
 
   def osquery(
       self, query: str, timeout: int = 30000, ignore_stderr_errors: bool = False

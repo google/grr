@@ -7,7 +7,6 @@ from absl.testing import absltest
 
 from grr_response_server.databases import db_test_utils
 from grr_response_server.databases import mem as mem_db
-from grr_response_server.rdfvalues import mig_objects
 
 
 class TestOffsetAndCountTest(
@@ -228,18 +227,16 @@ class InitializeUserTest(absltest.TestCase):
     db = mem_db.InMemoryDB()
 
     username = db_test_utils.InitializeUser(db)
-    proto_user = db.ReadGRRUser(username)
-    rdf_user = mig_objects.ToRDFGRRUser(proto_user)
-    self.assertIsNotNone(rdf_user)
+    user = db.ReadGRRUser(username)
+    self.assertIsNotNone(user)
 
   def testSupplied(self):
     db = mem_db.InMemoryDB()
 
     username = db_test_utils.InitializeUser(db, username="foobar")
     self.assertEqual(username, "foobar")
-    proto_user = db.ReadGRRUser(username)
-    rdf_user = mig_objects.ToRDFGRRUser(proto_user)
-    self.assertIsNotNone(rdf_user)
+    user = db.ReadGRRUser(username)
+    self.assertIsNotNone(user)
 
 
 class InitializeFlowTest(absltest.TestCase):
@@ -313,9 +310,8 @@ class InitializeHuntTest(absltest.TestCase):
     hunt_id = db_test_utils.InitializeHunt(db)
     hunt_obj = db.ReadHuntObject(hunt_id)
     self.assertIsNotNone(hunt_obj)
-    proto_user = db.ReadGRRUser(hunt_obj.creator)
-    rdf_user = mig_objects.ToRDFGRRUser(proto_user)
-    self.assertIsNotNone(rdf_user)
+    user = db.ReadGRRUser(hunt_obj.creator)
+    self.assertIsNotNone(user)
 
   def testSupplied(self):
     db = mem_db.InMemoryDB()

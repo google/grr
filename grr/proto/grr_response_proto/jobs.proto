@@ -88,7 +88,8 @@ message GrrMessage {
   enum Type {
     MESSAGE = 0;
     STATUS = 1;
-    ITERATOR = 2;
+    reserved 2;
+    reserved "ITERATOR";
   }
 
   // The final response to a request carries this type which indicates it is a
@@ -513,7 +514,7 @@ message RequestState {
 }
 
 message CpuSeconds {
-  // TODO: Remove `deprecated` fields.
+  // TODO - Remove `deprecated` fields.
   // DEPRECATED: Use user_cpu_seconds instead.
   optional float deprecated_user_cpu_time = 1 [(sem_type) = {
     friendly_name: "User cpu seconds used",
@@ -668,7 +669,7 @@ message PathSpec {
   // ImplementationType has been introduced for rolling-out sandboxing.
   // The purpose is to make it possible to switch the implementation at
   // run-time via the UI in case there are problems.
-  // TODO: Once sandboxing becomes the default implementation,
+  // TODO - Once sandboxing becomes the default implementation,
   // this should be removed.
 
   enum ImplementationType {
@@ -1063,26 +1064,6 @@ message SignedBlob {
   optional SignatureType signature_type = 5;  // Type of the signature.
 }
 
-// Message representing a symmetric cipher. Note that users of this should only
-// use the Encrypt/Decrypt methods provided by the semantic protobuf.
-message SymmetricCipher {
-  enum Algorithm {
-    NONE = 0;
-    AES128CBC = 1;
-  }
-
-  optional Algorithm _algorithm = 1
-      [(sem_type) = { description: "The algorithm to use." }];
-
-  optional bytes _key = 2 [(sem_type) = {
-    type: "EncryptionKey",
-  }];
-
-  optional bytes _iv = 3 [(sem_type) = {
-    type: "EncryptionKey",
-  }];
-}
-
 // Message containing request to execute python in the context of the client.
 message ExecutePythonRequest {
   optional SignedBlob python_code = 1;
@@ -1154,7 +1135,7 @@ message GrepSpec {
     default = 10737418240
   ];
 
-  // TODO: Semantic type here should be unnecessary.
+  // TODO - Semantic type here should be unnecessary.
   optional bytes regex = 4 [(sem_type) = { type: "RDFBytes" }];
 
   // A literal search.
@@ -1237,7 +1218,7 @@ message FindSpec {
     label: ADVANCED
   }];
 
-  // TODO: Semantic type here should be unnecessary.
+  // TODO - Semantic type here should be unnecessary.
   optional bytes data_regex = 4 [(sem_type) = { type: "RDFBytes" }];
 
   optional uint64 start_time = 5 [
@@ -1508,12 +1489,6 @@ message ForemanCondition {
 
   optional string hunt_id = 6
       [(sem_type) = { description: "The id of the hunt to start." }];
-}
-
-message HuntError {
-  optional string client_id = 1 [(sem_type) = { type: "ClientURN" }];
-  optional string log_message = 2;
-  optional string backtrace = 3;
 }
 
 message FlowLog {
@@ -1879,7 +1854,7 @@ message MetricMetadata {
   enum ValueType {
     INT = 0;
     FLOAT = 1;
-    DEPRECATED_STR = 2;  // TODO: String Gauges are deprecated.
+    DEPRECATED_STR = 2;  // TODO - String Gauges are deprecated.
     DISTRIBUTION = 3;
   }
 

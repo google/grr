@@ -213,24 +213,6 @@ class ApiGetClientStartupInfosRegressionTest(
       )
 
 
-class ApiGetLastClientIPAddressHandlerRegressionTest(
-    api_regression_test_lib.ApiRegressionTest
-):
-
-  api_method = "GetLastClientIPAddress"
-  handler = client_plugin.ApiGetLastClientIPAddressHandler
-
-  def Run(self):
-    # Fix the time to avoid regressions.
-    with test_lib.FakeTime(42):
-      client_id = self.SetupClient(0)
-
-    self.Check(
-        "GetLastClientIPAddress",
-        args=api_client_pb2.ApiGetLastClientIPAddressArgs(client_id=client_id),
-    )
-
-
 class ApiListClientsLabelsHandlerRegressionTest(
     api_regression_test_lib.ApiRegressionTest
 ):

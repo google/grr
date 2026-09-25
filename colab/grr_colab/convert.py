@@ -6,10 +6,10 @@ import datetime
 import stat
 from typing import Any, Optional
 
-import pandas as pd
-
 from google.protobuf import descriptor
 from google.protobuf import message
+import pandas as pd
+
 from grr_response_proto import osquery_pb2
 from grr_response_proto import semantic_pb2
 
@@ -154,8 +154,8 @@ def reindex_dataframe(
   for idx, column in enumerate(priority_columns):
     priorities[column] = idx
 
-  ignore_columns = set(ignore_columns)
-  columns = [_ for _ in df.columns if _ not in ignore_columns]
+  ignore_columns = set(ignore_columns)  # pyrefly: ignore[bad-assignment]
+  columns = [_ for _ in df.columns if _ not in ignore_columns]  # pyrefly: ignore[not-iterable]
   columns = sorted(columns, key=lambda _: priorities[_])
   return df.reindex(columns=columns)
 

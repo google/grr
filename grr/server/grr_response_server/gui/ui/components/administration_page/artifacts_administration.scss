@@ -1,0 +1,45 @@
+@use '@angular/material' as mat;
+
+.artifact-list {
+  height: 100%;
+
+  display: flex;
+  flex-direction: column;
+}
+
+.artifact-options-container {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+
+  padding: 8px;
+}
+
+.w100 {
+  width: 100%;
+}
+
+mat-nav-list {
+  width: 100%;
+  height: 100%;
+  overflow-y: scroll;
+}
+
+a.mat-mdc-list-item {
+  display: flex;
+  border-bottom: 1px solid var(--mat-sys-outline-variant);
+
+  @include mat.list-overrides(
+    (
+      active-indicator-shape: 0,
+    )
+  );
+}
+
+.artifact-details {
+  height: 100%;
+  overflow-y: scroll;
+
+  padding: 16px;
+}
+

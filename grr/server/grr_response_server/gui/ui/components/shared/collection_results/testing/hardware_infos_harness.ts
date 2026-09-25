@@ -6,7 +6,6 @@ import {HardwareInfoDetailsHarness} from '../data_renderer/testing/hardware_info
 export class HardwareInfosHarness extends ComponentHarness {
   static hostSelector = 'hardware-infos';
 
-  readonly clientIds = this.locatorForAll('.client-id');
   readonly hardwareInfoDetailsHarnesses = this.locatorForAll(
     HardwareInfoDetailsHarness,
   );

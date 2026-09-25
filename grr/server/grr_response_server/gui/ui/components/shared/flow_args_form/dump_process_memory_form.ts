@@ -123,7 +123,7 @@ export class DumpProcessMemoryForm extends FlowArgsFormInterface<
           : undefined,
       processRegex:
         formState.filterMode === FilterMode.NAME
-          ? formState.processRegex ?? undefined
+          ? (formState.processRegex ?? undefined)
           : undefined,
       dumpAllProcesses: formState.filterMode === FilterMode.ALL,
       skipSpecialRegions: formState.skipSpecialRegions,

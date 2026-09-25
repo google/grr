@@ -19,7 +19,7 @@ class BlobID:
 
     self._sha256 = sha256
 
-  def __eq__(self, other: "BlobID") -> bool:
+  def __eq__(self, other: "BlobID") -> bool:  # pyrefly: ignore[bad-override]
     return self._sha256 == other._sha256
 
   def __bytes__(self) -> bytes:

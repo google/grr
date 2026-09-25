@@ -9,7 +9,6 @@ from grr_response_proto import flows_pb2
 from grr_response_proto import jobs_pb2
 from grr_response_server.databases import db as abstract_db
 from grr_response_server.databases import db_test_utils
-from grr_response_server.flows.general import mig_registry_finder
 from grr_response_server.flows.general import registry_finder as flow_registry_finder
 from grr.test_lib import action_mocks
 from grr.test_lib import db_test_lib
@@ -40,13 +39,15 @@ class TestStubbedRegistryFinderFlow(flow_test_lib.FlowTestsBaseclass):
         client_mock,
         client_id=client_id,
         creator=self.test_username,
-        flow_args=flow_registry_finder.RegistryFinderArgs(
+        flow_args=flows_pb2.RegistryFinderArgs(
             keys_paths=paths,
             conditions=[],
         ),
     )
 
-    return flow_test_lib.GetFlowResults(client_id, session_id)
+    return flow_test_lib.GetUnpackedFlowResults(
+        client_id, session_id, result_type=flows_pb2.FileFinderResult
+    )
 
   def testRegistryFinder(self):
     # Listing inside a key gives the values.
@@ -55,7 +56,7 @@ class TestStubbedRegistryFinderFlow(flow_test_lib.FlowTestsBaseclass):
     )
     self.assertLen(results, 2)
     self.assertCountEqual(
-        [x.stat_entry.registry_data.GetValue() for x in results],
+        [x.stat_entry.registry_data.string for x in results],
         ["Value1", "Value2"],
     )
 
@@ -65,9 +66,7 @@ class TestStubbedRegistryFinderFlow(flow_test_lib.FlowTestsBaseclass):
     )
 
     self.assertLen(results, 1)
-    self.assertEqual(
-        results[0].stat_entry.registry_data.GetValue(), "DefaultValue"
-    )
+    self.assertEqual(results[0].stat_entry.registry_data.string, "DefaultValue")
 
     # The same should work using a wildcard.
     results = self._RunRegistryFinder(["HKEY_LOCAL_MACHINE/SOFTWARE/*"])
@@ -78,7 +77,7 @@ class TestStubbedRegistryFinderFlow(flow_test_lib.FlowTestsBaseclass):
     self.assertIn(expected_path, paths)
     idx = paths.index(expected_path)
     self.assertEqual(
-        results[idx].stat_entry.registry_data.GetValue(), "DefaultValue"
+        results[idx].stat_entry.registry_data.string, "DefaultValue"
     )
 
   def testListingRegistryKeysDoesYieldMTimes(self):
@@ -134,12 +133,12 @@ class TestStubbedRegistryFinderFlow(flow_test_lib.FlowTestsBaseclass):
     )
 
     args = flows_pb2.RegistryFinderArgs()
-    args.keys_paths.append(r"HKEY_LOCAL_MACHINE\SOFTWARE\Foo")
+    args.keys_paths.append(r"HKEY_LOCAL_MACHINE\SOFTWARE\Foo\*")
 
     flow_id = rrg_test_lib.ExecuteFlow(
         client_id=client_id,
         flow_cls=flow_registry_finder.RegistryFinder,
-        flow_args=mig_registry_finder.ToRDFRegistryFinderArgs(args),
+        flow_args=args,
         handlers=rrg_test_lib.FakeWinregHandlers({
             rrg_winreg_pb2.LOCAL_MACHINE: {
                 "SOFTWARE": {
@@ -186,12 +185,12 @@ class TestStubbedRegistryFinderFlow(flow_test_lib.FlowTestsBaseclass):
     )
 
     args = flows_pb2.RegistryFinderArgs()
-    args.keys_paths.append(r"HKEY_LOCAL_MACHINE\SOFTWARE\Foo")
+    args.keys_paths.append(r"HKEY_LOCAL_MACHINE\SOFTWARE\Foo\*")
 
     flow_id = rrg_test_lib.ExecuteFlow(
         client_id=client_id,
         flow_cls=flow_registry_finder.RegistryFinder,
-        flow_args=mig_registry_finder.ToRDFRegistryFinderArgs(args),
+        flow_args=args,
         handlers=rrg_test_lib.FakeWinregHandlers({
             rrg_winreg_pb2.LOCAL_MACHINE: {
                 "SOFTWARE": {
@@ -260,12 +259,12 @@ class TestStubbedRegistryFinderFlow(flow_test_lib.FlowTestsBaseclass):
     )
 
     args = flows_pb2.RegistryFinderArgs()
-    args.keys_paths.append(r"HKEY_LOCAL_MACHINE\SOFTWARE\*")
+    args.keys_paths.append(r"HKEY_LOCAL_MACHINE\SOFTWARE\*\*")
 
     flow_id = rrg_test_lib.ExecuteFlow(
         client_id=client_id,
         flow_cls=flow_registry_finder.RegistryFinder,
-        flow_args=mig_registry_finder.ToRDFRegistryFinderArgs(args),
+        flow_args=args,
         handlers=rrg_test_lib.FakeWinregHandlers({
             rrg_winreg_pb2.LOCAL_MACHINE: {
                 "SOFTWARE": {
@@ -319,7 +318,7 @@ class TestStubbedRegistryFinderFlow(flow_test_lib.FlowTestsBaseclass):
     flow_id = rrg_test_lib.ExecuteFlow(
         client_id=client_id,
         flow_cls=flow_registry_finder.RegistryFinder,
-        flow_args=mig_registry_finder.ToRDFRegistryFinderArgs(args),
+        flow_args=args,
         handlers=rrg_test_lib.FakeWinregHandlers({
             rrg_winreg_pb2.LOCAL_MACHINE: {
                 "SOFTWARE": {
@@ -368,7 +367,7 @@ class TestStubbedRegistryFinderFlow(flow_test_lib.FlowTestsBaseclass):
     )
 
     args = flows_pb2.RegistryFinderArgs()
-    args.keys_paths.append(r"HKEY_LOCAL_MACHINE\SOFTWARE")
+    args.keys_paths.append(r"HKEY_LOCAL_MACHINE\SOFTWARE\*")
 
     cond = args.conditions.add()
     cond.condition_type = cond.VALUE_LITERAL_MATCH
@@ -377,7 +376,7 @@ class TestStubbedRegistryFinderFlow(flow_test_lib.FlowTestsBaseclass):
     flow_id = rrg_test_lib.ExecuteFlow(
         client_id=client_id,
         flow_cls=flow_registry_finder.RegistryFinder,
-        flow_args=mig_registry_finder.ToRDFRegistryFinderArgs(args),
+        flow_args=args,
         handlers=rrg_test_lib.FakeWinregHandlers({
             rrg_winreg_pb2.LOCAL_MACHINE: {
                 "SOFTWARE": {
@@ -417,7 +416,7 @@ class TestStubbedRegistryFinderFlow(flow_test_lib.FlowTestsBaseclass):
     )
 
     args = flows_pb2.RegistryFinderArgs()
-    args.keys_paths.append(r"HKEY_LOCAL_MACHINE\SOFTWARE")
+    args.keys_paths.append(r"HKEY_LOCAL_MACHINE\SOFTWARE\*")
 
     cond = args.conditions.add()
     cond.condition_type = cond.VALUE_REGEX_MATCH
@@ -426,7 +425,7 @@ class TestStubbedRegistryFinderFlow(flow_test_lib.FlowTestsBaseclass):
     flow_id = rrg_test_lib.ExecuteFlow(
         client_id=client_id,
         flow_cls=flow_registry_finder.RegistryFinder,
-        flow_args=mig_registry_finder.ToRDFRegistryFinderArgs(args),
+        flow_args=args,
         handlers=rrg_test_lib.FakeWinregHandlers({
             rrg_winreg_pb2.LOCAL_MACHINE: {
                 "SOFTWARE": {

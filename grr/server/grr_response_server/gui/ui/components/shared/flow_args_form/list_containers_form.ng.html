@@ -1,0 +1,14 @@
+<form [formGroup]="form" (ngSubmit)="onSubmit()(FlowType.LIST_CONTAINERS, flowArgs())">
+  <div class="column">
+    <mat-checkbox
+      [formControl]="controls.inspectHostroot"
+      matTooltip="GRR will try to run the container list commands from the /hostroot mountpoint. Useful if GRR is running in a container itself."
+    >
+      Inspect hostroot
+    </mat-checkbox>
+  </div>
+
+  @if (editable()) {
+    <submit-button [enabled]="isValid()" />
+  }
+</form>

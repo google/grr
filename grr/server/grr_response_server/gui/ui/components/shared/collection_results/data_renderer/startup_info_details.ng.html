@@ -56,14 +56,14 @@
             <mat-chip role="listitem"
               class="green-chip"
               [disableRipple]="true">
-              <mat-icon>check</mat-icon>
+              <mat-icon matChipAvatar>check</mat-icon>
               Sandboxing supported
             </mat-chip>
           } @else if (startupInfo()?.clientInfo?.sandboxSupport === false) {
             <mat-chip role="listitem"
               class="red-chip"
               [disableRipple]="true">
-              <mat-icon>close</mat-icon>
+              <mat-icon matChipAvatar>close</mat-icon>
               Sandboxing not supported
             </mat-chip>
           }
@@ -71,14 +71,14 @@
             <mat-chip role="listitem"
               class="green-chip"
               [disableRipple]="true">
-              <mat-icon>check</mat-icon>
+              <mat-icon matChipAvatar>check</mat-icon>
               Btime field in Timeline flow supported
             </mat-chip>
           } @else if (startupInfo()?.clientInfo?.timelineBtimeSupport === false) {
             <mat-chip role="listitem"
               class="red-chip"
               [disableRipple]="true">
-              <mat-icon>close</mat-icon>
+              <mat-icon matChipAvatar>close</mat-icon>
               Btime field in Timeline flow not supported
             </mat-chip>
           }

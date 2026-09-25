@@ -67,8 +67,14 @@ class InMemoryDBFlowMixin(object):
       HandlerName, dict[RequestID, int]  # lease expiration time in us
   ]
   flow_processing_requests: dict[
-      tuple[str, str, str], flows_pb2.FlowProcessingRequest
+      tuple[str, str],
+      rdfvalue.RDFDatetime,
   ]
+  flow_processing_requests_delivery_time: dict[
+      tuple[str, str],
+      rdfvalue.RDFDatetime,
+  ]
+  flow_processing_requests_done: set[tuple[str, str]]
   rrg_logs: dict[tuple[str, str], dict[tuple[str, int], rrg_pb2.Log]]
 
   # Maps client_id to client metadata.
@@ -88,7 +94,7 @@ class InMemoryDBFlowMixin(object):
       cloned_request = objects_pb2.MessageHandlerRequest()
       cloned_request.CopyFrom(r)
       cloned_request.timestamp = now
-      flow_dict[cloned_request.request_id] = cloned_request
+      flow_dict[cloned_request.request_id] = cloned_request  # pyrefly: ignore[unsupported-operation]
 
   @utils.Synchronized
   def ReadMessageHandlerRequests(
@@ -100,7 +106,7 @@ class InMemoryDBFlowMixin(object):
     for requests in self.message_handler_requests.values():
       for r in requests.values():
         res.append(r)
-        existing_lease = leases.get(r.handler_name, {}).get(r.request_id, None)
+        existing_lease = leases.get(r.handler_name, {}).get(r.request_id, None)  # pyrefly: ignore[no-matching-overload]
         if existing_lease is not None:
           res[-1].leased_until = existing_lease
         else:
@@ -115,10 +121,10 @@ class InMemoryDBFlowMixin(object):
     """Deletes a list of message handler requests from the database."""
 
     for r in requests:
-      flow_dict = self.message_handler_requests.get(r.handler_name, {})
+      flow_dict = self.message_handler_requests.get(r.handler_name, {})  # pyrefly: ignore[no-matching-overload]
       if r.request_id in flow_dict:
         del flow_dict[r.request_id]
-      flow_dict = self.message_handler_leases.get(r.handler_name, {})
+      flow_dict = self.message_handler_leases.get(r.handler_name, {})  # pyrefly: ignore[no-matching-overload]
       if r.request_id in flow_dict:
         del flow_dict[r.request_id]
 
@@ -146,10 +152,10 @@ class InMemoryDBFlowMixin(object):
     """Unregisters any registered message handler."""
     if self.handler_thread:
       self.handler_stop = True
-      self.handler_thread.join(timeout)
+      self.handler_thread.join(timeout)  # pyrefly: ignore[bad-argument-type]
       if self.handler_thread.is_alive():
         raise RuntimeError("Message handler thread did not join in time.")
-      self.handler_thread = None
+      self.handler_thread = None  # pyrefly: ignore[bad-assignment]
 
   def _MessageHandlerLoop(
       self,
@@ -185,10 +191,10 @@ class InMemoryDBFlowMixin(object):
     leases = self.message_handler_leases
     for requests in self.message_handler_requests.values():
       for r in requests.values():
-        existing_lease = leases.get(r.handler_name, {}).get(r.request_id, 0)
+        existing_lease = leases.get(r.handler_name, {}).get(r.request_id, 0)  # pyrefly: ignore[no-matching-overload]
         if existing_lease < now_us:
           leases.setdefault(HandlerName(r.handler_name), {})[
-              r.request_id
+              r.request_id  # pyrefly: ignore[unsupported-operation]
           ] = expiration_time_us
           r.leased_until = expiration_time_us
           r.leased_by = utils.ProcessIdString()
@@ -226,7 +232,7 @@ class InMemoryDBFlowMixin(object):
   def ReadFlowObject(self, client_id: str, flow_id: str) -> flows_pb2.Flow:
     """Reads a flow object from the database."""
     try:
-      return self.flows[(client_id, flow_id)]
+      return self.flows[(client_id, flow_id)]  # pyrefly: ignore[bad-index]
     except KeyError:
       raise db.UnknownFlowError(client_id, flow_id)
 
@@ -278,7 +284,7 @@ class InMemoryDBFlowMixin(object):
     flow = self.ReadFlowObject(client_id, flow_id)
     if flow.parent_hunt_id:
       # ReadHuntObject is implemented in the db.Database class.
-      hunt_obj = self.ReadHuntObject(flow.parent_hunt_id)  # pytype: disable=attribute-error
+      hunt_obj = self.ReadHuntObject(flow.parent_hunt_id)  # pyrefly: ignore[missing-attribute]
       if not models_hunts.IsHuntSuitableForFlowProcessing(hunt_obj.hunt_state):
         raise db.ParentHuntIsNotRunningError(
             client_id, flow_id, hunt_obj.hunt_id, hunt_obj.hunt_state
@@ -334,7 +340,7 @@ class InMemoryDBFlowMixin(object):
   ) -> None:
     """Updates flow objects in the database."""
     try:
-      flow = self.flows[(client_id, flow_id)]
+      flow = self.flows[(client_id, flow_id)]  # pyrefly: ignore[bad-index]
     except KeyError:
       raise db.UnknownFlowError(client_id, flow_id)
 
@@ -358,7 +364,7 @@ class InMemoryDBFlowMixin(object):
 
       flow = new_flow
     if isinstance(flow_state, flows_pb2.Flow.FlowState.ValueType):
-      flow.flow_state = flow_state
+      flow.flow_state = flow_state  # pyrefly: ignore[bad-assignment]
     if isinstance(client_crash_info, jobs_pb2.ClientCrash):
       flow.client_crash_info.CopyFrom(client_crash_info)
     if (
@@ -386,8 +392,6 @@ class InMemoryDBFlowMixin(object):
       requests: Collection[flows_pb2.FlowRequest],
   ) -> None:
     """Writes a list of flow requests to the database."""
-    flow_processing_requests = []
-
     for request in requests:
       if (request.client_id, request.flow_id) not in self.flows:
         raise db.AtLeastOneUnknownFlowError(
@@ -405,20 +409,19 @@ class InMemoryDBFlowMixin(object):
       )
 
       if request.needs_processing:
-        flow = self.flows[(request.client_id, request.flow_id)]
+        flow = self.flows[(request.client_id, request.flow_id)]  # pyrefly: ignore[bad-index]
         if (
             flow.next_request_to_process == request.request_id
             or request.start_time
         ):
-          processing_request = flows_pb2.FlowProcessingRequest(
-              client_id=request.client_id, flow_id=request.flow_id
-          )
+          delivery_time = None
           if request.start_time:
-            processing_request.delivery_time = request.start_time
-          flow_processing_requests.append(processing_request)
-
-    if flow_processing_requests:
-      self.WriteFlowProcessingRequests(flow_processing_requests)
+            delivery_time = rdfvalue.RDFDatetime(request.start_time)
+          self._WriteFlowProcessingRequest(
+              client_id=request.client_id,
+              flow_id=request.flow_id,
+              delivery_time=delivery_time,
+          )
 
   @utils.Synchronized
   def UpdateIncrementalFlowRequests(
@@ -469,7 +472,6 @@ class InMemoryDBFlowMixin(object):
           Union[
               flows_pb2.FlowResponse,
               flows_pb2.FlowStatus,
-              flows_pb2.FlowIterator,
           ],
       ],
   ) -> None:
@@ -499,16 +501,14 @@ class InMemoryDBFlowMixin(object):
 
       req_response_dict = self.flow_responses.setdefault(flow_key, {})
       clone = flows_pb2.FlowResponse()
-      if isinstance(response, flows_pb2.FlowIterator):
-        clone = flows_pb2.FlowIterator()
-      elif isinstance(response, flows_pb2.FlowStatus):
+      if isinstance(response, flows_pb2.FlowStatus):
         clone = flows_pb2.FlowStatus()
 
       clone.CopyFrom(response)
       clone.timestamp = int(rdfvalue.RDFDatetime.Now())
 
       response_dict = req_response_dict.setdefault(response.request_id, {})
-      response_dict[response.response_id] = clone
+      response_dict[response.response_id] = clone  # pyrefly: ignore[unsupported-operation]
 
       if isinstance(response, flows_pb2.FlowStatus):
         status_available[(
@@ -528,7 +528,6 @@ class InMemoryDBFlowMixin(object):
       request.nr_responses_expected = status.response_id
 
     # And we check for all updated requests if we need to process them.
-    needs_processing = []
     for client_id, flow_id, request_id in requests_updated:
       flow_key = (client_id, flow_id)
       flow = self.flows[flow_key]
@@ -545,27 +544,25 @@ class InMemoryDBFlowMixin(object):
 
           if flow.next_request_to_process == request_id:
             added_for_processing = True
-            flow_processing_request = flows_pb2.FlowProcessingRequest(
+            delivery_time = None
+            if request.start_time:
+              delivery_time = rdfvalue.RDFDatetime(request.start_time)
+            self._WriteFlowProcessingRequest(
                 client_id=client_id,
                 flow_id=flow_id,
+                delivery_time=delivery_time,
             )
-            if request.start_time:
-              flow_processing_request.delivery_time = request.start_time
-            needs_processing.append(flow_processing_request)
 
       if (
           request.callback_state
           and flow.next_request_to_process == request_id
           and not added_for_processing
       ):
-
-        needs_processing.append(
-            flows_pb2.FlowProcessingRequest(
-                client_id=client_id, flow_id=flow_id
-            )
+        self._WriteFlowProcessingRequest(
+            client_id=client_id,
+            flow_id=flow_id,
+            delivery_time=None,
         )
-    if needs_processing:
-      self.WriteFlowProcessingRequests(needs_processing)
 
   @utils.Synchronized
   def ReadAllFlowRequestsAndResponses(
@@ -580,7 +577,6 @@ class InMemoryDBFlowMixin(object):
               Union[
                   flows_pb2.FlowResponse,
                   flows_pb2.FlowStatus,
-                  flows_pb2.FlowIterator,
               ],
           ],
       ]
@@ -588,7 +584,7 @@ class InMemoryDBFlowMixin(object):
     """Reads all requests and responses for a given flow from the database."""
     flow_key = (client_id, flow_id)
     try:
-      self.flows[flow_key]
+      self.flows[flow_key]  # pyrefly: ignore[bad-index]
     except KeyError:
       return []
 
@@ -616,7 +612,7 @@ class InMemoryDBFlowMixin(object):
     """Deletes all requests and responses for a given flow from the database."""
     flow_key = (client_id, flow_id)
     try:
-      self.flows[flow_key]
+      self.flows[flow_key]  # pyrefly: ignore[bad-index]
     except KeyError:
       raise db.UnknownFlowError(client_id, flow_id)
 
@@ -643,7 +639,6 @@ class InMemoryDBFlowMixin(object):
               Union[
                   flows_pb2.FlowResponse,
                   flows_pb2.FlowStatus,
-                  flows_pb2.FlowIterator,
               ],
           ],
       ],
@@ -706,69 +701,94 @@ class InMemoryDBFlowMixin(object):
     return True
 
   def _InlineProcessingOK(
-      self, requests: Sequence[flows_pb2.FlowProcessingRequest]
+      self,
+      client_id: str,
+      flow_id: str,
+      delivery_time: Optional[rdfvalue.RDFDatetime],
   ) -> bool:
     """Returns whether inline processing is OK for a list of requests."""
-    for r in requests:
-      if r.delivery_time:
-        return False
+    if delivery_time is not None:
+      return False
 
-      # If the corresponding flow is already being processed, inline processing
-      # won't work.
-      flow = self.flows[r.client_id, r.flow_id]
-      if flow.HasField("processing_since"):
-        return False
+    # If the corresponding flow is already being processed, inline processing
+    # won't work.
+    flow = self.flows[client_id, flow_id]  # pyrefly: ignore[bad-index]
+    if flow.HasField("processing_since"):
+      return False
+
     return True
 
   @utils.Synchronized
-  def WriteFlowProcessingRequests(
+  def _WriteFlowProcessingRequest(
       self,
-      requests: Sequence[flows_pb2.FlowProcessingRequest],
+      client_id: str,
+      flow_id: str,
+      delivery_time: Optional[rdfvalue.RDFDatetime],
   ) -> None:
     """Writes a list of flow processing requests to the database."""
     # If we don't have a handler thread running, we might be able to process the
     # requests inline. If we are not, we start the handler thread for real and
     # queue the requests normally.
     if not self.flow_handler_thread and self.flow_handler_target:
-      if self._InlineProcessingOK(requests):
-        for r in requests:
-          r.creation_time = int(rdfvalue.RDFDatetime.Now())
-          self.flow_handler_target(r)
+      if self._InlineProcessingOK(client_id, flow_id, delivery_time):
+        self.flow_processing_requests_done.add((client_id, flow_id))
+        self.flow_handler_target(
+            db.FlowProcessingRequest(
+                client_id=client_id,
+                flow_id=flow_id,
+                creation_time=rdfvalue.RDFDatetime.Now(),
+            )
+        )
         return
       else:
         self._RegisterFlowProcessingHandler(self.flow_handler_target)
         self.flow_handler_target = None
 
-    for r in requests:
-      cloned_request = flows_pb2.FlowProcessingRequest()
-      cloned_request.CopyFrom(r)
-      key = (r.client_id, r.flow_id)
-      cloned_request.creation_time = int(rdfvalue.RDFDatetime.Now())
-      self.flow_processing_requests[key] = cloned_request
+    key = (client_id, flow_id)
+    self.flow_processing_requests[key] = rdfvalue.RDFDatetime.Now()
+    if delivery_time is not None:
+      self.flow_processing_requests_delivery_time[key] = delivery_time
 
   @utils.Synchronized
   def ReadFlowProcessingRequests(
       self,
-  ) -> Sequence[flows_pb2.FlowProcessingRequest]:
+  ) -> Sequence[db.FlowProcessingRequest]:
     """Reads all flow processing requests from the database."""
-    return list(self.flow_processing_requests.values())
+    return [
+        db.FlowProcessingRequest(
+            client_id=client_id,
+            flow_id=flow_id,
+            creation_time=creation_time,
+        )
+        for (
+            client_id,
+            flow_id,
+        ), creation_time in self.flow_processing_requests.items()
+    ]
 
   @utils.Synchronized
-  def AckFlowProcessingRequests(
-      self, requests: Iterable[flows_pb2.FlowProcessingRequest]
-  ) -> None:
-    """Deletes a list of flow processing requests from the database."""
-    for r in requests:
-      key = (r.client_id, r.flow_id)
-      if key in self.flow_processing_requests:
-        del self.flow_processing_requests[key]
+  def AckFlowProcessingRequest(
+      self,
+      request: db.FlowProcessingRequest,
+  ) -> bool:
+    """Deletes a flow processing request from the database."""
+    key = (request.client_id, request.flow_id)
+    if key in self.flow_processing_requests:
+      del self.flow_processing_requests[key]
+      return True
+    elif key in self.flow_processing_requests_done:
+      self.flow_processing_requests_done.remove(key)
+      return True
+    else:
+      return False
 
   @utils.Synchronized
   def DeleteAllFlowProcessingRequests(self) -> None:
     self.flow_processing_requests = {}
 
   def RegisterFlowProcessingHandler(
-      self, handler: Callable[[flows_pb2.FlowProcessingRequest], None]
+      self,
+      handler: Callable[[db.FlowProcessingRequest], None],
   ) -> None:
     """Registers a message handler to receive flow processing messages."""
     self.UnregisterFlowProcessingHandler()
@@ -780,12 +800,13 @@ class InMemoryDBFlowMixin(object):
     for request in self._GetFlowRequestsReadyForProcessing():
       handler(request)
       with self.lock:
-        self.flow_processing_requests.pop(
+        self.flow_processing_requests.pop(  # pyrefly: ignore[no-matching-overload]
             (request.client_id, request.flow_id), None
         )
 
   def _RegisterFlowProcessingHandler(
-      self, handler: Callable[[flows_pb2.FlowProcessingRequest], None]
+      self,
+      handler: Callable[[db.FlowProcessingRequest], None],
   ) -> None:
     """Registers a handler to receive flow processing messages."""
     self.flow_handler_stop = False
@@ -811,17 +832,27 @@ class InMemoryDBFlowMixin(object):
         self.flow_handler_thread.join()
       if self.flow_handler_thread.is_alive():
         raise RuntimeError("Flow processing handler did not join in time.")
-      self.flow_handler_thread = None
+      self.flow_handler_thread = None  # pyrefly: ignore[bad-assignment]
 
   @utils.Synchronized
   def _GetFlowRequestsReadyForProcessing(
       self,
-  ) -> Sequence[flows_pb2.FlowProcessingRequest]:
+  ) -> Sequence[db.FlowProcessingRequest]:
+    """Returns flow processing request that are ready to be processed."""
     now = rdfvalue.RDFDatetime.Now()
     todo = []
-    for r in list(self.flow_processing_requests.values()):
-      if not r.delivery_time or r.delivery_time <= now:
-        todo.append(r)
+    for key, creation_time in self.flow_processing_requests.items():
+      client_id, flow_id = key
+      delivery_time = self.flow_processing_requests_delivery_time.get(key)
+
+      if not delivery_time or delivery_time <= now:
+        todo.append(
+            db.FlowProcessingRequest(
+                client_id=client_id,
+                flow_id=flow_id,
+                creation_time=creation_time,
+            )
+        )
 
     return todo
 
@@ -870,8 +901,11 @@ class InMemoryDBFlowMixin(object):
         for request in todo:
           self.flow_handler_num_being_processed += 1
           del self.flow_processing_requests[
-              (request.client_id, request.flow_id)
+              (request.client_id, request.flow_id)  # pyrefly: ignore[unsupported-operation]
           ]
+          self.flow_processing_requests_done.add(
+              (request.client_id, request.flow_id)
+          )
 
       for request in todo:
         handler(request)
@@ -885,10 +919,10 @@ class InMemoryDBFlowMixin(object):
       self, container: dict[tuple[str, str], T], items: Sequence[T]
   ) -> None:
     for i in items:
-      dest = container.setdefault((i.client_id, i.flow_id), [])
+      dest = container.setdefault((i.client_id, i.flow_id), [])  # pyrefly: ignore[missing-attribute, no-matching-overload]
       to_write = i.__class__()
-      to_write.CopyFrom(i)
-      to_write.timestamp = rdfvalue.RDFDatetime.Now().AsMicrosecondsSinceEpoch()
+      to_write.CopyFrom(i)  # pyrefly: ignore[missing-attribute]
+      to_write.timestamp = rdfvalue.RDFDatetime.Now().AsMicrosecondsSinceEpoch()  # pyrefly: ignore[missing-attribute]
       dest.append(to_write)
 
   def WriteFlowResults(self, results: Sequence[flows_pb2.FlowResult]) -> None:
@@ -910,7 +944,7 @@ class InMemoryDBFlowMixin(object):
   ) -> Sequence[T]:
     """Reads flow results/errors of a given flow using given query options."""
     container_copy = []
-    for x in container.get((client_id, flow_id), []):
+    for x in container.get((client_id, flow_id), []):  # pyrefly: ignore[not-iterable]
       x_copy = x.__class__()
       x_copy.CopyFrom(x)
       container_copy.append(x)
@@ -1128,7 +1162,7 @@ class InMemoryDBFlowMixin(object):
       log_copy.CopyFrom(log)
 
       flow_logs = self.rrg_logs.setdefault((client_id, flow_id), {})
-      flow_logs[(request_id, response_id)] = log_copy
+      flow_logs[(request_id, response_id)] = log_copy  # pyrefly: ignore[unsupported-operation]
 
   @utils.Synchronized
   def ReadFlowRRGLogs(

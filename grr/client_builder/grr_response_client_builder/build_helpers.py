@@ -149,7 +149,7 @@ def BuildWithPyInstaller(context=None):
   ]
   # Pyinstaller does ignore the 'ipaddress' library.
   # The below line is a workaround to force pyinstaller to include it.
-  PyInstallerMain.compat.PY3_BASE_MODULES.add('ipaddress')
+  PyInstallerMain.compat.PY3_BASE_MODULES.add("ipaddress")
   logging.info("Running pyinstaller: %s", args)
   PyInstallerMain.run(pyi_args=args)
 

@@ -129,16 +129,16 @@ def ProcessIterator(
 
 
 def _ShouldIncludeError(
-    policy: rdf_memory.YaraProcessScanRequest.ErrorPolicy,
+    policy: rdf_memory.YaraProcessScanRequest.ErrorPolicy,  # pyrefly: ignore[missing-attribute]
     error: rdf_memory.ProcessMemoryError,
 ) -> bool:
   """Returns whether the error should be included in the flow response."""
 
-  if policy == rdf_memory.YaraProcessScanRequest.ErrorPolicy.NO_ERRORS:
+  if policy == rdf_memory.YaraProcessScanRequest.ErrorPolicy.NO_ERRORS:  # pyrefly: ignore[missing-attribute]
     return False
 
-  if policy == rdf_memory.YaraProcessScanRequest.ErrorPolicy.CRITICAL_ERRORS:
-    msg = error.error.lower()
+  if policy == rdf_memory.YaraProcessScanRequest.ErrorPolicy.CRITICAL_ERRORS:  # pyrefly: ignore[missing-attribute]
+    msg = error.error.lower()  # pyrefly: ignore[missing-attribute]
     return "failed to open process" not in msg and "access denied" not in msg
 
   # Fall back to including all errors.
@@ -374,7 +374,7 @@ class UnprivilegedYaraWrapper(YaraWrapper):
     for rule_match in scan_result.scan_match:
       rdf_match = self._RuleMatchToYaraMatch(rule_match)
       for string_match, rdf_string_match in zip(
-          rule_match.string_matches, rdf_match.string_matches
+          rule_match.string_matches, rdf_match.string_matches  # pyrefly: ignore[missing-attribute]
       ):
         if (
             rdf_string_match.offset + len(rdf_string_match.data)
@@ -388,9 +388,9 @@ class UnprivilegedYaraWrapper(YaraWrapper):
   ) -> rdf_memory.YaraMatch:
     result = rdf_memory.YaraMatch()
     if rule_match.HasField("rule_name"):
-      result.rule_name = rule_match.rule_name
+      result.rule_name = rule_match.rule_name  # pyrefly: ignore[missing-attribute]
     for string_match in rule_match.string_matches:
-      result.string_matches.append(
+      result.string_matches.append(  # pyrefly: ignore[missing-attribute]
           self._StringMatchToYaraStringMatch(string_match)
       )
     return result
@@ -401,13 +401,13 @@ class UnprivilegedYaraWrapper(YaraWrapper):
     """Builds a YaraStringMatch from a StringMatch proto object."""
     result = rdf_memory.YaraStringMatch()
     if string_match.HasField("string_id"):
-      result.string_id = string_match.string_id
+      result.string_id = string_match.string_id  # pyrefly: ignore[missing-attribute]
     if string_match.HasField("offset"):
-      result.offset = string_match.offset
+      result.offset = string_match.offset  # pyrefly: ignore[missing-attribute]
     if string_match.HasField("data"):
-      result.data = string_match.data
+      result.data = string_match.data  # pyrefly: ignore[missing-attribute]
     if string_match.HasField("context"):
-      result.context = string_match.context
+      result.context = string_match.context  # pyrefly: ignore[missing-attribute]
     return result
 
 
@@ -493,7 +493,7 @@ class YaraScanRequestMatcher:
   ) -> Sequence[rdf_memory.YaraMatch]:
     """Scans the memory of a process, applies scan_request constraints."""
 
-    if scan_request.per_process_timeout:
+    if scan_request.per_process_timeout:  # pyrefly: ignore[missing-attribute]
       deadline = rdfvalue.RDFDatetime.Now() + scan_request.per_process_timeout
     else:
       deadline = rdfvalue.RDFDatetime.Now() + rdfvalue.Duration.From(
@@ -508,7 +508,7 @@ class YaraScanRequestMatcher:
         for chunks in self._BatchIterateRegions(process, scan_request):
           for m in self._ScanRegion(process, chunks, deadline):
             matches.append(m)
-            if 0 < scan_request.max_results_per_process <= len(matches):
+            if 0 < scan_request.max_results_per_process <= len(matches):  # pyrefly: ignore[missing-attribute]
               return matches
       except TooManyMatchesError:
         # We need to report this as a hit, not an error.
@@ -592,23 +592,23 @@ class YaraProcessScan(actions.ActionPlugin):
           % (rdfvalue.RDFDatetime.Now() - start_time),
       )
       if _ShouldIncludeError(scan_request.include_errors_in_results, err):
-        scan_response.errors.Append(err)
+        scan_response.errors.Append(err)  # pyrefly: ignore[missing-attribute]
       return
     except Exception as e:  # pylint: disable=broad-except
       err = rdf_memory.ProcessMemoryError(process=rdf_process, error=str(e))
       if _ShouldIncludeError(scan_request.include_errors_in_results, err):
-        scan_response.errors.Append(err)
+        scan_response.errors.Append(err)  # pyrefly: ignore[missing-attribute]
       return
 
     if matches:
-      scan_response.matches.Append(
+      scan_response.matches.Append(  # pyrefly: ignore[missing-attribute]
           rdf_memory.YaraProcessScanMatch(
               process=rdf_process, match=matches, scan_time_us=scan_time_us
           )
       )
     else:
       if scan_request.include_misses_in_results:
-        scan_response.misses.Append(
+        scan_response.misses.Append(  # pyrefly: ignore[missing-attribute]
             rdf_memory.YaraProcessScanMiss(
                 process=rdf_process, scan_time_us=scan_time_us
             )
@@ -686,7 +686,7 @@ class YaraProcessScan(actions.ActionPlugin):
             scan_request.cmdline_regex,
             scan_request.ignore_grr_process,
             scan_request.ignore_parent_processes,
-            scan_response.errors,
+            scan_response.errors,  # pyrefly: ignore[missing-attribute]
         )
     )
     if not processes:
@@ -694,7 +694,7 @@ class YaraProcessScan(actions.ActionPlugin):
           error="No matching processes to scan."
       )
       if _ShouldIncludeError(scan_request.include_errors_in_results, err):
-        scan_response.errors.Append(err)
+        scan_response.errors.Append(err)  # pyrefly: ignore[missing-attribute]
       self.SendReply(scan_response)
       return
 
@@ -716,9 +716,9 @@ class YaraProcessScan(actions.ActionPlugin):
       for process in processes:
         self.Progress()
         num_results = (
-            len(scan_response.errors)
-            + len(scan_response.matches)
-            + len(scan_response.misses)
+            len(scan_response.errors)  # pyrefly: ignore[missing-attribute]
+            + len(scan_response.matches)  # pyrefly: ignore[missing-attribute]
+            + len(scan_response.misses)  # pyrefly: ignore[missing-attribute]
         )
         if num_results >= self._RESULTS_PER_RESPONSE:
           self.SendReply(scan_response)
@@ -737,13 +737,13 @@ class YaraProcessScan(actions.ActionPlugin):
     if platform.system() == "Darwin":
       return False
     if (
-        args.implementation_type
-        == rdf_memory.YaraProcessScanRequest.ImplementationType.DIRECT
+        args.implementation_type  # pyrefly: ignore[missing-attribute]
+        == rdf_memory.YaraProcessScanRequest.ImplementationType.DIRECT  # pyrefly: ignore[missing-attribute]
     ):
       return False
     elif (
         args.implementation_type
-        == rdf_memory.YaraProcessScanRequest.ImplementationType.SANDBOX
+        == rdf_memory.YaraProcessScanRequest.ImplementationType.SANDBOX  # pyrefly: ignore[missing-attribute]
     ):
       return True
     else:
@@ -771,11 +771,11 @@ def _PrioritizeRegions(
 
   # Sort regions and offsets to be mononotically increasing and insert sentinel.
   all_regions = collections.deque(sorted(regions, key=lambda r: r.start))
-  all_regions.append(None)
+  all_regions.append(None)  # pyrefly: ignore[bad-argument-type]
   region = all_regions.popleft()
 
   all_offsets = collections.deque(sorted(prioritize_offsets))
-  all_offsets.append(None)
+  all_offsets.append(None)  # pyrefly: ignore[bad-argument-type]
   offset = all_offsets.popleft()
 
   prio_regions = []
@@ -789,12 +789,12 @@ def _PrioritizeRegions(
 
   while region is not None and offset is not None:
     # pytype sees region as nullable
-    if offset < region.start:  # pytype: disable=attribute-error
+    if offset < region.start:  # pyrefly: ignore[missing-attribute]
       # Offset is before the first region, thus cannot be contained in any
       # region. This could happen when some memory regions are unreadable.
       offset = all_offsets.popleft()
     # pytype sees region as nullable
-    elif offset >= region.start + region.size:  # pytype: disable=attribute-error
+    elif offset >= region.start + region.size:  # pyrefly: ignore[missing-attribute]
       # Offset comes after the first region. The first region can not contain
       # any following offsets, because offsets increase monotonically.
       nonprio_regions.append(region)
@@ -813,7 +813,7 @@ def _PrioritizeRegions(
   # When there are fewer offsets than regions, remaining regions can be present
   # in `all_regions`.
   # pytype sees all_regions as possibly containing None
-  return prio_regions + nonprio_regions + list(all_regions)  # pytype: disable=bad-return-type
+  return prio_regions + nonprio_regions + list(all_regions)
 
 
 def _ApplySizeLimit(
@@ -825,9 +825,9 @@ def _ApplySizeLimit(
   for region in regions:
     if total_size >= size_limit:
       break
-    region.dumped_size = min(region.size, size_limit - total_size)
+    region.dumped_size = min(region.size, size_limit - total_size)  # pyrefly: ignore[missing-attribute]
     regions_in_limit.append(region)
-    total_size += region.dumped_size
+    total_size += region.dumped_size  # pyrefly: ignore[missing-attribute]
   return regions_in_limit
 
 
@@ -878,7 +878,7 @@ class YaraProcessDump(actions.ActionPlugin):
       tmp_dir: tempfiles.TemporaryDirectory,
       streamer: streaming.Streamer,
   ) -> Optional[rdf_paths.PathSpec]:
-    end = region.start + region.size
+    end = region.start + region.size  # pyrefly: ignore[missing-attribute]
 
     # _ReplaceDumpPathspecsWithMultiGetFilePathspec in DumpProcessMemory
     # flow asserts that MemoryRegions can be uniquely identified by their
@@ -886,26 +886,26 @@ class YaraProcessDump(actions.ActionPlugin):
     filename = "%s_%d_%x_%x.tmp" % (
         psutil_process.name(),
         psutil_process.pid,
-        region.start,
+        region.start,  # pyrefly: ignore[missing-attribute]
         end,
     )
     filepath = os.path.join(tmp_dir.path, filename)
 
     chunks = streamer.StreamMemory(
-        process, offset=region.start, amount=region.dumped_size
+        process, offset=region.start, amount=region.dumped_size  # pyrefly: ignore[missing-attribute]
     )
     bytes_written = self._SaveMemDumpToFilePath(filepath, chunks)
 
     if not bytes_written:
       return None
 
-    # TODO: Remove workaround after client_utils are fixed.
+    # TODO - Remove workaround after client_utils are fixed.
     canonical_path = client_utils.LocalPathToCanonicalPath(filepath)
     if not canonical_path.startswith("/"):
       canonical_path = "/" + canonical_path
 
     return rdf_paths.PathSpec(
-        path=canonical_path, pathtype=rdf_paths.PathSpec.PathType.TMPFILE
+        path=canonical_path, pathtype=rdf_paths.PathSpec.PathType.TMPFILE  # pyrefly: ignore[missing-attribute]
     )
 
   def DumpProcess(
@@ -914,25 +914,25 @@ class YaraProcessDump(actions.ActionPlugin):
       args: rdf_memory.YaraProcessScanRequest,
   ) -> rdf_memory.YaraProcessDumpInformation:
     response = rdf_memory.YaraProcessDumpInformation()
-    response.process = rdf_client.Process.FromPsutilProcess(psutil_process)
+    response.process = rdf_client.Process.FromPsutilProcess(psutil_process)  # pyrefly: ignore[missing-attribute]
     streamer = streaming.Streamer(chunk_size=args.chunk_size)
 
     with client_utils.OpenProcessForMemoryAccess(psutil_process.pid) as process:
       regions = list(client_utils.MemoryRegions(process, args))
 
-      if args.prioritize_offsets:
-        regions = _PrioritizeRegions(regions, args.prioritize_offsets)
+      if args.prioritize_offsets:  # pyrefly: ignore[missing-attribute]
+        regions = _PrioritizeRegions(regions, args.prioritize_offsets)  # pyrefly: ignore[bad-argument-type]
 
-      if args.size_limit:
-        total_regions = len(regions)
-        regions = _ApplySizeLimit(regions, args.size_limit)
+      if args.size_limit:  # pyrefly: ignore[missing-attribute]
+        total_regions = len(regions)  # pyrefly: ignore[bad-argument-type]
+        regions = _ApplySizeLimit(regions, args.size_limit)  # pyrefly: ignore[bad-argument-type]
         if len(regions) < total_regions:
-          response.error = (
+          response.error = (  # pyrefly: ignore[missing-attribute]
               "Byte limit exceeded. Writing {} of {} regions."
           ).format(len(regions), total_regions)
       else:
         for region in regions:
-          region.dumped_size = region.size
+          region.dumped_size = region.size  # pyrefly: ignore[missing-attribute]
 
       regions = sorted(regions, key=lambda r: r.start)
 
@@ -943,8 +943,8 @@ class YaraProcessDump(actions.ActionPlugin):
               psutil_process, process, region, tmp_dir, streamer
           )
           if pathspec is not None:
-            region.file = pathspec
-            response.memory_regions.Append(region)
+            region.file = pathspec  # pyrefly: ignore[missing-attribute]
+            response.memory_regions.Append(region)  # pyrefly: ignore[missing-attribute]
 
     return response
 
@@ -952,7 +952,7 @@ class YaraProcessDump(actions.ActionPlugin):
       self,
       args: rdf_memory.YaraProcessScanRequest,
   ) -> None:
-    if args.prioritize_offsets and len(args.pids) != 1:
+    if args.prioritize_offsets and len(args.pids) != 1:  # pyrefly: ignore[missing-attribute]
       raise ValueError(
           "Supplied prioritize_offsets {} for PIDs {} in YaraProcessDump. "
           "Required exactly one PID.".format(args.prioritize_offsets, args.pids)
@@ -962,11 +962,11 @@ class YaraProcessDump(actions.ActionPlugin):
     errors = []
 
     for p in ProcessIterator(
-        args.pids,
-        args.process_regex,
+        args.pids,  # pyrefly: ignore[missing-attribute]
+        args.process_regex,  # pyrefly: ignore[missing-attribute]
         None,
         args.ignore_grr_process,
-        args.ignore_parent_processes,
+        args.ignore_parent_processes,  # pyrefly: ignore[missing-attribute]
         errors,
     ):
       self.Progress()
@@ -975,9 +975,9 @@ class YaraProcessDump(actions.ActionPlugin):
       try:
         response = self.DumpProcess(p, args)
         now = rdfvalue.RDFDatetime.Now()
-        response.dump_time_us = (now - start).ToInt(rdfvalue.MICROSECONDS)
-        result.dumped_processes.Append(response)
-        if response.error:
+        response.dump_time_us = (now - start).ToInt(rdfvalue.MICROSECONDS)  # pyrefly: ignore[missing-attribute]
+        result.dumped_processes.Append(response)  # pyrefly: ignore[missing-attribute]
+        if response.error:  # pyrefly: ignore[missing-attribute]
           # Limit exceeded, we bail out early.
           break
       except Exception as e:  # pylint: disable=broad-except
@@ -989,5 +989,5 @@ class YaraProcessDump(actions.ActionPlugin):
         )
         continue
 
-    result.errors = errors
+    result.errors = errors  # pyrefly: ignore[missing-attribute]
     self.SendReply(result)

@@ -5,6 +5,7 @@ from absl import app
 
 from grr_response_client import actions
 from grr_response_core.lib.rdfvalues import dummy as rdf_dummy
+from grr_response_proto import dummy_pb2
 from grr_response_server.flows.general import dummy
 from grr.test_lib import action_mocks
 from grr.test_lib import flow_test_lib
@@ -53,10 +54,12 @@ class DummyTest(flow_test_lib.FlowTestsBaseclass):
         action_mocks.ActionMock.With({"Dummy": DummyActionReturnsOnce}),
         creator=self.test_username,
         client_id=self.client_id,
-        flow_args=dummy.DummyArgs(flow_input="batata"),
+        flow_args=dummy_pb2.DummyArgs(flow_input="batata"),
     )
 
-    results = flow_test_lib.GetFlowResults(self.client_id, flow_id)
+    results = flow_test_lib.GetUnpackedFlowResults(
+        self.client_id, flow_id, dummy_pb2.DummyFlowResult
+    )
     self.assertLen(results, 1)
     self.assertEqual(
         "responses.action_output: 'single'",
@@ -90,7 +93,7 @@ class DummyTest(flow_test_lib.FlowTestsBaseclass):
           action_mocks.ActionMock.With({"Dummy": DummyActionReturnsTwice}),
           creator=self.test_username,
           client_id=self.client_id,
-          flow_args=dummy.DummyArgs(flow_input="banana"),
+          flow_args=dummy_pb2.DummyArgs(flow_input="banana"),
       )
 
 

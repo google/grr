@@ -56,7 +56,6 @@ describe('Osquery Form Component', () => {
           timeoutMillis: '10000',
           ignoreStderrErrors: true,
           fileCollectionColumns: ['a', 'b', 'c'],
-          configurationPath: '/any/path',
           configurationContent: '',
         });
         onSubmitCalled = true;
@@ -80,7 +79,6 @@ describe('Osquery Form Component', () => {
       await harness.ignoreStderrErrorsCheckbox();
     await ignoreStderrErrorsCheckbox!.check();
 
-    await harness.setConfigurationPath('/any/path');
     await harness.setConfigurationContent('');
 
     const submitButton = await harness.getSubmitButton();
@@ -96,7 +94,6 @@ describe('Osquery Form Component', () => {
       timeoutMillis: 10000,
       ignoreStderrErrors: false,
       fileCollectionColumns: ['a', 'b', 'c'],
-      configurationPath: '/any/path',
       configurationContent: '',
     });
 
@@ -105,7 +102,6 @@ describe('Osquery Form Component', () => {
       timeoutMillis: '10000',
       ignoreStderrErrors: false,
       fileCollectionColumns: ['a', 'b', 'c'],
-      configurationPath: '/any/path',
       configurationContent: '',
     };
     expect(flowArgs).toEqual(expectedFlowArgs);
@@ -118,7 +114,6 @@ describe('Osquery Form Component', () => {
       timeoutMillis: '10000',
       ignoreStderrErrors: false,
       fileCollectionColumns: ['a', 'b', 'c'],
-      configurationPath: '',
       configurationContent: 'any content =)',
     };
 
@@ -129,7 +124,6 @@ describe('Osquery Form Component', () => {
       timeoutMillis: 10000,
       ignoreStderrErrors: false,
       fileCollectionColumns: ['a', 'b', 'c'],
-      configurationPath: '',
       configurationContent: 'any content =)',
     });
   });
@@ -140,14 +134,12 @@ describe('Osquery Form Component', () => {
       timeoutMillis: '10000',
       ignoreStderrErrors: true,
       fileCollectionColumns: ['a', 'b', 'c'],
-      configurationPath: '',
       configurationContent: 'any content =)',
     });
 
     expect(await harness.getQuery()).toBe('SELECT * FROM grr LIMIT 10;');
     expect(await harness.getTimeout()).toBe('10000');
     expect(await harness.getFileCollectionColumns()).toEqual(['a', 'b', 'c']);
-    expect(await harness.getConfigurationPath()).toBe('');
     expect(await harness.getConfigurationContent()).toBe('any content =)');
     const stdErrorCheckbox = await harness.ignoreStderrErrorsCheckbox();
     expect(await stdErrorCheckbox!.isChecked()).toBeTrue();
@@ -229,26 +221,12 @@ describe('Osquery Form Component', () => {
     expect(await harness.getFileCollectionColumns()).toEqual([]);
   });
 
-  it('should be initialized with empty content path and configuration', async () => {
+  it('should be initialized with empty configuration content', async () => {
     const {harness} = await createComponent();
 
     const lowLevelSettingsButton = await harness.lowLevelSettingsButton();
     await lowLevelSettingsButton!.click();
 
-    expect(await harness.getConfigurationPath()).toBe('');
     expect(await harness.getConfigurationContent()).toBe('');
-  });
-
-  it('shows a warning when configuration path contains %%', async () => {
-    const {harness} = await createComponent();
-
-    const lowLevelSettingsButton = await harness.lowLevelSettingsButton();
-    await lowLevelSettingsButton!.click();
-
-    await harness.setConfigurationPath('%%');
-
-    expect(await harness.getConfigurationPathWarnings()).toEqual([
-      'This path uses `%%` literally and will not evaluate any `%%knowledgebase_expressions%%`.',
-    ]);
   });
 });

@@ -167,9 +167,7 @@ class Stat:
 
       buf = array.array("l", [0])
       # TODO(user):pytype: incorrect type spec for fcntl.ioctl
-      # pytype: disable=wrong-arg-types
       fcntl.ioctl(fd, self.FS_IOC_GETFLAGS, buf)
-      # pytype: enable=wrong-arg-types
       return buf[0]
     except (IOError, OSError):
       # File system does not support extended attributes.
@@ -182,7 +180,7 @@ class Stat:
     if platform.system() != "Darwin":
       return 0
 
-    return self._stat.st_flags  # pytype: disable=attribute-error
+    return self._stat.st_flags  # pyrefly: ignore[missing-attribute]
 
 
 class StatCache:

@@ -59,7 +59,7 @@ class OsqueryTable(rdf_structs.RDFProtoStruct):
       KeyError: If given column is not present in the table.
     """
     column_idx = None
-    for idx, column in enumerate(self.header.columns):
+    for idx, column in enumerate(self.header.columns):  # pyrefly: ignore[missing-attribute]
       if column.name == column_name:
         column_idx = idx
         break
@@ -67,7 +67,7 @@ class OsqueryTable(rdf_structs.RDFProtoStruct):
     if column_idx is None:
       raise KeyError("Column '{}' not found".format(column_name))
 
-    for row in self.rows:
+    for row in self.rows:  # pyrefly: ignore[missing-attribute]
       yield row.values[column_idx]
 
 
@@ -78,14 +78,7 @@ class OsqueryResult(rdf_structs.RDFProtoStruct):
   rdf_deps = [OsqueryTable]
 
   def GetTableColumns(self) -> Iterator[str]:
-    return (column.name for column in self.table.header.columns)
+    return (column.name for column in self.table.header.columns)  # pyrefly: ignore[missing-attribute]
 
   def GetTableRows(self) -> Iterator[Sequence[str]]:
-    return (row.values for row in self.table.rows)
-
-
-class OsqueryProgress(rdf_structs.RDFProtoStruct):
-  """An RDF wrapper class for the `OsqueryProgress` proto."""
-
-  protobuf = osquery_pb2.OsqueryProgress
-  rdf_deps = [OsqueryTable]
+    return (row.values for row in self.table.rows)  # pyrefly: ignore[missing-attribute]

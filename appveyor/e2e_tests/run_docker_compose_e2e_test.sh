@@ -32,7 +32,7 @@ readonly GRR_API="http://host.docker.internal:8000"
 
 readonly SKIP_TESTS_ARR=(\
   TestCheckRunner.runTest \
-  # TODO: TSK pathtype is not working on Linux clients, skip tests.
+  # TODO - TSK pathtype is not working on Linux clients, skip tests.
   TestListDirectoryTSKLinux.runTest \
   TestTransferLinux.testMultiGetFileTSK \
   TestRawFilesystemAccessUsesTskOnNonWindows.runTest \

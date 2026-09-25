@@ -26,8 +26,6 @@ def StatEntry(metadata: rrg_fs_pb2.FileMetadata) -> jobs_pb2.StatEntry:
     result.st_mode |= stat.S_IFDIR
   elif metadata.type == rrg_fs_pb2.FileMetadata.Type.SYMLINK:
     result.st_mode |= stat.S_IFLNK
-  else:
-    raise ValueError(f"Invalid type: {metadata.type}")
 
   if metadata.access_time.seconds:
     result.st_atime = metadata.access_time.seconds

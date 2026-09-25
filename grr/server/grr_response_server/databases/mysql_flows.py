@@ -2,6 +2,7 @@
 """The MySQL database methods for flow handling."""
 
 from collections.abc import Callable, Collection, Iterable, Mapping, Sequence
+import dataclasses
 import logging
 import threading
 import time
@@ -25,6 +26,15 @@ from grr_response_server.databases import db_utils
 from grr_response_server.databases import mysql_utils
 from grr_response_server.models import hunts as models_hunts
 from grr_response_proto import rrg_pb2
+
+
+@dataclasses.dataclass
+class _FlowProcessingRequestDraft:
+  """Flow processing request to be written to the database."""
+
+  client_id: str
+  flow_id: str
+  delivery_time: Optional[rdfvalue.RDFDatetime] = None
 
 
 class MySQLDBFlowMixin:
@@ -135,10 +145,10 @@ class MySQLDBFlowMixin:
     """Unregisters any registered message handler."""
     if self.handler_thread:
       self.handler_stop = True
-      self.handler_thread.join(timeout)
+      self.handler_thread.join(timeout)  # pyrefly: ignore[bad-argument-type]
       if self.handler_thread.is_alive():
         raise RuntimeError("Message handler thread did not join in time.")
-      self.handler_thread = None
+      self.handler_thread = None  # pyrefly: ignore[bad-assignment]
 
   _MESSAGE_HANDLER_POLL_TIME_SECS = 5
 
@@ -444,6 +454,9 @@ class MySQLDBFlowMixin:
 
     if created_by is not None:
       conditions.append("creator IN %s")
+      # We explicitly convert created_by into a list because the cursor
+      # implementation does not know how to convert a `frozenset` to a string.
+      # The cursor implementation knows how to convert lists and ordinary sets.
       args.append(list(created_by))
 
     query = f"SELECT {self.FLOW_DB_FIELDS} FROM flows"
@@ -618,7 +631,7 @@ class MySQLDBFlowMixin:
 
   def _WriteFlowProcessingRequests(
       self,
-      requests: Sequence[flows_pb2.FlowProcessingRequest],
+      requests: Sequence[_FlowProcessingRequestDraft],
       cursor: Optional[cursors.Cursor],
   ) -> None:
     """Returns a (query, args) tuple that inserts the given requests."""
@@ -627,20 +640,17 @@ class MySQLDBFlowMixin:
     templates = []
     args = []
     for req in requests:
-      templates.append("(%s, %s, %s, FROM_UNIXTIME(%s))")
+      templates.append("(%s, %s, FROM_UNIXTIME(%s))")
       args.append(db_utils.ClientIDToInt(req.client_id))
       args.append(db_utils.FlowIDToInt(req.flow_id))
-      args.append(req.SerializeToString())
       if req.delivery_time:
-        args.append(
-            mysql_utils.MicrosecondsSinceEpochToTimestamp(req.delivery_time)
-        )
+        args.append(mysql_utils.RDFDatetimeToTimestamp(req.delivery_time))
       else:
         args.append(None)
 
     query = (
         "INSERT INTO flow_processing_requests "
-        "(client_id, flow_id, request, delivery_time) VALUES "
+        "(client_id, flow_id, delivery_time) VALUES "
     )
     query += ", ".join(templates)
     cursor.execute(query, args)
@@ -707,12 +717,14 @@ class MySQLDBFlowMixin:
         candidate_requests = needs_processing.get((client_id, flow_id), [])
         for r in candidate_requests:
           if next_request_to_process == r.request_id or r.start_time:
-            flow_processing_request = flows_pb2.FlowProcessingRequest(
+            flow_processing_request = _FlowProcessingRequestDraft(
                 client_id=client_id,
                 flow_id=flow_id,
             )
             if r.start_time:
-              flow_processing_request.delivery_time = r.start_time
+              flow_processing_request.delivery_time = rdfvalue.RDFDatetime(
+                  r.start_time
+              )
             flow_processing_requests.append(flow_processing_request)
 
       if flow_processing_requests:
@@ -736,7 +748,6 @@ class MySQLDBFlowMixin:
           Union[
               flows_pb2.FlowResponse,
               flows_pb2.FlowStatus,
-              flows_pb2.FlowIterator,
           ],
       ],
       cursor: Optional[cursors.Cursor],
@@ -747,13 +758,13 @@ class MySQLDBFlowMixin:
     query = (
         "INSERT IGNORE INTO flow_responses "
         "(client_id, flow_id, request_id, response_id, "
-        "response, status, iterator, timestamp) VALUES "
+        "response, status, timestamp) VALUES "
     )
 
     templates = []
     args = []
     for r in responses:
-      templates.append("(%s, %s, %s, %s, %s, %s, %s, NOW(6))")
+      templates.append("(%s, %s, %s, %s, %s, %s, NOW(6))")
       client_id_int = db_utils.ClientIDToInt(r.client_id)
       flow_id_int = db_utils.FlowIDToInt(r.flow_id)
 
@@ -764,13 +775,7 @@ class MySQLDBFlowMixin:
       if isinstance(r, flows_pb2.FlowResponse):
         args.append(r.SerializeToString())
         args.append("")
-        args.append("")
       elif isinstance(r, flows_pb2.FlowStatus):
-        args.append("")
-        args.append(r.SerializeToString())
-        args.append("")
-      elif isinstance(r, flows_pb2.FlowIterator):
-        args.append("")
         args.append("")
         args.append(r.SerializeToString())
       else:
@@ -798,7 +803,6 @@ class MySQLDBFlowMixin:
           Union[
               flows_pb2.FlowResponse,
               flows_pb2.FlowStatus,
-              flows_pb2.FlowIterator,
           ]
       ],
       cursor: Optional[cursors.Cursor] = None,
@@ -993,7 +997,6 @@ class MySQLDBFlowMixin:
           Union[
               flows_pb2.FlowResponse,
               flows_pb2.FlowStatus,
-              flows_pb2.FlowIterator,
           ],
       ],
       cursor: Optional[cursors.Cursor] = None,
@@ -1021,12 +1024,14 @@ class MySQLDBFlowMixin:
     for request_key, request in affected_requests.items():
       client_id, flow_id, request_id = request_key
       if next_requests[(client_id, flow_id)] == request_id:
-        flow_processing_request = flows_pb2.FlowProcessingRequest(
+        flow_processing_request = _FlowProcessingRequestDraft(
             client_id=request.client_id,
             flow_id=request.flow_id,
         )
         if request.HasField("start_time"):
-          flow_processing_request.delivery_time = request.start_time
+          flow_processing_request.delivery_time = rdfvalue.RDFDatetime(
+              request.start_time
+          )
 
         fprs_to_write.append(flow_processing_request)
 
@@ -1041,11 +1046,10 @@ class MySQLDBFlowMixin:
           Union[
               flows_pb2.FlowResponse,
               flows_pb2.FlowStatus,
-              flows_pb2.FlowIterator,
           ],
       ],
   ) -> None:
-    """Writes FlowResponse/FlowStatus/FlowIterator and updates corresponding requests."""
+    """Writes FlowResponse/FlowStatus and updates corresponding requests."""
 
     if not responses:
       return
@@ -1139,7 +1143,6 @@ class MySQLDBFlowMixin:
               Union[
                   flows_pb2.FlowResponse,
                   flows_pb2.FlowStatus,
-                  flows_pb2.FlowIterator,
               ],
           ],
       ]
@@ -1176,19 +1179,16 @@ class MySQLDBFlowMixin:
       requests.append(request)
 
     query = (
-        "SELECT response, status, iterator, UNIX_TIMESTAMP(timestamp) "
+        "SELECT response, status, UNIX_TIMESTAMP(timestamp) "
         "FROM flow_responses WHERE client_id=%s AND flow_id=%s"
     )
     cursor.execute(query, args)
 
     responses = {}
-    for res, status, iterator, ts in cursor.fetchall():
+    for res, status, ts in cursor.fetchall():
       if status:
         response = flows_pb2.FlowStatus()
         response.ParseFromString(status)
-      elif iterator:
-        response = flows_pb2.FlowIterator()
-        response.ParseFromString(iterator)
       else:
         response = flows_pb2.FlowResponse()
         response.ParseFromString(res)
@@ -1236,7 +1236,6 @@ class MySQLDBFlowMixin:
               Union[
                   flows_pb2.FlowResponse,
                   flows_pb2.FlowStatus,
-                  flows_pb2.FlowIterator,
               ],
           ],
       ],
@@ -1247,20 +1246,17 @@ class MySQLDBFlowMixin:
     args = [db_utils.ClientIDToInt(client_id), db_utils.FlowIDToInt(flow_id)]
 
     query = (
-        "SELECT response, status, iterator, UNIX_TIMESTAMP(timestamp) "
+        "SELECT response, status, UNIX_TIMESTAMP(timestamp) "
         "FROM flow_responses "
         "WHERE client_id=%s AND flow_id=%s"
     )
     cursor.execute(query, args)
 
     responses = {}
-    for res, status, iterator, ts in cursor.fetchall():
+    for res, status, ts in cursor.fetchall():
       if status:
         response = flows_pb2.FlowStatus()
         response.ParseFromString(status)
-      elif iterator:
-        response = flows_pb2.FlowIterator()
-        response.ParseFromString(iterator)
       else:
         response = flows_pb2.FlowResponse()
         response.ParseFromString(res)
@@ -1372,69 +1368,59 @@ class MySQLDBFlowMixin:
 
   @db_utils.CallLogged
   @db_utils.CallAccounted
-  @mysql_utils.WithTransaction()
-  def WriteFlowProcessingRequests(
-      self,
-      requests: Sequence[flows_pb2.FlowProcessingRequest],
-      cursor: Optional[cursors.Cursor] = None,
-  ) -> None:
-    """Writes a list of flow processing requests to the database."""
-    self._WriteFlowProcessingRequests(requests, cursor)
-
-  @db_utils.CallLogged
-  @db_utils.CallAccounted
   @mysql_utils.WithTransaction(readonly=True)
   def ReadFlowProcessingRequests(
       self,
       cursor: Optional[cursors.Cursor] = None,
-  ) -> Sequence[flows_pb2.FlowProcessingRequest]:
+  ) -> Sequence[db.FlowProcessingRequest]:
     """Reads all flow processing requests from the database."""
     assert cursor is not None
 
     query = (
-        "SELECT request, UNIX_TIMESTAMP(timestamp) "
+        "SELECT client_id, flow_id, UNIX_TIMESTAMP(timestamp)"
         "FROM flow_processing_requests"
     )
     cursor.execute(query)
 
     res = []
-    for serialized_request, ts in cursor.fetchall():
-      req = flows_pb2.FlowProcessingRequest()
-      req.ParseFromString(serialized_request)
-      req.creation_time = int(mysql_utils.TimestampToRDFDatetime(ts))
+    for client_id, flow_id, ts in cursor.fetchall():
+      req = db.FlowProcessingRequest(
+          client_id=db_utils.IntToClientID(client_id),
+          flow_id=db_utils.IntToFlowID(flow_id),
+          creation_time=mysql_utils.TimestampToRDFDatetime(ts),
+      )
       res.append(req)
     return res
 
   @db_utils.CallLogged
   @db_utils.CallAccounted
   @mysql_utils.WithTransaction()
-  def AckFlowProcessingRequests(
+  def AckFlowProcessingRequest(
       self,
-      requests: Iterable[flows_pb2.FlowProcessingRequest],
+      request: db.FlowProcessingRequest,
       cursor: Optional[cursors.Cursor] = None,
-  ) -> None:
-    """Deletes a list of flow processing requests from the database."""
+  ) -> bool:
+    """Deletes a flow processing request from the database."""
     assert cursor is not None
 
-    if not requests:
-      return
+    query = """
+    DELETE
+    FROM
+      flow_processing_requests
+    WHERE
+      client_id = %(client_id)s
+    AND
+      flow_id = %(flow_id)s
+    AND
+      timestamp = FROM_UNIXTIME(%(timestamp)s)
+    """
+    values = {
+        "client_id": db_utils.ClientIDToInt(request.client_id),
+        "flow_id": db_utils.FlowIDToInt(request.flow_id),
+        "timestamp": mysql_utils.RDFDatetimeToTimestamp(request.creation_time),
+    }
 
-    query = "DELETE FROM flow_processing_requests WHERE "
-
-    conditions = []
-    args = []
-    for r in requests:
-      conditions.append(
-          "(client_id=%s AND flow_id=%s AND timestamp=FROM_UNIXTIME(%s))"
-      )
-      args.append(db_utils.ClientIDToInt(r.client_id))
-      args.append(db_utils.FlowIDToInt(r.flow_id))
-      args.append(
-          mysql_utils.MicrosecondsSinceEpochToTimestamp(r.creation_time)
-      )
-
-    query += " OR ".join(conditions)
-    cursor.execute(query, args)
+    return cursor.execute(query, values) == 1
 
   @db_utils.CallLogged
   @db_utils.CallAccounted
@@ -1452,7 +1438,7 @@ class MySQLDBFlowMixin:
   @mysql_utils.WithTransaction()
   def _LeaseFlowProcessingRequests(
       self, limit: int, cursor=None
-  ) -> Sequence[flows_pb2.FlowProcessingRequest]:
+  ) -> Sequence[db.FlowProcessingRequest]:
     """Leases a number of flow processing requests."""
     now = rdfvalue.RDFDatetime.Now()
     expiry = now + rdfvalue.Duration.From(10, rdfvalue.MINUTES)
@@ -1479,13 +1465,13 @@ class MySQLDBFlowMixin:
         "limit": limit,
     }
 
-    updated = cursor.execute(query, args)
+    updated = cursor.execute(query, args)  # pyrefly: ignore[missing-attribute]
 
     if updated == 0:
       return []
 
     query = """
-      SELECT UNIX_TIMESTAMP(timestamp), request
+      SELECT client_id, flow_id, UNIX_TIMESTAMP(timestamp)
       FROM flow_processing_requests
       FORCE INDEX (flow_processing_requests_by_lease)
       WHERE leased_by=%(id)s AND leased_until=FROM_UNIXTIME(%(expiry)s)
@@ -1498,14 +1484,14 @@ class MySQLDBFlowMixin:
         "updated": updated,
     }
 
-    cursor.execute(query, args)
+    cursor.execute(query, args)  # pyrefly: ignore[missing-attribute]
 
     res = []
-    for timestamp, request in cursor.fetchall():
-      req = flows_pb2.FlowProcessingRequest()
-      req.ParseFromString(request)
-      req.creation_time = mysql_utils.TimestampToMicrosecondsSinceEpoch(
-          timestamp
+    for client_id, flow_id, timestamp in cursor.fetchall():  # pyrefly: ignore[missing-attribute]
+      req = db.FlowProcessingRequest(
+          client_id=db_utils.IntToClientID(client_id),
+          flow_id=db_utils.IntToFlowID(flow_id),
+          creation_time=mysql_utils.TimestampToRDFDatetime(timestamp),
       )
       res.append(req)
 
@@ -1514,7 +1500,8 @@ class MySQLDBFlowMixin:
   _FLOW_REQUEST_POLL_TIME_SECS = 3
 
   def _FlowProcessingRequestHandlerLoop(
-      self, handler: Callable[[flows_pb2.FlowProcessingRequest], None]
+      self,
+      handler: Callable[[db.FlowProcessingRequest], None],
   ) -> None:
     """The main loop for the flow processing request queue."""
     self.flow_processing_request_handler_pool.Start()
@@ -1542,7 +1529,8 @@ class MySQLDBFlowMixin:
     self.flow_processing_request_handler_pool.Stop()
 
   def RegisterFlowProcessingHandler(
-      self, handler: Callable[[flows_pb2.FlowProcessingRequest], None]
+      self,
+      handler: Callable[[db.FlowProcessingRequest], None],
   ) -> None:
     """Registers a handler to receive flow processing messages."""
     self.UnregisterFlowProcessingHandler()
@@ -1563,10 +1551,10 @@ class MySQLDBFlowMixin:
     """Unregisters any registered flow processing handler."""
     if self.flow_processing_request_handler_thread:
       self.flow_processing_request_handler_stop = True
-      self.flow_processing_request_handler_thread.join(timeout)
+      self.flow_processing_request_handler_thread.join(timeout)  # pyrefly: ignore[bad-argument-type]
       if self.flow_processing_request_handler_thread.is_alive():
         raise RuntimeError("Flow processing handler did not join in time.")
-      self.flow_processing_request_handler_thread = None
+      self.flow_processing_request_handler_thread = None  # pyrefly: ignore[bad-assignment]
 
   @db_utils.CallLogged
   @db_utils.CallAccounted
@@ -1599,7 +1587,7 @@ class MySQLDBFlowMixin:
       args.append(
           mysql_utils.RDFDatetimeToTimestamp(rdfvalue.RDFDatetime.Now())
       )
-      # TODO: Remove writing to payload column after a transition
+      # TODO - Remove writing to payload column after a transition
       # period.
       args.append(r.payload.value)
       args.append(r.payload.SerializeToString())

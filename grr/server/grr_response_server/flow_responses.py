@@ -30,19 +30,16 @@ class Responses(Iterable[T]):
 
     for r in responses or []:
       if isinstance(r, rdf_flow_objects.FlowResponse):
-        res.responses.append(r.payload)
+        res.responses.append(r.payload)  # pyrefly: ignore[missing-attribute]
       elif isinstance(r, rdf_flow_objects.FlowStatus):
         res.status = r
-        res.success = r.status == "OK"
-      elif isinstance(r, rdf_flow_objects.FlowIterator):
-        pass
+        res.success = r.status == "OK"  # pyrefly: ignore[missing-attribute]
       else:
         raise TypeError("Got unexpected response type: %s" % type(r))
     return res
 
   # `pytype` for whatever cryptic reason fails with `name-error` when checking
   # this method's signature, so we disable it.
-  # pytype: disable=name-error
   @classmethod
   def FromResponsesProto2Any(
       cls,
@@ -50,12 +47,10 @@ class Responses(Iterable[T]):
           Union[
               rdf_flow_objects.FlowResponse,
               rdf_flow_objects.FlowStatus,
-              rdf_flow_objects.FlowIterator,
           ],
       ],
       request: Optional[rdf_flow_objects.FlowRequest] = None,
   ) -> "Responses[any_pb2.Any]":
-    # pytype: enable=name-error
     """Creates a `Response` object from raw flow responses.
 
     Unlike the `Responses.FromResponses` method, this method does not use any
@@ -81,19 +76,16 @@ class Responses(Iterable[T]):
     return result
 
   @classmethod
-  # pytype: disable=name-error
   def FromResponsesProto2AnyWithOptionalStatus(
       cls,
       responses: Sequence[
           Union[
               rdf_flow_objects.FlowResponse,
               rdf_flow_objects.FlowStatus,
-              rdf_flow_objects.FlowIterator,
           ],
       ],
       request: Optional[rdf_flow_objects.FlowRequest] = None,
   ) -> "Responses[any_pb2.Any]":
-    # pytype: enable=name-error
     """Creates a `Response` object from raw flow responses.
 
     Unlike the `Responses.FromResponses` method, this method does not use any
@@ -115,7 +107,7 @@ class Responses(Iterable[T]):
 
     if request is not None:
       result.request = request
-      result.request_data = request.request_data
+      result.request_data = request.request_data  # pyrefly: ignore[missing-attribute]
 
     for response in responses:
       if isinstance(response, rdf_flow_objects.FlowStatus):
@@ -123,16 +115,13 @@ class Responses(Iterable[T]):
           raise ValueError(f"Duplicated status response: {response}")
 
         result.success = (
-            response.status == rdf_flow_objects.FlowStatus.Status.OK
+            response.status == rdf_flow_objects.FlowStatus.Status.OK  # pyrefly: ignore[missing-attribute]
         )
 
         result.status = response
       elif isinstance(response, rdf_flow_objects.FlowResponse):
-        result.responses.append(response.any_payload.AsPrimitiveProto())
+        result.responses.append(response.any_payload.AsPrimitiveProto())  # pyrefly: ignore[missing-attribute]
       else:
-        # Note that this also covers `FlowIterator`—it is a legacy class that
-        # should no longer be used and new state methods (that are expected to
-        # trigger this code path) should not rely on it.
         raise TypeError(f"Unexpected response: {response}")
 
     return result

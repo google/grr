@@ -25,7 +25,7 @@ class TimelineTest(api_integration_test_lib.ApiIntegrationTest):
     data = io.BytesIO()
 
     flow = self.api.Client(client_id).Flow(flow_id)
-    flow.GetCollectedTimelineBody().WriteToStream(data)  # pytype: disable=wrong-arg-types
+    flow.GetCollectedTimelineBody().WriteToStream(data)
 
     content = data.getvalue().decode("utf-8")
     self.assertIn("|/foo/bar/baz|", content)

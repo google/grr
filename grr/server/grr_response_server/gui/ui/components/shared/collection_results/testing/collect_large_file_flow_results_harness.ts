@@ -4,6 +4,5 @@ import {ComponentHarness} from '@angular/cdk/testing';
 export class CollectLargeFileFlowResultsHarness extends ComponentHarness {
   static hostSelector = 'collect-large-file-flow-results';
 
-  readonly clientIds = this.locatorForAll('.client-id');
   readonly tables = this.locatorForAll('table');
 }

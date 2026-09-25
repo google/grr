@@ -13,18 +13,6 @@
 
 <div>
   <mat-form-field appearance="outline" class="w33">
-    <mat-label>Mode</mat-label>
-    <mat-select [formControl]="formGroup.controls.mode">
-      <mat-option [value]="FileFinderContentsRegexMatchConditionMode.ALL_HITS">
-        All Hits
-      </mat-option>
-      <mat-option [value]="FileFinderContentsRegexMatchConditionMode.FIRST_HIT">
-        First Hit
-      </mat-option>
-    </mat-select>
-  </mat-form-field>
-
-  <mat-form-field appearance="outline" class="w33">
     <mat-label>Length</mat-label>
     <input
       matInput

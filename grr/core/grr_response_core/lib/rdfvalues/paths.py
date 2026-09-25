@@ -48,36 +48,36 @@ class PathSpec(rdf_structs.RDFProtoStruct):
 
   @classmethod
   def OS(cls, **kwargs):
-    return cls(pathtype=PathSpec.PathType.OS, **kwargs)
+    return cls(pathtype=PathSpec.PathType.OS, **kwargs)  # pyrefly: ignore[missing-attribute]
 
   @classmethod
   def TSK(cls, **kwargs):
-    return cls(pathtype=PathSpec.PathType.TSK, **kwargs)
+    return cls(pathtype=PathSpec.PathType.TSK, **kwargs)  # pyrefly: ignore[missing-attribute]
 
   @classmethod
   def NTFS(cls, **kwargs):
-    return cls(pathtype=PathSpec.PathType.NTFS, **kwargs)
+    return cls(pathtype=PathSpec.PathType.NTFS, **kwargs)  # pyrefly: ignore[missing-attribute]
 
   @classmethod
   def Registry(cls, **kwargs):
-    return cls(pathtype=PathSpec.PathType.REGISTRY, **kwargs)
+    return cls(pathtype=PathSpec.PathType.REGISTRY, **kwargs)  # pyrefly: ignore[missing-attribute]
 
   @classmethod
   def Temp(cls, **kwargs):
-    return cls(pathtype=PathSpec.PathType.TMPFILE, **kwargs)
+    return cls(pathtype=PathSpec.PathType.TMPFILE, **kwargs)  # pyrefly: ignore[missing-attribute]
 
   def __len__(self):
     """Return the total number of path components."""
     i = -1
     # TODO(user):pytype: type checker doesn't treat self as iterable.
-    for i, _ in enumerate(self):  # pytype: disable=wrong-arg-types
+    for i, _ in enumerate(self):
       pass
 
     return i + 1
 
   def __getitem__(self, item):
     # TODO(user):pytype: type checker doesn't treat self as iterable.
-    for i, element in enumerate(self):  # pytype: disable=wrong-arg-types
+    for i, element in enumerate(self):
       if i == item:
         return element
 
@@ -91,7 +91,7 @@ class PathSpec(rdf_structs.RDFProtoStruct):
       yield element
 
       if element.HasField("nested_path"):
-        element = element.nested_path
+        element = element.nested_path  # pyrefly: ignore[missing-attribute]
       else:
         break
 
@@ -142,7 +142,7 @@ class PathSpec(rdf_structs.RDFProtoStruct):
       result = self.__class__()
       result.SetRawData(self.GetRawData())
 
-      self.SetRawData(self.nested_path.GetRawData())
+      self.SetRawData(self.nested_path.GetRawData())  # pyrefly: ignore[missing-attribute]
 
     else:
       # Get the raw protobufs for the previous member.
@@ -153,7 +153,7 @@ class PathSpec(rdf_structs.RDFProtoStruct):
       # Manipulate the previous members protobuf to patch the next component in.
       previous.nested_path = result.nested_path
 
-    result.nested_path = None
+    result.nested_path = None  # pyrefly: ignore[missing-attribute]
 
     return result
 
@@ -163,9 +163,9 @@ class PathSpec(rdf_structs.RDFProtoStruct):
 
   @property
   def last(self):
-    if self.HasField("pathtype") and self.pathtype != self.PathType.UNSET:
+    if self.HasField("pathtype") and self.pathtype != self.PathType.UNSET:  # pyrefly: ignore[missing-attribute]
       # TODO(user):pytype: type checker doesn't treat self as iterable.
-      return list(self)[-1]  # pytype: disable=wrong-arg-types
+      return list(self)[-1]
 
     return self
 
@@ -188,7 +188,7 @@ class PathSpec(rdf_structs.RDFProtoStruct):
 
   def Basename(self):
     # TODO(user):pytype: type checker doesn't treat self as reversible.
-    for component in reversed(self):  # pytype: disable=wrong-arg-types
+    for component in reversed(self):
       basename = posixpath.basename(component.path)
       if basename:
         return basename
@@ -196,7 +196,7 @@ class PathSpec(rdf_structs.RDFProtoStruct):
     return ""
 
   def Validate(self):
-    if not self.HasField("pathtype") or self.pathtype == self.PathType.UNSET:
+    if not self.HasField("pathtype") or self.pathtype == self.PathType.UNSET:  # pyrefly: ignore[missing-attribute]
       raise ValueError("No path type set in PathSpec.")
 
   AFF4_PREFIXES = {
@@ -246,8 +246,8 @@ class PathSpec(rdf_structs.RDFProtoStruct):
 
     if (
         len(self) > 1
-        and first_component.pathtype == PathSpec.PathType.OS
-        and self[1].pathtype in (PathSpec.PathType.TSK, PathSpec.PathType.NTFS)
+        and first_component.pathtype == PathSpec.PathType.OS  # pyrefly: ignore[missing-attribute]
+        and self[1].pathtype in (PathSpec.PathType.TSK, PathSpec.PathType.NTFS)  # pyrefly: ignore[missing-attribute]
     ):
       result = [self.AFF4_PREFIXES[self[1].pathtype], dev]
 

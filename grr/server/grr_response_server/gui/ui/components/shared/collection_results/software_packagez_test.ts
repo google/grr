@@ -3,10 +3,7 @@ import {TestBed, fakeAsync, waitForAsync} from '@angular/core/testing';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 
 import {SoftwarePackages as ApiSoftwarePackages} from '../../../lib/api/api_interfaces';
-import {
-  newFlowResult,
-  newHuntResult,
-} from '../../../lib/models/model_test_util';
+import {newFlowResult} from '../../../lib/models/model_test_util';
 import {CollectionResult, PayloadType} from '../../../lib/models/result';
 import {initTestEnvironment} from '../../../testing';
 import {SoftwarePackagez} from './software_packagez';
@@ -105,17 +102,5 @@ describe('Software Packagez Component', () => {
     const table = await harness.table();
     expect(table).toBeDefined();
     expect(await table!.getRows()).toHaveSize(2);
-  }));
-
-  it('shows client id column for hunt results', fakeAsync(async () => {
-    const {harness} = await createComponent([
-      newHuntResult({
-        clientId: 'C.1234',
-        payloadType: PayloadType.SOFTWARE_PACKAGES,
-        payload: {packages: [{name: 'name-1'}]},
-      }),
-    ]);
-
-    expect(await harness.getCellText(0, 'clientId')).toContain('C.1234');
   }));
 });

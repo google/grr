@@ -203,14 +203,14 @@ class _CursorProxy(object):
 
     try:
       result = self._forward(self.cursor.execute, query, args=args)
-      if MySQLdb.version_info >= (1, 4, 0) and self.con.warning_count():
+      if MySQLdb.version_info >= (1, 4, 0) and self.con.warning_count():  # pyrefly: ignore[unsupported-operation]
         # Newer MySQLdb versions do not automatically turn MySQL warnings into
         # Python warnings, so this behavior must be implemented explicitly.
         for warning in self.con.show_warnings():
           warnings.warn(MySQLdb.Warning(*warning[1:3]), stacklevel=3)
       return result
     except Warning as e:
-      # TODO: check if newer versions of mysqlclient report
+      # TODO - check if newer versions of mysqlclient report
       # integrity errors as MySQLdb.IntegrityError exceptions and
       # not simply as warnings.
       #
@@ -219,7 +219,7 @@ class _CursorProxy(object):
       if e.args[0] == 1452:
         raise MySQLdb.IntegrityError(str(e))
 
-      # TODO: check if newer versions of mysqlclient report the
+      # TODO - check if newer versions of mysqlclient report the
       # unknown table warning (that's thrown even if DROP TABLE IF EXISTS
       # syntax is used, see
       # https://dev.mysql.com/doc/refman/5.7/en/drop-table.html)
@@ -238,7 +238,7 @@ class _CursorProxy(object):
         logging.warning("MySQL range optimization warning: %s", e)
         return None
 
-      # TODO: check if newer versions of mysqlclient still report
+      # TODO - check if newer versions of mysqlclient still report
       # the CONSTRAINT...FOREIGN KEY warning as a warning and not as an
       # integrity error.
       if (

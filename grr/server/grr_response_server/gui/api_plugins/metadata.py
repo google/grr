@@ -11,6 +11,7 @@ from urllib import parse as urlparse
 
 from google.protobuf import descriptor as proto_descriptor
 from google.protobuf import message
+
 from grr_response_core import version
 from grr_response_core.lib import casing
 from grr_response_core.lib import registry
@@ -367,6 +368,7 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
             ),
             "type": "object",
             "additionalProperties": _GetReferenceObject(value_type_name),
+            "x-key-type": _GetReferenceObject(key_type_name),
         },
     )
 
@@ -383,7 +385,7 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
       raise ValueError("Trying to extract schema of None.")
 
     if inspect.isclass(cls) and issubclass(cls, rdf_structs.RDFProtoStruct):
-      cls = cls.protobuf.DESCRIPTOR
+      cls = cls.protobuf.DESCRIPTOR  # pyrefly: ignore[missing-attribute]
 
     type_name = _GetTypeName(cls)
     # "Primitive" types should be already present in `self.schema_objs`.
@@ -435,13 +437,9 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
 
   def _CreateOutputPluginSchemas(self, visiting: set[str]) -> None:
     """Creates OpenAPI schemas for output plugin args and result types."""
-    for plugin_cls in registry.OutputPluginRegistry.PLUGIN_REGISTRY.values():
-      if plugin_cls.proto_args_type:
-        self._CreateSchema(plugin_cls.proto_args_type.DESCRIPTOR, visiting)
-
     for plugin_cls in output_plugin_registry.GetAllPlugins():
-      if plugin_cls.args_type:  # pytype: disable=unbound-type-param
-        self._CreateSchema(plugin_cls.args_type.DESCRIPTOR, visiting)
+      if plugin_cls.args_type:  # pyrefly: ignore[missing-attribute]
+        self._CreateSchema(plugin_cls.args_type.DESCRIPTOR, visiting)  # pyrefly: ignore[missing-attribute]
 
   def _CreateRouterMethodSchemas(self, visiting: set[str]) -> None:
     """Creates OpenAPI schemas for router method args and result types."""
@@ -500,7 +498,7 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
       raise AssertionError("OpenAPI type schemas not initialized.")
 
     type_name = _GetTypeName(field_descriptor)
-    containing_oneof: OneofDescriptor = field_descriptor.containing_oneof
+    containing_oneof: OneofDescriptor = field_descriptor.containing_oneof  # pyrefly: ignore[bad-assignment]
     description = ""
     array_schema = None
     reference_obj = None
@@ -587,13 +585,13 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
       parameter_obj = {"name": casing.SnakeToCamel(field_d.name)}
       if field_d in req_path_params_set:
         parameter_obj["in"] = "path"
-        parameter_obj["required"] = True
+        parameter_obj["required"] = True  # pyrefly: ignore[bad-assignment]
       elif field_d in opt_path_params_set:
         parameter_obj["in"] = "path"
       else:
         parameter_obj["in"] = "query"
 
-      parameter_obj["schema"] = self._GetDescribedSchema(field_d)
+      parameter_obj["schema"] = self._GetDescribedSchema(field_d)  # pyrefly: ignore[bad-assignment]
 
       parameters.append(parameter_obj)
 
@@ -649,7 +647,7 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
     ):
       result_type_name = _GetTypeName(result_type.DESCRIPTOR)
     else:
-      result_type_name = _GetTypeName(result_type)
+      result_type_name = _GetTypeName(result_type)  # pyrefly: ignore[bad-argument-type]
 
     resp_success_obj["description"] = (
         f"The call to the {router_method_name} API method succeeded and it "
@@ -973,10 +971,7 @@ def _GetTypeName(cls: Optional[TypeHinter]) -> str:
       if key_value_d is None:
         raise AssertionError(f"{cls} is not a map FieldDescriptor")
 
-      key_type_name = _GetTypeName(key_value_d.key)
-      value_type_name = _GetTypeName(key_value_d.value)
-
-      return f"{map_type_name}Map_{key_type_name}:{value_type_name}"
+      return f"{map_type_name}Map"
 
     if cls.message_type:
       return _GetTypeName(cls.message_type)

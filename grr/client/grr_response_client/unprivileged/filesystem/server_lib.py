@@ -186,7 +186,7 @@ class OpenHandler(
     )
     assert state.filesystem is not None
     if inode is None:
-      file_obj = state.filesystem.Open(path, stream_name)
+      file_obj = state.filesystem.Open(path, stream_name)  # pyrefly: ignore[bad-argument-type]
     else:
       try:
         file_obj = state.filesystem.OpenByInode(inode, stream_name)

@@ -55,8 +55,6 @@ export class PendingApproval {
       ];
     }
     const pathTree = this.router.createUrlTree(urlTree);
-    const url = new URL(window.location.origin);
-    url.pathname = this.location.prepareExternalUrl(pathTree.toString());
-    return url.toString();
+    return this.location.prepareExternalUrl(this.router.serializeUrl(pathTree));
   });
 }

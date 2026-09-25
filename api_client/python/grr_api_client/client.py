@@ -2,7 +2,6 @@
 """Clients-related part of GRR API client library."""
 
 from collections import abc
-from collections.abc import Sequence
 import time
 
 from grr_api_client import flow
@@ -42,7 +41,7 @@ class ClientApprovalBase(object):
         username=self.username,
         approval_id=self.approval_id,
     )
-    data = self._context.SendRequest("GrantClientApproval", args)
+    data = self._context.SendRequest("GrantClientApproval", args)  # pyrefly: ignore[missing-attribute]
     return ClientApproval(
         data=data, username=self.username, context=self._context
     )
@@ -55,9 +54,9 @@ class ClientApprovalBase(object):
         approval_id=self.approval_id,
         username=self.username,
     )
-    result = self._context.SendRequest("GetClientApproval", args)
+    result = self._context.SendRequest("GetClientApproval", args)  # pyrefly: ignore[missing-attribute]
     return ClientApproval(
-        data=result, username=self._context.username, context=self._context
+        data=result, username=self._context.username, context=self._context  # pyrefly: ignore[missing-attribute]
     )
 
   def WaitUntilValid(self, timeout=None):
@@ -74,7 +73,7 @@ class ClientApprovalBase(object):
     """
 
     return utils.Poll(
-        generator=self.Get, condition=lambda f: f.data.is_valid, timeout=timeout
+        generator=self.Get, condition=lambda f: f.data.is_valid, timeout=timeout  # pyrefly: ignore[bad-argument-type]
     )
 
 
@@ -108,12 +107,12 @@ class ClientCrash(object):
 
     self.data = data
 
-    self.timestamp = data.timestamp
-    self.crash_message = data.crash_message
-    self.backtrace = data.backtrace
+    self.timestamp = data.timestamp  # pyrefly: ignore[missing-attribute]
+    self.crash_message = data.crash_message  # pyrefly: ignore[missing-attribute]
+    self.backtrace = data.backtrace  # pyrefly: ignore[missing-attribute]
 
     self.client = ClientRef(
-        client_id=utils.UrnStringToClientId(data.client_id), context=context
+        client_id=utils.UrnStringToClientId(data.client_id), context=context  # pyrefly: ignore[missing-attribute]
     )
 
 
@@ -327,18 +326,6 @@ class ClientBase(object):
     result = self._context.SendRequest("GetFleetspeakPendingMessageCount", args)
     return result.count
 
-  def GetFleetspeakPendingMessages(
-      self, offset: int = 0, limit: int = 0, want_data: bool = False
-  ) -> Sequence[client_pb2.ApiFleetspeakMessage]:
-    """Returns messages pending for the given client."""
-    args = client_pb2.ApiGetFleetspeakPendingMessagesArgs()
-    args.client_id = self.client_id
-    args.offset = offset
-    args.limit = limit
-    args.want_data = want_data
-    result = self._context.SendRequest("GetFleetspeakPendingMessages", args)
-    return result.messages
-
 
 class ClientRef(ClientBase):
   """Ref to the client."""
@@ -372,7 +359,7 @@ def SearchClients(query=None, context=None):
 
   args = client_pb2.ApiSearchClientsArgs(query=query)
 
-  items = context.SendIteratorRequest("SearchClients", args)
+  items = context.SendIteratorRequest("SearchClients", args)  # pyrefly: ignore[missing-attribute]
   return utils.MapItemsIterator(
       lambda data: Client(data=data, context=context), items
   )

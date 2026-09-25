@@ -13,7 +13,7 @@
           </mat-select>
         </mat-form-field>
       }
-      @for(ruleForm of ruleForms(); track $index) {
+      @for(ruleForm of ruleForms(); track ruleForm) {
         <div class="rule-form">
           @if (isClientOsFormData(ruleForm)) {
             <client-os-form [osData]="ruleForm" />

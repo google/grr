@@ -1,7 +1,5 @@
-import {HttpErrorResponse} from '@angular/common/http';
 import {DestroyRef, inject} from '@angular/core';
 import {takeUntilDestroyed} from '@angular/core/rxjs-interop';
-import {tapResponse} from '@ngrx/operators';
 import {
   patchState,
   signalStore,
@@ -11,7 +9,7 @@ import {
 } from '@ngrx/signals';
 import {rxMethod} from '@ngrx/signals/rxjs-interop';
 import {of, pipe} from 'rxjs';
-import {switchMap} from 'rxjs/operators';
+import {switchMap, tap} from 'rxjs/operators';
 
 import {HttpApiWithTranslationService} from '../lib/api/http_api_with_translation_service';
 import {Client, ClientApproval} from '../lib/models/client';
@@ -57,14 +55,8 @@ export const ClientSearchStore = signalStore(
               offset: String(DEFAULT_CONTENT_OFFSET),
             })
             .pipe(
-              tapResponse({
-                next: (clients: Client[]) => {
-                  patchState(store, {clients});
-                },
-                error: (err: HttpErrorResponse) => {
-                  // TODO: Revisit this once errors are handled.
-                  throw err;
-                },
+              tap((clients: Client[]) => {
+                patchState(store, {clients});
               }),
             );
         }),

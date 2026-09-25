@@ -196,16 +196,13 @@ class ContentCondition(metaclass=abc.ABCMeta):
     amount = self.params.length
     for chunk in streamer.StreamFile(fd, offset=offset, amount=amount):
       for span in chunk.Scan(matcher):
-        ctx_begin = max(span.begin - self.params.bytes_before, 0)
-        ctx_end = min(span.end + self.params.bytes_after, len(chunk.data))
-        ctx_data = chunk.data[ctx_begin:ctx_end]
+        ctx_data = chunk.data[span.begin : span.end]
 
         yield rdf_client.BufferReference(
-            offset=chunk.offset + ctx_begin, length=len(ctx_data), data=ctx_data
+            offset=chunk.offset + span.begin,
+            length=len(ctx_data),
+            data=ctx_data,
         )
-
-        if self.params.mode == self.params.Mode.FIRST_HIT:
-          return
 
 
 class LiteralMatchCondition(ContentCondition):

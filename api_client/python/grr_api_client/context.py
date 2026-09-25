@@ -6,6 +6,7 @@ import itertools
 from typing import Any, Optional
 
 from google.protobuf import message
+
 from grr_api_client import connectors
 from grr_api_client import utils
 from grr_response_proto.api import user_pb2
@@ -73,7 +74,7 @@ class GrrApiContext(object):
         raise TypeError(detail)
 
       total_count = getattr(result, "total_count", None)
-      return utils.ItemsIterator(items=result.items, total_count=total_count)
+      return utils.ItemsIterator(items=result.items, total_count=total_count)  # pyrefly: ignore[bad-argument-type]
     else:
       pages = self._GeneratePages(handler_name, args)
       first_page = next(pages)
@@ -92,7 +93,7 @@ class GrrApiContext(object):
       if args.count:
         all_items = itertools.islice(all_items, args.count)
 
-      return utils.ItemsIterator(items=all_items, total_count=total_count)
+      return utils.ItemsIterator(items=all_items, total_count=total_count)  # pyrefly: ignore[bad-argument-type]
 
   def SendStreamingRequest(
       self,
@@ -104,6 +105,6 @@ class GrrApiContext(object):
   @property
   def username(self) -> str:
     if self.user is None:
-      self.user = self.SendRequest("GetGrrUser", None)  # pytype: disable=annotation-type-mismatch  # bind-properties
+      self.user = self.SendRequest("GetGrrUser", None)  # pyrefly: ignore[bad-assignment]
 
-    return self.user.username  # pytype: disable=attribute-error  # bind-properties
+    return self.user.username  # pyrefly: ignore[missing-attribute]

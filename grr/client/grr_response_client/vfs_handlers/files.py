@@ -56,7 +56,7 @@ class FileHandleCache(utils.TimeBasedCache):
 FILE_HANDLE_CACHE = FileHandleCache(max_age=30)
 
 
-# TODO: Globbing uses VFS handlers which cache file handles causing
+# TODO - Globbing uses VFS handlers which cache file handles causing
 # the files to get locked. Because of that, at least on Windows, it is not
 # possible to remove the directory with locked files, causing issues e.g. during
 # test clean-up. Once this terrible caching is removed (as it should be), this

@@ -11,6 +11,7 @@ import zipfile
 from absl import app
 import yaml
 
+from grr_response_core.lib import rdfvalue
 from grr_response_proto import flows_pb2
 from grr_response_proto import jobs_pb2
 from grr_response_proto import objects_pb2
@@ -20,7 +21,6 @@ from grr_response_server import flow_base
 from grr_response_server.databases import db
 from grr_response_server.gui import archive_generator
 from grr_response_server.models import blobs as models_blobs
-from grr_response_server.rdfvalues import mig_flow_objects
 from grr_response_server.rdfvalues import objects as rdf_objects
 from grr.test_lib import flow_test_lib
 from grr.test_lib import test_lib
@@ -45,7 +45,7 @@ class CollectionArchiveGeneratorTest(test_lib.GRRBaseTest):
 
     blob_id = models_blobs.BlobID.Of(digest)
     data_store.BLOBS.WriteBlobs({blob_id: content})
-    blob_ref = rdf_objects.BlobReference(
+    blob_ref = objects_pb2.BlobReference(
         offset=0, size=len(content), blob_id=bytes(blob_id)
     )
     hash_id = file_store.AddFileWithUnknownHash(
@@ -151,6 +151,60 @@ class CollectionArchiveGeneratorTest(test_lib.GRRBaseTest):
     self.assertEqual(
         client_info["knowledge_base"]["fqdn"], "Host-0.example.com"
     )
+
+  def testClientInfoSerialization(self):
+    # We set client's memory size and last seen time to check if these
+    # values are correctly serialized in client_info.yaml later.
+    memory_size = 16 * 1024 * 1024 * 1024
+    last_seen_at = 1234567890000000
+
+    info = data_store.REL_DB.ReadClientFullInfo(self.client_id)
+    info.last_snapshot.memory_size = memory_size
+    last_seen_rdf = rdfvalue.RDFDatetime.FromMicrosecondsSinceEpoch(
+        last_seen_at
+    )
+    info.metadata.ping = last_seen_rdf.AsMicrosecondsSinceEpoch()
+    data_store.REL_DB.WriteClientSnapshot(info.last_snapshot)
+    data_store.REL_DB.MultiWriteClientMetadata(
+        [self.client_id], last_ping=last_seen_rdf
+    )
+
+    # We need at least one file StatEntry in flow results for
+    # CollectionArchiveGenerator to generate client_info.yaml.
+    self._CreateFile(self.client_id, "fs/os/foo", b"foo_content")
+
+    flow_result = flows_pb2.FlowResult()
+    flow_result.client_id = self.client_id
+    flow_result.payload.Pack(
+        jobs_pb2.StatEntry(
+            pathspec=jobs_pb2.PathSpec(
+                path="foo",
+                pathtype=jobs_pb2.PathSpec.PathType.OS,
+            )
+        )
+    )
+
+    # Generate the archive.
+    archive_path = os.path.join(self.temp_dir, "archive.zip")
+    generator = archive_generator.CollectionArchiveGenerator(
+        archive_format=archive_generator.ArchiveFormat.ZIP,
+        prefix="test_prefix",
+        description="Test description",
+    )
+    with open(archive_path, "wb") as fd:
+      for chunk in generator.Generate([flow_result]):
+        fd.write(chunk)
+
+    # Read client_info.yaml from the archive.
+    with zipfile.ZipFile(archive_path) as zip_fd:
+      client_info_name = f"test_prefix/{self.client_id}/client_info.yaml"
+      client_info = yaml.safe_load(zip_fd.read(client_info_name))
+
+    # Verify that values in client_info.yaml are correct.
+    # Note: json_format.MessageToDict may stringify uint64/int64 fields.
+    self.assertEqual(int(client_info["memory_size"]), memory_size)
+    self.assertEqual(int(client_info["last_seen_at"]), last_seen_at)
+    self.assertEqual(client_info["client_id"], self.client_id)
 
   def testCreatesTarContainingFilesAndClientInfosAndManifest(self):
     self._InitializeFiles()
@@ -290,7 +344,6 @@ class FlowArchiveGeneratorTest(test_lib.GRRBaseTest):
         flow_test_lib.DummyFlow, client_id=self.client_id
     )
     self.flow = data_store.REL_DB.ReadFlowObject(self.client_id, self.flow_id)
-    self.flow = mig_flow_objects.ToRDFFlow(self.flow)
 
     self.path1 = db.ClientPath.OS(self.client_id, ["foo", "bar", "hello1.txt"])
     self.path1_content = "hello1".encode("utf-8")

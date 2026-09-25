@@ -18,7 +18,7 @@ class TestTimelineLinux(test_base.EndToEndTest):
   platforms = [test_base.EndToEndTest.Platform.LINUX]
 
   def testUsrBin(self):
-    args = self.grr_api.types.CreateFlowArgs("TimelineFlow")
+    args = self.grr_api.types.CreateFlowArgs("TimelineFlow")  # pyrefly: ignore[missing-attribute]
     args.root = "/bin/".encode("utf-8")
 
     flow = self.RunFlowAndWait("TimelineFlow", args=args)
@@ -51,7 +51,7 @@ class TestTimelineWindows(test_base.EndToEndTest):
   platforms = [test_base.EndToEndTest.Platform.WINDOWS]
 
   def testWindows(self):
-    args = self.grr_api.types.CreateFlowArgs("TimelineFlow")
+    args = self.grr_api.types.CreateFlowArgs("TimelineFlow")  # pyrefly: ignore[missing-attribute]
     args.root = "C:\\Windows".encode("utf-8")
 
     flow = self.RunFlowAndWait("TimelineFlow", args=args)
@@ -75,7 +75,7 @@ class TestTimelineWindows(test_base.EndToEndTest):
       assertBodyEntrySanity(self, entry)
 
   def testWindowsBackslashEscape(self):
-    args = self.grr_api.types.CreateFlowArgs("TimelineFlow")
+    args = self.grr_api.types.CreateFlowArgs("TimelineFlow")  # pyrefly: ignore[missing-attribute]
     args.root = "C:\\Windows".encode("utf-8")
 
     flow = self.RunFlowAndWait("TimelineFlow", args=args)

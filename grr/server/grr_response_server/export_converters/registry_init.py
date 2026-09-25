@@ -4,12 +4,11 @@
 from grr_response_server import export_converters_registry
 from grr_response_server.export_converters import auto_export_converters
 from grr_response_server.export_converters import buffer_reference
-from grr_response_server.export_converters import client_summary
+from grr_response_server.export_converters import client_snapshot
 from grr_response_server.export_converters import cron_tab_file
 from grr_response_server.export_converters import dict as dict_converter
 from grr_response_server.export_converters import execute_response
 from grr_response_server.export_converters import file
-from grr_response_server.export_converters import grr_message
 from grr_response_server.export_converters import launchd_plist
 from grr_response_server.export_converters import log_message
 from grr_response_server.export_converters import memory
@@ -17,202 +16,143 @@ from grr_response_server.export_converters import network
 from grr_response_server.export_converters import osquery
 from grr_response_server.export_converters import process
 from grr_response_server.export_converters import proto_wrappers
-from grr_response_server.export_converters import rdf_dict
-from grr_response_server.export_converters import rdf_primitives
 from grr_response_server.export_converters import software_package
 
 
-# TODO: Test that this function contains all inheritors.
+# TODO - Test that this function contains all inheritors.
 def RegisterExportConverters():
   """Registers all ExportConverters."""
-  export_converters_registry.Register(
-      buffer_reference.BufferReferenceToExportedMatchConverter
+  export_converters_registry.RegisterProto(
+      buffer_reference.BufferReferenceToExportedMatchConverterProto  # pyrefly: ignore[bad-argument-type]
   )
   export_converters_registry.RegisterProto(
-      buffer_reference.BufferReferenceToExportedMatchConverterProto
-  )
-  export_converters_registry.Register(
-      client_summary.ClientSummaryToExportedClientConverter
+      client_snapshot.ClientSnapshotToExportedClientConverterProto  # pyrefly: ignore[bad-argument-type]
   )
   export_converters_registry.RegisterProto(
-      client_summary.ClientSummaryToExportedClientConverterProto
-  )
-  export_converters_registry.Register(
-      client_summary.ClientSummaryToExportedNetworkInterfaceConverter
+      cron_tab_file.CronTabFileToExportedCronTabEntryProto  # pyrefly: ignore[bad-argument-type]
   )
   export_converters_registry.RegisterProto(
-      client_summary.ClientSummaryToExportedNetworkInterfaceConverterProto
-  )
-  export_converters_registry.Register(cron_tab_file.CronTabFileConverter)
-  export_converters_registry.RegisterProto(
-      cron_tab_file.CronTabFileToExportedCronTabEntryProto
+      dict_converter.DictToExportedDictItemsConverterProto  # pyrefly: ignore[bad-argument-type]
   )
   export_converters_registry.RegisterProto(
-      dict_converter.DictToExportedDictItemsConverterProto
+      execute_response.ExecuteResponseConverterProto  # pyrefly: ignore[bad-argument-type]
   )
-  export_converters_registry.Register(execute_response.ExecuteResponseConverter)
+  export_converters_registry.RegisterProto(file.FileFinderResultConverterProto)  # pyrefly: ignore[bad-argument-type]
   export_converters_registry.RegisterProto(
-      execute_response.ExecuteResponseConverterProto
-  )
-  export_converters_registry.Register(file.FileFinderResultConverter)
-  export_converters_registry.RegisterProto(file.FileFinderResultConverterProto)
-  export_converters_registry.Register(file.StatEntryToExportedFileConverter)
-  export_converters_registry.RegisterProto(
-      file.StatEntryToExportedFileConverterProto
-  )
-  export_converters_registry.Register(
-      file.StatEntryToExportedRegistryKeyConverter
+      file.StatEntryToExportedFileConverterProto  # pyrefly: ignore[bad-argument-type]
   )
   export_converters_registry.RegisterProto(
-      file.StatEntryToExportedRegistryKeyConverterProto
+      file.StatEntryToExportedRegistryKeyConverterProto  # pyrefly: ignore[bad-argument-type]
   )
   export_converters_registry.RegisterProto(
-      file.CollectMultipleFilesResultToExportedFileConverterProto
+      file.CollectMultipleFilesResultToExportedFileConverterProto  # pyrefly: ignore[bad-argument-type]
   )
   export_converters_registry.RegisterProto(
-      file.CollectFilesByKnownPathResultToExportedFileConverterProto
-  )
-  export_converters_registry.Register(grr_message.GrrMessageConverter)
-  export_converters_registry.Register(launchd_plist.LaunchdPlistConverter)
-  export_converters_registry.RegisterProto(
-      launchd_plist.LaunchdPlistConverterProto
+      file.CollectFilesByKnownPathResultToExportedFileConverterProto  # pyrefly: ignore[bad-argument-type]
   )
   export_converters_registry.RegisterProto(
-      log_message.LogMessageToExportedStringConverter
-  )
-  export_converters_registry.Register(memory.ProcessMemoryErrorConverter)
-  export_converters_registry.RegisterProto(
-      memory.ProcessMemoryErrorConverterProto
-  )
-  export_converters_registry.Register(memory.YaraProcessScanMatchConverter)
-  export_converters_registry.RegisterProto(
-      memory.YaraProcessScanMatchConverterProto
-  )
-  export_converters_registry.Register(
-      network.DNSClientConfigurationToExportedDNSClientConfiguration
+      launchd_plist.LaunchdPlistConverterProto  # pyrefly: ignore[bad-argument-type]
   )
   export_converters_registry.RegisterProto(
-      network.DNSClientConfigurationToExportedDNSClientConfigurationProto
-  )
-  export_converters_registry.Register(
-      network.InterfaceToExportedNetworkInterfaceConverter
+      log_message.LogMessageToExportedStringConverter  # pyrefly: ignore[bad-argument-type]
   )
   export_converters_registry.RegisterProto(
-      network.InterfaceToExportedNetworkInterfaceConverterProto
-  )
-  export_converters_registry.Register(
-      network.NetworkConnectionToExportedNetworkConnectionConverter
-  )
-  export_converters_registry.Register(osquery.OsqueryExportConverter)
-  export_converters_registry.RegisterProto(
-      osquery.OsqueryTableExportConverterProto
+      memory.ProcessMemoryErrorConverterProto  # pyrefly: ignore[bad-argument-type]
   )
   export_converters_registry.RegisterProto(
-      osquery.OsqueryResultExportConverterProto
-  )
-  export_converters_registry.Register(
-      process.ProcessToExportedNetworkConnectionConverter
+      memory.YaraProcessScanMatchConverterProto  # pyrefly: ignore[bad-argument-type]
   )
   export_converters_registry.RegisterProto(
-      process.ProcessToExportedNetworkConnectionConverterProto
-  )
-  export_converters_registry.Register(
-      process.ProcessToExportedOpenFileConverter
+      network.DNSClientConfigurationToExportedDNSClientConfigurationProto  # pyrefly: ignore[bad-argument-type]
   )
   export_converters_registry.RegisterProto(
-      process.ProcessToExportedOpenFileConverterProto
+      network.InterfaceToExportedNetworkInterfaceConverterProto  # pyrefly: ignore[bad-argument-type]
   )
   export_converters_registry.RegisterProto(
-      process.ProcessToExportedProcessConverterProto
+      osquery.OsqueryTableExportConverterProto  # pyrefly: ignore[bad-argument-type]
   )
   export_converters_registry.RegisterProto(
-      proto_wrappers.BytesValueToExportedBytesConverter
+      osquery.OsqueryResultExportConverterProto  # pyrefly: ignore[bad-argument-type]
   )
   export_converters_registry.RegisterProto(
-      proto_wrappers.StringValueToExportedStringConverter
-  )
-  export_converters_registry.Register(process.ProcessToExportedProcessConverter)
-  export_converters_registry.Register(rdf_dict.DictToExportedDictItemsConverter)
-  export_converters_registry.Register(
-      rdf_primitives.RDFBytesToExportedBytesConverter
-  )
-  export_converters_registry.Register(
-      rdf_primitives.RDFStringToExportedStringConverter
-  )
-  export_converters_registry.Register(software_package.SoftwarePackageConverter)
-  export_converters_registry.RegisterProto(
-      software_package.SoftwarePackageConverterProto
-  )
-  export_converters_registry.Register(
-      software_package.SoftwarePackagesConverter
+      process.ProcessToExportedNetworkConnectionConverterProto  # pyrefly: ignore[bad-argument-type]
   )
   export_converters_registry.RegisterProto(
-      software_package.SoftwarePackagesConverterProto
+      process.ProcessToExportedProcessConverterProto  # pyrefly: ignore[bad-argument-type]
+  )
+  export_converters_registry.RegisterProto(
+      proto_wrappers.BytesValueToExportedBytesConverter  # pyrefly: ignore[bad-argument-type]
+  )
+  export_converters_registry.RegisterProto(
+      proto_wrappers.StringValueToExportedStringConverter  # pyrefly: ignore[bad-argument-type]
+  )
+  export_converters_registry.RegisterProto(
+      software_package.SoftwarePackageConverterProto  # pyrefly: ignore[bad-argument-type]
+  )
+  export_converters_registry.RegisterProto(
+      software_package.SoftwarePackagesConverterProto  # pyrefly: ignore[bad-argument-type]
   )
 
 
 def RegisterAutoGeneratedExportConverters():
   """Registers all auto-generated ExportConverters."""
   export_converters_registry.RegisterProto(
-      auto_export_converters.BytesValueToAutoGeneratedExportedBytesValue1Converter
+      auto_export_converters.BytesValueToAutoGeneratedExportedBytesValue1Converter  # pyrefly: ignore[bad-argument-type]
   )
   export_converters_registry.RegisterProto(
-      auto_export_converters.ClientSnapshotToAutoGeneratedExportedClientSnapshot1Converter
+      auto_export_converters.CollectBrowserHistoryResultToAutoGeneratedExportedCollectBrowserHistoryResult1Converter  # pyrefly: ignore[bad-argument-type]
   )
   export_converters_registry.RegisterProto(
-      auto_export_converters.CollectBrowserHistoryResultToAutoGeneratedExportedCollectBrowserHistoryResult1Converter
+      auto_export_converters.CollectCloudVMMetadataResultToAutoGeneratedExportedCollectCloudVMMetadataResult1Converter  # pyrefly: ignore[bad-argument-type]
   )
   export_converters_registry.RegisterProto(
-      auto_export_converters.CollectCloudVMMetadataResultToAutoGeneratedExportedCollectCloudVMMetadataResult1Converter
+      auto_export_converters.CollectDistroInfoResultToAutoGeneratedExportedCollectDistroInfoResult1Converter  # pyrefly: ignore[bad-argument-type]
   )
   export_converters_registry.RegisterProto(
-      auto_export_converters.CollectDistroInfoResultToAutoGeneratedExportedCollectDistroInfoResult1Converter
+      auto_export_converters.CollectLargeFileFlowResultToAutoGeneratedExportedCollectLargeFileFlowResult1Converter  # pyrefly: ignore[bad-argument-type]
   )
   export_converters_registry.RegisterProto(
-      auto_export_converters.CollectLargeFileFlowResultToAutoGeneratedExportedCollectLargeFileFlowResult1Converter
+      auto_export_converters.DummyFlowResultToAutoGeneratedExportedDummyFlowResult1Converter  # pyrefly: ignore[bad-argument-type]
   )
   export_converters_registry.RegisterProto(
-      auto_export_converters.DummyFlowResultToAutoGeneratedExportedDummyFlowResult1Converter
+      auto_export_converters.ExecuteBinaryResponseToAutoGeneratedExportedExecuteBinaryResponse1Converter  # pyrefly: ignore[bad-argument-type]
   )
   export_converters_registry.RegisterProto(
-      auto_export_converters.ExecuteBinaryResponseToAutoGeneratedExportedExecuteBinaryResponse1Converter
+      auto_export_converters.ExecutePythonHackResultToAutoGeneratedExportedExecutePythonHackResult1Converter  # pyrefly: ignore[bad-argument-type]
   )
   export_converters_registry.RegisterProto(
-      auto_export_converters.ExecutePythonHackResultToAutoGeneratedExportedExecutePythonHackResult1Converter
+      auto_export_converters.GetCrowdstrikeAgentIdResultToAutoGeneratedExportedGetCrowdstrikeAgentIdResult1Converter  # pyrefly: ignore[bad-argument-type]
   )
   export_converters_registry.RegisterProto(
-      auto_export_converters.GetCrowdstrikeAgentIdResultToAutoGeneratedExportedGetCrowdstrikeAgentIdResult1Converter
+      auto_export_converters.GetMemorySizeResultToAutoGeneratedExportedGetMemorySizeResult1Converter  # pyrefly: ignore[bad-argument-type]
   )
   export_converters_registry.RegisterProto(
-      auto_export_converters.GetMemorySizeResultToAutoGeneratedExportedGetMemorySizeResult1Converter
+      auto_export_converters.HardwareInfoToAutoGeneratedExportedHardwareInfo1Converter  # pyrefly: ignore[bad-argument-type]
   )
   export_converters_registry.RegisterProto(
-      auto_export_converters.HardwareInfoToAutoGeneratedExportedHardwareInfo1Converter
+      auto_export_converters.KnowledgeBaseToAutoGeneratedExportedKnowledgeBase1Converter  # pyrefly: ignore[bad-argument-type]
   )
   export_converters_registry.RegisterProto(
-      auto_export_converters.KnowledgeBaseToAutoGeneratedExportedKnowledgeBase1Converter
+      auto_export_converters.LaunchExecutableResultToAutoGeneratedExportedLaunchExecutableResult1Converter  # pyrefly: ignore[bad-argument-type]
   )
   export_converters_registry.RegisterProto(
-      auto_export_converters.ListContainersFlowResultToAutoGeneratedExportedListContainersFlowResult1Converter
+      auto_export_converters.ListContainersFlowResultToAutoGeneratedExportedListContainersFlowResult1Converter  # pyrefly: ignore[bad-argument-type]
   )
   export_converters_registry.RegisterProto(
-      auto_export_converters.ListNamedPipesFlowResultToAutoGeneratedExportedListNamedPipesFlowResult1Converter
+      auto_export_converters.ListNamedPipesFlowResultToAutoGeneratedExportedListNamedPipesFlowResult1Converter  # pyrefly: ignore[bad-argument-type]
   )
   export_converters_registry.RegisterProto(
-      auto_export_converters.NetworkConnectionToAutoGeneratedExportedNetworkConnection1Converter
+      auto_export_converters.NetworkConnectionToAutoGeneratedExportedNetworkConnection1Converter  # pyrefly: ignore[bad-argument-type]
   )
   export_converters_registry.RegisterProto(
-      auto_export_converters.OSXServiceInformationToAutoGeneratedExportedOSXServiceInformation1Converter
+      auto_export_converters.OSXServiceInformationToAutoGeneratedExportedOSXServiceInformation1Converter  # pyrefly: ignore[bad-argument-type]
   )
   export_converters_registry.RegisterProto(
-      auto_export_converters.ReadLowLevelFlowResultToAutoGeneratedExportedReadLowLevelFlowResult1Converter
+      auto_export_converters.TimelineResultToAutoGeneratedExportedTimelineResult1Converter  # pyrefly: ignore[bad-argument-type]
   )
   export_converters_registry.RegisterProto(
-      auto_export_converters.TimelineResultToAutoGeneratedExportedTimelineResult1Converter
+      auto_export_converters.YaraProcessDumpResponseToAutoGeneratedExportedYaraProcessDumpResponse1Converter  # pyrefly: ignore[bad-argument-type]
   )
   export_converters_registry.RegisterProto(
-      auto_export_converters.YaraProcessDumpResponseToAutoGeneratedExportedYaraProcessDumpResponse1Converter
-  )
-  export_converters_registry.RegisterProto(
-      auto_export_converters.YaraProcessScanMissToAutoGeneratedExportedYaraProcessScanMiss1Converter
+      auto_export_converters.YaraProcessScanMissToAutoGeneratedExportedYaraProcessScanMiss1Converter  # pyrefly: ignore[bad-argument-type]
   )

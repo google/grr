@@ -29,14 +29,14 @@ class ReadLowLevelTest(client_test_lib.EmptyActionTest):
     self.assertLen(results, 2)
 
     self.assertIsInstance(results[0], rdf_read_low_level.ReadLowLevelResult)
-    self.assertEqual(1, results[0].blob.length)
-    self.assertEqual(0, results[0].blob.offset)
-    self.assertEqual(hashlib.sha256(b"1").digest(), results[0].blob.data)
-    self.assertEqual(hashlib.sha256(b"1").digest(), results[0].accumulated_hash)
+    self.assertEqual(1, results[0].blob.length)  # pyrefly: ignore[missing-attribute]
+    self.assertEqual(0, results[0].blob.offset)  # pyrefly: ignore[missing-attribute]
+    self.assertEqual(hashlib.sha256(b"1").digest(), results[0].blob.data)  # pyrefly: ignore[missing-attribute]
+    self.assertEqual(hashlib.sha256(b"1").digest(), results[0].accumulated_hash)  # pyrefly: ignore[missing-attribute]
 
     self.assertIsInstance(results[1], rdf_flows.GrrStatus)
-    self.assertEqual(rdf_flows.GrrStatus.ReturnedStatus.OK, results[1].status)
-    self.assertEmpty(results[1].error_message)
+    self.assertEqual(rdf_flows.GrrStatus.ReturnedStatus.OK, results[1].status)  # pyrefly: ignore[missing-attribute]
+    self.assertEmpty(results[1].error_message)  # pyrefly: ignore[missing-attribute]
 
   def testReadsOneMisalignedChunk(self):
     temp_file = self.create_tempfile()
@@ -54,16 +54,16 @@ class ReadLowLevelTest(client_test_lib.EmptyActionTest):
     self.assertLen(results, 2)
 
     self.assertIsInstance(results[0], rdf_read_low_level.ReadLowLevelResult)
-    self.assertEqual(2, results[0].blob.length)
-    self.assertEqual(0, results[0].blob.offset)
-    self.assertEqual(hashlib.sha256(b"23").digest(), results[0].blob.data)
+    self.assertEqual(2, results[0].blob.length)  # pyrefly: ignore[missing-attribute]
+    self.assertEqual(0, results[0].blob.offset)  # pyrefly: ignore[missing-attribute]
+    self.assertEqual(hashlib.sha256(b"23").digest(), results[0].blob.data)  # pyrefly: ignore[missing-attribute]
     self.assertEqual(
-        hashlib.sha256(b"23").digest(), results[0].accumulated_hash
+        hashlib.sha256(b"23").digest(), results[0].accumulated_hash  # pyrefly: ignore[missing-attribute]
     )
 
     self.assertIsInstance(results[1], rdf_flows.GrrStatus)
-    self.assertEqual(rdf_flows.GrrStatus.ReturnedStatus.OK, results[1].status)
-    self.assertEmpty(results[1].error_message)
+    self.assertEqual(rdf_flows.GrrStatus.ReturnedStatus.OK, results[1].status)  # pyrefly: ignore[missing-attribute]
+    self.assertEmpty(results[1].error_message)  # pyrefly: ignore[missing-attribute]
 
   def testReadsMultipleMisalignedChunks(self):
     temp_file = self.create_tempfile()
@@ -71,7 +71,7 @@ class ReadLowLevelTest(client_test_lib.EmptyActionTest):
 
     # Worth noting that blob_size=1 here will mean unaligned reads for blobs
     # 2 and 3.
-    # TODO: Update test when blob size is also "aligned"
+    # TODO - Update test when blob size is also "aligned"
     request23_2blobs = rdf_read_low_level.ReadLowLevelRequest(
         path=temp_file.full_path, length=2, offset=1, blob_size=1
     )
@@ -84,22 +84,22 @@ class ReadLowLevelTest(client_test_lib.EmptyActionTest):
     self.assertLen(results, 3)
 
     self.assertIsInstance(results[0], rdf_read_low_level.ReadLowLevelResult)
-    self.assertEqual(1, results[0].blob.length)
-    self.assertEqual(0, results[0].blob.offset)  # 'corrected' offset
-    self.assertEqual(hashlib.sha256(b"2").digest(), results[0].blob.data)
-    self.assertEqual(hashlib.sha256(b"2").digest(), results[0].accumulated_hash)
+    self.assertEqual(1, results[0].blob.length)  # pyrefly: ignore[missing-attribute]
+    self.assertEqual(0, results[0].blob.offset)  # 'corrected' offset  # pyrefly: ignore[missing-attribute]
+    self.assertEqual(hashlib.sha256(b"2").digest(), results[0].blob.data)  # pyrefly: ignore[missing-attribute]
+    self.assertEqual(hashlib.sha256(b"2").digest(), results[0].accumulated_hash)  # pyrefly: ignore[missing-attribute]
 
     self.assertIsInstance(results[1], rdf_read_low_level.ReadLowLevelResult)
-    self.assertEqual(1, results[1].blob.length)
-    self.assertEqual(1, results[1].blob.offset)  # 'corrected' offset
-    self.assertEqual(hashlib.sha256(b"3").digest(), results[1].blob.data)
+    self.assertEqual(1, results[1].blob.length)  # pyrefly: ignore[missing-attribute]
+    self.assertEqual(1, results[1].blob.offset)  # 'corrected' offset  # pyrefly: ignore[missing-attribute]
+    self.assertEqual(hashlib.sha256(b"3").digest(), results[1].blob.data)  # pyrefly: ignore[missing-attribute]
     self.assertEqual(
-        hashlib.sha256(b"23").digest(), results[1].accumulated_hash
+        hashlib.sha256(b"23").digest(), results[1].accumulated_hash  # pyrefly: ignore[missing-attribute]
     )
 
     self.assertIsInstance(results[2], rdf_flows.GrrStatus)
-    self.assertEqual(rdf_flows.GrrStatus.ReturnedStatus.OK, results[2].status)
-    self.assertEmpty(results[2].error_message)
+    self.assertEqual(rdf_flows.GrrStatus.ReturnedStatus.OK, results[2].status)  # pyrefly: ignore[missing-attribute]
+    self.assertEmpty(results[2].error_message)  # pyrefly: ignore[missing-attribute]
 
 
 def main(argv):

@@ -34,7 +34,7 @@ class YaraProcessScanRequest(rdf_structs.RDFProtoStruct):
     # These default values were migrated from the Protobuf definition.
     if not self.HasField("include_errors_in_results"):
       self.include_errors_in_results = (
-          YaraProcessScanRequest.ErrorPolicy.NO_ERRORS
+          YaraProcessScanRequest.ErrorPolicy.NO_ERRORS  # pyrefly: ignore[missing-attribute]
       )
     if not self.HasField("include_misses_in_results"):
       self.include_misses_in_results = False
@@ -80,9 +80,9 @@ class YaraStringMatch(rdf_structs.RDFProtoStruct):
     # Format is described in
     # https://yara.readthedocs.io/en/stable/yarapython.html#yara.StringMatch
     res = cls()
-    res.offset = yara_string_match_instance.offset
-    res.string_id = yara_string_match.identifier
-    res.data = yara_string_match_instance.matched_data
+    res.offset = yara_string_match_instance.offset  # pyrefly: ignore[missing-attribute]
+    res.string_id = yara_string_match.identifier  # pyrefly: ignore[missing-attribute]
+    res.data = yara_string_match_instance.matched_data  # pyrefly: ignore[missing-attribute]
 
     return res
 
@@ -107,8 +107,8 @@ class YaraMatch(rdf_structs.RDFProtoStruct):
         string_matches.append(result)
 
     res = cls()
-    res.rule_name = yara_match.rule
-    res.string_matches = string_matches
+    res.rule_name = yara_match.rule  # pyrefly: ignore[missing-attribute]
+    res.string_matches = string_matches  # pyrefly: ignore[missing-attribute]
     return res
 
 

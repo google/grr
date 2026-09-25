@@ -20,19 +20,19 @@ def CollectLargeFile(
   # decide what length of the key to use (be it 128, 192 or 256 bits) without
   # the need to push a new agent version.
 
-  with vfs.VFSOpen(args.path_spec) as file:
-    file = aead.Encrypt(file, args.encryption_key)
+  with vfs.VFSOpen(args.path_spec) as file:  # pyrefly: ignore[missing-attribute]
+    file = aead.Encrypt(file, args.encryption_key)  # pyrefly: ignore[missing-attribute]
 
-    session = gcs.UploadSession.Open(args.signed_url)
+    session = gcs.UploadSession.Open(args.signed_url)  # pyrefly: ignore[missing-attribute]
 
     start_upload_result = rdf_large_file.CollectLargeFileResult()
-    start_upload_result.session_uri = session.uri
+    start_upload_result.session_uri = session.uri  # pyrefly: ignore[missing-attribute]
     yield start_upload_result
 
     total_content_length = session.SendFile(file)
 
     finish_upload_result = start_upload_result.Copy()
-    finish_upload_result.total_bytes_sent = total_content_length
+    finish_upload_result.total_bytes_sent = total_content_length  # pyrefly: ignore[missing-attribute]
     yield finish_upload_result
 
 

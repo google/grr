@@ -125,7 +125,7 @@ class GrrafanaTest(absltest.TestCase):
   def setUpClass(cls):
     super().setUpClass()
 
-    # TODO: Remove once the "default" instance is actually default.
+    # TODO - Remove once the "default" instance is actually default.
     try:
       instance = stats_collector_instance.Get()
       cls.addClassCleanup(lambda: stats_collector_instance.Set(instance))

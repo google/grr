@@ -62,18 +62,15 @@ class Osquery(actions.ActionPlugin):
           f"({config.CONFIG['Osquery.path']!r}) is not available."
       )
 
-    if not args.query:
+    if not args.query:  # pyrefly: ignore[missing-attribute]
       raise ValueError("The `Osquery` was invoked with an empty query.")
-
-    if args.configuration_path and not os.path.exists(args.configuration_path):
-      raise ValueError("The configuration path does not exist.")
 
     output = Query(args)
 
     json_decoder = json.JSONDecoder(object_pairs_hook=dict)
 
     table = ParseTable(json_decoder.decode(output))
-    table.query = args.query
+    table.query = args.query  # pyrefly: ignore[missing-attribute]
 
     for chunk in ChunkTable(table, config.CONFIG["Osquery.max_chunk_size"]):
       yield rdf_osquery.OsqueryResult(table=chunk)
@@ -108,14 +105,14 @@ def ChunkTable(
 
   def Chunk() -> rdf_osquery.OsqueryTable:
     result = rdf_osquery.OsqueryTable()
-    result.query = table.query
-    result.header = table.header
+    result.query = table.query  # pyrefly: ignore[missing-attribute]
+    result.header = table.header  # pyrefly: ignore[missing-attribute]
     return result
 
   chunk = Chunk()
   chunk_size = 0
 
-  for row in table.rows:
+  for row in table.rows:  # pyrefly: ignore[missing-attribute]
     row_size = sum(map(ByteLength, row.values))
 
     if chunk_size + row_size > max_chunk_size:
@@ -124,12 +121,12 @@ def ChunkTable(
       chunk = Chunk()
       chunk_size = 0
 
-    chunk.rows.append(row)
+    chunk.rows.append(row)  # pyrefly: ignore[missing-attribute]
     chunk_size += row_size
 
   # There might be some rows that did not cause the chunk to overflow so it has
   # not been yielded as part of the loop.
-  if chunk.rows:
+  if chunk.rows:  # pyrefly: ignore[missing-attribute]
     yield chunk
 
 
@@ -145,13 +142,13 @@ def ParseTable(table: Any) -> rdf_osquery.OsqueryTable:
   precondition.AssertIterableType(table, dict)
 
   result = rdf_osquery.OsqueryTable()
-  result.header = ParseHeader(table)
+  result.header = ParseHeader(table)  # pyrefly: ignore[missing-attribute]
   for row in table:
-    result.rows.append(ParseRow(result.header, row))
+    result.rows.append(ParseRow(result.header, row))  # pyrefly: ignore[missing-attribute]
   return result
 
 
-# TODO: Parse type information.
+# TODO - Parse type information.
 def ParseHeader(table: Any) -> rdf_osquery.OsqueryHeader:
   """Parses header of osquery output.
 
@@ -163,7 +160,7 @@ def ParseHeader(table: Any) -> rdf_osquery.OsqueryHeader:
   """
   precondition.AssertIterableType(table, dict)
 
-  prototype: list[str] = None
+  prototype: list[str] = None  # pyrefly: ignore[bad-assignment]
 
   for row in table:
     columns = list(row.keys())
@@ -176,7 +173,7 @@ def ParseHeader(table: Any) -> rdf_osquery.OsqueryHeader:
 
   result = rdf_osquery.OsqueryHeader()
   for name in prototype or []:
-    result.columns.append(rdf_osquery.OsqueryColumn(name=name))
+    result.columns.append(rdf_osquery.OsqueryColumn(name=name))  # pyrefly: ignore[missing-attribute]
   return result
 
 
@@ -195,8 +192,8 @@ def ParseRow(
   precondition.AssertDictType(row, str, str)
 
   result = rdf_osquery.OsqueryRow()
-  for column in header.columns:
-    result.values.append(row[column.name])
+  for column in header.columns:  # pyrefly: ignore[missing-attribute]
+    result.values.append(row[column.name])  # pyrefly: ignore[missing-attribute]
   return result
 
 
@@ -214,8 +211,6 @@ def Query(args: rdf_osquery.OsqueryArgs) -> str:
     Error: If anything goes wrong with the subprocess call, including if the
     query is incorrect.
   """
-  configuration_path = None
-
   timeout = args.timeout_millis / 1000  # `subprocess.run` uses seconds.
   try:
     # We use `--S` to enforce shell execution. This is because on Windows there
@@ -232,21 +227,19 @@ def Query(args: rdf_osquery.OsqueryArgs) -> str:
         "--json",  # Set output format to JSON.
     ]
 
-    if args.configuration_path:
-      configuration_path = args.configuration_path
-    elif args.configuration_content:
+    configuration_path = None
+    if args.configuration_content:  # pyrefly: ignore[missing-attribute]
       with tempfiles.CreateGRRTempFile(mode="w+b") as configuration_path_file:
         configuration_path = configuration_path_file.name
-        configuration_path_file.write(args.configuration_content.encode())
+        configuration_path_file.write(args.configuration_content.encode())  # pyrefly: ignore[missing-attribute]
 
-    if configuration_path:
       command.extend(["--config_path", configuration_path])
 
     proc = subprocess.run(
         command,
         timeout=timeout,
         check=True,
-        input=args.query,
+        input=args.query,  # pyrefly: ignore[missing-attribute]
         text=True,
         encoding="utf-8",
         stdout=subprocess.PIPE,

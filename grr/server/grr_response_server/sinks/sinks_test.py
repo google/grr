@@ -13,7 +13,7 @@ class AcceptTest(absltest.TestCase):
   def testUnknownSink(self):
     with mock.patch.object(sinks, "REGISTRY", {}):
       parcel = rrg_pb2.Parcel()
-      parcel.sink = 1337
+      parcel.sink = 1337  # pyrefly: ignore[bad-assignment]
 
       with self.assertRaises(sinks.UnknownSinkError) as context:
         sinks.Accept("C.012345679ABCDEF", parcel)

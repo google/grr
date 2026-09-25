@@ -7,7 +7,7 @@ from grr_response_core.lib.rdfvalues import paths as rdf_paths
 
 
 class TSKTest(ntfs_image_test_lib.NTFSImageTest):
-  PATH_TYPE = rdf_paths.PathSpec.PathType.TSK
+  PATH_TYPE = rdf_paths.PathSpec.PathType.TSK  # pyrefly: ignore[missing-attribute]
 
   def _FileRefToInode(self, file_ref: int) -> int:
     # Clear the version (upper 16 bits) in the file reference.

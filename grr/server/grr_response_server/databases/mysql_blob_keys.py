@@ -71,4 +71,4 @@ INNER JOIN (SELECT blob_id, MAX(timestamp) AS max_timestamp
       blob_id = models_blobs.BlobID(blob_id_bytes)
       results[blob_id] = key_name
 
-    return results
+    return results  # pyrefly: ignore[bad-return]

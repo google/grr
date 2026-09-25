@@ -13,7 +13,6 @@ import {MatDividerModule} from '@angular/material/divider';
 import {MatIconModule} from '@angular/material/icon';
 import {MatTableDataSource, MatTableModule} from '@angular/material/table';
 import {MatTooltipModule} from '@angular/material/tooltip';
-import {Title} from '@angular/platform-browser';
 import {RouterModule} from '@angular/router';
 
 import {ListHuntResultsArgs} from '../../../lib/models/hunt';
@@ -83,8 +82,6 @@ export class FleetCollectionResults {
   protected readonly resultOffset = signal(0);
 
   constructor() {
-    inject(Title).setTitle('GRR | Fleet Collection > Results');
-
     this.fleetCollectionStore.pollFleetCollectionResults(
       computed<ListHuntResultsArgs | undefined>(() => {
         const fleetCollectionId = this.fleetCollectionId();

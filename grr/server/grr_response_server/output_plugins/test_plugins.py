@@ -5,15 +5,15 @@ import functools
 import os
 from typing import Any, Callable, Iterable, Type
 
-from google.protobuf import any_pb2
 from google.protobuf import message
+
+from google.protobuf import any_pb2
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_proto import flows_pb2
 from grr_response_server import instant_output_plugin
 from grr_response_server import instant_output_plugin_registry
 from grr_response_server import output_plugin
 from grr_response_server import output_plugin_registry
-from grr_response_server.flows.general import processes
 from grr.test_lib import test_lib
 
 
@@ -85,17 +85,6 @@ class _OutputPluginProtoContext:
     del exc_type, exc_value, traceback  # Unused.
 
     output_plugin_registry.UnregisterOutputPluginProto(self._plugin_cls)
-
-
-class DummyHuntTestOutputPlugin(output_plugin.OutputPlugin):
-  """A dummy output plugin."""
-
-  name = "dummy"
-  description = "Dummy do do."
-  args_type = processes.ListProcessesArgs
-
-  def ProcessResponses(self, state, responses):
-    pass
 
 
 class InstantOutputPluginTestBase(test_lib.GRRBaseTest):

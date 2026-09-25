@@ -37,7 +37,7 @@ def _GetEnvironOrSkip(key):
 
 
 class MySQLDatabaseProviderMixin(db_test_mixin.DatabaseSetupMixin):
-  _conn: mysql.MysqlDB = None
+  _conn: mysql.MysqlDB = None  # pyrefly: ignore[bad-assignment]
   _warning_filters = None
 
   @classmethod
@@ -74,7 +74,7 @@ class MySQLDatabaseProviderMixin(db_test_mixin.DatabaseSetupMixin):
 
   @classmethod
   def setUpClass(cls):
-    super().setUpClass()  # pytype: disable=attribute-error
+    super().setUpClass()  # pyrefly: ignore[missing-attribute]
     cls._conn = cls._Connect()
     # The MySQL DB object sets some warning filters, and relies upon them.
     # Since filters are reset between tests, we'll keep them here and restore
@@ -85,7 +85,7 @@ class MySQLDatabaseProviderMixin(db_test_mixin.DatabaseSetupMixin):
   def tearDownClass(cls):
     cls._DropTestDB()
     cls._conn.Close()
-    super().tearDownClass()  # pytype: disable=attribute-error
+    super().tearDownClass()  # pyrefly: ignore[missing-attribute]
 
   @classmethod
   def _EnableNonIndexedQueryLogging(cls, conn):
@@ -125,7 +125,7 @@ class MySQLDatabaseProviderMixin(db_test_mixin.DatabaseSetupMixin):
     # This returns a reusable DB object (stored as a class member). That object
     # relies on the warning filters it's set up during its construction. Since
     # pytest resets warning filters between tests, we restore them here.
-    warnings.filters = self.__class__._warning_filters
+    warnings.filters = self.__class__._warning_filters  # pyrefly: ignore[bad-assignment]
 
     def Clean():
       self.__class__._conn._RunInTransaction(self.__class__._TruncateTables)

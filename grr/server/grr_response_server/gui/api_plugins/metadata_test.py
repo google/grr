@@ -211,10 +211,8 @@ class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
     # TODO(user): Move this import to the top when the GitHub
     # issue #813 (https://github.com/google/grr/issues/813) is resolved.
     try:
-      # pytype: disable=import-error
       # pylint: disable=g-import-not-at-top
-      import openapi_spec_validator
-      # pytype: enable=import-error
+      import openapi_spec_validator  # pyrefly: ignore[missing-import]
       # pylint: enable=g-import-not-at-top
     except ImportError:
       raise absltest.SkipTest("`openapi-spec-validator` not installed")
@@ -545,7 +543,9 @@ class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
                 "content": {
                     "application/json": {
                         "schema": {
-                            "$ref": f"#/components/schemas/{tests_pb2.MetadataSimpleMessage.DESCRIPTOR.full_name}",
+                            "$ref": (
+                                f"#/components/schemas/{tests_pb2.MetadataSimpleMessage.DESCRIPTOR.full_name}"
+                            ),
                         },
                     },
                 },
@@ -571,7 +571,9 @@ class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
                 "content": {
                     "application/json": {
                         "schema": {
-                            "$ref": f"#/components/schemas/{tests_pb2.MetadataSimpleMessage.DESCRIPTOR.full_name}",
+                            "$ref": (
+                                f"#/components/schemas/{tests_pb2.MetadataSimpleMessage.DESCRIPTOR.full_name}"
+                            ),
                         },
                     },
                 },
@@ -597,7 +599,9 @@ class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
                 "content": {
                     "application/json": {
                         "schema": {
-                            "$ref": f"#/components/schemas/{tests_pb2.MetadataSimpleMessage.DESCRIPTOR.full_name}",
+                            "$ref": (
+                                f"#/components/schemas/{tests_pb2.MetadataSimpleMessage.DESCRIPTOR.full_name}"
+                            ),
                         },
                     },
                 },
@@ -897,7 +901,9 @@ class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
             "description": "UNKNOWN == 0\nFOO == 1\nBAR == 2",
             "allOf": [
                 {
-                    "$ref": f"#/components/schemas/{tests_pb2.MetadataEnumFieldMessage.MetadataEnum.DESCRIPTOR.full_name}",
+                    "$ref": (
+                        f"#/components/schemas/{tests_pb2.MetadataEnumFieldMessage.MetadataEnum.DESCRIPTOR.full_name}"
+                    ),
                 },
             ],
         },
@@ -922,7 +928,9 @@ class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
             "description": "UNKNOWN == 0\nFOO == 1\nBAR == 2",
             "allOf": [
                 {
-                    "$ref": f"#/components/schemas/{tests_pb2.MetadataEnumFieldMessage.MetadataEnum.DESCRIPTOR.full_name}",
+                    "$ref": (
+                        f"#/components/schemas/{tests_pb2.MetadataEnumFieldMessage.MetadataEnum.DESCRIPTOR.full_name}"
+                    ),
                 },
             ],
         },
@@ -1008,7 +1016,9 @@ class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
             ),
             "allOf": [
                 {
-                    "$ref": f"#/components/schemas/{tests_pb2.MetadataSimpleMessage.DESCRIPTOR.full_name}",
+                    "$ref": (
+                        f"#/components/schemas/{tests_pb2.MetadataSimpleMessage.DESCRIPTOR.full_name}"
+                    ),
                 },
             ],
         },
@@ -1041,7 +1051,9 @@ class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
             ),
             "allOf": [
                 {
-                    "$ref": f"#/components/schemas/{tests_pb2.MetadataSimpleMessage.DESCRIPTOR.full_name}",
+                    "$ref": (
+                        f"#/components/schemas/{tests_pb2.MetadataSimpleMessage.DESCRIPTOR.full_name}"
+                    ),
                 },
             ],
         },
@@ -1061,10 +1073,7 @@ class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
     openapi_map_type_schema = (
         self.openapi_desc_dict.get("components")
         .get("schemas")
-        .get(
-            f"{tests_pb2.MetadataMapMessage.DESCRIPTOR.full_name}.FieldMapMap_"
-            f"protobuf2.TYPE_SFIXED64:{tests_pb2.MetadataSimpleMessage.DESCRIPTOR.full_name}"
-        )
+        .get(f"{tests_pb2.MetadataMapMessage.DESCRIPTOR.full_name}.FieldMapMap")
     )
     self.assertEqual(
         {
@@ -1075,7 +1084,12 @@ class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
             ),
             "type": "object",
             "additionalProperties": {
-                "$ref": f"#/components/schemas/{tests_pb2.MetadataSimpleMessage.DESCRIPTOR.full_name}",
+                "$ref": (
+                    f"#/components/schemas/{tests_pb2.MetadataSimpleMessage.DESCRIPTOR.full_name}"
+                ),
+            },
+            "x-key-type": {
+                "$ref": "#/components/schemas/protobuf2.TYPE_SFIXED64",
             },
         },
         openapi_map_type_schema,
@@ -1094,8 +1108,7 @@ class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
             "allOf": [
                 {
                     "$ref": (
-                        f"#/components/schemas/{tests_pb2.MetadataMapMessage.DESCRIPTOR.full_name}.FieldMapMap_"
-                        f"protobuf2.TYPE_SFIXED64:{tests_pb2.MetadataSimpleMessage.DESCRIPTOR.full_name}"
+                        f"#/components/schemas/{tests_pb2.MetadataMapMessage.DESCRIPTOR.full_name}.FieldMapMap"
                     ),
                 },
             ],
@@ -1115,8 +1128,7 @@ class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
             "allOf": [
                 {
                     "$ref": (
-                        f"#/components/schemas/{tests_pb2.MetadataMapMessage.DESCRIPTOR.full_name}.FieldMapMap_"
-                        f"protobuf2.TYPE_SFIXED64:{tests_pb2.MetadataSimpleMessage.DESCRIPTOR.full_name}"
+                        f"#/components/schemas/{tests_pb2.MetadataMapMessage.DESCRIPTOR.full_name}.FieldMapMap"
                     ),
                 },
             ],

@@ -66,12 +66,12 @@ def _IfLazy(condition: Callable[[], Any], reason: str):
       cls_wrapper = type(test.__name__, test.__bases__, dict(test.__dict__))
 
       def __init__(self, method_name):  # pylint: disable=invalid-name
-        super(cls_wrapper, self).__init__(method_name)
+        super(cls_wrapper, self).__init__(method_name)  # pyrefly: ignore[invalid-argument]
 
         method = getattr(self, method_name)
         setattr(self, method_name, _IfLazy(condition, reason)(method))
 
-      cls_wrapper.__init__ = __init__
+      cls_wrapper.__init__ = __init__  # pyrefly: ignore[bad-assignment]
 
       return cls_wrapper
 

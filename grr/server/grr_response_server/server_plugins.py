@@ -16,7 +16,6 @@ from grr_response_server import export
 from grr_response_server import file_store
 from grr_response_server import flow
 from grr_response_server import foreman
-from grr_response_server import ip_resolver
 from grr_response_server import output_plugin
 from grr_response_server import output_plugins
 from grr_response_server import stats_server

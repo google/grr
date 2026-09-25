@@ -107,8 +107,8 @@ class OperationHandler(abc.ABC, Generic[RequestType, ResponseType]):
             device_data_request.offset, device_data_request.size
         )
         device_data = filesystem_pb2.DeviceData()
-        request = filesystem_pb2.Request(device_data=device_data)
-        self._connection.Send(request, data)
+        request = filesystem_pb2.Request(device_data=device_data)  # pyrefly: ignore[bad-assignment]
+        self._connection.Send(request, data)  # pyrefly: ignore[bad-argument-type]
       elif packed_response.HasField('exception'):
         raise OperationError(
             packed_response.exception.message,

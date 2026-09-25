@@ -4,7 +4,6 @@ from collections.abc import Iterator
 from typing import Optional
 
 from grr_response_core.lib import utils
-from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_core.lib.util import body
 from grr_response_core.lib.util import chunked
 from grr_response_proto import objects_pb2
@@ -13,35 +12,6 @@ from grr_response_server import data_store
 from grr_response_server.flows.general import timeline
 from grr_response_server.gui import api_call_context
 from grr_response_server.gui import api_call_handler_base
-from grr_response_server.gui.api_plugins import client as api_client
-from grr_response_server.gui.api_plugins import flow as api_flow
-
-
-class ApiTimelineBodyOpts(rdf_structs.RDFProtoStruct):
-  """An RDF wrapper class for the body exporter options."""
-
-  protobuf = timeline_pb2.ApiTimelineBodyOpts
-  rdf_deps = []
-
-
-class ApiGetCollectedTimelineArgs(rdf_structs.RDFProtoStruct):
-  """An RDF wrapper class for the arguments of timeline exporter arguments."""
-
-  protobuf = timeline_pb2.ApiGetCollectedTimelineArgs
-  rdf_deps = [
-      api_client.ApiClientId,
-      api_flow.ApiFlowId,
-      ApiTimelineBodyOpts,
-  ]
-
-
-class ApiGetCollectedHuntTimelinesArgs(rdf_structs.RDFProtoStruct):
-  """An RDF wrapper class for the arguments of time hunt timeline exporter."""
-
-  protobuf = timeline_pb2.ApiGetCollectedHuntTimelinesArgs
-  rdf_deps = [
-      ApiTimelineBodyOpts,
-  ]
 
 
 class ApiGetCollectedTimelineHandler(api_call_handler_base.ApiCallHandler):

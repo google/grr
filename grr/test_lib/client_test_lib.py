@@ -14,6 +14,7 @@ from grr_response_client import actions
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
+from grr_response_proto import jobs_pb2
 from grr_response_server import action_registry
 from grr_response_server import server_stubs
 from grr.test_lib import test_lib
@@ -148,9 +149,6 @@ class MockWindowsProcess(object):
   def memory_percent(self):
     return 10.0
 
-  def open_files(self):
-    return []
-
   def connections(self):
     return []
 
@@ -269,6 +267,7 @@ class Test(server_stubs.ClientActionStub):
   """A test action which can be used in mocks."""
 
   in_rdfvalue = rdf_protodict.DataBlob
+  in_proto = jobs_pb2.DataBlob
   out_rdfvalues = [rdf_protodict.DataBlob]
 
 

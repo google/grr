@@ -7,9 +7,9 @@ import os
 from typing import Iterator
 import zipfile
 
+from google.protobuf import descriptor as proto_descriptor
 import yaml
 
-from google.protobuf import descriptor as proto_descriptor
 from grr_response_core.lib import utils
 from grr_response_core.lib.util import collection
 from grr_response_core.lib.util import text

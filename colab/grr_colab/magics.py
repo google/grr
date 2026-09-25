@@ -317,82 +317,9 @@ def grr_head(line: str) -> bytes:
       path_type=args.path_type)
 
 
-@magic_arguments.magic_arguments()
-@magic_arguments.argument('pattern', help='Pattern to search for', type=str)
-@magic_arguments.argument('path', help='File path', type=str)
-@magic_arguments.argument(
-    '-F',
-    '--fixed-strings',
-    action='store_true',
-    help='Interpret pattern as a fixed string (literal)')
-@magic_arguments.argument(
-    '-P',
-    '--path-type',
-    help='Path type',
-    type=str,
-    choices=_PATH_TYPE_CHOICES,
-    default=magics_impl.OS)
-@magic_arguments.argument(
-    '-X',
-    '--hex-string',
-    action='store_true',
-    help='Interpret pattern as a hex-encoded byte string')
-def grr_grep(line: str) -> pd.DataFrame:
-  """Greps for a given content of a specified file.
-
-  Args:
-    line: A string representing arguments passed to the magic command.
-
-  Returns:
-    A list of buffer references to the matched content.
-
-  Raises:
-    NoClientSelectedError: Client is not selected to perform this operation.
-  """
-  args = grr_grep.parser.parse_args(shlex.split(line))
-  return magics_impl.grr_grep_impl(
-      pattern=args.pattern,
-      path=args.path,
-      fixed_strings=args.fixed_strings,
-      path_type=args.path_type,
-      hex_string=args.hex_string)
-
-
-@magic_arguments.magic_arguments()
-@magic_arguments.argument('literal', help='Literal to search for', type=str)
-@magic_arguments.argument('path', help='File path', type=str)
-@magic_arguments.argument(
-    '-P',
-    '--path-type',
-    help='Path type',
-    type=str,
-    choices=_PATH_TYPE_CHOICES,
-    default=magics_impl.OS)
-@magic_arguments.argument(
-    '-X',
-    '--hex-string',
-    action='store_true',
-    help='Interpret pattern as a hex-encoded byte string')
-def grr_fgrep(line: str) -> pd.DataFrame:
-  """Greps for a given literal content of a specified file.
-
-  Is the same as running: %grr_grep -F
-
-  Args:
-    line: A string representing arguments passed to the magic command.
-
-  Returns:
-    A list of buffer references to the matched content.
-
-  Raises:
-    NoClientSelectedError: Client is not selected to perform this operation.
-  """
-  args = grr_fgrep.parser.parse_args(shlex.split(line))
-  return magics_impl.grr_fgrep_impl(
-      literal=args.literal,
-      path=args.path,
-      path_type=args.path_type,
-      hex_string=args.hex_string)
+# TODO - `grep` and `fgrep` methods could be implemented by using
+# the RRG `GREP_FILE_CONTENTS` action (e.g. through some simple pass-through
+# flow).
 
 
 def grr_interrogate(line: str) -> pd.DataFrame:

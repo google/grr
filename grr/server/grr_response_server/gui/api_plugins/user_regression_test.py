@@ -3,19 +3,18 @@
 
 from absl import app
 
+from grr_response_core.lib import rdfvalue
+from grr_response_core.lib.util import random
 from grr_response_proto import flows_pb2
 from grr_response_proto import objects_pb2
 from grr_response_proto import user_pb2
 from grr_response_proto.api import user_pb2 as api_user_pb2
-from grr_response_server import cronjobs
 from grr_response_server import data_store
 from grr_response_server import notification
 from grr_response_server.flows.general import discovery
 from grr_response_server.gui import api_regression_test_lib
 from grr_response_server.gui.api_plugins import user as user_plugin
-from grr_response_server.rdfvalues import cronjobs as rdf_cronjobs
-from grr_response_server.rdfvalues import hunts as rdf_hunts
-from grr_response_server.rdfvalues import objects as rdf_objects
+from grr_response_server.models import hunts as models_hunts
 from grr.test_lib import acl_test_lib
 from grr.test_lib import flow_test_lib
 from grr.test_lib import hunt_test_lib
@@ -270,7 +269,10 @@ class ApiGetHuntApprovalHandlerRegressionTest(
           description="original hunt", paused=True, creator=self.test_username
       )
 
-      ref = rdf_hunts.FlowLikeObjectReference.FromHuntId(hunt1_id)
+      ref = flows_pb2.FlowLikeObjectReference(
+          object_type=flows_pb2.FlowLikeObjectReference.ObjectType.HUNT_REFERENCE,
+          hunt_reference=objects_pb2.HuntReference(hunt_id=hunt1_id),
+      )
       hunt2_id = self.StartHunt(
           description="copied hunt",
           original_object=ref,
@@ -309,30 +311,12 @@ class ApiGetHuntApprovalHandlerRegressionTest(
           creator=self.test_username,
       )
 
-      # ApiV1 (RDFValues) serializes the `store` field in the flow object in the
-      # database as bytes. The `store` here contains the source flow id, and
-      # thus, the bytes change on every run.
-      # To avoid this, we update the `store` field in the flow object in the
-      # database, so it has an empty store.
-      flow_obj = data_store.REL_DB.ReadFlowObject(client_id, flow_id)
-      interrogate_store = flows_pb2.InterrogateStore()
-      flow_obj.store.Unpack(interrogate_store)
-      want_store = flows_pb2.InterrogateStore(
-          client_snapshot=objects_pb2.ClientSnapshot(
-              client_id=client_id,
-              metadata=objects_pb2.ClientSnapshotMetadata(
-                  source_flow_id=flow_id
-              ),
-          )
-      )
-      self.assertEqual(want_store, interrogate_store)
-      api_regression_test_lib.UpdateFlowStore(
-          client_id, flow_id, flows_pb2.InterrogateStore()
-      )
-
       # Start a hunt from the flow.
-      ref = rdf_hunts.FlowLikeObjectReference.FromFlowIdAndClientId(
-          flow_id, client_id
+      ref = flows_pb2.FlowLikeObjectReference(
+          object_type=flows_pb2.FlowLikeObjectReference.ObjectType.FLOW_REFERENCE,
+          flow_reference=objects_pb2.FlowReference(
+              flow_id=flow_id, client_id=client_id
+          ),
       )
       hunt_id = self.StartHunt(
           description="hunt started from flow",
@@ -474,26 +458,42 @@ class ApiListHuntApprovalsHandlerRegressionTest(
 
 
 class ApiGetCronJobApprovalHandlerRegressionTest(
-    api_regression_test_lib.ApiRegressionTest, acl_test_lib.AclTestMixin
+    api_regression_test_lib.ApiRegressionTest,
+    acl_test_lib.AclTestMixin,
 ):
   """Regression test for ApiGetCronJobApprovalHandler."""
 
   api_method = "GetCronJobApproval"
   handler = user_plugin.ApiGetCronJobApprovalHandler
 
+  def CreateInterrogateJob(self):
+    job_id = f"Interrogate_{random.UInt16()}"
+    args = flows_pb2.CronJobAction(
+        action_type=flows_pb2.CronJobAction.ActionType.HUNT_CRON_ACTION,
+        hunt_cron_action=flows_pb2.HuntCronAction(
+            flow_name=discovery.Interrogate.__name__,
+            hunt_runner_args=models_hunts.CreateDefaultHuntRunnerArgs(),
+        ),
+    )
+    job = flows_pb2.CronJob(
+        cron_job_id=job_id,
+        enabled=True,
+        frequency=rdfvalue.DurationSeconds.FromHumanReadable(
+            "1d"
+        ).SerializeToWireFormat(),
+        allow_overruns=False,
+        created_at=int(rdfvalue.RDFDatetime.Now()),
+        args=args,
+    )
+    data_store.REL_DB.WriteCronJob(job)
+
+    return job_id
+
   def Run(self):
     with test_lib.FakeTime(42):
       self.CreateAdminUser("approver")
-
-      cron_manager = cronjobs.CronManager()
-      cron_args = rdf_cronjobs.CreateCronJobArgs(
-          frequency="1d",
-          allow_overruns=False,
-          flow_name=discovery.Interrogate.__name__,
-      )
-
-      cron1_id = cron_manager.CreateJob(cron_args=cron_args)
-      cron2_id = cron_manager.CreateJob(cron_args=cron_args)
+      cron1_id = self.CreateInterrogateJob()
+      cron2_id = self.CreateInterrogateJob()
 
     with test_lib.FakeTime(44):
       approval1_id = self.RequestCronJobApproval(
@@ -543,13 +543,25 @@ class ApiGrantCronJobApprovalHandlerRegressionTest(
     with test_lib.FakeTime(42):
       self.CreateAdminUser("requestor")
 
-      cron_manager = cronjobs.CronManager()
-      cron_args = rdf_cronjobs.CreateCronJobArgs(
-          frequency="1d",
-          allow_overruns=False,
-          flow_name=discovery.Interrogate.__name__,
+      cron_id = "CollectFilesByKnownPath_Cron"
+      args = flows_pb2.CronJobAction(
+          action_type=flows_pb2.CronJobAction.ActionType.HUNT_CRON_ACTION,
+          hunt_cron_action=flows_pb2.HuntCronAction(
+              flow_name=discovery.Interrogate.__name__,
+              hunt_runner_args=models_hunts.CreateDefaultHuntRunnerArgs(),
+          ),
       )
-      cron_id = cron_manager.CreateJob(cron_args=cron_args)
+      job = flows_pb2.CronJob(
+          cron_job_id=cron_id,
+          enabled=True,
+          frequency=rdfvalue.DurationSeconds.FromHumanReadable(
+              "1d"
+          ).SerializeToWireFormat(),
+          allow_overruns=False,
+          created_at=int(rdfvalue.RDFDatetime.Now()),
+          args=args,
+      )
+      data_store.REL_DB.WriteCronJob(job)
 
     with test_lib.FakeTime(44):
       approval_id = self.RequestCronJobApproval(
@@ -582,13 +594,25 @@ class ApiCreateCronJobApprovalHandlerRegressionTest(
       self.CreateUser("approver1")
       self.CreateUser("approver2")
 
-    cron_manager = cronjobs.CronManager()
-    cron_args = rdf_cronjobs.CreateCronJobArgs(
-        frequency="1d",
-        allow_overruns=False,
-        flow_name=discovery.Interrogate.__name__,
+    cron_id = "CollectFilesByKnownPath_Cron"
+    args = flows_pb2.CronJobAction(
+        action_type=flows_pb2.CronJobAction.ActionType.HUNT_CRON_ACTION,
+        hunt_cron_action=flows_pb2.HuntCronAction(
+            flow_name=discovery.Interrogate.__name__,
+            hunt_runner_args=models_hunts.CreateDefaultHuntRunnerArgs(),
+        ),
     )
-    cron_id = cron_manager.CreateJob(cron_args=cron_args)
+    job = flows_pb2.CronJob(
+        cron_job_id=cron_id,
+        enabled=True,
+        frequency=rdfvalue.DurationSeconds.FromHumanReadable(
+            "1d"
+        ).SerializeToWireFormat(),
+        allow_overruns=False,
+        created_at=int(rdfvalue.RDFDatetime.Now()),
+        args=args,
+    )
+    data_store.REL_DB.WriteCronJob(job)
 
     def ReplaceCronAndApprovalIds():
       approvals = self.ListCronJobApprovals()
@@ -629,7 +653,7 @@ class ApiGetOwnGrrUserHandlerRegressionTest(
     # Make user an admin and do yet another request.
     data_store.REL_DB.WriteGRRUser(
         username=self.test_username,
-        user_type=rdf_objects.GRRUser.UserType.USER_TYPE_ADMIN,
+        user_type=objects_pb2.GRRUser.UserType.USER_TYPE_ADMIN,
     )
 
     self.Check("GetGrrUser")

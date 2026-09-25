@@ -11,6 +11,7 @@ import {
 } from '@angular/material/menu/testing';
 import {MatSelectHarness} from '@angular/material/select/testing';
 
+import {ErrorMessageHarness} from '../../../shared/testing/error_message_harness';
 import {FlowStateIconHarness} from '../../../shared/testing/flow_state_icon_harness';
 import {UserHarness} from '../../../shared/testing/user_harness';
 import {FlowFilter} from '../client_flows';
@@ -23,6 +24,7 @@ export class ClientFlowsHarness extends ComponentHarness {
   readonly newFlowButton = this.locatorForOptional(
     MatButtonHarness.with({text: 'New Flow'}),
   );
+
   // List of flows that are started on a client.
   readonly flowList = this.locatorFor(
     MatNavListHarness.with({
@@ -40,6 +42,15 @@ export class ClientFlowsHarness extends ComponentHarness {
   async selectFilterOption(option: FlowFilter): Promise<void> {
     await (await this.flowFilterSelect()).open();
     return (await this.flowFilterSelect()).clickOptions({text: option});
+  }
+
+  async hasNoAccessMessage(): Promise<boolean> {
+    const errorMessage = await this.locatorForOptional(ErrorMessageHarness)();
+    if (!errorMessage) {
+      return false;
+    }
+    const message = await errorMessage.getMessage();
+    return message.includes('Request access to this client to view flows.');
   }
 
   async getFlowListItems(): Promise<MatListItemHarness[]> {

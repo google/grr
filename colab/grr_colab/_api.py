@@ -6,7 +6,7 @@ from grr_colab import flags
 
 FLAGS = flags.FLAGS
 
-_API: api.GrrApi = None
+_API: api.GrrApi = None  # pyrefly: ignore[bad-assignment]
 
 
 def get() -> api.GrrApi:

@@ -9,7 +9,9 @@ from absl.testing import absltest
 from grr_response_core.lib import artifact_utils
 from grr_response_core.lib.rdfvalues import artifacts as rdf_artifacts
 from grr_response_core.lib.rdfvalues import client as rdf_client
-from grr_response_core.lib.rdfvalues import test_base as rdf_test_base
+from grr_response_core.lib.rdfvalues import mig_protodict
+from grr_response_proto import artifact_pb2
+from grr_response_proto import jobs_pb2
 from grr_response_proto import knowledge_base_pb2
 from grr_response_server import artifact_registry as ar
 from grr.test_lib import artifact_test_lib
@@ -73,7 +75,7 @@ class ArtifactHandlingTest(test_lib.GRRBaseTest):
 
     results = registry.GetArtifacts(
         os_name="Windows",
-        source_type=rdf_artifacts.ArtifactSource.SourceType.REGISTRY_VALUE,
+        source_type=artifact_pb2.ArtifactSource.SourceType.REGISTRY_VALUE,
         name_list=["DepsProvidesMultiple"],
     )
     self.assertEqual(results.pop().name, "DepsProvidesMultiple")
@@ -117,22 +119,7 @@ class ArtifactHandlingTest(test_lib.GRRBaseTest):
     self.assertIn("UsersDirectory", results_names)
 
   @artifact_test_lib.PatchCleanArtifactRegistry
-  def testArtifactConversion(self, registry):
-    registry.AddFileSource(self.test_artifacts_file)
-
-    for art_obj in registry.GetArtifacts():
-      # Exercise conversions to ensure we can move back and forth between the
-      # different forms.
-      art_json = art_obj.ToJson()
-      # TODO: This is a temporary hack. Once Python 3 compatibility
-      # wrapper for dealing with JSON is implemented, this should go away.
-      if isinstance(art_json, bytes):
-        art_json = art_json.decode("utf-8")
-      new_art_obj = registry.ArtifactsFromYaml(art_json)[0]
-      self.assertEqual(new_art_obj.ToPrimitiveDict(), art_obj.ToPrimitiveDict())
-
-  @artifact_test_lib.PatchCleanArtifactRegistry
-  def testArtifactsDependencies(self, registry):
+  def testArtifactsDependencies(self, registry: ar.ArtifactRegistry):
     """Check artifact dependencies work."""
     registry.AddFileSource(self.test_artifacts_file)
 
@@ -149,14 +136,19 @@ class ArtifactHandlingTest(test_lib.GRRBaseTest):
     # Test recursive loop.
     # Make sure we use the registry registered version of the class.
     source = art_obj.sources[0]
-    backup = source.attributes["names"]
+    backup_attrs = jobs_pb2.Dict()
+    backup_attrs.CopyFrom(source.attributes)
     try:
-      source.attributes["names"] = ["TestAggregationArtifactDeps"]
+      source.attributes.CopyFrom(
+          mig_protodict.FromNativeDictToProtoDict({
+              "names": ["TestAggregationArtifactDeps"],
+          })
+      )
       with self.assertRaises(RuntimeError) as e:
         ar.GetArtifactDependencies(art_obj, recursive=True)
       self.assertIn("artifact recursion depth", str(e.exception))
     finally:
-      source.attributes["names"] = backup  # Restore old source.
+      source.attributes.CopyFrom(backup_attrs)
 
 
 class UserMergeTest(test_lib.GRRBaseTest):
@@ -217,13 +209,11 @@ class UserMergeTest(test_lib.GRRBaseTest):
     self.assertLen(kb.users, 3)
 
 
-class ArtifactTests(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
+class ArtifactTests(test_lib.GRRBaseTest):
   """Test the Artifact implementation."""
 
-  rdfvalue_class = rdf_artifacts.Artifact
-
   def GenerateSample(self, number=0):
-    result = rdf_artifacts.Artifact(
+    result = artifact_pb2.Artifact(
         name="artifact%s" % number,
         doc="Doco",
         supported_os="Windows",
@@ -232,10 +222,10 @@ class ArtifactTests(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
     return result
 
   def testGetArtifactPathDependencies(self):
-    sources = [
-        {
-            "type": rdf_artifacts.ArtifactSource.SourceType.REGISTRY_KEY,
-            "attributes": {
+    sources: list[artifact_pb2.ArtifactSource] = [
+        artifact_pb2.ArtifactSource(
+            type=artifact_pb2.ArtifactSource.SourceType.REGISTRY_KEY,
+            attributes=mig_protodict.FromNativeDictToProtoDict({
                 "keys": [
                     # pylint: disable=line-too-long
                     # pyformat: disable
@@ -243,37 +233,32 @@ class ArtifactTests(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
                     # pylint: enable=line-too-long
                     # pyformat: enable
                 ],
-            },
-        },
-        {
-            "type": rdf_artifacts.ArtifactSource.SourceType.WMI,
-            "attributes": {
+            }),
+        ),
+        artifact_pb2.ArtifactSource(
+            type=artifact_pb2.ArtifactSource.SourceType.WMI,
+            attributes=mig_protodict.FromNativeDictToProtoDict({
                 "query": """
                     SELECT *
                       FROM Win32_UserProfile
                      WHERE SID='%%users.sid%%'
                 """.strip(),
-            },
-        },
-        {
-            "type": rdf_artifacts.ArtifactSource.SourceType.PATH,
-            "attributes": {
+            }),
+        ),
+        artifact_pb2.ArtifactSource(
+            type=artifact_pb2.ArtifactSource.SourceType.PATH,
+            attributes=mig_protodict.FromNativeDictToProtoDict({
                 "paths": ["/home/%%users.username%%"],
-            },
-        },
+            }),
+        ),
     ]
 
-    artifact = rdf_artifacts.Artifact(
+    artifact = artifact_pb2.Artifact(
         name="artifact",
         doc="Doco",
         supported_os=["Windows"],
         urls=["http://blah"],
         sources=sources,
-    )
-
-    self.assertCountEqual(
-        [x["type"] for x in artifact.ToPrimitiveDict()["sources"]],
-        ["REGISTRY_KEY", "WMI", "PATH"],
     )
 
     self.assertCountEqual(
@@ -283,22 +268,24 @@ class ArtifactTests(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
 
   def testValidateSyntax(self):
     sources = [
-        {
-            "type": rdf_artifacts.ArtifactSource.SourceType.REGISTRY_KEY,
-            "attributes": {
+        artifact_pb2.ArtifactSource(
+            type=artifact_pb2.ArtifactSource.SourceType.REGISTRY_KEY,
+            attributes=mig_protodict.FromNativeDictToProtoDict({
                 "keys": [
                     r"%%current_control_set%%\Control\Session "
                     r"Manager\Environment\Path"
                 ]
-            },
-        },
-        {
-            "type": rdf_artifacts.ArtifactSource.SourceType.FILE,
-            "attributes": {"paths": [r"%%environ_systemdrive%%\Temp"]},
-        },
+            }),
+        ),
+        artifact_pb2.ArtifactSource(
+            type=artifact_pb2.ArtifactSource.SourceType.FILE,
+            attributes=mig_protodict.FromNativeDictToProtoDict(
+                {"paths": [r"%%environ_systemdrive%%\Temp"]}
+            ),
+        ),
     ]
 
-    artifact = rdf_artifacts.Artifact(
+    artifact = artifact_pb2.Artifact(
         name="good",
         doc="Doco",
         supported_os=["Windows"],
@@ -308,12 +295,16 @@ class ArtifactTests(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
     ar.ValidateSyntax(artifact)
 
   def testValidateSyntaxBadPathDependency(self):
-    sources = [{
-        "type": rdf_artifacts.ArtifactSource.SourceType.FILE,
-        "attributes": {"paths": [r"%%systemdrive%%\Temp"]},
-    }]
+    sources = [
+        artifact_pb2.ArtifactSource(
+            type=artifact_pb2.ArtifactSource.SourceType.FILE,
+            attributes=mig_protodict.FromNativeDictToProtoDict(
+                {"paths": [r"%%systemdrive%%\Temp"]}
+            ),
+        )
+    ]
 
-    artifact = rdf_artifacts.Artifact(
+    artifact = artifact_pb2.Artifact(
         name="bad",
         doc="Doco",
         supported_os=["Windows"],

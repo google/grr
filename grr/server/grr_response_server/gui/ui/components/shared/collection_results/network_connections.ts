@@ -5,7 +5,6 @@ import {
   ChangeDetectionStrategy,
   Component,
   ViewChild,
-  computed,
   effect,
   inject,
   input,
@@ -14,7 +13,6 @@ import {MatSort, MatSortModule, Sort} from '@angular/material/sort';
 import {MatTableDataSource, MatTableModule} from '@angular/material/table';
 
 import {NetworkConnection} from '../../../lib/api/api_interfaces';
-import {isHuntResult} from '../../../lib/models/hunt';
 import {CollectionResult} from '../../../lib/models/result';
 import {NetworkConnectionFamilyPipe} from '../../../pipes/network_connection/network_connection_family_pipe';
 import {NetworkConnectionTypePipe} from '../../../pipes/network_connection/network_connection_type_pipe';
@@ -33,20 +31,10 @@ const COLUMNS: readonly string[] = [
   'remotePort',
 ];
 
-interface NetworkConnectionWithClientId extends NetworkConnection {
-  clientId: string;
-}
-
 function networkConnectionsFromCollectionResults(
   collectionResults: readonly CollectionResult[],
-): readonly NetworkConnectionWithClientId[] {
-  return collectionResults.map((result) => {
-    const networkConnection = result.payload as NetworkConnection;
-    return {
-      clientId: result.clientId,
-      ...networkConnection,
-    };
-  });
+): readonly NetworkConnection[] {
+  return collectionResults.map((result) => result.payload as NetworkConnection);
 }
 
 /**
@@ -72,26 +60,20 @@ export class NetworkConnections implements AfterViewInit {
   @ViewChild(MatSort) sort!: MatSort;
 
   /** Loaded results to display in the table. */
-  readonly collectionResults = input.required<readonly CollectionResult[]>();
-
-  readonly networkConnections = computed(() =>
-    networkConnectionsFromCollectionResults(this.collectionResults()),
-  );
-
-  protected readonly dataSource =
-    new MatTableDataSource<NetworkConnectionWithClientId>();
-
-  protected readonly displayedColumns = computed(() => {
-    if (this.collectionResults().some(isHuntResult)) {
-      return ['clientId', ...COLUMNS];
-    }
-    return COLUMNS;
+  readonly collectionResults = input.required<
+    readonly NetworkConnection[],
+    readonly CollectionResult[]
+  >({
+    transform: networkConnectionsFromCollectionResults,
   });
+
+  protected readonly dataSource = new MatTableDataSource<NetworkConnection>();
+  protected readonly displayedColumns = COLUMNS;
 
   constructor() {
     effect(() => {
-      if (this.networkConnections().length > 0) {
-        this.dataSource.data = this.networkConnections().slice();
+      if (this.collectionResults().length > 0) {
+        this.dataSource.data = this.collectionResults().slice();
       }
     });
   }
@@ -101,12 +83,9 @@ export class NetworkConnections implements AfterViewInit {
     // Conversion from table column name to the data accessor, this is required
     // for sorting and filtering.
     this.dataSource.sortingDataAccessor = (
-      item: NetworkConnectionWithClientId,
+      item: NetworkConnection,
       property: string,
     ) => {
-      if (property === 'clientId') {
-        return item.clientId;
-      }
       if (property === 'pid') {
         return item.pid ?? '';
       }
@@ -137,11 +116,10 @@ export class NetworkConnections implements AfterViewInit {
       return '';
     };
     this.dataSource.filterPredicate = (
-      data: NetworkConnectionWithClientId,
+      data: NetworkConnection,
       filter: string,
     ) => {
       return (
-        data.clientId?.toString().includes(filter) ||
         data.pid?.toString().includes(filter) ||
         data.processName?.includes(filter) ||
         data.state?.toString().includes(filter) ||

@@ -22,7 +22,6 @@ import {isClientOnline} from '../../lib/models/client';
   selector: 'online-chip',
   templateUrl: './online_chip.ng.html',
   imports: [CommonModule, MatChipsModule, MatIconModule],
-  styleUrls: ['./online_chip.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class OnlineChip {

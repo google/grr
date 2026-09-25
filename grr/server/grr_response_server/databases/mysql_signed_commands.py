@@ -30,9 +30,10 @@ class MySQLDBSignedCommandsMixin:
 
     query = """
       INSERT INTO signed_commands (
-        id, operating_system, ed25519_signature, command, source_path
+        id, operating_system, ed25519_signature, command,
+        source_path, server_executable_path
       ) VALUES (
-        %s, %s, %s, %s, %s
+        %s, %s, %s, %s, %s, %s
       )
     """
 
@@ -44,6 +45,7 @@ class MySQLDBSignedCommandsMixin:
           signed_command.ed25519_signature,
           signed_command.command,
           signed_command.source_path,
+          signed_command.server_executable_path,
       ))
     try:
       cursor.executemany(query, rows)
@@ -66,7 +68,7 @@ class MySQLDBSignedCommandsMixin:
 
     query_signed_command = """
       SELECT
-        ed25519_signature, command, source_path
+        ed25519_signature, command, source_path, server_executable_path
       FROM
         signed_commands
       WHERE
@@ -78,7 +80,13 @@ class MySQLDBSignedCommandsMixin:
     signed_command_row = cursor.fetchone()
     if not signed_command_row:
       raise db.UnknownSignedCommandError(id_, operating_system)
-    (ed25519_signature, command_bytes, source_path) = signed_command_row
+
+    (
+        ed25519_signature,
+        command_bytes,
+        source_path,
+        server_executable_path,
+    ) = signed_command_row
     signed_command = signed_commands_pb2.SignedCommand()
     signed_command.id = id_
     signed_command.operating_system = operating_system
@@ -87,6 +95,8 @@ class MySQLDBSignedCommandsMixin:
 
     if source_path:
       signed_command.source_path = source_path
+    if server_executable_path:
+      signed_command.server_executable_path = server_executable_path
 
     return signed_command
 

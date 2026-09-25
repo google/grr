@@ -23,22 +23,22 @@ class ListContainers(actions.ActionPlugin):
     outputs = []
     for cmd, cmdargs in self.commands:
       output = rdf_containers.ListContainersOutput()
-      output.binary = cmd.split("/")[-1]
-      if args.inspect_hostroot:
+      output.binary = cmd.split("/")[-1]  # pyrefly: ignore[missing-attribute]
+      if args.inspect_hostroot:  # pyrefly: ignore[missing-attribute]
         cmdargs = ["/hostroot", cmd] + cmdargs
         cmd = "/usr/sbin/chroot"
       try:
         stdout, stderr, exit_status, time_taken = client_utils_common.Execute(
             cmd, cmdargs
         )
-        output.stdout = stdout
-        output.stderr = stderr
-        output.exit_status = exit_status
-        output.seconds_taken = time_taken
+        output.stdout = stdout  # pyrefly: ignore[missing-attribute]
+        output.stderr = stderr  # pyrefly: ignore[missing-attribute]
+        output.exit_status = exit_status  # pyrefly: ignore[missing-attribute]
+        output.seconds_taken = time_taken  # pyrefly: ignore[missing-attribute]
         outputs.append(output)
       except FileNotFoundError as e:
-        output.stderr = "Container CLI not found: {0!s}".format(e)
-        output.exit_status = 2
+        output.stderr = "Container CLI not found: {0!s}".format(e)  # pyrefly: ignore[missing-attribute]
+        output.exit_status = 2  # pyrefly: ignore[missing-attribute]
         outputs.append(output)
         continue
 

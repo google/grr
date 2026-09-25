@@ -8,6 +8,7 @@ import re
 from typing import Callable, Iterable, Iterator, Optional, Sequence
 
 from google.protobuf import message
+
 from grr_response_core.lib import rdfvalue
 from grr_response_proto import export_pb2
 from grr_response_proto import flows_pb2

@@ -17,7 +17,6 @@ import {
   FileFinderArgs,
   OsqueryFlowArgs,
   OsqueryProgress,
-  ReadLowLevelArgs,
 } from '../../../../lib/api/api_interfaces';
 import {
   getExportedResultsCommandLink,
@@ -25,7 +24,6 @@ import {
   getExportedResultsSqliteUrl,
   getExportedResultsYamlUrl,
   getFlowFilesArchiveUrl,
-  getTempBlobUrl,
   getTimelineBodyFileUrl,
 } from '../../../../lib/api/http_api_service';
 import {Flow, FlowState, FlowType} from '../../../../lib/models/flow';
@@ -165,18 +163,6 @@ export class FlowResultsDownloadButton {
         }
         items.push(...baseExportMenuItems);
         return items;
-      case FlowType.READ_LOW_LEVEL:
-        const lowLevelArgs = flow.args as ReadLowLevelArgs;
-        const alphanumericOnly =
-          lowLevelArgs?.path?.replace(/[^\p{L}\s]/gu, '') ?? '';
-        const archiveFileName = `${flow.clientId}_${flow.flowId}_${alphanumericOnly}`;
-        items.push({
-          title: 'Download data',
-          url: getTempBlobUrl(flow.clientId, archiveFileName),
-          isLink: true,
-        });
-        items.push(...baseExportMenuItems);
-        return items;
       case FlowType.TIMELINE_FLOW:
         items.push(
           {
@@ -250,7 +236,7 @@ export class FlowResultsDownloadButton {
       case FlowType.REGISTRY_FINDER:
       case FlowType.UPDATE_CLIENT:
       case FlowType.YARA_PROCESS_SCAN:
-        // TODO: There are cases where StatEntries are but no
+        // TODO - There are cases where StatEntries are but no
         // actual file contents are collected. In this case, we shouldn't show
         // this entry.
         const resultCounts = flow.resultCounts ?? [];

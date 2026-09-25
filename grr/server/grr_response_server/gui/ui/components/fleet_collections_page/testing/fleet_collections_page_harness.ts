@@ -38,7 +38,7 @@ export class FleetCollectionsPageHarness extends ComponentHarness {
   );
   readonly searchFilterFormField = this.locatorFor(
     MatFormFieldHarness.with({
-      floatingLabelText: 'Filter by user, id, or description',
+      floatingLabelText: 'Filter by user, id, description, or flow name',
     }),
   );
 

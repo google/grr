@@ -7,13 +7,13 @@ import os
 import re
 import winreg
 
+from google.protobuf import message
 import ntsecuritycon
 import pywintypes
 import win32api
 import win32file
 import win32security
 
-from google.protobuf import message
 from grr_response_client.windows import process
 from grr_response_core import config
 from grr_response_core.lib import utils

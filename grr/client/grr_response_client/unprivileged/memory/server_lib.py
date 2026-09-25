@@ -160,7 +160,7 @@ class ProcessScanHandler(
     deadline = time.time() + request.timeout_seconds
     with client_utils.CreateProcessFromSerializedFileDescriptor(
         request.serialized_file_descriptor
-    ) as process:  # pytype: disable=wrong-arg-count  # attribute-variable-annotations
+    ) as process:
       result = memory_pb2.ScanResult()
       for chunk in request.chunks:
         data = process.ReadBytes(chunk.offset, chunk.size)

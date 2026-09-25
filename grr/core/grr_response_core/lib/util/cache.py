@@ -152,11 +152,11 @@ def WithLimitedCallFrequency(
 
     # This is used by the tests to ensure that the internal representation
     # behaves as expected.
-    Fn._DebugInternalState = (  # pylint: disable=protected-access
+    Fn._DebugInternalState = (  # pylint: disable=protected-access  # pyrefly: ignore[missing-attribute]
         _DebugInternalState
     )
 
-    return Fn
+    return Fn  # pyrefly: ignore[bad-return]
 
   return Decorated
 
@@ -291,10 +291,10 @@ def WithLimitedCallFrequencyWithoutReturnValue(
 
     # This is used by the tests to ensure that the internal representation
     # behaves as expected.
-    Fn._DebugInternalState = (  # pylint: disable=protected-access
+    Fn._DebugInternalState = (  # pylint: disable=protected-access  # pyrefly: ignore[missing-attribute]
         _DebugInternalState
     )
 
-    return Fn
+    return Fn  # pyrefly: ignore[bad-return]
 
   return Decorated

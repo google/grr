@@ -27,7 +27,7 @@ class CollectLargeFileTest(absltest.TestCase):
         vfs,
         "VFS_HANDLERS",
         {
-            rdf_paths.PathSpec.PathType.OS: files.File,
+            rdf_paths.PathSpec.PathType.OS: files.File,  # pyrefly: ignore[missing-attribute]
         },
     )
     vfs_patcher.start()
@@ -36,8 +36,8 @@ class CollectLargeFileTest(absltest.TestCase):
   def testNoEncryptionKey(self):
     with temp.AutoTempFilePath() as temppath:
       args = rdf_large_file.CollectLargeFileArgs()
-      args.path_spec.path = temppath
-      args.path_spec.pathtype = rdf_paths.PathSpec.PathType.OS
+      args.path_spec.path = temppath  # pyrefly: ignore[missing-attribute]
+      args.path_spec.pathtype = rdf_paths.PathSpec.PathType.OS  # pyrefly: ignore[missing-attribute]
 
       with self.assertRaisesRegex(ValueError, "key"):
         list(large_file.CollectLargeFile(args))
@@ -45,9 +45,9 @@ class CollectLargeFileTest(absltest.TestCase):
   def testIncorrectEncryptionKey(self):
     with temp.AutoTempFilePath() as temppath:
       args = rdf_large_file.CollectLargeFileArgs()
-      args.path_spec.path = temppath
-      args.path_spec.pathtype = rdf_paths.PathSpec.PathType.OS
-      args.encryption_key = b"123456"
+      args.path_spec.path = temppath  # pyrefly: ignore[missing-attribute]
+      args.path_spec.pathtype = rdf_paths.PathSpec.PathType.OS  # pyrefly: ignore[missing-attribute]
+      args.encryption_key = b"123456"  # pyrefly: ignore[missing-attribute]
 
       with self.assertRaisesRegex(ValueError, "key"):
         list(large_file.CollectLargeFile(args))
@@ -77,18 +77,18 @@ class CollectLargeFileTest(absltest.TestCase):
         file.write(content)
 
       args = rdf_large_file.CollectLargeFileArgs()
-      args.signed_url = "https://foo.bar/quux"
-      args.encryption_key = key
-      args.path_spec.pathtype = rdf_paths.PathSpec.PathType.OS
-      args.path_spec.path = os.path.join(tempdir, "file")
+      args.signed_url = "https://foo.bar/quux"  # pyrefly: ignore[missing-attribute]
+      args.encryption_key = key  # pyrefly: ignore[missing-attribute]
+      args.path_spec.pathtype = rdf_paths.PathSpec.PathType.OS  # pyrefly: ignore[missing-attribute]
+      args.path_spec.path = os.path.join(tempdir, "file")  # pyrefly: ignore[missing-attribute]
 
       results = list(large_file.CollectLargeFile(args))
 
     self.assertLen(results, 2)
-    self.assertEqual(results[0].session_uri, "https://foo.bar/norf")
+    self.assertEqual(results[0].session_uri, "https://foo.bar/norf")  # pyrefly: ignore[missing-attribute]
 
-    self.assertEqual(results[1].session_uri, "https://foo.bar/norf")
-    self.assertGreater(results[1].total_bytes_sent, 0)
+    self.assertEqual(results[1].session_uri, "https://foo.bar/norf")  # pyrefly: ignore[missing-attribute]
+    self.assertGreater(results[1].total_bytes_sent, 0)  # pyrefly: ignore[missing-attribute]
 
     encrypted_buf = io.BytesIO(handler.content)
     decrypted_buf = aead.Decrypt(encrypted_buf, key)

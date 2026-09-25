@@ -70,7 +70,7 @@ class RDFStringTest(absltest.TestCase):
     self.assertGreater(rdfvalue.RDFString("xyz"), b"ghi")
     self.assertLess(rdfvalue.RDFString("012"), b"\x80\x81\x81")
 
-  # TODO: Python on Windows ships with UCS-2 by default, which does
+  # TODO - Python on Windows ships with UCS-2 by default, which does
   # not properly support unicode.
   @unittest.skipIf(
       sys.maxunicode <= 65535,

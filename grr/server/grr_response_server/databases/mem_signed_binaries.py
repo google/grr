@@ -32,7 +32,6 @@ def _SignedBinaryIDFromKey(
 # TODO(user): Remove this pytype exception when DB mixins are refactored to
 # be more self-contained (self.signed_binary_references is not initialized
 # in the mixin's __init__ method, as it should be).
-# pytype: disable=attribute-error
 class InMemoryDBSignedBinariesMixin(object):
   """Mixin providing an in-memory implementation of signed binary DB logic.
 
@@ -53,7 +52,7 @@ class InMemoryDBSignedBinariesMixin(object):
     references_copy = objects_pb2.BlobReferences()
     references_copy.CopyFrom(references)
 
-    self.signed_binary_references[_SignedBinaryKeyFromID(binary_id)] = (
+    self.signed_binary_references[_SignedBinaryKeyFromID(binary_id)] = (  # pyrefly: ignore[missing-attribute]
         references_copy,
         rdfvalue.RDFDatetime.Now(),
     )
@@ -65,7 +64,7 @@ class InMemoryDBSignedBinariesMixin(object):
     """See db.Database."""
     binary_key = _SignedBinaryKeyFromID(binary_id)
     try:
-      references, timestamp = self.signed_binary_references[binary_key]
+      references, timestamp = self.signed_binary_references[binary_key]  # pyrefly: ignore[missing-attribute]
     except KeyError:
       raise db.UnknownSignedBinaryError(binary_id)
 
@@ -76,7 +75,7 @@ class InMemoryDBSignedBinariesMixin(object):
   @utils.Synchronized
   def ReadIDsForAllSignedBinaries(self) -> Sequence[objects_pb2.SignedBinaryID]:
     """See db.Database."""
-    return [_SignedBinaryIDFromKey(k) for k in self.signed_binary_references]
+    return [_SignedBinaryIDFromKey(k) for k in self.signed_binary_references]  # pyrefly: ignore[missing-attribute]
 
   def DeleteSignedBinaryReferences(
       self,
@@ -84,9 +83,8 @@ class InMemoryDBSignedBinariesMixin(object):
   ) -> None:
     """See db.Database."""
     try:
-      del self.signed_binary_references[_SignedBinaryKeyFromID(binary_id)]
+      del self.signed_binary_references[_SignedBinaryKeyFromID(binary_id)]  # pyrefly: ignore[missing-attribute]
     except KeyError:
       pass  # Entry doesn't exist, or already deleted; that's ok.
 
 
-# pytype: enable=attribute-error

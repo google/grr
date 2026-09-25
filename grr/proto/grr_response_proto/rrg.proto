@@ -60,6 +60,12 @@ enum Action {
   SCAN_PROCESS_MEMORY_YARA = 22;
   // Get contents of the specified file using Keramics.
   GET_FILE_CONTENTS_KMX = 23;
+  // Get metadata of the specified file using Keramics.
+  GET_FILE_METADATA_KMX = 24;
+  // Store part of a file to the local filestore.
+  STORE_FILESTORE_PART = 25;
+  // Get SHA-256 hash of the specified file using Keramics.
+  GET_FILE_SHA256_KMX = 26;
 
   // TODO: Define more actions that should be supported.
 
@@ -102,7 +108,7 @@ message Request {
   // Note that this flag only affects logs sent to the server. On-host logging
   // still happens according to the rules specified through the startup flags.
   //
-  // Leaving this value unset correspnds to the "off" level, meaning that no
+  // Leaving this value unset corresponds to the "off" level, meaning that no
   // logs are sent to the server.
   Log.Level log_level = 8;
 
@@ -147,22 +153,28 @@ message Status {
       UNSUPPORTED_ACTION = 2;
       // Action was invoked with invalid arguments.
       INVALID_ARGS = 3;
-      // Network bytes sent treshold has been reached.
+      // Network bytes sent threshold has been reached.
       NETWORK_BYTES_SENT_LIMIT_EXCEEDED = 4;
-      // CPU time usage treshhold has been reached.
+      // CPU time usage threshold has been reached.
       CPU_TIME_LIMIT_EXCEEDED = 5;
-      // Elapsed real (wall) time treshhold has been reached.
+      // Elapsed real (wall) time threshold has been reached.
       REAL_TIME_LIMIT_EXCEEDED = 6;
       // Action-specific error occurred.
       ACTION_FAILURE = 7;
       // Filter evaluation on action result failed.
       FILTER_FAILURE = 11;
-      // CPU time usage treshhold specified in the request is invalid.
+      // CPU time usage threshold specified in the request is invalid.
       INVALID_CPU_TIME_LIMIT = 8;
-      // Real (wall) time usage treshhold specified in the request is invalid.
+      // Real (wall) time usage threshold specified in the request is invalid.
       INVALID_REAL_TIME_LIMIT = 9;
       // Filter specified in the request is invalid.
       INVALID_FILTER = 10;
+      // Filestore operation was requested but it is not available.
+      FILESTORE_UNAVAILABLE = 12;
+      // Storing a part in the filestore failed.
+      FILESTORE_STORE_FAILURE = 13;
+      // Filesystem path of the given filestore file could not be retrieved.
+      FILESTORE_INVALID_PATH = 14;
     }
 
     // Type of the error.
@@ -214,6 +226,8 @@ enum Sink {
   STARTUP = 1;
   // Accepts binary blobs (e.g. fragments of files).
   BLOB = 2;
+  // Accepts metadata about agent abort.
+  ABORT = 3;
   // Accepts periodic ping messages.
   //
   // TODO(user): Remove once no longer needed.
@@ -259,7 +273,7 @@ message Filter {
 // and a literal, the actual message models operator and literal using a single
 // `oneof` field (and an extra bit for negation).
 message Condition {
-  // Path in the result message to the field to which the opreator is applied.
+  // Path in the result message to the field to which the operator is applied.
   //
   // The path is specified as a sequence of field numbers with each entry going
   // deeper in the message, similarly to the `.` operator in most programming
@@ -327,6 +341,12 @@ message Condition {
     //
     // This operator works also for fields of type `int32` in which case the
     // values are going to be losslessly upcasted.
+    //
+    // This operator works also for enum fields in which case the numeric enum
+    // value (which is guaranteed to be a 32-bit signed integers [1]) is also
+    // going to be losslessly upcasted.
+    //
+    // [1]: https://protobuf.dev/programming-guides/encoding/#bools-and-enums
     int64 int64_equal = 10;
 
     // The condition is satisfied if the field is less than this integer.

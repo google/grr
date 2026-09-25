@@ -27,7 +27,7 @@ class UnsupportedHandlerError(Error):
 class VFSHandler(IO[bytes], metaclass=abc.ABCMeta):
   """Base class for handling objects in the VFS."""
 
-  supported_pathtype = rdf_paths.PathSpec.PathType.UNSET
+  supported_pathtype = rdf_paths.PathSpec.PathType.UNSET  # pyrefly: ignore[missing-attribute]
 
   # Should this handler be auto-registered?
   auto_register = False
@@ -36,7 +36,7 @@ class VFSHandler(IO[bytes], metaclass=abc.ABCMeta):
   offset = 0
 
   # This is the VFS path to this specific handler.
-  # TODO: "/" is a problematic default value because it is not
+  # TODO - "/" is a problematic default value because it is not
   # guaranteed that path is set correctly (e.g. by TSK). None would be a better
   # default and to guarantee a valid value would be best.
   path = "/"
@@ -136,9 +136,9 @@ class VFSHandler(IO[bytes], metaclass=abc.ABCMeta):
     # TODO(user): Add support for more containers here (e.g. registries, zip
     # files etc).
     else:
-      if pathtype != rdf_paths.PathSpec.PathType.NTFS:
+      if pathtype != rdf_paths.PathSpec.PathType.NTFS:  # pyrefly: ignore[missing-attribute]
         # For now just guess TSK.
-        pathtype = rdf_paths.PathSpec.PathType.TSK
+        pathtype = rdf_paths.PathSpec.PathType.TSK  # pyrefly: ignore[missing-attribute]
       handler = self._handlers[pathtype]
       pathspec = rdf_paths.PathSpec(path="/", pathtype=pathtype)
       return handler(
@@ -175,12 +175,12 @@ class VFSHandler(IO[bytes], metaclass=abc.ABCMeta):
           component = x
           break
 
-    if fd.supported_pathtype != self.pathspec.pathtype:
+    if fd.supported_pathtype != self.pathspec.pathtype:  # pyrefly: ignore[missing-attribute]
       new_pathspec = rdf_paths.PathSpec(
           path=component, pathtype=fd.supported_pathtype
       )
     else:
-      new_pathspec = self.pathspec.last.Copy()
+      new_pathspec = self.pathspec.last.Copy()  # pyrefly: ignore[missing-attribute]
       new_pathspec.path = component
 
     return new_pathspec
@@ -220,7 +220,7 @@ class VFSHandler(IO[bytes], metaclass=abc.ABCMeta):
   def writable(self) -> bool:
     return False
 
-  def closed(self) -> bool:
+  def closed(self) -> bool:  # pyrefly: ignore[bad-override]
     # TODO(hanuszczak): `Close` is actually implemented only for the Windows
     # registry handler. Otherwise it just uses default implementation that does
     # nothing. It might make sense to implement this `closed` logic in the base
@@ -247,10 +247,10 @@ class VFSHandler(IO[bytes], metaclass=abc.ABCMeta):
   def readlines(self, hint: int = 0) -> list[bytes]:
     raise io.UnsupportedOperation()
 
-  def write(self, s: bytes) -> int:
+  def write(self, s: bytes) -> int:  # pyrefly: ignore[bad-override]
     raise io.UnsupportedOperation()
 
-  def writelines(self, lines: Iterable[bytes]) -> None:
+  def writelines(self, lines: Iterable[bytes]) -> None:  # pyrefly: ignore[bad-override]
     raise io.UnsupportedOperation()
 
   def truncate(self, size: Optional[int] = None) -> int:
@@ -291,7 +291,7 @@ class VFSHandler(IO[bytes], metaclass=abc.ABCMeta):
       raise UnsupportedHandlerError(component.pathtype)
 
     # We will not do any case folding unless requested.
-    if component.path_options == rdf_paths.PathSpec.Options.CASE_LITERAL:
+    if component.path_options == rdf_paths.PathSpec.Options.CASE_LITERAL:  # pyrefly: ignore[missing-attribute]
       return handler(base_fd=fd, pathspec=component, handlers=handlers)
 
     path_components = client_utils.LocalPathToCanonicalPath(component.path)
@@ -332,14 +332,14 @@ class VFSHandler(IO[bytes], metaclass=abc.ABCMeta):
         # Do not try to use TSK to open a not-found registry entry, fail
         # instead. Using TSK would lead to confusing error messages, hiding
         # the fact that the Registry entry is simply not there.
-        if component.pathtype == rdf_paths.PathSpec.PathType.REGISTRY:
+        if component.pathtype == rdf_paths.PathSpec.PathType.REGISTRY:  # pyrefly: ignore[missing-attribute]
           raise IOError("Registry entry not found: {}".format(e))
 
         # Insert the remaining path at the front of the pathspec.
-        pathspec.Insert(
+        pathspec.Insert(  # pyrefly: ignore[missing-attribute]
             0,
             path=utils.JoinPath(*path_components[i:]),
-            pathtype=rdf_paths.PathSpec.PathType.TSK,
+            pathtype=rdf_paths.PathSpec.PathType.TSK,  # pyrefly: ignore[missing-attribute]
         )
         break
 

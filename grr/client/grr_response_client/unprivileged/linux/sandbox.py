@@ -33,14 +33,14 @@ def EnterSandbox(user: str, group: str) -> None:
 
   # Disable networking and IPC by creating new (empty) namespaces for the
   # current process.
-  libc = ctypes.cdll.LoadLibrary(ctypes.util.find_library("c"))
+  libc = ctypes.cdll.LoadLibrary(ctypes.util.find_library("c"))  # pyrefly: ignore[bad-argument-type]
   unshare = getattr(libc, "unshare", None)
   if unshare:
     unshare.argtypes = [ctypes.c_int]
     unshare.restype = ctypes.c_int
 
     def Unshare(flags: int) -> None:
-      res = unshare(flags)
+      res = unshare(flags)  # pyrefly: ignore[not-callable]
       if res == 0:
         return
       error = ctypes.get_errno()

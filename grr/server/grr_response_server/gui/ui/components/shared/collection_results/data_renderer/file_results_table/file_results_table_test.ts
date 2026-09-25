@@ -21,13 +21,9 @@ import {FileResultsTableHarness} from './testing/file_results_table_harness';
 
 initTestEnvironment();
 
-async function createComponent(
-  results: FlowFileResult[],
-  isHuntResult = false,
-) {
+async function createComponent(results: FlowFileResult[]) {
   const fixture = TestBed.createComponent(FileResultsTable);
   fixture.componentRef.setInput('results', results);
-  fixture.componentRef.setInput('isHuntResult', isHuntResult);
 
   fixture.detectChanges();
   const harness = await TestbedHarnessEnvironment.harnessForFixture(
@@ -43,7 +39,7 @@ describe('File Results Table Component', () => {
       imports: [FileResultsTable, NoopAnimationsModule],
       providers: [
         {
-          // TODO: Ideally we would use a mock store instead.
+          // TODO - Ideally we would use a mock store instead.
           provide: HttpApiWithTranslationService,
           useFactory: () => mockHttpApiWithTranslationService(),
         },
@@ -65,25 +61,22 @@ describe('File Results Table Component', () => {
   }));
 
   it('renders one stat entry row with correct columns', fakeAsync(async () => {
-    const {harness} = await createComponent(
-      [
-        {
-          statEntry: newStatEntry({
-            pathspec: newPathSpec({path: `/home/foo/bar/0`}),
-            stMode: BigInt('420'), // 0644
-            stDev: BigInt(`6777220`),
-            stNlink: BigInt(`1`),
-            stSize: BigInt(`43`),
-            stAtime: new Date('2025-01-20T10:00:00.000Z'),
-            stMtime: new Date('2025-01-20T11:00:00.000Z'),
-            stCtime: new Date('2025-01-20T12:00:00.000Z'),
-            stBtime: new Date('2025-01-20T13:00:00.000Z'),
-          }),
-          clientId: 'C.1234567890',
-        },
-      ],
-      false,
-    );
+    const {harness} = await createComponent([
+      {
+        statEntry: newStatEntry({
+          pathspec: newPathSpec({path: `/home/foo/bar/0`}),
+          stMode: BigInt('420'), // 0644
+          stDev: BigInt(`6777220`),
+          stNlink: BigInt(`1`),
+          stSize: BigInt(`43`),
+          stAtime: new Date('2025-01-20T10:00:00.000Z'),
+          stMtime: new Date('2025-01-20T11:00:00.000Z'),
+          stCtime: new Date('2025-01-20T12:00:00.000Z'),
+          stBtime: new Date('2025-01-20T13:00:00.000Z'),
+        }),
+        clientId: 'C.1234567890',
+      },
+    ]);
 
     const table = await harness.table();
 
@@ -128,16 +121,13 @@ describe('File Results Table Component', () => {
   }));
 
   it('shows a folder icon for directories', fakeAsync(async () => {
-    const {harness} = await createComponent(
-      [
-        {
-          statEntry: newStatEntry({}),
-          clientId: 'C.1234567890',
-          isDirectory: true,
-        },
-      ],
-      false,
-    );
+    const {harness} = await createComponent([
+      {
+        statEntry: newStatEntry({}),
+        clientId: 'C.1234567890',
+        isDirectory: true,
+      },
+    ]);
 
     const rows = await harness.getRows();
     expect(rows.length).toBe(1);
@@ -146,16 +136,13 @@ describe('File Results Table Component', () => {
   }));
 
   it('shows an article icon for files', fakeAsync(async () => {
-    const {harness} = await createComponent(
-      [
-        {
-          statEntry: newStatEntry({}),
-          clientId: 'C.1234567890',
-          isFile: true,
-        },
-      ],
-      false,
-    );
+    const {harness} = await createComponent([
+      {
+        statEntry: newStatEntry({}),
+        clientId: 'C.1234567890',
+        isFile: true,
+      },
+    ]);
 
     const rows = await harness.getRows();
     expect(rows.length).toBe(1);
@@ -164,17 +151,14 @@ describe('File Results Table Component', () => {
   }));
 
   it('shows a link icon for symlinks', fakeAsync(async () => {
-    const {harness} = await createComponent(
-      [
-        {
-          statEntry: newStatEntry({
-            stMode: BigInt(0o120644),
-          }),
-          clientId: 'C.1234567890',
-        },
-      ],
-      false,
-    );
+    const {harness} = await createComponent([
+      {
+        statEntry: newStatEntry({
+          stMode: BigInt(0o120644),
+        }),
+        clientId: 'C.1234567890',
+      },
+    ]);
 
     const rows = await harness.getRows();
     expect(rows.length).toBe(1);
@@ -183,55 +167,18 @@ describe('File Results Table Component', () => {
   }));
 
   it('shows a drive file icon for unknown files/directories', fakeAsync(async () => {
-    const {harness} = await createComponent(
-      [
-        {
-          statEntry: newStatEntry({}),
-          clientId: 'C.1234567890',
-          // isFile and isDirectory are undefined
-        },
-      ],
-      false,
-    );
+    const {harness} = await createComponent([
+      {
+        statEntry: newStatEntry({}),
+        clientId: 'C.1234567890',
+        // isFile and isDirectory are undefined
+      },
+    ]);
 
     const rows = await harness.getRows();
     expect(rows.length).toBe(1);
     const ficonCells = await rows[0].getCells({columnName: 'ficon'});
     expect(await ficonCells[0].getText()).toBe('insert_drive_file');
-  }));
-
-  it('includes client id column when isHuntResult is true', fakeAsync(async () => {
-    const {harness} = await createComponent(
-      [
-        {
-          clientId: 'C.1234567890',
-          statEntry: newStatEntry({}),
-        },
-      ],
-      true,
-    );
-
-    const table = await harness.table();
-    const headers = await table.getHeaderRows();
-    const headerCells = await headers[0].getCells();
-    expect(headerCells.length).toBe(10);
-    expect(await headerCells[0].getText()).toBe('Type');
-    expect(await headerCells[1].getText()).toBe('Client ID');
-    expect(await headerCells[2].getText()).toBe('Path');
-    // Misses hashes column as no hashes are provided
-    expect(await headerCells[3].getText()).toBe('Mode');
-    expect(await headerCells[4].getText()).toBe('Size');
-    expect(await headerCells[5].getText()).toContain('Last access time');
-    expect(await headerCells[6].getText()).toContain('Last modified time');
-    expect(await headerCells[7].getText()).toContain('Last change time');
-    expect(await headerCells[8].getText()).toContain('Birth/creation time');
-    // Misses Status column as no status is provided
-    expect(await headerCells[9].getText()).toBe('Details');
-
-    const rows = await harness.getRows();
-    expect(rows.length).toBe(1);
-    const clientIdCells = await rows[0].getCells({columnName: 'clientId'});
-    expect(await clientIdCells[0].getText()).toContain('C.1234567890');
   }));
 
   it('includes hashes column when hashes are provided', fakeAsync(async () => {

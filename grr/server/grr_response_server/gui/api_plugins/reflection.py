@@ -5,7 +5,7 @@ from grr_response_proto.api import reflection_pb2
 from grr_response_server.gui import api_call_handler_base
 
 
-# TODO: Add tests for this handler.
+# TODO - Add tests for this handler.
 class ApiListApiMethodsHandler(api_call_handler_base.ApiCallHandler):
   """Renders HTTP API docs sources."""
 

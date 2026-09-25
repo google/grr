@@ -441,7 +441,11 @@ describe('Fleet Collection Store', () => {
       totalCount: 1,
     });
 
-    expect(httpApiService.fetchHuntLogs).toHaveBeenCalledWith('ABCD1234');
+    expect(httpApiService.fetchHuntLogs).toHaveBeenCalledWith({
+      huntId: 'ABCD1234',
+      offset: 0,
+      count: 200,
+    });
     expect(store.fleetCollectionLogs()).toEqual([
       {
         timestamp: new Date(1571789996681),

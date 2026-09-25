@@ -104,6 +104,17 @@ describe('Client Labels Form Component', () => {
     expect(autocompleteOptions).toEqual(['label1', 'label2', 'label3']);
   });
 
+  it('filters autocomplete options based on keyboard input', async () => {
+    globalStoreMock.allLabels = signal(['foo1', 'foo2', 'bar1']);
+    const data = new ClientLabelsFormData({}, () => {});
+    const {harness} = await createComponent(data);
+    await (await harness.addLabelButton()).click();
+
+    await harness.setLabel(0, 'foo');
+    const autocompleteOptions = await harness.getLabelAutocompleteOptions(0);
+    expect(autocompleteOptions).toEqual(['foo1', 'foo2']);
+  });
+
   it('returns form data', async () => {
     const data = new ClientLabelsFormData({}, () => {});
     const {fixture, harness} = await createComponent(data);

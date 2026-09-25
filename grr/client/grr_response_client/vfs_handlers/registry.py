@@ -417,7 +417,7 @@ class RegistryFile(vfs_base.VFSHandler):
       with OpenKey(self.hive, key_name) as key:
         self.value, self.value_type = QueryValueEx(key, value_name)
 
-      # TODO: Registry-VFS has issues when keys and values of the
+      # TODO - Registry-VFS has issues when keys and values of the
       # same name exist. ListNames() does not work for a key, if a value of the
       # same name exists. The original assumption was: "We are a value and
       # therefore not a directory". This is false, since the Registry can have
@@ -489,7 +489,7 @@ class RegistryFile(vfs_base.VFSHandler):
   def ListNames(self):
     """List the names of all keys and values."""
 
-    # TODO: This check is flawed, because the current definition of
+    # TODO - This check is flawed, because the current definition of
     # "IsDirectory" is the negation of "is a file". One registry path can
     # actually refer to a key ("directory"), a value of the same name ("file")
     # and the default value of the key at the same time.

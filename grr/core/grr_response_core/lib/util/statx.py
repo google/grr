@@ -184,7 +184,7 @@ if platform.system() == "Linux":
     def _GetImplLinuxStatx(path: bytes) -> Result:
       """A Linux-specific stat implementation through `statx`."""
       c_result = _StatxStruct()
-      c_status = _statx(
+      c_status = _statx(  # pyrefly: ignore[not-callable]
           0,
           path,
           _AT_SYMLINK_NOFOLLOW | _AT_STATX_SYNC_AS_STAT,
@@ -245,10 +245,10 @@ elif platform.system() == "Darwin":
     stat_obj = os.lstat(path)
     # Nanosecond-precision birthtime is not available, with approximate it with
     # the float-precision one.
-    st_birthtime_ns = int(stat_obj.st_birthtime * 10**9)  # pytype: disable=attribute-error
+    st_birthtime_ns = int(stat_obj.st_birthtime * 10**9)  # pyrefly: ignore[missing-attribute]
 
     return Result(
-        attributes=stat_obj.st_flags,  # pytype: disable=attribute-error
+        attributes=stat_obj.st_flags,  # pyrefly: ignore[missing-attribute]
         nlink=stat_obj.st_nlink,
         uid=stat_obj.st_uid,
         gid=stat_obj.st_gid,
@@ -280,7 +280,7 @@ elif platform.system() == "Windows":
     # pylint: enable=line-too-long
 
     return Result(
-        attributes=stat_obj.st_file_attributes,  # pytype: disable=attribute-error
+        attributes=stat_obj.st_file_attributes,  # pyrefly: ignore[missing-attribute]
         nlink=stat_obj.st_nlink,
         uid=stat_obj.st_uid,
         gid=stat_obj.st_gid,

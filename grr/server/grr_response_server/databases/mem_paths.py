@@ -92,30 +92,30 @@ class _PathRecord:
     Returns:
       A `objects_pb2.PathInfo` instance.
     """
-    path_info_timestamp = self._LastEntryTimestamp(self._path_infos, timestamp)
+    path_info_timestamp = self._LastEntryTimestamp(self._path_infos, timestamp)  # pyrefly: ignore[bad-argument-type]
     try:
       result = objects_pb2.PathInfo()
-      result.CopyFrom(self._path_infos[path_info_timestamp])
+      result.CopyFrom(self._path_infos[path_info_timestamp])  # pyrefly: ignore[bad-index]
     except KeyError:
       result = objects_pb2.PathInfo(
           path_type=self._path_type, components=self._components, directory=True
       )
 
     stat_entry_timestamp = self._LastEntryTimestamp(
-        self._stat_entries, timestamp
+        self._stat_entries, timestamp  # pyrefly: ignore[bad-argument-type]
     )
     if stat_entry_timestamp:
       result.last_stat_entry_timestamp = stat_entry_timestamp
-    stat_entry = self._stat_entries.get(stat_entry_timestamp)
+    stat_entry = self._stat_entries.get(stat_entry_timestamp)  # pyrefly: ignore[bad-argument-type]
     if stat_entry:
       result.stat_entry.CopyFrom(stat_entry)
 
     hash_entry_timestamp = self._LastEntryTimestamp(
-        self._hash_entries, timestamp
+        self._hash_entries, timestamp  # pyrefly: ignore[bad-argument-type]
     )
     if hash_entry_timestamp:
       result.last_hash_entry_timestamp = hash_entry_timestamp
-    hash_entry = self._hash_entries.get(hash_entry_timestamp)
+    hash_entry = self._hash_entries.get(hash_entry_timestamp)  # pyrefly: ignore[bad-argument-type]
     if hash_entry:
       result.hash_entry.CopyFrom(hash_entry)
 
@@ -176,7 +176,7 @@ class InMemoryDBPathMixin(object):
     """Retrieves a path info record for a given path."""
     try:
       path_record = self.path_records[(client_id, path_type, tuple(components))]
-      return path_record.GetPathInfo(timestamp=timestamp)
+      return path_record.GetPathInfo(timestamp=timestamp)  # pyrefly: ignore[bad-argument-type]
     except KeyError:
       raise db.UnknownPathError(
           client_id=client_id, path_type=path_type, components=components

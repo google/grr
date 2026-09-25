@@ -192,7 +192,7 @@ class FileDescriptor:
       if self._handle is None:
         raise ValueError("Handle is required.")
       # pytype doesn't see the functions in msvcrt
-      self._file_descriptor = msvcrt.open_osfhandle(self._handle, mode)  # pytype: disable=module-attr
+      self._file_descriptor = msvcrt.open_osfhandle(self._handle, mode)  # pyrefly: ignore[missing-attribute]
       # The file descriptor takes ownership of the handle.
       self._handle = None
       return self._file_descriptor
@@ -209,7 +209,7 @@ class FileDescriptor:
         raise ValueError("File descriptor is required.")
       import msvcrt  # pylint: disable=g-import-not-at-top
       # pytype doesn't see the functions in msvcrt
-      return msvcrt.get_osfhandle(self._file_descriptor)  # pytype: disable=module-attr
+      return msvcrt.get_osfhandle(self._file_descriptor)  # pyrefly: ignore[missing-attribute]
     else:
       raise ValueError("Handle is required.")
 
@@ -308,7 +308,7 @@ class SubprocessServer(Server):
 
       if platform.system() == "Windows":
         # pylint: disable=g-import-not-at-top
-        from grr_response_client.unprivileged.windows import process  # pytype: disable=import-error
+        from grr_response_client.unprivileged.windows import process  # pyrefly: ignore[missing-import]
         # pylint: enable=g-import-not-at-top
         args = self._args_factory(
             Channel(pipe_input=input_r_fd_obj, pipe_output=output_w_fd_obj)
@@ -352,7 +352,7 @@ class SubprocessServer(Server):
       self._output_r.close()
 
   def Connect(self) -> Connection:
-    transport = PipeTransport(self._output_r, self._input_w)
+    transport = PipeTransport(self._output_r, self._input_w)  # pyrefly: ignore[bad-argument-type]
     return Connection(transport)
 
   @classmethod
@@ -371,13 +371,13 @@ class SubprocessServer(Server):
   def cpu_time(self) -> float:
     if self._process_win is not None:
       return self._process_win.GetCpuTimes().cpu_time
-    return self._psutil_process.cpu_times().user  # pytype: disable=wrong-arg-count  # bind-properties
+    return self._psutil_process.cpu_times().user
 
   @property
   def sys_time(self) -> float:
     if self._process_win is not None:
       return self._process_win.GetCpuTimes().sys_time
-    return self._psutil_process.cpu_times().system  # pytype: disable=wrong-arg-count  # bind-properties
+    return self._psutil_process.cpu_times().system
 
   @property
   def _psutil_process(self) -> psutil.Process:

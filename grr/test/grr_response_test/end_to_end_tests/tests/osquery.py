@@ -11,7 +11,7 @@ class TestOsquery(test_base.EndToEndTest):
   platforms = test_base.EndToEndTest.Platform.ALL
 
   def testOsVersion(self):
-    args = self.grr_api.types.CreateFlowArgs("OsqueryFlow")
+    args = self.grr_api.types.CreateFlowArgs("OsqueryFlow")  # pyrefly: ignore[missing-attribute]
     args.query = """SELECT name FROM os_version;"""
     args.ignore_stderr_errors = True  # Windows client prints spurious warnings.
 
@@ -40,7 +40,7 @@ class TestOsquery(test_base.EndToEndTest):
       self.fail("Unexpected platform: {}".format(self.platform))
 
   def testProcesses(self):
-    args = self.grr_api.types.CreateFlowArgs("OsqueryFlow")
+    args = self.grr_api.types.CreateFlowArgs("OsqueryFlow")  # pyrefly: ignore[missing-attribute]
     args.query = """
     SELECT path
       FROM osquery_info JOIN processes

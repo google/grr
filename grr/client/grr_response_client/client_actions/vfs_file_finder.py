@@ -27,17 +27,17 @@ class VfsFileFinder(actions.ActionPlugin):
   def Run(self, args: rdf_file_finder.FileFinderArgs):
     action = self._ParseAction(args)
     content_conditions = list(
-        conditions.ContentCondition.Parse(args.conditions)
+        conditions.ContentCondition.Parse(args.conditions)  # pyrefly: ignore[missing-attribute]
     )
     metadata_conditions = list(
-        conditions.MetadataCondition.Parse(args.conditions)
+        conditions.MetadataCondition.Parse(args.conditions)  # pyrefly: ignore[missing-attribute]
     )
 
     for path in _GetExpandedPaths(args, heartbeat_cb=self.Progress):
       self.Progress()
-      pathspec = rdf_paths.PathSpec(path=path, pathtype=args.pathtype)
+      pathspec = rdf_paths.PathSpec(path=path, pathtype=args.pathtype)  # pyrefly: ignore[missing-attribute]
       if args.HasField("implementation_type"):
-        pathspec.implementation_type = args.implementation_type
+        pathspec.implementation_type = args.implementation_type  # pyrefly: ignore[missing-attribute]
 
       with vfs.VFSOpen(pathspec) as vfs_file:
         stat_entry = vfs_file.Stat()
@@ -54,20 +54,19 @@ class VfsFileFinder(actions.ActionPlugin):
           continue  # Skip if any condition yielded no matches.
 
         result = action(stat_entry=stat_entry, fd=vfs_file)
-        result.matches = matches
         self.SendReply(result)
 
   def _ParseAction(
       self,
       args: rdf_file_finder.FileFinderArgs,
   ) -> vfs_subactions.Action:
-    action_type = args.action.action_type
-    if action_type == rdf_file_finder.FileFinderAction.Action.HASH:
-      return vfs_subactions.HashAction(self, args.action.hash)
-    if action_type == rdf_file_finder.FileFinderAction.Action.DOWNLOAD:
-      return vfs_subactions.DownloadAction(self, args.action.download)
+    action_type = args.action.action_type  # pyrefly: ignore[missing-attribute]
+    if action_type == rdf_file_finder.FileFinderAction.Action.HASH:  # pyrefly: ignore[missing-attribute]
+      return vfs_subactions.HashAction(self, args.action.hash)  # pyrefly: ignore[missing-attribute]
+    if action_type == rdf_file_finder.FileFinderAction.Action.DOWNLOAD:  # pyrefly: ignore[missing-attribute]
+      return vfs_subactions.DownloadAction(self, args.action.download)  # pyrefly: ignore[missing-attribute]
     else:
-      return vfs_subactions.StatAction(self, args.action.stat)
+      return vfs_subactions.StatAction(self, args.action.stat)  # pyrefly: ignore[missing-attribute]
 
 
 def _CheckConditionsShortCircuit(content_conditions, pathspec):
@@ -77,7 +76,7 @@ def _CheckConditionsShortCircuit(content_conditions, pathspec):
     cur_matches = []
     with vfs.VFSOpen(pathspec) as vfs_file:
       is_registry = (
-          vfs_file.supported_pathtype == rdf_paths.PathSpec.PathType.REGISTRY
+          vfs_file.supported_pathtype == rdf_paths.PathSpec.PathType.REGISTRY  # pyrefly: ignore[missing-attribute]
       )
       # Do the actual matching for registry files or for files with a well
       # defined size.
@@ -97,15 +96,15 @@ def _GetExpandedPaths(
 ) -> Iterator[str]:
   """Yields all possible expansions from given path patterns."""
   if args.HasField("implementation_type"):
-    implementation_type = args.implementation_type
+    implementation_type = args.implementation_type  # pyrefly: ignore[missing-attribute]
   else:
     implementation_type = None
   opts = globbing.PathOpts(
-      follow_links=args.follow_links,
-      pathtype=args.pathtype,
+      follow_links=args.follow_links,  # pyrefly: ignore[missing-attribute]
+      pathtype=args.pathtype,  # pyrefly: ignore[missing-attribute]
       implementation_type=implementation_type,
   )
 
-  for path in args.paths:
+  for path in args.paths:  # pyrefly: ignore[missing-attribute]
     for expanded_path in globbing.ExpandPath(str(path), opts, heartbeat_cb):
       yield expanded_path

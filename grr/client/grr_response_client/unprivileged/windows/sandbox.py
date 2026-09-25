@@ -7,7 +7,7 @@ sandboxing is supported by the current platform.
 
 from collections.abc import Iterable
 import logging
-import platform
+import sys
 from typing import Optional
 
 _sandbox_name: Optional[str] = None
@@ -29,10 +29,11 @@ def InitSandbox(name: str, paths_read_only: Iterable[str]) -> None:
   Raises:
     Error: if the global sandbox has been already initialized.
   """
-  if int(platform.release()) < 8:
+  if sys.getwindowsversion().major < 8:
     logging.info(
-        "Skipping sandbox initialization. Unsupported platform release: %s.",
-        platform.release())
+        "Skipping sandbox initialization. Unsupported Windows version: %s.",
+        sys.getwindowsversion(),
+    )
     return
   global _sandbox_name
   if _sandbox_name is not None:

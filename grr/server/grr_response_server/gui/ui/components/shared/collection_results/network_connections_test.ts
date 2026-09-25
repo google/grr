@@ -8,10 +8,7 @@ import {
   NetworkConnectionState,
   NetworkConnectionType,
 } from '../../../lib/api/api_interfaces';
-import {
-  newFlowResult,
-  newHuntResult,
-} from '../../../lib/models/model_test_util';
+import {newFlowResult} from '../../../lib/models/model_test_util';
 import {CollectionResult, PayloadType} from '../../../lib/models/result';
 import {initTestEnvironment} from '../../../testing';
 import {NetworkConnections} from './network_connections';
@@ -112,20 +109,4 @@ describe('Network Connections Component', () => {
     expect(await harness.getCellText(0, 'pid')).toEqual('123');
     expect(await harness.getCellText(1, 'pid')).toEqual('234');
   }));
-
-  it('shows client id for hunt results', async () => {
-    const {harness} = await createComponent([
-      newHuntResult({
-        clientId: 'C.1234',
-        payload: {
-          clientId: 'C.1234',
-        },
-      }),
-    ]);
-
-    const table = await harness.table();
-    expect(table).toBeDefined();
-    expect(await table!.getRows()).toHaveSize(1);
-    expect(await harness.getCellText(0, 'clientId')).toContain('C.1234');
-  });
 });

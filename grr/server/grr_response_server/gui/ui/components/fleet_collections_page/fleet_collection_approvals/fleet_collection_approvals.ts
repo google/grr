@@ -7,7 +7,6 @@ import {
 } from '@angular/core';
 import {MatButtonModule} from '@angular/material/button';
 import {MatDividerModule} from '@angular/material/divider';
-import {Title} from '@angular/platform-browser';
 import {RouterModule} from '@angular/router';
 
 import {ApprovalRequestStore} from '../../../store/approval_request_store';
@@ -41,8 +40,4 @@ export class FleetCollectionApprovals {
   readonly fleetCollectionId = routerInput.required<string>();
 
   protected showForm = false;
-
-  constructor() {
-    inject(Title).setTitle('GRR | Fleet Collection > Approvals');
-  }
 }

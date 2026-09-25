@@ -151,7 +151,7 @@ class CfData(StructBase):
   def Uncompress(self, zdict: Optional[bytes] = None) -> bytes:
     if self.compressed[:2] != b"\x43\x4b":
       raise Error("Compressed data is missing header.")
-    decompress_obj = zlib.decompressobj(-zlib.MAX_WBITS, zdict=zdict)
+    decompress_obj = zlib.decompressobj(-zlib.MAX_WBITS, zdict=zdict)  # pyrefly: ignore[bad-argument-type]
     data = decompress_obj.decompress(self.compressed[2:])
     data += decompress_obj.flush()
     return data

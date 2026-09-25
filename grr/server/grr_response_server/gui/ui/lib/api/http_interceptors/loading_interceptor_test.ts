@@ -95,4 +95,21 @@ describe('LoadingInterceptor', () => {
       false,
     );
   });
+
+  it('removes the loading state when a request is cancelled/unsubscribed', () => {
+    const context = new HttpContext().set(TRACK_LOADING_STATE, true);
+    const subscription = client.get('/cancelled', {context}).subscribe();
+
+    expect(loadingServiceSpy.updateLoadingUrls).toHaveBeenCalledWith(
+      '/cancelled',
+      true,
+    );
+
+    subscription.unsubscribe();
+
+    expect(loadingServiceSpy.updateLoadingUrls).toHaveBeenCalledWith(
+      '/cancelled',
+      false,
+    );
+  });
 });

@@ -327,24 +327,6 @@ describe('Clients Form Component', () => {
     expect(await harness.clientRegexForms()).toHaveSize(0);
   });
 
-  it('shows presubmit warning when the rules are not valid', async () => {
-    globalStoreMock.uiConfig = signal({
-      huntConfig: {
-        presubmitWarningMessage: 'you shall not pass',
-        defaultExcludeLabels: ['no', 'also-no'],
-        presubmitCheckWithSkipTag: 'SKIP_PRESUBMIT_CHECK',
-      },
-    });
-    const {harness} = await createComponent();
-
-    const warningCard = await harness.warningCard();
-    expect(warningCard).not.toBeNull();
-    expect(await warningCard!.getText()).toContain('you shall not pass');
-    expect(await warningCard!.getText()).toContain('SKIP_PRESUBMIT_CHECK');
-    expect(await warningCard!.getText()).toContain('no');
-    expect(await warningCard!.getText()).toContain('also-no');
-  });
-
   it('adds the label form with the expected excluded labels when clicking on the fix button', async () => {
     globalStoreMock.uiConfig = signal({
       huntConfig: {
@@ -363,6 +345,24 @@ describe('Clients Form Component', () => {
     const labelNamesInputs = await labelForm[0].getLabelNames();
     expect(labelNamesInputs).toEqual(['no', 'also-no']);
     expect(await harness.warningCard()).toBeNull();
+  });
+
+  it('shows presubmit warning when the rules are missing', async () => {
+    globalStoreMock.uiConfig = signal({
+      huntConfig: {
+        presubmitWarningMessage: 'you shall not pass',
+        defaultExcludeLabels: ['no', 'also-no'],
+        presubmitCheckWithSkipTag: 'SKIP_PRESUBMIT_CHECK',
+      },
+    });
+    const {harness} = await createComponent();
+
+    const warningCard = await harness.warningCard();
+    expect(warningCard).not.toBeNull();
+    expect(await warningCard!.getText()).toContain('you shall not pass');
+    expect(await warningCard!.getText()).toContain('SKIP_PRESUBMIT_CHECK');
+    expect(await warningCard!.getText()).toContain('no');
+    expect(await warningCard!.getText()).toContain('also-no');
   });
 
   it('does not show presubmit warning when the rules are valid', async () => {
@@ -391,5 +391,128 @@ describe('Clients Form Component', () => {
     await clientLabelsForms[0].setLabel(1, 'also-no');
 
     expect(await harness.warningCard()).toBeNull();
+  });
+
+  it('ignores match mode when a single valid label rule is present', async () => {
+    globalStoreMock.uiConfig = signal({
+      huntConfig: {
+        presubmitWarningMessage: 'you shall not pass',
+        defaultExcludeLabels: ['exclude-me'],
+        presubmitCheckWithSkipTag: 'SKIP_PRESUBMIT_CHECK',
+      },
+    });
+    const {harness} = await createComponent();
+
+    const addConditionButton = await harness.addConditionButton();
+    await addConditionButton.click();
+    const addConditionMenu = await harness.addConditionMenu();
+    await addConditionMenu.open();
+    const items = await addConditionMenu.getItems({text: 'Labels'});
+    await items[0].click();
+    const clientLabelsForms = await harness.clientLabelsForms();
+    expect(clientLabelsForms).toHaveSize(1);
+    await clientLabelsForms[0].setMatchMode("Doesn't match any");
+    const addLabelButton = await clientLabelsForms[0].addLabelButton();
+    await addLabelButton.click();
+    await clientLabelsForms[0].setLabel(0, 'exclude-me');
+
+    // Add a second rule and set the match mode to "match any".
+    await addConditionButton.click();
+    const addConditionMenu2 = await harness.addConditionMenu();
+    await addConditionMenu2.open();
+    const items2 = await addConditionMenu2.getItems({text: 'Labels'});
+    await items2[0].click();
+    await harness.setMatchMode('Match Any (or)');
+
+    // Remove the second rule again, internally the match mode is still set but
+    // as we only have a single label rule, it should be ignored.
+    const removeRuleButton = await harness.removeRuleButton(1);
+    await removeRuleButton.click();
+
+    expect(await harness.warningCard()).toBeNull();
+  });
+
+  it('shows the presubmit warning when the match mode is set to `match any` and there are multiple rules', async () => {
+    globalStoreMock.uiConfig = signal({
+      huntConfig: {
+        presubmitWarningMessage: 'you shall not pass',
+        defaultExcludeLabels: ['exclude-me'],
+        presubmitCheckWithSkipTag: 'SKIP_PRESUBMIT_CHECK',
+      },
+    });
+    const {harness} = await createComponent();
+
+    // Add a first rule that matches the presubmit check.
+    const addConditionButton = await harness.addConditionButton();
+    await addConditionButton.click();
+    const addConditionMenu = await harness.addConditionMenu();
+    await addConditionMenu.open();
+    const items = await addConditionMenu.getItems({text: 'Labels'});
+    await items[0].click();
+    const clientLabelsForms = await harness.clientLabelsForms();
+    expect(clientLabelsForms).toHaveSize(1);
+    await clientLabelsForms[0].setMatchMode("Doesn't match any");
+    const addLabelButton = await clientLabelsForms[0].addLabelButton();
+    await addLabelButton.click();
+    await clientLabelsForms[0].setLabel(0, 'exclude-me');
+    // Add a second random rule.
+    await addConditionButton.click();
+    const addConditionMenu2 = await harness.addConditionMenu();
+    await addConditionMenu2.open();
+    const items2 = await addConditionMenu2.getItems({text: 'Labels'});
+    await items2[0].click();
+    const clientLabelsForms2 = await harness.clientLabelsForms();
+    await clientLabelsForms2[1].setMatchMode('Match any');
+    const addLabelButton2 = await clientLabelsForms2[1].addLabelButton();
+    await addLabelButton2.click();
+    await clientLabelsForms2[1].setLabel(0, 'include-me');
+
+    await harness.setMatchMode('Match Any (or)');
+
+    const warningCard = await harness.warningCard();
+    expect(warningCard).not.toBeNull();
+    expect(await warningCard!.getText()).toContain('you shall not pass');
+    expect(await warningCard!.getText()).toContain('SKIP_PRESUBMIT_CHECK');
+    expect(await warningCard!.getText()).toContain('exclude-me');
+  });
+
+  it('hides the presubmit warning when the match mode is set to `match all` and there are multiple rules', async () => {
+    globalStoreMock.uiConfig = signal({
+      huntConfig: {
+        presubmitWarningMessage: 'you shall not pass',
+        defaultExcludeLabels: ['exclude-me'],
+        presubmitCheckWithSkipTag: 'SKIP_PRESUBMIT_CHECK',
+      },
+    });
+    const {harness} = await createComponent();
+
+    // Add a rule that matches the presubmit check.
+    const addConditionButton = await harness.addConditionButton();
+    await addConditionButton.click();
+    const addConditionMenu = await harness.addConditionMenu();
+    await addConditionMenu.open();
+    const items = await addConditionMenu.getItems({text: 'Labels'});
+    await items[0].click();
+    const clientLabelsForms = await harness.clientLabelsForms();
+    await clientLabelsForms[0].setMatchMode("Doesn't match any");
+    const addLabelButton = await clientLabelsForms[0].addLabelButton();
+    await addLabelButton.click();
+    await clientLabelsForms[0].setLabel(0, 'exclude-me');
+    // Add a second random rule.
+    await addConditionButton.click();
+    const addConditionMenu2 = await harness.addConditionMenu();
+    await addConditionMenu2.open();
+    const items2 = await addConditionMenu2.getItems({text: 'Labels'});
+    await items2[0].click();
+    const clientLabelsForms2 = await harness.clientLabelsForms();
+    await clientLabelsForms2[1].setMatchMode('Match any');
+    const addLabelButton2 = await clientLabelsForms2[1].addLabelButton();
+    await addLabelButton2.click();
+    await clientLabelsForms2[1].setLabel(0, 'include-me');
+
+    await harness.setMatchMode('Match All (and)');
+
+    const warningCard = await harness.warningCard();
+    expect(warningCard).toBeNull();
   });
 });

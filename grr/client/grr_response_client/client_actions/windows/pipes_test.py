@@ -12,9 +12,7 @@ from grr_response_client.client_actions.windows import pipes
 
 if platform.system() == "Windows":
   # pylint: disable=g-import-not-at-top
-  # pytype: disable=import-error
-  import win32pipe
-  # pytype: enable=import-error
+  import win32pipe  # pyrefly: ignore[missing-source-for-stubs]
   # pylint: enable=g-import-not-at-top
 
 
@@ -31,7 +29,7 @@ class ListNamedPipesTest(absltest.TestCase):
     with pipe_spec.Create():
       results = list(pipes.ListNamedPipes())
 
-    names = set(result.name for result in results)
+    names = set(result.name for result in results)  # pyrefly: ignore[missing-attribute]
     self.assertIn(pipe_name, names)
 
   def testMultiplePipes(self) -> None:
@@ -45,7 +43,7 @@ class ListNamedPipesTest(absltest.TestCase):
       with pipe_spec_2.Create():
         results = list(pipes.ListNamedPipes())
 
-    names = set(result.name for result in results)
+    names = set(result.name for result in results)  # pyrefly: ignore[missing-attribute]
     self.assertIn(pipe_name_1, names)
     self.assertIn(pipe_name_2, names)
 
@@ -64,10 +62,10 @@ class ListNamedPipesTest(absltest.TestCase):
     with pipe_spec.Create():
       results = list(pipes.ListNamedPipes())
 
-    results_by_name = {result.name: result for result in results}
+    results_by_name = {result.name: result for result in results}  # pyrefly: ignore[missing-attribute]
     result = results_by_name[pipe_name]
 
-    self.assertEqual(result.flags & pipe_type, pipe_type)
+    self.assertEqual(result.flags & pipe_type, pipe_type)  # pyrefly: ignore[missing-attribute]
 
   def testMaxInstanceCountLimited(self) -> None:
     self._testMaxInstanceCount(42)
@@ -85,10 +83,10 @@ class ListNamedPipesTest(absltest.TestCase):
 
       results = list(pipes.ListNamedPipes())
 
-    results_by_name = {result.name: result for result in results}
+    results_by_name = {result.name: result for result in results}  # pyrefly: ignore[missing-attribute]
     result = results_by_name[pipe_name]
 
-    self.assertEqual(result.max_instance_count, count)
+    self.assertEqual(result.max_instance_count, count)  # pyrefly: ignore[missing-attribute]
 
   def testCurInstanceCount(self) -> None:
     pipe_name = str(uuid.uuid4())
@@ -99,10 +97,10 @@ class ListNamedPipesTest(absltest.TestCase):
         with pipe_spec.Create():
           results = list(pipes.ListNamedPipes())
 
-    results_by_name = {result.name: result for result in results}
+    results_by_name = {result.name: result for result in results}  # pyrefly: ignore[missing-attribute]
     result = results_by_name[pipe_name]
 
-    self.assertEqual(result.cur_instance_count, 3)
+    self.assertEqual(result.cur_instance_count, 3)  # pyrefly: ignore[missing-attribute]
 
   def testBufferSize(self) -> None:
     pipe_name = str(uuid.uuid4())
@@ -114,11 +112,11 @@ class ListNamedPipesTest(absltest.TestCase):
     with pipe_spec.Create():
       results = list(pipes.ListNamedPipes())
 
-    results_by_name = {result.name: result for result in results}
+    results_by_name = {result.name: result for result in results}  # pyrefly: ignore[missing-attribute]
     result = results_by_name[pipe_name]
 
-    self.assertEqual(result.in_buffer_size, 42)
-    self.assertEqual(result.out_buffer_size, 108)
+    self.assertEqual(result.in_buffer_size, 42)  # pyrefly: ignore[missing-attribute]
+    self.assertEqual(result.out_buffer_size, 108)  # pyrefly: ignore[missing-attribute]
 
   def testPid(self) -> None:
     pipe_name = str(uuid.uuid4())
@@ -127,11 +125,11 @@ class ListNamedPipesTest(absltest.TestCase):
     with pipe_spec.Create():
       results = list(pipes.ListNamedPipes())
 
-    results_by_name = {result.name: result for result in results}
+    results_by_name = {result.name: result for result in results}  # pyrefly: ignore[missing-attribute]
     result = results_by_name[pipe_name]
 
-    self.assertEqual(result.server_pid, os.getpid())
-    self.assertEqual(result.client_pid, os.getpid())
+    self.assertEqual(result.server_pid, os.getpid())  # pyrefly: ignore[missing-attribute]
+    self.assertEqual(result.client_pid, os.getpid())  # pyrefly: ignore[missing-attribute]
 
 
 class NamedPipeSpec:
@@ -174,10 +172,10 @@ class NamedPipeSpec:
         self.in_buffer_size,
         self.out_buffer_size,
         self.default_timeout_millis,
-        None,
+        None,  # pyrefly: ignore[bad-argument-type]
     )
 
-    with contextlib.closing(handle):
+    with contextlib.closing(handle):  # pyrefly: ignore[bad-specialization]
       yield
 
 

@@ -6,46 +6,15 @@
 import collections
 from collections.abc import Iterator
 import os
-from typing import cast
 
 from google.protobuf import any_pb2
-from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
-from grr_response_core.lib.rdfvalues import structs as rdf_structs
+from grr_response_core.lib.rdfvalues import mig_paths
 from grr_response_proto import flows_pb2
 from grr_response_proto import jobs_pb2
 from grr_response_server import flow_base
 from grr_response_server import flow_responses
 from grr_response_server.databases import db
 from grr_response_server.flows.general import collectors
-from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
-
-
-class CollectBrowserHistoryArgs(rdf_structs.RDFProtoStruct):
-  """Arguments for CollectBrowserHistory."""
-
-  protobuf = flows_pb2.CollectBrowserHistoryArgs
-
-
-class CollectBrowserHistoryResult(rdf_structs.RDFProtoStruct):
-  """Result item to be returned by CollectBrowserHistory."""
-
-  protobuf = flows_pb2.CollectBrowserHistoryResult
-  rdf_deps = [
-      rdf_client_fs.StatEntry,
-  ]
-
-
-class BrowserProgress(rdf_structs.RDFProtoStruct):
-  """Single browser progress for CollectBrowserHistoryProgress."""
-
-  protobuf = flows_pb2.BrowserProgress
-
-
-class CollectBrowserHistoryProgress(rdf_structs.RDFProtoStruct):
-  """Progress for CollectBrowserHistory."""
-
-  protobuf = flows_pb2.CollectBrowserHistoryProgress
-  rdf_deps = [BrowserProgress]
 
 
 def _HasErrors(progress: flows_pb2.CollectBrowserHistoryProgress) -> bool:
@@ -78,16 +47,11 @@ class CollectBrowserHistory(
 
   friendly_name = "Browser History"
   category = "/Browser/"
-  args_type = CollectBrowserHistoryArgs
-  progress_type = CollectBrowserHistoryProgress
-  result_types = (CollectBrowserHistoryResult,)
   behaviours = flow_base.BEHAVIOUR_BASIC
 
   proto_args_type = flows_pb2.CollectBrowserHistoryArgs
   proto_progress_type = flows_pb2.CollectBrowserHistoryProgress
   proto_result_types = (flows_pb2.CollectBrowserHistoryResult,)
-
-  only_protos_allowed = True
 
   BROWSER_TO_ARTIFACTS_MAP = {
       flows_pb2.Browser.CHROMIUM_BASED_BROWSERS: [
@@ -99,27 +63,25 @@ class CollectBrowserHistory(
       flows_pb2.Browser.SAFARI: ["SafariHistory"],
   }
 
-  def GetProgress(self) -> CollectBrowserHistoryProgress:
-    # The mig_webhistory module cannot be imported here (circular dep).
-    return CollectBrowserHistoryProgress.FromSerializedBytes(
-        self.progress.SerializeToString()
-    )
-
   def GetProgressProto(self) -> flows_pb2.CollectBrowserHistoryProgress:
     return self.progress
 
-  # TODO: Remove/update this method to use protos.
+  # TODO - Remove/update this method to use protos.
+  # This unblocks the deletion of the `CollectBrowserHistoryResult` class above.
   def GetFilesArchiveMappings(
-      self, flow_results: Iterator[rdf_flow_objects.FlowResult]
+      self, flow_results: Iterator[flows_pb2.FlowResult]
   ) -> Iterator[flow_base.ClientPathArchiveMapping]:
     path_counters = collections.Counter()
     for r in flow_results:
-      p = cast(CollectBrowserHistoryResult, r.payload)
+      p = flows_pb2.CollectBrowserHistoryResult()
+      p.ParseFromString(r.payload.value)
+
       client_path = db.ClientPath.FromPathSpec(
-          self.client_id, p.stat_entry.pathspec
+          self.client_id, mig_paths.ToRDFPathSpec(p.stat_entry.pathspec)
       )
       target_path = os.path.join(
-          p.browser.name.lower(), _ArchiveFilename(client_path.components)
+          flows_pb2.Browser.Name(p.browser).lower(),
+          _ArchiveFilename(client_path.components),
       )
       if path_counters[target_path] > 0:
         fname, ext = os.path.splitext(target_path)
@@ -132,13 +94,13 @@ class CollectBrowserHistory(
   def Start(self):
     super().Start()
 
-    if not self.args.browsers:
+    if not self.proto_args.browsers:
       raise flow_base.FlowError("Need to collect at least one type of history.")
 
-    if flows_pb2.Browser.UNDEFINED in self.args.browsers:
+    if flows_pb2.Browser.UNDEFINED in self.proto_args.browsers:
       raise flow_base.FlowError("UNDEFINED is not a valid browser type to use.")
 
-    if len(self.args.browsers) != len(set(self.args.browsers)):
+    if len(self.proto_args.browsers) != len(set(self.proto_args.browsers)):
       raise flow_base.FlowError(
           "Duplicate browser entries are not allowed in the arguments."
       )
@@ -207,7 +169,7 @@ class CollectBrowserHistory(
   def GetDefaultArgs(cls, username=None):
     """Returns default args for this flow."""
     del username  # Unused.
-    return CollectBrowserHistoryArgs(
+    return flows_pb2.CollectBrowserHistoryArgs(
         browsers=[
             flows_pb2.Browser.CHROMIUM_BASED_BROWSERS,
             flows_pb2.Browser.FIREFOX,

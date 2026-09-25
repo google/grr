@@ -43,7 +43,6 @@ def RegisterClientActions():
   client_actions.Register("GetCloudVMMetadata", cloud.GetCloudVMMetadata)
   client_actions.Register("GetConfiguration", admin.GetConfiguration)
   client_actions.Register("GetFileStat", standard.GetFileStat)
-  client_actions.Register("GetHostname", admin.GetHostname)
   client_actions.Register("GetLibraryVersions", admin.GetLibraryVersions)
   client_actions.Register("GetMemorySize", standard.GetMemorySize)
   client_actions.Register("GetPlatformInfo", admin.GetPlatformInfo)
@@ -97,6 +96,7 @@ def RegisterClientActions():
   elif platform.system() == "Darwin":
     from grr_response_client.client_actions.osx import osx  # pylint: disable=g-import-not-at-top
 
+    client_actions.Register("Dummy", dummy.Dummy)
     client_actions.Register("EnumerateFilesystems", osx.EnumerateFilesystems)
     client_actions.Register("EnumerateInterfaces", osx.EnumerateInterfaces)
     client_actions.Register("GetInstallDate", osx.GetInstallDate)

@@ -12,8 +12,11 @@ import {
   isStatEntry,
   translateVfsStatEntry,
 } from '../../../lib/api/translation/flow';
-import {isFlowResult} from '../../../lib/models/flow';
-import {isHuntResult} from '../../../lib/models/hunt';
+import {
+  isFlowResult,
+  RegistryKey,
+  RegistryValue,
+} from '../../../lib/models/flow';
 import {CollectionResult} from '../../../lib/models/result';
 import {
   CollapsibleContainer,
@@ -25,18 +28,12 @@ import {
   FileResultsTable,
   FlowFileResult,
 } from './data_renderer/file_results_table/file_results_table';
-import {
-  RegistryKeyWithClientId,
-  RegistryResultsTable,
-  RegistryValueWithClientId,
-} from './data_renderer/registry_results_table';
+import {RegistryResultsTable} from './data_renderer/registry_results_table';
 
 interface TaggedResult {
   readonly tag: string;
   readonly fileResults: FlowFileResult[];
-  readonly registryResults: Array<
-    RegistryKeyWithClientId | RegistryValueWithClientId
-  >;
+  readonly registryResults: Array<RegistryKey | RegistryValue>;
 }
 
 function resultsPerTagFromCollectionResults(
@@ -64,10 +61,7 @@ function resultsPerTagFromCollectionResults(
         clientId: result.clientId,
       });
     } else if (isRegistryEntry(statOrRegistryEntry)) {
-      taggedResult.registryResults.push({
-        ...statOrRegistryEntry,
-        clientId: result.clientId,
-      });
+      taggedResult.registryResults.push(statOrRegistryEntry);
     }
   }
   return taggedResults;
@@ -94,9 +88,5 @@ export class StatEntryResults {
 
   protected resultsPerTag = computed(() => {
     return resultsPerTagFromCollectionResults(this.collectionResults());
-  });
-
-  protected isHuntResult = computed(() => {
-    return this.collectionResults().some(isHuntResult);
   });
 }

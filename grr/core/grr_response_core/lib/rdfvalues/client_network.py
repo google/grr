@@ -69,9 +69,9 @@ class NetworkAddress(rdf_structs.RDFProtoStruct):
     addr = ipaddress.ip_address(value)
 
     if isinstance(addr, ipaddress.IPv6Address):
-      self.address_type = NetworkAddress.Family.INET6
+      self.address_type = NetworkAddress.Family.INET6  # pyrefly: ignore[missing-attribute]
     elif isinstance(addr, ipaddress.IPv4Address):
-      self.address_type = NetworkAddress.Family.INET
+      self.address_type = NetworkAddress.Family.INET  # pyrefly: ignore[missing-attribute]
     else:
       message = "IP address parsed to an unexpected value: {}".format(addr)
       raise AssertionError(message)
@@ -86,9 +86,9 @@ class NetworkAddress(rdf_structs.RDFProtoStruct):
       return None
 
     try:
-      if self.address_type == NetworkAddress.Family.INET:
+      if self.address_type == NetworkAddress.Family.INET:  # pyrefly: ignore[missing-attribute]
         return ipaddress.IPv4Address(self.packed_bytes)
-      if self.address_type == NetworkAddress.Family.INET6:
+      if self.address_type == NetworkAddress.Family.INET6:  # pyrefly: ignore[missing-attribute]
         return ipaddress.IPv6Address(self.packed_bytes)
     except ipaddress.AddressValueError:
       hex_packed_bytes = text.Hexify(self.packed_bytes)
@@ -99,12 +99,6 @@ class NetworkAddress(rdf_structs.RDFProtoStruct):
 
     message = "IP address has invalid type: {}".format(self.address_type)
     raise ValueError(message)
-
-
-class DNSClientConfiguration(rdf_structs.RDFProtoStruct):
-  """DNS client config."""
-
-  protobuf = sysinfo_pb2.DNSClientConfiguration
 
 
 class MacAddress(rdfvalue.RDFBytes):
@@ -132,7 +126,7 @@ class Interface(rdf_structs.RDFProtoStruct):
   def GetIPAddresses(self):
     """Return a list of IP addresses."""
     results = []
-    for address in self.addresses:
+    for address in self.addresses:  # pyrefly: ignore[missing-attribute]
       human_readable_address = address.human_readable_address
       if human_readable_address is not None:
         results.append(human_readable_address)

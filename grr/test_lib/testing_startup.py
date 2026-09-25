@@ -15,7 +15,6 @@ from grr_response_core.stats import stats_collector_instance
 from grr_response_server import artifact
 from grr_response_server import data_store
 from grr_response_server import email_alerts
-from grr_response_server import ip_resolver
 from grr_response_server import prometheus_stats_collector
 from grr_response_server import server_logging
 from grr_response_server import stats_server
@@ -85,7 +84,6 @@ def TestInit():
   client_approval_auth.InitializeClientApprovalAuthorizationManagerOnce()
   email_alerts.InitializeEmailAlerterOnce()
   http_api.InitializeHttpRequestHandlerOnce()
-  ip_resolver.IPResolverInitOnce()
   stats_server.InitializeStatsServerOnce()
   webauth.InitializeWebAuthOnce()
 

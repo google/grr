@@ -51,26 +51,27 @@ class ReadLowLevel(actions.ActionPlugin):
     """Reads a buffer, stores it and sends it back to the server."""
 
     # Make sure we limit the size of our output.
-    if args.length > _READ_BYTES_LIMIT:
+    if args.length > _READ_BYTES_LIMIT:  # pyrefly: ignore[missing-attribute]
       raise RuntimeError(
+          # pyrefly: ignore[missing-attribute]
           "Can not read buffers this large "
           f"({args.length} > {_READ_BYTES_LIMIT} bytes)."
       )
 
-    # TODO: Update `blob_size` when `sector_block_size` is set.
+    # TODO - Update `blob_size` when `sector_block_size` is set.
     # `blob_size` must be a multiple of `sector_block_size` so that reads start
     # and _continue_ to be aligned.
     # An alternative is to _always_ align (each blob read).
-    blob_size = args.blob_size or _DEFAULT_BLOB_SIZE
+    blob_size = args.blob_size or _DEFAULT_BLOB_SIZE  # pyrefly: ignore[missing-attribute]
     pre_padding = GetPrePadding(args)
     self._pre_padding = pre_padding
     aligned_args = AlignArgs(args, pre_padding)
 
-    bytes_left_to_read = aligned_args.length
+    bytes_left_to_read = aligned_args.length  # pyrefly: ignore[missing-attribute]
     is_first_chunk = True
-    current_offset = aligned_args.offset
+    current_offset = aligned_args.offset  # pyrefly: ignore[missing-attribute]
 
-    with open(args.path, "rb") as fd:
+    with open(args.path, "rb") as fd:  # pyrefly: ignore[missing-attribute]
       fd.seek(current_offset, io.SEEK_SET)  # absolute file positioning
       while bytes_left_to_read > 0:
 
@@ -107,8 +108,8 @@ class ReadLowLevel(actions.ActionPlugin):
     """
 
     data_blob = rdf_protodict.DataBlob(
-        data=zlib.compress(data),
-        compression=rdf_protodict.DataBlob.CompressionType.ZCOMPRESSION,
+        data=zlib.compress(data),  # pyrefly: ignore[bad-argument-type]
+        compression=rdf_protodict.DataBlob.CompressionType.ZCOMPRESSION,  # pyrefly: ignore[missing-attribute]
     )
 
     # Ensure that the buffer is counted against this response. Check network
@@ -117,18 +118,18 @@ class ReadLowLevel(actions.ActionPlugin):
 
     # Now return the data to the server into the special TransferStore well
     # known flow.
-    self.grr_worker.SendReply(
+    self.grr_worker.SendReply(  # pyrefly: ignore[missing-attribute]
         data_blob, session_id=rdfvalue.SessionID(flow_name="TransferStore")
     )
 
     # Now report the hash of this blob to our flow as well as the offset and
     # length.
-    digest = hashlib.sha256(data).digest()
+    digest = hashlib.sha256(data).digest()  # pyrefly: ignore[bad-argument-type]
 
     buffer_reference = rdf_client.BufferReference(
         offset=offset, length=len(data), data=digest
     )
-    self._partial_file_hash.update(data)
+    self._partial_file_hash.update(data)  # pyrefly: ignore[bad-argument-type]
     partial_file_hash = self._partial_file_hash.digest()
 
     self.SendReply(
@@ -148,8 +149,8 @@ def GetPrePadding(args: rdf_read_low_level.ReadLowLevelRequest) -> int:
     The pre padding to be added to the offset (for alignment).
   """
 
-  block_size = args.sector_block_size or _DEFAULT_SECTOR_BLOCK_SIZE
-  return args.offset % block_size
+  block_size = args.sector_block_size or _DEFAULT_SECTOR_BLOCK_SIZE  # pyrefly: ignore[missing-attribute]
+  return args.offset % block_size  # pyrefly: ignore[missing-attribute]
 
 
 def AlignArgs(
@@ -183,7 +184,7 @@ def AlignArgs(
 
   # Due to alignment we will read some more data than we need to.
   aligned_params = args.Copy()
-  aligned_params.offset = args.offset - pre_padding
-  aligned_params.length = args.length + pre_padding
+  aligned_params.offset = args.offset - pre_padding  # pyrefly: ignore[missing-attribute]
+  aligned_params.length = args.length + pre_padding  # pyrefly: ignore[missing-attribute]
 
   return aligned_params

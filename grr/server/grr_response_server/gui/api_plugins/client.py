@@ -9,12 +9,9 @@ from typing import Optional
 from urllib import parse as urlparse
 
 from google.protobuf import message as proto2_message
+
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import client as rdf_client
-from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
-from grr_response_core.lib.rdfvalues import client_network as rdf_client_network
-from grr_response_core.lib.rdfvalues import cloud as rdf_cloud
-from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_core.lib.util import collection
 from grr_response_proto import objects_pb2
 from grr_response_proto.api import client_pb2
@@ -23,14 +20,12 @@ from grr_response_server import data_store
 from grr_response_server import fleetspeak_connector
 from grr_response_server import fleetspeak_utils
 from grr_response_server import flow
-from grr_response_server import ip_resolver
 from grr_response_server.databases import db
 from grr_response_server.flows.general import discovery
 from grr_response_server.gui import api_call_context
 from grr_response_server.gui import api_call_handler_base
 from grr_response_server.gui import api_call_handler_utils
 from grr_response_server.models import clients as models_clients
-from grr_response_server.rdfvalues import objects as rdf_objects
 from fleetspeak.src.server.proto.fleetspeak_server import admin_pb2
 
 
@@ -38,7 +33,7 @@ def UpdateClientsFromFleetspeak(
     clients: Sequence[client_pb2.ApiClient],
 ) -> None:
   """Updates ApiClient records to include info from Fleetspeak."""
-  if not fleetspeak_connector.CONN or not fleetspeak_connector.CONN.outgoing:
+  if not fleetspeak_connector.CONN or not fleetspeak_connector.CONN.outgoing:  # pyrefly: ignore[missing-attribute]
     # FS not configured, or an outgoing connection is otherwise unavailable.
     return
   id_map = {}
@@ -46,7 +41,7 @@ def UpdateClientsFromFleetspeak(
     id_map[fleetspeak_utils.GRRIDToFleetspeakID(client.client_id)] = client
   if not id_map:
     return
-  res = fleetspeak_connector.CONN.outgoing.ListClients(
+  res = fleetspeak_connector.CONN.outgoing.ListClients(  # pyrefly: ignore[missing-attribute]
       admin_pb2.ListClientsRequest(client_ids=list(id_map.keys()))
   )
   for read in res.clients:
@@ -88,26 +83,6 @@ class ApiClientId(rdfvalue.RDFString):
       raise ValueError("Can't call ToString() on an empty client id.")
 
     return self._value
-
-
-class ApiClient(rdf_structs.RDFProtoStruct):
-  """API client object."""
-
-  protobuf = client_pb2.ApiClient
-  rdf_deps = [
-      rdf_objects.ClientLabel,
-      ApiClientId,
-      rdfvalue.ByteSize,
-      rdf_client.ClientInformation,
-      rdf_client.ClientURN,
-      rdf_cloud.CloudInstance,
-      rdf_client.HardwareInfo,
-      rdf_client_network.Interface,
-      rdf_client.KnowledgeBase,
-      rdfvalue.RDFDatetime,
-      rdf_client.Uname,
-      rdf_client_fs.Volume,
-  ]
 
 
 class ApiSearchClientsHandler(api_call_handler_base.ApiCallHandler):
@@ -400,7 +375,7 @@ class ApiInterrogateClientHandler(api_call_handler_base.ApiCallHandler):
 
 
 def _GetAddrFromFleetspeak(client_id):
-  res = fleetspeak_connector.CONN.outgoing.ListClients(
+  res = fleetspeak_connector.CONN.outgoing.ListClients(  # pyrefly: ignore[missing-attribute]
       admin_pb2.ListClientsRequest(
           client_ids=[fleetspeak_utils.GRRIDToFleetspeakID(client_id)]
       )
@@ -410,26 +385,7 @@ def _GetAddrFromFleetspeak(client_id):
   # last_contact_address typically includes a port
   parsed = urlparse.urlparse("//{}".format(res.clients[0].last_contact_address))
   ip_str = parsed.hostname
-  return ip_str, ipaddress.ip_address(ip_str)
-
-
-class ApiGetLastClientIPAddressHandler(api_call_handler_base.ApiCallHandler):
-  """Retrieves the last ip a client used for communication with the server."""
-
-  proto_args_type = client_pb2.ApiGetLastClientIPAddressArgs
-  proto_result_type = client_pb2.ApiGetLastClientIPAddressResult
-
-  def Handle(
-      self,
-      args: client_pb2.ApiGetLastClientIPAddressArgs,
-      context: Optional[api_call_context.ApiCallContext] = None,
-  ) -> client_pb2.ApiGetLastClientIPAddressResult:
-    ip_str, ipaddr_obj = _GetAddrFromFleetspeak(args.client_id)
-    status, info = ip_resolver.IP_RESOLVER.RetrieveIPInfo(ipaddr_obj)
-
-    return client_pb2.ApiGetLastClientIPAddressResult(
-        ip=ip_str, info=info, status=status
-    )
+  return ip_str, ipaddress.ip_address(ip_str)  # pyrefly: ignore[bad-argument-type]
 
 
 class ApiListClientCrashesHandler(api_call_handler_base.ApiCallHandler):
@@ -533,7 +489,7 @@ class ApiListKbFieldsHandler(api_call_handler_base.ApiCallHandler):
   proto_result_type = client_pb2.ApiListKbFieldsResult
 
   def Handle(self, args, context=None):
-    # TODO: Add a proto function counterpart.
+    # TODO - Add a proto function counterpart.
     fields = rdf_client.KnowledgeBase().GetKbFieldNames()
     return client_pb2.ApiListKbFieldsResult(items=sorted(fields))
 
@@ -605,30 +561,4 @@ class ApiGetFleetspeakPendingMessageCountHandler(
     _CheckFleetspeakConnection()
     return client_pb2.ApiGetFleetspeakPendingMessageCountResult(
         count=fleetspeak_utils.GetFleetspeakPendingMessageCount(args.client_id)
-    )
-
-
-class ApiGetFleetspeakPendingMessagesHandler(
-    api_call_handler_base.ApiCallHandler
-):
-  """Returns the fleetspeak pending messages for the given client."""
-
-  proto_args_type = client_pb2.ApiGetFleetspeakPendingMessagesArgs
-  proto_result_type = client_pb2.ApiGetFleetspeakPendingMessagesResult
-
-  def Handle(
-      self,
-      args: client_pb2.ApiGetFleetspeakPendingMessagesArgs,
-      context: Optional[api_call_context.ApiCallContext] = None,
-  ) -> client_pb2.ApiGetFleetspeakPendingMessagesResult:
-    _CheckFleetspeakConnection()
-    return (
-        models_clients.ApiGetFleetspeakPendingMessagesResultFromFleetspeakProto(
-            fleetspeak_utils.GetFleetspeakPendingMessages(
-                str(args.client_id),
-                offset=args.offset,
-                limit=args.limit,
-                want_data=args.want_data,
-            )
-        )
     )

@@ -83,6 +83,10 @@ def main(argv):
     config.CONFIG.Set("Mysql.password", _CONFIG_MYSQL_PASSWORD.value)
   config.CONFIG.Set("AdminUI.port", admin_ui_port)
   config.CONFIG.Set("AdminUI.headless", True)
+  # Because end-to-end tests depend on signed commands, we need the root router
+  # to be able to do the signing. We just modify the default router to avoid
+  # setting up a separate user just for that.
+  config.CONFIG.Set("API.DefaultRouter", "ApiRootAndNonRootRouter")
 
   config.CONFIG.Set("Server.initialized", True)
   config.CONFIG.Set("Cron.active", False)

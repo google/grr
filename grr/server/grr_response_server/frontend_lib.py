@@ -63,7 +63,7 @@ class FrontEndServer(object):
     self.max_retransmission_time = max_retransmission_time
     self.max_queue_size = max_queue_size
 
-  # TODO: Inline this function and simplify code.
+  # TODO - Inline this function and simplify code.
   def EnrollFleetspeakClientIfNeeded(
       self,
       client_id: str,
@@ -131,11 +131,11 @@ class FrontEndServer(object):
     frontend_message_handler_requests = []
     dropped_count = 0
 
-    # TODO: Remove `fixed_messages` once old clients
+    # TODO - Remove `fixed_messages` once old clients
     # have been migrated.
     fixed_messages = []
     for message in messages:
-      if message.type != rdf_flows.GrrMessage.Type.STATUS:
+      if message.type != rdf_flows.GrrMessage.Type.STATUS:  # pyrefly: ignore[missing-attribute]
         fixed_messages.append(message)
         continue
 
@@ -144,16 +144,16 @@ class FrontEndServer(object):
         fixed_messages.append(message)
         continue
 
-      if stat.cpu_time_used.HasField("deprecated_user_cpu_time"):
-        stat.cpu_time_used.user_cpu_time = (
-            stat.cpu_time_used.deprecated_user_cpu_time
+      if stat.cpu_time_used.HasField("deprecated_user_cpu_time"):  # pyrefly: ignore[missing-attribute]
+        stat.cpu_time_used.user_cpu_time = (  # pyrefly: ignore[missing-attribute]
+            stat.cpu_time_used.deprecated_user_cpu_time  # pyrefly: ignore[missing-attribute]
         )
-        stat.cpu_time_used.deprecated_user_cpu_time = None
-      if stat.cpu_time_used.HasField("deprecated_system_cpu_time"):
-        stat.cpu_time_used.system_cpu_time = (
-            stat.cpu_time_used.deprecated_system_cpu_time
+        stat.cpu_time_used.deprecated_user_cpu_time = None  # pyrefly: ignore[missing-attribute]
+      if stat.cpu_time_used.HasField("deprecated_system_cpu_time"):  # pyrefly: ignore[missing-attribute]
+        stat.cpu_time_used.system_cpu_time = (  # pyrefly: ignore[missing-attribute]
+            stat.cpu_time_used.deprecated_system_cpu_time  # pyrefly: ignore[missing-attribute]
         )
-        stat.cpu_time_used.deprecated_system_cpu_time = None
+        stat.cpu_time_used.deprecated_system_cpu_time = None  # pyrefly: ignore[missing-attribute]
       message.payload = stat
       fixed_messages.append(message)
 
@@ -177,7 +177,7 @@ class FrontEndServer(object):
                 request_id=msg.response_id or random.UInt32(),
                 request=msg.payload,
             )
-            if request.handler_name in self._SHORTCUT_HANDLERS:
+            if request.handler_name in self._SHORTCUT_HANDLERS:  # pyrefly: ignore[missing-attribute]
               frontend_message_handler_requests.append(request)
             else:
               worker_message_handler_requests.append(request)
@@ -213,8 +213,6 @@ class FrontEndServer(object):
         else:
           if isinstance(response, rdf_flow_objects.FlowStatus):
             response = mig_flow_objects.ToProtoFlowStatus(response)
-          if isinstance(response, rdf_flow_objects.FlowIterator):
-            response = mig_flow_objects.ToProtoFlowIterator(response)
           if isinstance(response, rdf_flow_objects.FlowResponse):
             response = mig_flow_objects.ToProtoFlowResponse(response)
           flow_responses.append(response)
@@ -222,15 +220,15 @@ class FrontEndServer(object):
       data_store.REL_DB.WriteFlowResponses(flow_responses)
 
       for msg in unprocessed_msgs:
-        if msg.type == rdf_flows.GrrMessage.Type.STATUS:
+        if msg.type == rdf_flows.GrrMessage.Type.STATUS:  # pyrefly: ignore[missing-attribute]
           stat = rdf_flows.GrrStatus(msg.payload)
-          if stat.status == rdf_flows.GrrStatus.ReturnedStatus.CLIENT_KILLED:
+          if stat.status == rdf_flows.GrrStatus.ReturnedStatus.CLIENT_KILLED:  # pyrefly: ignore[missing-attribute]
             # A client crashed while performing an action, fire an event.
             crash_details = rdf_client.ClientCrash(
                 client_id=client_id,
                 session_id=msg.session_id,
-                backtrace=stat.backtrace,
-                crash_message=stat.error_message,
+                backtrace=stat.backtrace,  # pyrefly: ignore[missing-attribute]
+                crash_message=stat.error_message,  # pyrefly: ignore[missing-attribute]
                 timestamp=rdfvalue.RDFDatetime.Now(),
             )
             events.Events.PublishEvent(
@@ -262,7 +260,7 @@ class FrontEndServer(object):
         time.time() - now,
     )
 
-  # TODO: Remove once no longer needed.
+  # TODO - Remove once no longer needed.
   def ReceiveRRGResponse(
       self,
       client_id: str,
@@ -294,16 +292,15 @@ class FrontEndServer(object):
       flow_response: Union[
           flows_pb2.FlowResponse,
           flows_pb2.FlowStatus,
-          flows_pb2.FlowIterator,
       ]
 
       if response.HasField("status"):
         flow_response = flows_pb2.FlowStatus()
         flow_response.network_bytes_sent = response.status.network_bytes_sent
-        # TODO: Populate `cpu_time_used` and `runtime_us`
+        # TODO - Populate `cpu_time_used` and `runtime_us`
 
         if response.status.HasField("error"):
-          # TODO: Convert RRG error types to GRR error types.
+          # TODO - Convert RRG error types to GRR error types.
           flow_response.status = flows_pb2.FlowStatus.Status.ERROR
           flow_response.error_message = response.status.error.message
         else:
@@ -328,6 +325,22 @@ class FrontEndServer(object):
 
       flow_responses.append(flow_response)
 
+    flow_responses_by_id = {}
+    for flow_response in flow_responses:
+      flow_responses_by_id.setdefault(
+          (flow_response.flow_id, flow_response.request_id),
+          [],
+      ).append(flow_response)
+
+    for (flow_id, request_id), req_responses in flow_responses_by_id.items():
+      logging.info(
+          "%s/%s/%s: received %d responses",
+          client_id,
+          flow_id,
+          request_id,
+          len(req_responses),
+      )
+
     data_store.REL_DB.WriteFlowResponses(flow_responses)
 
     for (flow_id, request_id), logs in flow_rrg_logs.items():
@@ -338,7 +351,7 @@ class FrontEndServer(object):
           logs=logs,
       )
 
-  # TODO: Remove once no longer needed.
+  # TODO - Remove once no longer needed.
   def ReceiveRRGParcel(
       self,
       client_id: str,
@@ -369,12 +382,19 @@ class FrontEndServer(object):
       parcels_by_sink_name.setdefault(sink_name, []).append(parcel)
 
     for sink_name, sink_parcels in parcels_by_sink_name.items():
+      logging.info(
+          "%s/%s: received %d parcels",
+          client_id,
+          sink_name,
+          len(sink_parcels),
+      )
+
       RRG_PARCEL_COUNT.Increment(fields=[sink_name], delta=len(sink_parcels))
 
     try:
       sinks.AcceptMany(client_id, parcels)
     except Exception:  # pylint: disable=broad-exception-caught
-      # TODO: `AcceptMany` should raise an error that specifies
+      # TODO - `AcceptMany` should raise an error that specifies
       # which sink caused the exception. Then we don't have to increment the
       # count for all sinks.
       for sink_name in parcels_by_sink_name:

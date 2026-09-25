@@ -10,10 +10,11 @@ import logging
 import struct
 from typing import Optional, TypeVar, cast
 
-from google.protobuf import any_pb2
-from google.protobuf import wrappers_pb2
 from google.protobuf import message as proto2_message
 from google.protobuf import text_format
+
+from google.protobuf import any_pb2
+from google.protobuf import wrappers_pb2
 from grr_response_core import _semantic
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import registry
@@ -196,9 +197,9 @@ class ProtoType(type_info.TypeInfoObject):
       **kwargs,
   ):
     super().__init__(**kwargs)
-    # TODO: Without this type hint, pytype thinks that field_number
+    # TODO - Without this type hint, pytype thinks that field_number
     # is always None.
-    self.field_number: int = field_number
+    self.field_number: int = field_number  # pyrefly: ignore[bad-assignment]
     self.required = required
     if set_default_on_access is not None:
       self.set_default_on_access = set_default_on_access
@@ -312,11 +313,11 @@ class ProtoType(type_info.TypeInfoObject):
     return self.default
 
   def __str__(self) -> str:
-    # TODO: This fails for ProtoList.
+    # TODO - This fails for ProtoList.
     return "<Field %s (%s) of %s: field_number: %s>" % (
         self.name,
         self.__class__.__name__,
-        self.owner.__name__,
+        self.owner.__name__,  # pyrefly: ignore[missing-attribute]
         self.field_number,
     )
 
@@ -344,7 +345,7 @@ class ProtoString(ProtoType):
     _ = container
     return self.default
 
-  def Validate(self, value, **_) -> str:  # pytype: disable=signature-mismatch  # overriding-parameter-count-checks
+  def Validate(self, value, **_) -> str:  # pyrefly: ignore[bad-override]
     """Validates a python format representation of the value."""
     if isinstance(value, rdfvalue.RDFString):
       # TODO(hanuszczak): Use `str` here.
@@ -408,7 +409,7 @@ class ProtoBinary(ProtoType):
     if default is not None:
       self.default = default
 
-  def Validate(self, value, **_):  # pytype: disable=signature-mismatch  # overriding-parameter-count-checks
+  def Validate(self, value, **_):  # pyrefly: ignore[bad-override]
     if not isinstance(value, bytes):
       raise type_info.TypeValueError("Required bytes, got %r" % value)
 
@@ -453,7 +454,7 @@ class ProtoUnsignedInteger(ProtoType):
   def ConvertToWireFormat(self, value):
     return (self.encoded_tag, b"", VarintEncode(value))
 
-  def Validate(self, value, **_):  # pytype: disable=signature-mismatch  # overriding-parameter-count-checks
+  def Validate(self, value, **_):  # pyrefly: ignore[bad-override]
     try:
       return int(value)
     except ValueError:
@@ -704,7 +705,7 @@ class ProtoEnum(ProtoSignedInteger):
     if isinstance(enum, EnumContainer):
       enum = enum.enum_dict
 
-    for v in enum.values():
+    for v in enum.values():  # pyrefly: ignore[missing-attribute]
       if v.__class__ is not int:
         raise type_info.TypeValueError("Enum values must be integers.")
 
@@ -836,7 +837,7 @@ class ProtoEmbedded(ProtoType):
         rdfvalue.RegisterLateBindingCallback(nested, self.LateBind)
 
     # Or it can be an subclass of RDFProtoStruct.
-    elif issubclass(nested, RDFProtoStruct):
+    elif issubclass(nested, RDFProtoStruct):  # pyrefly: ignore[bad-argument-type]
       self.type = nested
       self.proto_type_name = nested.__name__
 
@@ -847,7 +848,7 @@ class ProtoEmbedded(ProtoType):
 
   def ConvertFromWireFormat(self, value, container=None):
     """The wire format is simply a string."""
-    result = self.type()
+    result = self.type()  # pyrefly: ignore[not-callable]
     ReadIntoObject(value[2], 0, result)
 
     return result
@@ -870,7 +871,7 @@ class ProtoEmbedded(ProtoType):
     Raises:
       TypeError: If the target class is not of the expected type.
     """
-    if not issubclass(target, RDFProtoStruct):
+    if not issubclass(target, RDFProtoStruct):  # pyrefly: ignore[bad-argument-type]
       raise TypeError(
           "Field %s expects a protobuf, but target is %s" % (self, target)
       )
@@ -881,7 +882,7 @@ class ProtoEmbedded(ProtoType):
     self.type = target
 
     # Register us in our owner.
-    self.owner.AddDescriptor(self)
+    self.owner.AddDescriptor(self)  # pyrefly: ignore[missing-attribute]
 
   def IsDirty(self, proto):
     """Return and clear the dirty state of the python object."""
@@ -897,21 +898,21 @@ class ProtoEmbedded(ProtoType):
 
   def GetDefault(self, container=None):
     """When a nested proto is accessed, default to an empty one."""
-    return self.type()
+    return self.type()  # pyrefly: ignore[not-callable]
 
-  def Validate(self, value, **_):  # pytype: disable=signature-mismatch  # overriding-parameter-count-checks
+  def Validate(self, value, **_):  # pyrefly: ignore[bad-override]
     if isinstance(value, str):
       raise type_info.TypeValueError(
-          "Field %s must be of type %s" % (self.name, self.type.__name__)
+          "Field %s must be of type %s" % (self.name, self.type.__name__)  # pyrefly: ignore[missing-attribute]
       )
 
     # We may coerce it to the correct type.
     if value.__class__ is not self.type:
       try:
-        value = self.type(value)
+        value = self.type(value)  # pyrefly: ignore[not-callable]
       except rdfvalue.InitializeError as e:
         raise type_info.TypeValueError(
-            "Field %s must be of type %s" % (self.name, self.type.__name__)
+            "Field %s must be of type %s" % (self.name, self.type.__name__)  # pyrefly: ignore[missing-attribute]
         ) from e
 
     return value
@@ -958,7 +959,7 @@ class ProtoDynamicEmbedded(ProtoType):
 
   def ConvertFromWireFormat(self, value, container=None):
     """The wire format is simply a string."""
-    return serialization.FromBytes(self._type(container), value[2])
+    return serialization.FromBytes(self._type(container), value[2])  # pyrefly: ignore[not-callable]
 
   def ConvertToWireFormat(self, value):
     """Encode the nested protobuf into wire format."""
@@ -983,7 +984,7 @@ class ProtoDynamicEmbedded(ProtoType):
     if self._type is None:
       return None
 
-    cls = self._type(container or self.owner())
+    cls = self._type(container or self.owner())  # pyrefly: ignore[not-callable]
     if cls is not None:
       return cls()
 
@@ -1025,18 +1026,18 @@ class ProtoDynamicAnyValueEmbedded(ProtoDynamicEmbedded):
       converted_value = self._TypeFromAnyValue(result)
 
     # If one of the protobuf library wrapper classes is used, unwrap the value.
-    if result.type_url.startswith("type.googleapis.com/google.protobuf."):
+    if result.type_url.startswith("type.googleapis.com/google.protobuf."):  # pyrefly: ignore[missing-attribute]
       wrapper_cls = self.__class__.WRAPPER_BY_TYPE[
           converted_value.protobuf_type
       ]
       wrapper_value = wrapper_cls()
-      wrapper_value.ParseFromString(result.value)
+      wrapper_value.ParseFromString(result.value)  # pyrefly: ignore[missing-attribute]
       return converted_value.FromWireFormat(wrapper_value.value)
     else:
       # TODO(user): Type stored in type_url is currently ignored when value
       # is decoded. We should use it to deserialize the value and then check
       # that value type and dynamic type are compatible.
-      return converted_value.FromSerializedBytes(result.value)
+      return converted_value.FromSerializedBytes(result.value)  # pyrefly: ignore[missing-attribute]
 
   def _TypeFromAnyValue(self, anyvalue):
     type_str = anyvalue.type_url.split("/")[-1].split(".")[-1]
@@ -1292,7 +1293,7 @@ class ProtoList(ProtoType):
   #  |  /   V        ))       V   \  |
   #  |/     `       //        '     \|
   #  `              V                '
-  # TODO
+  # TODO(user)
   set_default_on_access = True
 
   def __init__(self, delegate, labels=None, **kwargs):
@@ -1330,7 +1331,7 @@ class ProtoList(ProtoType):
         type_descriptor=self.delegate, container=container
     )
 
-  def Validate(self, value, **_):  # pytype: disable=signature-mismatch  # overriding-parameter-count-checks
+  def Validate(self, value, **_):  # pyrefly: ignore[bad-override]
     """Check that value is a list of the required type."""
     # Assigning from same kind can allow us to skip verification since all
     # elements in a RepeatedFieldHelper already are coerced to the delegate
@@ -1401,7 +1402,7 @@ class ProtoList(ProtoType):
     self.late_bound = False
     self.delegate = field_desc
     self.wire_type = self.delegate.wire_type
-    self.owner.AddDescriptor(self)
+    self.owner.AddDescriptor(self)  # pyrefly: ignore[missing-attribute]
 
 
 class ProtoRDFValue(ProtoType):
@@ -1477,7 +1478,7 @@ class ProtoRDFValue(ProtoType):
         self._GetPrimitiveEncoder()
 
     # Or it can be an subclass of RDFValue.
-    elif issubclass(rdf_type, rdfvalue.RDFValue):  # pytype: disable=wrong-arg-types
+    elif issubclass(rdf_type, rdfvalue.RDFValue):  # pyrefly: ignore[bad-argument-type]
       self.type = rdf_type
       self.original_proto_type_name = self.proto_type_name = rdf_type.__name__
       self._GetPrimitiveEncoder()
@@ -1492,7 +1493,7 @@ class ProtoRDFValue(ProtoType):
 
     # Now re-add the descriptor to the owner protobuf.
     self.late_bound = False
-    self.owner.AddDescriptor(self)
+    self.owner.AddDescriptor(self)  # pyrefly: ignore[missing-attribute]
 
   def _GetPrimitiveEncoder(self):
     """Finds the primitive encoder according to the type's protobuf_type."""
@@ -1501,7 +1502,7 @@ class ProtoRDFValue(ProtoType):
     primitive_cls = self._PROTO_DATA_STORE_LOOKUP[
         serialization.GetProtobufType(self.type)
     ]
-    self.primitive_desc = primitive_cls(**self._kwargs)
+    self.primitive_desc = primitive_cls(**self._kwargs)  # pyrefly: ignore[bad-unpacking]
 
     # Our wiretype is the same as the delegate's.
     self.wire_type = self.primitive_desc.wire_type
@@ -1525,14 +1526,14 @@ class ProtoRDFValue(ProtoType):
 
   def Definition(self):
     return (
-        "\n  // Semantic Type: %s" % self.type.__name__
-    ) + self.primitive_desc.Definition()
+        "\n  // Semantic Type: %s" % self.type.__name__  # pyrefly: ignore[missing-attribute]
+    ) + self.primitive_desc.Definition()  # pyrefly: ignore[missing-attribute]
 
-  def Validate(self, value, **_):  # pytype: disable=signature-mismatch  # overriding-parameter-count-checks
+  def Validate(self, value, **_):  # pyrefly: ignore[bad-override]
     # Try to coerce into the correct type:
     if value.__class__ is not self.type:
       try:
-        value = self.type(value)
+        value = self.type(value)  # pyrefly: ignore[not-callable]
       except (rdfvalue.DecodeError, TypeError) as e:
         raise type_info.TypeValueError(e)
 
@@ -1542,22 +1543,22 @@ class ProtoRDFValue(ProtoType):
     # Wire format should be compatible with the protobuf_type for the
     # rdfvalue. We use the delegate primitive descriptor to perform the
     # conversion.
-    value = self.primitive_desc.ConvertFromWireFormat(
+    value = self.primitive_desc.ConvertFromWireFormat(  # pyrefly: ignore[missing-attribute]
         value, container=container
     )
 
-    result = self.type(value)
+    result = self.type(value)  # pyrefly: ignore[not-callable]
 
     return result
 
   def ConvertToWireFormat(self, value):
-    return self.primitive_desc.ConvertToWireFormat(
+    return self.primitive_desc.ConvertToWireFormat(  # pyrefly: ignore[missing-attribute]
         value.SerializeToWireFormat()
     )
 
   def Copy(self, field_number=None):
     """Returns descriptor copy, optionally changing field number."""
-    new_args = self._kwargs.copy()
+    new_args = self._kwargs.copy()  # pyrefly: ignore[missing-attribute]
     if field_number is not None:
       new_args["field_number"] = field_number
 
@@ -1576,7 +1577,7 @@ class ProtoRDFValue(ProtoType):
     return result + ";\n"
 
   def Format(self, value):
-    yield "%s:" % self.type.__name__
+    yield "%s:" % self.type.__name__  # pyrefly: ignore[missing-attribute]
     for line in str(value).splitlines():
       yield "  %s" % line
 
@@ -1584,7 +1585,7 @@ class ProtoRDFValue(ProtoType):
     return "<Field %s (Sem Type: %s) of %s: field_number: %s>" % (
         self.name,
         self.proto_type_name,
-        self.owner.__name__,
+        self.owner.__name__,  # pyrefly: ignore[missing-attribute]
         self.field_number,
     )
 
@@ -1603,7 +1604,7 @@ class RDFStructMetaclass(rdfvalue.RDFValueMetaclass):
     # biggest caveat here is that RDFStruct is defined *with the help*
     # of RDFStructMetaclass, so its name is not defined at the time
     # this code is evaluated.
-    cls: type["RDFStruct"] = untyped_cls
+    cls: type["RDFStruct"] = untyped_cls  # pyrefly: ignore[bad-assignment]
     cls.type_infos = type_info.TypeDescriptorSet()
 
     # Keep track of the late bound fields.
@@ -1668,7 +1669,7 @@ class RDFStruct(rdfvalue.RDFValue, metaclass=RDFStructMetaclass):  # pylint: dis
   protobuf = None
 
   # This is where the type infos are constructed.
-  type_infos: type_info.TypeDescriptorSet = None
+  type_infos: type_info.TypeDescriptorSet = None  # pyrefly: ignore[bad-assignment]
 
   # Mark as dirty each time we modify this object.
   dirty = False
@@ -1686,10 +1687,10 @@ class RDFStruct(rdfvalue.RDFValue, metaclass=RDFStructMetaclass):  # pylint: dis
 
     for arg, value in kwargs.items():
       if not hasattr(self.__class__, arg):
-        if arg in self.late_bound_type_infos:
+        if arg in self.late_bound_type_infos:  # pyrefly: ignore[missing-attribute]
           raise AttributeError(
               "Field %s refers to an as yet undefined Semantic Type."
-              % self.late_bound_type_infos[arg]
+              % self.late_bound_type_infos[arg]  # pyrefly: ignore[missing-attribute]
           )
 
         raise AttributeError(
@@ -1736,7 +1737,7 @@ class RDFStruct(rdfvalue.RDFValue, metaclass=RDFStructMetaclass):  # pylint: dis
 
   def HasField(self, field_name):
     """Checks if the field exists."""
-    return field_name in self._data
+    return field_name in self._data  # pyrefly: ignore[not-iterable]
 
   def _CopyRawData(self):
     new_raw_data = {}
@@ -1750,7 +1751,7 @@ class RDFStruct(rdfvalue.RDFValue, metaclass=RDFStructMetaclass):  # pylint: dis
     # If it is, someone else might have changed the subobject and the
     # serialization is not accurate anymore. This is indicated by the dirty
     # flag. Type_infos can be just copied by reference.
-    for name, (obj, serialized, t_info) in self._data.items():
+    for name, (obj, serialized, t_info) in self._data.items():  # pyrefly: ignore[missing-attribute]
       if serialized is None:
         obj = copy.copy(obj)
       else:
@@ -1768,7 +1769,7 @@ class RDFStruct(rdfvalue.RDFValue, metaclass=RDFStructMetaclass):  # pylint: dis
   def Copy(self: T) -> T:
     """Make an efficient copy of this protobuf."""
     result = self.__class__()
-    result.SetRawData(self._CopyRawData())
+    result.SetRawData(self._CopyRawData())  # pyrefly: ignore[missing-attribute]
     return result
 
   def __deepcopy__(self, memo):
@@ -1794,7 +1795,7 @@ class RDFStruct(rdfvalue.RDFValue, metaclass=RDFStructMetaclass):  # pylint: dis
       a tuple of (type_descriptor, value) for each field which is set.
     """
     for type_descriptor in self.type_infos:
-      if type_descriptor.name in self._data:
+      if type_descriptor.name in self._data:  # pyrefly: ignore[not-iterable]
         yield type_descriptor, self.Get(type_descriptor.name)
 
   def SetRawData(self, data):
@@ -1895,13 +1896,13 @@ class RDFStruct(rdfvalue.RDFValue, metaclass=RDFStructMetaclass):  # pylint: dis
 
     # A value of None means we clear the field.
     if value is None:
-      self._data.pop(attr, None)
+      self._data.pop(attr, None)  # pyrefly: ignore[missing-attribute]
     else:
       # Validate the value and obtain the python format representation.
       value = type_descriptor.Validate(value, container=self)
 
       # Store the lazy value object.
-      self._data[attr] = (value, None, type_descriptor)
+      self._data[attr] = (value, None, type_descriptor)  # pyrefly: ignore[unsupported-operation]
 
     # Make sure to invalidate our parent's cache if needed.
     self.dirty = True
@@ -1949,7 +1950,7 @@ class RDFStruct(rdfvalue.RDFValue, metaclass=RDFStructMetaclass):  # pylint: dis
     Returns:
       The attribute's value, or the attribute's type's default value, if unset.
     """
-    entry = self._data.get(attr)
+    entry = self._data.get(attr)  # pyrefly: ignore[missing-attribute]
     # We don't have this field, try the defaults.
     if entry is None:
       type_descriptor = self._GetTypeDescriptor(attr)
@@ -1972,7 +1973,7 @@ class RDFStruct(rdfvalue.RDFValue, metaclass=RDFStructMetaclass):  # pylint: dis
           wire_format, container=self
       )
 
-      self._data[attr] = (python_format, wire_format, type_descriptor)
+      self._data[attr] = (python_format, wire_format, type_descriptor)  # pyrefly: ignore[unsupported-operation]
 
     return python_format
 
@@ -1993,7 +1994,7 @@ class RDFStruct(rdfvalue.RDFValue, metaclass=RDFStructMetaclass):  # pylint: dis
           % (cls.__name__, field_desc.name)
       )
 
-    cls.type_infos_by_field_number[field_desc.field_number] = field_desc
+    cls.type_infos_by_field_number[field_desc.field_number] = field_desc  # pyrefly: ignore[missing-attribute]
     cls.type_infos.Append(field_desc)
 
 
@@ -2135,7 +2136,7 @@ class RDFProtoStruct(RDFStruct):
       primitive_dict = {}
       # TODO(user):pytype: get rid of a dependency loop described above and
       # do a proper type check.
-      for k, v in value.ToDict().items():  # pytype: disable=attribute-error
+      for k, v in value.ToDict().items():  # pyrefly: ignore[missing-attribute]
         primitive_dict[k] = self._ToPrimitive(v, stringify_leaf_fields)
       return primitive_dict
     elif isinstance(value, dict):
@@ -2165,7 +2166,7 @@ class RDFProtoStruct(RDFStruct):
   def EmitProto(cls):
     """Emits .proto file definitions."""
     result = "message %s {\n" % cls.__name__
-    for _, desc in sorted(cls.type_infos_by_field_number.items()):
+    for _, desc in sorted(cls.type_infos_by_field_number.items()):  # pyrefly: ignore[missing-attribute]
       result += desc.Definition()
 
     result += "}\n"
@@ -2211,22 +2212,22 @@ class RDFProtoStruct(RDFStruct):
     # yet. We must wait for the LateBindingPlaceHolder() to add it later.
     if field_desc.late_bound:
       # Keep track of unbound fields.
-      cls.late_bound_type_infos[field_desc.name] = field_desc
+      cls.late_bound_type_infos[field_desc.name] = field_desc  # pyrefly: ignore[missing-attribute]
       return
 
     # Ensure this field number is unique:
-    if field_desc.field_number in cls.type_infos_by_field_number:
+    if field_desc.field_number in cls.type_infos_by_field_number:  # pyrefly: ignore[missing-attribute]
       raise type_info.TypeValueError(
           "Field number %s for field %s is not unique in %s"
           % (field_desc.field_number, field_desc.name, cls.__name__)
       )
 
     # We store an index of the type info by tag values to speed up parsing.
-    cls.type_infos_by_field_number[field_desc.field_number] = field_desc
-    cls.type_infos_by_encoded_tag[field_desc.encoded_tag] = field_desc
+    cls.type_infos_by_field_number[field_desc.field_number] = field_desc  # pyrefly: ignore[missing-attribute]
+    cls.type_infos_by_encoded_tag[field_desc.encoded_tag] = field_desc  # pyrefly: ignore[missing-attribute]
 
     cls.type_infos.Append(field_desc)
-    cls.late_bound_type_infos.pop(field_desc.name, None)
+    cls.late_bound_type_infos.pop(field_desc.name, None)  # pyrefly: ignore[missing-attribute]
 
     # Add direct accessors only if the class does not already have them.
     if not hasattr(cls, field_desc.name):
@@ -2244,7 +2245,7 @@ class RDFProtoStruct(RDFStruct):
       )
 
   def UnionCast(self):
-    union_field = getattr(self, self.union_field)
+    union_field = getattr(self, self.union_field)  # pyrefly: ignore[missing-attribute]
     cast_field_name = str(union_field).lower()
 
     set_fields = set(
@@ -2253,7 +2254,7 @@ class RDFProtoStruct(RDFStruct):
 
     union_cases = [
         case.lower()
-        for case in self.type_infos[self.union_field].enum_container.enum_dict
+        for case in self.type_infos[self.union_field].enum_container.enum_dict  # pyrefly: ignore[missing-attribute]
     ]
 
     mismatched_union_cases = set_fields.intersection(union_cases).difference(
@@ -2292,8 +2293,8 @@ class AnyValue(RDFProtoStruct):
   def FromProto2(cls, proto2_any: any_pb2.Any) -> "AnyValue":
     """Converts a proto2 `Any` message to the RDF wrapper."""
     result = cls()
-    result.type_url = proto2_any.type_url
-    result.value = proto2_any.value
+    result.type_url = proto2_any.type_url  # pyrefly: ignore[missing-attribute]
+    result.value = proto2_any.value  # pyrefly: ignore[missing-attribute]
     return result
 
   @classmethod
@@ -2322,8 +2323,8 @@ class AnyValue(RDFProtoStruct):
       An instance of RDF wrapper for `Any` with packed message.
     """
     result = cls()
-    result.type_url = TypeURL(type(value))
-    result.value = value.SerializeToBytes()
+    result.type_url = TypeURL(type(value))  # pyrefly: ignore[missing-attribute]
+    result.value = value.SerializeToBytes()  # pyrefly: ignore[missing-attribute]
     return result
 
   def Unpack(self, cls: type[_V]) -> _V:
@@ -2339,14 +2340,14 @@ class AnyValue(RDFProtoStruct):
     # necessarily an error, but it still worth to log it as it might be helpful
     # in identifying issues.
     cls_type_url = TypeURL(cls)
-    if cls_type_url != self.type_url:
+    if cls_type_url != self.type_url:  # pyrefly: ignore[missing-attribute]
       message = "Unpacking value of type '%s' to message of type '%s'."
-      logging.warning(message, self.type_url, cls_type_url)
+      logging.warning(message, self.type_url, cls_type_url)  # pyrefly: ignore[missing-attribute]
 
-    return cls.FromSerializedBytes(self.value)
+    return cls.FromSerializedBytes(self.value)  # pyrefly: ignore[missing-attribute]
 
 
 def TypeURL(cls: type[_V]) -> str:
-  if cls.protobuf is None:
+  if cls.protobuf is None:  # pyrefly: ignore[missing-attribute]
     raise ValueError("protobuf must be set on cls.")
-  return f"type.googleapis.com/{cls.protobuf.DESCRIPTOR.full_name}"
+  return f"type.googleapis.com/{cls.protobuf.DESCRIPTOR.full_name}"  # pyrefly: ignore[missing-attribute]

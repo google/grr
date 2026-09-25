@@ -144,6 +144,7 @@ export function translateFlow(apiFlow: apiInterfaces.ApiFlow): Flow {
     nestedFlows:
       apiFlow.nestedFlows?.map((apiFlow) => translateFlow(apiFlow)) ??
       undefined,
+    parentHuntId: apiFlow.parentHuntId ?? undefined,
     context: apiFlow.context,
     store: apiFlow.store ?? undefined,
   };

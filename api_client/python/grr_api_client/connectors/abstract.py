@@ -5,6 +5,7 @@ import abc
 from typing import Optional
 
 from google.protobuf import message
+
 from grr_api_client import utils
 
 

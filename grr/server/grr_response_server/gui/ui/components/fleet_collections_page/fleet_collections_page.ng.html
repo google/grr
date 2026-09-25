@@ -11,7 +11,7 @@
     <div class="fleet-collection-filters-container">
       <mat-form-field appearance="outline">
         <mat-icon matPrefix>search</mat-icon>
-        <mat-label>Filter by user, id, or description</mat-label>
+        <mat-label>Filter by user, id, description, or flow name</mat-label>
         <input matInput [formControl]="searchFilterFormControl" />
       </mat-form-field>
     </div>
@@ -85,7 +85,7 @@
                   >
                 </mat-progress-bar>
                 <span class="collection-progress-max-count">{{ fleetCollection.allClientsCount }}</span>
-                <span class="collection-flow-name">| {{ fleetCollection.flowName }}</span>
+                <span class="collection-flow-name">| {{ fleetCollection.flowType | friendlyFlowName }}</span>
               </div>
               <span matListItemMeta class="fleet-collection-actions">
                 <fleet-collection-state-chip

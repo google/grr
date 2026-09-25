@@ -54,7 +54,7 @@ class ApprovalCheckParamsAdminAccessChecker(
     for g in params.admin_groups:
       self._admin_groups_manager.AuthorizeGroup(g, self._AUTH_SUBJECT)
 
-  # TODO: Add the `@override` annotation [1] once we can use
+  # TODO - Add the `@override` annotation [1] once we can use
   # Python 3.12 features.
   #
   # [1]: https://peps.python.org/pep-0698/
@@ -97,7 +97,7 @@ class ApprovalCheckParamsMitigationFlowsAccessChecker(
     for g in params.mitigation_flows_groups:
       self._admin_groups_manager.AuthorizeGroup(g, self._AUTH_SUBJECT)
 
-  # TODO: Add the `@override` annotation [1] once we can use
+  # TODO - Add the `@override` annotation [1] once we can use
   # Python 3.12 features.
   #
   # [1]: https://peps.python.org/pep-0698/
@@ -159,7 +159,7 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
     # Only top-level hunt flows are allowed, which is what any user can see
     # as "hunt results" (child flows results are not available for anyone).
     if flow.parent_hunt_id != flow.flow_id:
-      self.approval_checker.CheckClientAccess(context, client_id)
+      self.approval_checker.CheckClientAccess(context, client_id)  # pyrefly: ignore[bad-argument-type]
 
   def __init__(
       self,
@@ -178,7 +178,7 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
     super().__init__(params=params)
 
     if not admin_access_checker:
-      admin_access_checker = ApprovalCheckParamsAdminAccessChecker(params)
+      admin_access_checker = ApprovalCheckParamsAdminAccessChecker(params)  # pyrefly: ignore[bad-argument-type]
     self.admin_access_checker = admin_access_checker
 
     if not approval_checker:
@@ -187,7 +187,7 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
 
     if not mitigation_flows_access_checker:
       mitigation_flows_access_checker = (
-          ApprovalCheckParamsMitigationFlowsAccessChecker(params)
+          ApprovalCheckParamsMitigationFlowsAccessChecker(params)  # pyrefly: ignore[bad-argument-type]
       )
     self.mitigation_flows_access_checker = mitigation_flows_access_checker
 
@@ -198,7 +198,6 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
   # Artifacts methods.
   # =================
   #
-  # pytype: disable=attribute-error
   def ListArtifacts(
       self,
       args: api_artifact_pb2.ApiListArtifactsArgs,
@@ -206,7 +205,7 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
   ):
     # Everybody is allowed to list artifacts.
 
-    return self.delegate.ListArtifacts(args, context=context)
+    return self.delegate.ListArtifacts(args, context=context)  # pyrefly: ignore[missing-attribute]
 
   def UploadArtifact(
       self,
@@ -215,16 +214,16 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
   ):
     # Everybody is allowed to upload artifacts.
 
-    return self.delegate.UploadArtifact(args, context=context)
+    return self.delegate.UploadArtifact(args, context=context)  # pyrefly: ignore[missing-attribute]
 
-  def DeleteArtifacts(
+  def DeleteArtifact(
       self,
-      args: api_artifact_pb2.ApiDeleteArtifactsArgs,
+      args: api_artifact_pb2.ApiDeleteArtifactArgs,
       context: Optional[api_call_context.ApiCallContext] = None,
   ):
     # Everybody is allowed to delete artifacts.
 
-    return self.delegate.DeleteArtifacts(args, context=context)
+    return self.delegate.DeleteArtifact(args, context=context)  # pyrefly: ignore[missing-attribute]
 
   # Clients methods.
   # ===============
@@ -236,16 +235,16 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
   ):
     # Everybody is allowed to search clients.
 
-    return self.delegate.SearchClients(args, context=context)
+    return self.delegate.SearchClients(args, context=context)  # pyrefly: ignore[missing-attribute]
 
   def VerifyAccess(
       self,
       args: api_client_pb2.ApiVerifyAccessArgs,
       context: Optional[api_call_context.ApiCallContext] = None,
   ):
-    self.approval_checker.CheckClientAccess(context, args.client_id)
+    self.approval_checker.CheckClientAccess(context, args.client_id)  # pyrefly: ignore[bad-argument-type]
 
-    return self.delegate.VerifyAccess(args, context=context)
+    return self.delegate.VerifyAccess(args, context=context)  # pyrefly: ignore[missing-attribute]
 
   def GetClient(
       self,
@@ -254,7 +253,7 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
   ):
     # Everybody is allowed to get information about a particular client.
 
-    return self.delegate.GetClient(args, context=context)
+    return self.delegate.GetClient(args, context=context)  # pyrefly: ignore[missing-attribute]
 
   def GetClientVersions(
       self,
@@ -263,7 +262,7 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
   ):
     # Everybody is allowed to get historical information about a client.
 
-    return self.delegate.GetClientVersions(args, context=context)
+    return self.delegate.GetClientVersions(args, context=context)  # pyrefly: ignore[missing-attribute]
 
   def GetClientVersionTimes(
       self,
@@ -272,7 +271,7 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
   ):
     # Everybody is allowed to get the versions of a particular client.
 
-    return self.delegate.GetClientVersionTimes(args, context=context)
+    return self.delegate.GetClientVersionTimes(args, context=context)  # pyrefly: ignore[missing-attribute]
 
   def GetClientSnapshots(
       self,
@@ -281,7 +280,7 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
   ):
     # Everybody is allowed to get historical information about a client.
 
-    return self.delegate.GetClientSnapshots(args, context=context)
+    return self.delegate.GetClientSnapshots(args, context=context)  # pyrefly: ignore[missing-attribute]
 
   def GetClientStartupInfos(
       self,
@@ -290,74 +289,57 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
   ) -> api_client.ApiGetClientStartupInfosHandler:
     # Everybody is allowed to get historical information about a client.
 
-    return self.delegate.GetClientStartupInfos(args, context=context)
+    return self.delegate.GetClientStartupInfos(args, context=context)  # pyrefly: ignore[missing-attribute]
 
   def InterrogateClient(
       self,
       args: api_client_pb2.ApiInterrogateClientArgs,
       context: Optional[api_call_context.ApiCallContext] = None,
   ):
-    self.approval_checker.CheckClientAccess(context, args.client_id)
+    self.approval_checker.CheckClientAccess(context, args.client_id)  # pyrefly: ignore[bad-argument-type]
 
-    return self.delegate.InterrogateClient(args, context=context)
-
-  def GetLastClientIPAddress(
-      self,
-      args: api_client_pb2.ApiGetLastClientIPAddressArgs,
-      context: Optional[api_call_context.ApiCallContext] = None,
-  ):
-    # Everybody is allowed to get the last ip address of a particular client.
-
-    return self.delegate.GetLastClientIPAddress(args, context=context)
+    return self.delegate.InterrogateClient(args, context=context)  # pyrefly: ignore[missing-attribute]
 
   def ListClientCrashes(
       self,
       args: api_client_pb2.ApiListClientCrashesArgs,
       context: Optional[api_call_context.ApiCallContext] = None,
   ):
-    self.approval_checker.CheckClientAccess(context, args.client_id)
+    self.approval_checker.CheckClientAccess(context, args.client_id)  # pyrefly: ignore[bad-argument-type]
 
-    return self.delegate.ListClientCrashes(args, context=context)
+    return self.delegate.ListClientCrashes(args, context=context)  # pyrefly: ignore[missing-attribute]
 
   def KillFleetspeak(
       self,
       args: api_client_pb2.ApiKillFleetspeakArgs,
       context: Optional[api_call_context.ApiCallContext] = None,
   ) -> api_client.ApiKillFleetspeakHandler:
-    self.approval_checker.CheckClientAccess(context, args.client_id)
-    return self.delegate.KillFleetspeak(args, context=context)
+    self.approval_checker.CheckClientAccess(context, args.client_id)  # pyrefly: ignore[bad-argument-type]
+    return self.delegate.KillFleetspeak(args, context=context)  # pyrefly: ignore[missing-attribute]
 
   def RestartFleetspeakGrrService(
       self,
       args: api_client_pb2.ApiRestartFleetspeakGrrServiceArgs,
       context: Optional[api_call_context.ApiCallContext] = None,
   ) -> api_client.ApiRestartFleetspeakGrrServiceHandler:
-    self.approval_checker.CheckClientAccess(context, args.client_id)
-    return self.delegate.RestartFleetspeakGrrService(args, context=context)
+    self.approval_checker.CheckClientAccess(context, args.client_id)  # pyrefly: ignore[bad-argument-type]
+    return self.delegate.RestartFleetspeakGrrService(args, context=context)  # pyrefly: ignore[missing-attribute]
 
   def DeleteFleetspeakPendingMessages(
       self,
       args: api_client_pb2.ApiDeleteFleetspeakPendingMessagesArgs,
       context: Optional[api_call_context.ApiCallContext] = None,
   ) -> api_client.ApiDeleteFleetspeakPendingMessagesHandler:
-    self.approval_checker.CheckClientAccess(context, args.client_id)
-    return self.delegate.DeleteFleetspeakPendingMessages(args, context=context)
-
-  def GetFleetspeakPendingMessages(
-      self,
-      args: api_client_pb2.ApiGetFleetspeakPendingMessagesArgs,
-      context: Optional[api_call_context.ApiCallContext] = None,
-  ) -> api_client.ApiGetFleetspeakPendingMessagesHandler:
-    self.approval_checker.CheckClientAccess(context, args.client_id)
-    return self.delegate.GetFleetspeakPendingMessages(args, context=context)
+    self.approval_checker.CheckClientAccess(context, args.client_id)  # pyrefly: ignore[bad-argument-type]
+    return self.delegate.DeleteFleetspeakPendingMessages(args, context=context)  # pyrefly: ignore[missing-attribute]
 
   def GetFleetspeakPendingMessageCount(
       self,
       args: api_client_pb2.ApiGetFleetspeakPendingMessageCountArgs,
       context: Optional[api_call_context.ApiCallContext] = None,
   ) -> api_client.ApiGetFleetspeakPendingMessageCountHandler:
-    self.approval_checker.CheckClientAccess(context, args.client_id)
-    return self.delegate.GetFleetspeakPendingMessageCount(args, context=context)
+    self.approval_checker.CheckClientAccess(context, args.client_id)  # pyrefly: ignore[bad-argument-type]
+    return self.delegate.GetFleetspeakPendingMessageCount(args, context=context)  # pyrefly: ignore[missing-attribute]
 
   # Virtual file system methods.
   # ============================
@@ -367,81 +349,81 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
       args: api_vfs_pb2.ApiListFilesArgs,
       context: Optional[api_call_context.ApiCallContext] = None,
   ):
-    self.approval_checker.CheckClientAccess(context, args.client_id)
+    self.approval_checker.CheckClientAccess(context, args.client_id)  # pyrefly: ignore[bad-argument-type]
 
-    return self.delegate.ListFiles(args, context=context)
+    return self.delegate.ListFiles(args, context=context)  # pyrefly: ignore[missing-attribute]
 
   def BrowseFilesystem(
       self,
       args: api_vfs_pb2.ApiBrowseFilesystemArgs,
       context: Optional[api_call_context.ApiCallContext] = None,
   ):
-    self.approval_checker.CheckClientAccess(context, args.client_id)
+    self.approval_checker.CheckClientAccess(context, args.client_id)  # pyrefly: ignore[bad-argument-type]
 
-    return self.delegate.BrowseFilesystem(args, context=context)
+    return self.delegate.BrowseFilesystem(args, context=context)  # pyrefly: ignore[missing-attribute]
 
   def GetVfsFilesArchive(
       self,
       args: api_vfs_pb2.ApiGetVfsFilesArchiveArgs,
       context: Optional[api_call_context.ApiCallContext] = None,
   ):
-    self.approval_checker.CheckClientAccess(context, args.client_id)
+    self.approval_checker.CheckClientAccess(context, args.client_id)  # pyrefly: ignore[bad-argument-type]
 
-    return self.delegate.GetVfsFilesArchive(args, context=context)
+    return self.delegate.GetVfsFilesArchive(args, context=context)  # pyrefly: ignore[missing-attribute]
 
   def GetFileDetails(
       self,
       args: api_vfs_pb2.ApiGetFileDetailsArgs,
       context: Optional[api_call_context.ApiCallContext] = None,
   ):
-    self.approval_checker.CheckClientAccess(context, args.client_id)
+    self.approval_checker.CheckClientAccess(context, args.client_id)  # pyrefly: ignore[bad-argument-type]
 
-    return self.delegate.GetFileDetails(args, context=context)
+    return self.delegate.GetFileDetails(args, context=context)  # pyrefly: ignore[missing-attribute]
 
   def GetFileText(
       self,
       args: api_vfs_pb2.ApiGetFileTextArgs,
       context: Optional[api_call_context.ApiCallContext] = None,
   ):
-    self.approval_checker.CheckClientAccess(context, args.client_id)
+    self.approval_checker.CheckClientAccess(context, args.client_id)  # pyrefly: ignore[bad-argument-type]
 
-    return self.delegate.GetFileText(args, context=context)
+    return self.delegate.GetFileText(args, context=context)  # pyrefly: ignore[missing-attribute]
 
   def GetFileBlob(
       self,
       args: api_vfs_pb2.ApiGetFileBlobArgs,
       context: Optional[api_call_context.ApiCallContext] = None,
   ):
-    self.approval_checker.CheckClientAccess(context, args.client_id)
+    self.approval_checker.CheckClientAccess(context, args.client_id)  # pyrefly: ignore[bad-argument-type]
 
-    return self.delegate.GetFileBlob(args, context=context)
+    return self.delegate.GetFileBlob(args, context=context)  # pyrefly: ignore[missing-attribute]
 
   def GetFileVersionTimes(
       self,
       args: api_vfs_pb2.ApiGetFileVersionTimesArgs,
       context: Optional[api_call_context.ApiCallContext] = None,
   ):
-    self.approval_checker.CheckClientAccess(context, args.client_id)
+    self.approval_checker.CheckClientAccess(context, args.client_id)  # pyrefly: ignore[bad-argument-type]
 
-    return self.delegate.GetFileVersionTimes(args, context=context)
+    return self.delegate.GetFileVersionTimes(args, context=context)  # pyrefly: ignore[missing-attribute]
 
   def GetFileDownloadCommand(
       self,
       args: api_vfs_pb2.ApiGetFileDownloadCommandArgs,
       context: Optional[api_call_context.ApiCallContext] = None,
   ):
-    self.approval_checker.CheckClientAccess(context, args.client_id)
+    self.approval_checker.CheckClientAccess(context, args.client_id)  # pyrefly: ignore[bad-argument-type]
 
-    return self.delegate.GetFileDownloadCommand(args, context=context)
+    return self.delegate.GetFileDownloadCommand(args, context=context)  # pyrefly: ignore[missing-attribute]
 
   def CreateVfsRefreshOperation(
       self,
       args: api_vfs_pb2.ApiCreateVfsRefreshOperationArgs,
       context: Optional[api_call_context.ApiCallContext] = None,
   ):
-    self.approval_checker.CheckClientAccess(context, args.client_id)
+    self.approval_checker.CheckClientAccess(context, args.client_id)  # pyrefly: ignore[bad-argument-type]
 
-    return self.delegate.CreateVfsRefreshOperation(args, context=context)
+    return self.delegate.CreateVfsRefreshOperation(args, context=context)  # pyrefly: ignore[missing-attribute]
 
   def GetVfsRefreshOperationState(
       self,
@@ -451,34 +433,34 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
     # No ACL checks are required here, since the user can only check
     # operations started by themselves.
 
-    return self.delegate.GetVfsRefreshOperationState(args, context=context)
+    return self.delegate.GetVfsRefreshOperationState(args, context=context)  # pyrefly: ignore[missing-attribute]
 
   def GetVfsTimeline(
       self,
       args: api_vfs_pb2.ApiGetVfsTimelineArgs,
       context: Optional[api_call_context.ApiCallContext] = None,
   ):
-    self.approval_checker.CheckClientAccess(context, args.client_id)
+    self.approval_checker.CheckClientAccess(context, args.client_id)  # pyrefly: ignore[bad-argument-type]
 
-    return self.delegate.GetVfsTimeline(args, context=context)
+    return self.delegate.GetVfsTimeline(args, context=context)  # pyrefly: ignore[missing-attribute]
 
   def GetVfsTimelineAsCsv(
       self,
       args: api_vfs_pb2.ApiGetVfsTimelineAsCsvArgs,
       context: Optional[api_call_context.ApiCallContext] = None,
   ):
-    self.approval_checker.CheckClientAccess(context, args.client_id)
+    self.approval_checker.CheckClientAccess(context, args.client_id)  # pyrefly: ignore[bad-argument-type]
 
-    return self.delegate.GetVfsTimelineAsCsv(args, context=context)
+    return self.delegate.GetVfsTimelineAsCsv(args, context=context)  # pyrefly: ignore[missing-attribute]
 
   def UpdateVfsFileContent(
       self,
       args: api_vfs_pb2.ApiUpdateVfsFileContentArgs,
       context: Optional[api_call_context.ApiCallContext] = None,
   ):
-    self.approval_checker.CheckClientAccess(context, args.client_id)
+    self.approval_checker.CheckClientAccess(context, args.client_id)  # pyrefly: ignore[bad-argument-type]
 
-    return self.delegate.UpdateVfsFileContent(args, context=context)
+    return self.delegate.UpdateVfsFileContent(args, context=context)  # pyrefly: ignore[missing-attribute]
 
   def GetVfsFileContentUpdateState(
       self,
@@ -488,7 +470,7 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
     # No ACL checks are required here, since the user can only check
     # operations started by themselves.
 
-    return self.delegate.GetVfsFileContentUpdateState(args, context=context)
+    return self.delegate.GetVfsFileContentUpdateState(args, context=context)  # pyrefly: ignore[missing-attribute]
 
   # Clients labels methods.
   # ======================
@@ -496,7 +478,7 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
   def ListClientsLabels(self, args, context=None):
     # Everybody is allowed to get a list of all labels used on the system.
 
-    return self.delegate.ListClientsLabels(args, context=context)
+    return self.delegate.ListClientsLabels(args, context=context)  # pyrefly: ignore[missing-attribute]
 
   def AddClientsLabels(
       self,
@@ -506,7 +488,7 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
     # Everybody is allowed to add labels. Labels owner will be attributed to
     # the current user.
 
-    return self.delegate.AddClientsLabels(args, context=context)
+    return self.delegate.AddClientsLabels(args, context=context)  # pyrefly: ignore[missing-attribute]
 
   def RemoveClientsLabels(
       self,
@@ -516,7 +498,7 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
     # Everybody is allowed to remove labels. ApiRemoveClientsLabelsHandler is
     # written in such a way, so that it will only delete user's own labels.
 
-    return self.delegate.RemoveClientsLabels(args, context=context)
+    return self.delegate.RemoveClientsLabels(args, context=context)  # pyrefly: ignore[missing-attribute]
 
   # Clients flows methods.
   # =====================
@@ -526,9 +508,9 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
       args: api_flow_pb2.ApiListFlowsArgs,
       context: Optional[api_call_context.ApiCallContext] = None,
   ):
-    self.approval_checker.CheckClientAccess(context, args.client_id)
+    self.approval_checker.CheckClientAccess(context, args.client_id)  # pyrefly: ignore[bad-argument-type]
 
-    return self.delegate.ListFlows(args, context=context)
+    return self.delegate.ListFlows(args, context=context)  # pyrefly: ignore[missing-attribute]
 
   def GetFlow(
       self,
@@ -537,40 +519,40 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
   ):
     self._CheckFlowOrClientAccess(args.client_id, args.flow_id, context)
 
-    return self.delegate.GetFlow(args, context=context)
+    return self.delegate.GetFlow(args, context=context)  # pyrefly: ignore[missing-attribute]
 
   def CreateFlow(
       self,
       args: api_flow_pb2.ApiCreateFlowArgs,
       context: Optional[api_call_context.ApiCallContext] = None,
   ):
-    self.approval_checker.CheckClientAccess(context, args.client_id)
+    self.approval_checker.CheckClientAccess(context, args.client_id)  # pyrefly: ignore[bad-argument-type]
     self.admin_access_checker.CheckIfCanStartFlow(
-        context.username, args.flow.name or args.flow.runner_args.flow_name
+        context.username, args.flow.name or args.flow.runner_args.flow_name  # pyrefly: ignore[missing-attribute]
     )
     self.mitigation_flows_access_checker.CheckIfHasAccessToFlow(
-        context.username, args.flow.name or args.flow.runner_args.flow_name
+        context.username, args.flow.name or args.flow.runner_args.flow_name  # pyrefly: ignore[missing-attribute]
     )
 
-    return self.delegate.CreateFlow(args, context=context)
+    return self.delegate.CreateFlow(args, context=context)  # pyrefly: ignore[missing-attribute]
 
   def CancelFlow(
       self,
       args: api_flow_pb2.ApiCancelFlowArgs,
       context: Optional[api_call_context.ApiCallContext] = None,
   ):
-    self.approval_checker.CheckClientAccess(context, args.client_id)
+    self.approval_checker.CheckClientAccess(context, args.client_id)  # pyrefly: ignore[bad-argument-type]
 
-    return self.delegate.CancelFlow(args, context=context)
+    return self.delegate.CancelFlow(args, context=context)  # pyrefly: ignore[missing-attribute]
 
   def ListFlowRequests(
       self,
       args: api_flow_pb2.ApiListFlowRequestsArgs,
       context: Optional[api_call_context.ApiCallContext] = None,
   ):
-    self.approval_checker.CheckClientAccess(context, args.client_id)
+    self.approval_checker.CheckClientAccess(context, args.client_id)  # pyrefly: ignore[bad-argument-type]
 
-    return self.delegate.ListFlowRequests(args, context=context)
+    return self.delegate.ListFlowRequests(args, context=context)  # pyrefly: ignore[missing-attribute]
 
   def ListFlowResults(
       self,
@@ -579,7 +561,7 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
   ) -> api_flow.ApiListFlowResultsHandler:
     self._CheckFlowOrClientAccess(args.client_id, args.flow_id, context)
 
-    return self.delegate.ListFlowResults(args, context=context)
+    return self.delegate.ListFlowResults(args, context=context)  # pyrefly: ignore[missing-attribute]
 
   def GetExportedFlowResults(
       self,
@@ -588,7 +570,7 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
   ):
     self._CheckFlowOrClientAccess(args.client_id, args.flow_id, context)
 
-    return self.delegate.GetExportedFlowResults(args, context=context)
+    return self.delegate.GetExportedFlowResults(args, context=context)  # pyrefly: ignore[missing-attribute]
 
   def GetFlowResultsExportCommand(
       self,
@@ -597,7 +579,7 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
   ):
     self._CheckFlowOrClientAccess(args.client_id, args.flow_id, context)
 
-    return self.delegate.GetFlowResultsExportCommand(args, context=context)
+    return self.delegate.GetFlowResultsExportCommand(args, context=context)  # pyrefly: ignore[missing-attribute]
 
   def GetFlowFilesArchive(
       self,
@@ -608,52 +590,52 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
         str(args.client_id), str(args.flow_id), context
     )
 
-    return self.delegate.GetFlowFilesArchive(args, context=context)
+    return self.delegate.GetFlowFilesArchive(args, context=context)  # pyrefly: ignore[missing-attribute]
 
   def ListFlowOutputPlugins(
       self,
       args: api_flow_pb2.ApiListFlowOutputPluginsArgs,
       context: Optional[api_call_context.ApiCallContext] = None,
   ):
-    self.approval_checker.CheckClientAccess(context, args.client_id)
+    self.approval_checker.CheckClientAccess(context, args.client_id)  # pyrefly: ignore[bad-argument-type]
 
-    return self.delegate.ListFlowOutputPlugins(args, context=context)
+    return self.delegate.ListFlowOutputPlugins(args, context=context)  # pyrefly: ignore[missing-attribute]
 
   def ListFlowOutputPluginLogs(
       self,
       args: api_flow_pb2.ApiListFlowOutputPluginLogsArgs,
       context: Optional[api_call_context.ApiCallContext] = None,
   ):
-    self.approval_checker.CheckClientAccess(context, args.client_id)
+    self.approval_checker.CheckClientAccess(context, args.client_id)  # pyrefly: ignore[bad-argument-type]
 
-    return self.delegate.ListFlowOutputPluginLogs(args, context=context)
+    return self.delegate.ListFlowOutputPluginLogs(args, context=context)  # pyrefly: ignore[missing-attribute]
 
   def ListFlowOutputPluginErrors(
       self,
       args: api_flow_pb2.ApiListFlowOutputPluginErrorsArgs,
       context: Optional[api_call_context.ApiCallContext] = None,
   ):
-    self.approval_checker.CheckClientAccess(context, args.client_id)
+    self.approval_checker.CheckClientAccess(context, args.client_id)  # pyrefly: ignore[bad-argument-type]
 
-    return self.delegate.ListFlowOutputPluginErrors(args, context=context)
+    return self.delegate.ListFlowOutputPluginErrors(args, context=context)  # pyrefly: ignore[missing-attribute]
 
   def ListAllFlowOutputPluginLogs(
       self,
       args: api_flow_pb2.ApiListAllFlowOutputPluginLogsArgs,
       context: Optional[api_call_context.ApiCallContext] = None,
   ):
-    self.approval_checker.CheckClientAccess(context, args.client_id)
+    self.approval_checker.CheckClientAccess(context, args.client_id)  # pyrefly: ignore[bad-argument-type]
 
-    return self.delegate.ListAllFlowOutputPluginLogs(args, context=context)
+    return self.delegate.ListAllFlowOutputPluginLogs(args, context=context)  # pyrefly: ignore[missing-attribute]
 
   def ListFlowLogs(
       self,
       args: api_flow_pb2.ApiListFlowLogsArgs,
       context: Optional[api_call_context.ApiCallContext] = None,
   ):
-    self.approval_checker.CheckClientAccess(context, args.client_id)
+    self.approval_checker.CheckClientAccess(context, args.client_id)  # pyrefly: ignore[bad-argument-type]
 
-    return self.delegate.ListFlowLogs(args, context=context)
+    return self.delegate.ListFlowLogs(args, context=context)  # pyrefly: ignore[missing-attribute]
 
   def GetCollectedTimeline(
       self,
@@ -673,16 +655,16 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
 
     # Check for client access if this flow was not scheduled as part of a hunt.
     if flow.parent_hunt_id != flow.flow_id:
-      self.approval_checker.CheckClientAccess(context, args.client_id)
+      self.approval_checker.CheckClientAccess(context, args.client_id)  # pyrefly: ignore[bad-argument-type]
 
-    return self.delegate.GetCollectedTimeline(args, context=context)
+    return self.delegate.GetCollectedTimeline(args, context=context)  # pyrefly: ignore[missing-attribute]
 
   def UploadYaraSignature(
       self,
       args: api_yara_pb2.ApiUploadYaraSignatureArgs,
       context: Optional[api_call_context.ApiCallContext] = None,
   ) -> api_yara.ApiUploadYaraSignatureHandler:
-    return self.delegate.UploadYaraSignature(args, context=context)
+    return self.delegate.UploadYaraSignature(args, context=context)  # pyrefly: ignore[missing-attribute]
 
   def ExplainGlobExpression(
       self,
@@ -691,7 +673,7 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
   ) -> api_flow.ApiExplainGlobExpressionHandler:
     # ExplainGlobExpression only exposes the KnowledgeBase, which does not need
     # approval.
-    return self.delegate.ExplainGlobExpression(args, context=context)
+    return self.delegate.ExplainGlobExpression(args, context=context)  # pyrefly: ignore[missing-attribute]
 
   def ScheduleFlow(
       self,
@@ -699,27 +681,27 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
       context: Optional[api_call_context.ApiCallContext] = None,
   ) -> api_flow.ApiScheduleFlowHandler:
     self.admin_access_checker.CheckIfCanStartFlow(
-        context.username, args.flow.name or args.flow.runner_args.flow_name
+        context.username, args.flow.name or args.flow.runner_args.flow_name  # pyrefly: ignore[missing-attribute]
     )
     self.mitigation_flows_access_checker.CheckIfHasAccessToFlow(
-        context.username, args.flow.name or args.flow.runner_args.flow_name
+        context.username, args.flow.name or args.flow.runner_args.flow_name  # pyrefly: ignore[missing-attribute]
     )
 
-    return self.delegate.ScheduleFlow(args, context=context)
+    return self.delegate.ScheduleFlow(args, context=context)  # pyrefly: ignore[missing-attribute]
 
   def ListScheduledFlows(
       self,
       args: api_flow_pb2.ApiListScheduledFlowsArgs,
       context: Optional[api_call_context.ApiCallContext] = None,
   ) -> api_flow.ApiListScheduledFlowsHandler:
-    return self.delegate.ListScheduledFlows(args, context=context)
+    return self.delegate.ListScheduledFlows(args, context=context)  # pyrefly: ignore[missing-attribute]
 
   def UnscheduleFlow(
       self,
       args: api_flow_pb2.ApiUnscheduleFlowArgs,
       context: Optional[api_call_context.ApiCallContext] = None,
   ) -> api_flow.ApiUnscheduleFlowHandler:
-    return self.delegate.UnscheduleFlow(args, context=context)
+    return self.delegate.UnscheduleFlow(args, context=context)  # pyrefly: ignore[missing-attribute]
 
   def GetOsqueryResults(
       self,
@@ -741,9 +723,9 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
 
     # Check for client access if this flow was not scheduled as part of a hunt.
     if flow.parent_hunt_id != flow.flow_id:
-      self.approval_checker.CheckClientAccess(context, str(args.client_id))
+      self.approval_checker.CheckClientAccess(context, str(args.client_id))  # pyrefly: ignore[bad-argument-type]
 
-    return self.delegate.GetOsqueryResults(args, context=context)
+    return self.delegate.GetOsqueryResults(args, context=context)  # pyrefly: ignore[missing-attribute]
 
   # Signed commands methods.
   # ========================
@@ -755,7 +737,7 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
   ) -> api_signed_commands.ApiListSignedCommandsHandler:
     # Everybody can retrieve signed commands.
 
-    return self.delegate.ListSignedCommands(args, context=context)
+    return self.delegate.ListSignedCommands(args, context=context)  # pyrefly: ignore[missing-attribute]
 
   # Cron jobs methods.
   # =================
@@ -767,16 +749,7 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
   ):
     # Everybody can list cron jobs.
 
-    return self.delegate.ListCronJobs(args, context=context)
-
-  def CreateCronJob(
-      self,
-      args: api_cron_pb2.ApiCreateCronJobArgs,
-      context: Optional[api_call_context.ApiCallContext] = None,
-  ):
-    # Everybody can create a cron job.
-
-    return self.delegate.CreateCronJob(args, context=context)
+    return self.delegate.ListCronJobs(args, context=context)  # pyrefly: ignore[missing-attribute]
 
   def GetCronJob(
       self,
@@ -785,25 +758,25 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
   ):
     # Everybody can retrieve a cron job.
 
-    return self.delegate.GetCronJob(args, context=context)
+    return self.delegate.GetCronJob(args, context=context)  # pyrefly: ignore[missing-attribute]
 
   def ForceRunCronJob(
       self,
       args: api_cron_pb2.ApiForceRunCronJobArgs,
       context: Optional[api_call_context.ApiCallContext] = None,
   ):
-    self.approval_checker.CheckCronJobAccess(context, str(args.cron_job_id))
+    self.approval_checker.CheckCronJobAccess(context, str(args.cron_job_id))  # pyrefly: ignore[bad-argument-type]
 
-    return self.delegate.ForceRunCronJob(args, context=context)
+    return self.delegate.ForceRunCronJob(args, context=context)  # pyrefly: ignore[missing-attribute]
 
   def ModifyCronJob(
       self,
       args: api_cron_pb2.ApiModifyCronJobArgs,
       context: Optional[api_call_context.ApiCallContext] = None,
   ):
-    self.approval_checker.CheckCronJobAccess(context, str(args.cron_job_id))
+    self.approval_checker.CheckCronJobAccess(context, str(args.cron_job_id))  # pyrefly: ignore[bad-argument-type]
 
-    return self.delegate.ModifyCronJob(args, context=context)
+    return self.delegate.ModifyCronJob(args, context=context)  # pyrefly: ignore[missing-attribute]
 
   def ListCronJobRuns(
       self,
@@ -812,7 +785,7 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
   ):
     # Everybody can list cron jobs' runs.
 
-    return self.delegate.ListCronJobRuns(args, context=context)
+    return self.delegate.ListCronJobRuns(args, context=context)  # pyrefly: ignore[missing-attribute]
 
   def GetCronJobRun(
       self,
@@ -821,16 +794,16 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
   ):
     # Everybody can get cron runs.
 
-    return self.delegate.GetCronJobRun(args, context=context)
+    return self.delegate.GetCronJobRun(args, context=context)  # pyrefly: ignore[missing-attribute]
 
   def DeleteCronJob(
       self,
       args: api_cron_pb2.ApiDeleteCronJobArgs,
       context: Optional[api_call_context.ApiCallContext] = None,
   ):
-    self.approval_checker.CheckCronJobAccess(context, str(args.cron_job_id))
+    self.approval_checker.CheckCronJobAccess(context, str(args.cron_job_id))  # pyrefly: ignore[bad-argument-type]
 
-    return self.delegate.DeleteCronJob(args, context=context)
+    return self.delegate.DeleteCronJob(args, context=context)  # pyrefly: ignore[missing-attribute]
 
   # Hunts methods.
   # =============
@@ -842,16 +815,16 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
   ):
     # Everybody can list hunts.
 
-    return self.delegate.ListHunts(args, context=context)
+    return self.delegate.ListHunts(args, context=context)  # pyrefly: ignore[missing-attribute]
 
   def VerifyHuntAccess(
       self,
       args: api_hunt_pb2.ApiVerifyHuntAccessArgs,
       context: Optional[api_call_context.ApiCallContext] = None,
   ):
-    self.approval_checker.CheckHuntAccess(context, str(args.hunt_id))
+    self.approval_checker.CheckHuntAccess(context, str(args.hunt_id))  # pyrefly: ignore[bad-argument-type]
 
-    return self.delegate.VerifyHuntAccess(args, context=context)
+    return self.delegate.VerifyHuntAccess(args, context=context)  # pyrefly: ignore[missing-attribute]
 
   def GetHunt(
       self,
@@ -860,7 +833,7 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
   ):
     # Everybody can get hunt's information.
 
-    return self.delegate.GetHunt(args, context=context)
+    return self.delegate.GetHunt(args, context=context)  # pyrefly: ignore[missing-attribute]
 
   def ListHuntErrors(
       self,
@@ -869,7 +842,7 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
   ):
     # Everybody can get hunt errors list.
 
-    return self.delegate.ListHuntErrors(args, context=context)
+    return self.delegate.ListHuntErrors(args, context=context)  # pyrefly: ignore[missing-attribute]
 
   def ListHuntLogs(
       self,
@@ -878,7 +851,7 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
   ):
     # Everybody can look into hunt's logs.
 
-    return self.delegate.ListHuntLogs(args, context=context)
+    return self.delegate.ListHuntLogs(args, context=context)  # pyrefly: ignore[missing-attribute]
 
   def ListHuntResults(
       self,
@@ -887,7 +860,7 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
   ):
     # Everybody can look into hunt's results.
 
-    return self.delegate.ListHuntResults(args, context=context)
+    return self.delegate.ListHuntResults(args, context=context)  # pyrefly: ignore[missing-attribute]
 
   def CountHuntResultsByType(
       self,
@@ -896,7 +869,7 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
   ):
     # Everybody can look into hunt's results.
 
-    return self.delegate.CountHuntResultsByType(args, context=context)
+    return self.delegate.CountHuntResultsByType(args, context=context)  # pyrefly: ignore[missing-attribute]
 
   def GetExportedHuntResults(
       self,
@@ -905,7 +878,7 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
   ):
     # Everybody can export hunt's results.
 
-    return self.delegate.GetExportedHuntResults(args, context=context)
+    return self.delegate.GetExportedHuntResults(args, context=context)  # pyrefly: ignore[missing-attribute]
 
   def GetHuntResultsExportCommand(
       self,
@@ -914,16 +887,7 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
   ):
     # Everybody can get hunt's export command.
 
-    return self.delegate.GetHuntResultsExportCommand(args, context=context)
-
-  def ListHuntOutputPlugins(
-      self,
-      args: api_hunt_pb2.ApiListHuntOutputPluginsArgs,
-      context: Optional[api_call_context.ApiCallContext] = None,
-  ):
-    # Everybody can list hunt output plugins.
-
-    return self.delegate.ListHuntOutputPlugins(args, context=context)
+    return self.delegate.GetHuntResultsExportCommand(args, context=context)  # pyrefly: ignore[missing-attribute]
 
   def ListHuntOutputPluginLogs(
       self,
@@ -932,7 +896,7 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
   ):
     # Everybody can list hunt output plugins logs.
 
-    return self.delegate.ListHuntOutputPluginLogs(args, context=context)
+    return self.delegate.ListHuntOutputPluginLogs(args, context=context)  # pyrefly: ignore[missing-attribute]
 
   def ListHuntOutputPluginErrors(
       self,
@@ -941,7 +905,7 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
   ):
     # Everybody can list hunt output plugin errors.
 
-    return self.delegate.ListHuntOutputPluginErrors(args, context=context)
+    return self.delegate.ListHuntOutputPluginErrors(args, context=context)  # pyrefly: ignore[missing-attribute]
 
   def ListHuntCrashes(
       self,
@@ -950,7 +914,7 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
   ):
     # Everybody can list hunt's crashes.
 
-    return self.delegate.ListHuntCrashes(args, context=context)
+    return self.delegate.ListHuntCrashes(args, context=context)  # pyrefly: ignore[missing-attribute]
 
   def GetHuntClientCompletionStats(
       self,
@@ -959,7 +923,7 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
   ):
     # Everybody can get hunt's client completion stats.
 
-    return self.delegate.GetHuntClientCompletionStats(args, context=context)
+    return self.delegate.GetHuntClientCompletionStats(args, context=context)  # pyrefly: ignore[missing-attribute]
 
   def GetHuntStats(
       self,
@@ -968,7 +932,7 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
   ):
     # Everybody can get hunt's stats.
 
-    return self.delegate.GetHuntStats(args, context=context)
+    return self.delegate.GetHuntStats(args, context=context)  # pyrefly: ignore[missing-attribute]
 
   def ListHuntClients(
       self,
@@ -977,7 +941,7 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
   ):
     # Everybody can get hunt's clients.
 
-    return self.delegate.ListHuntClients(args, context=context)
+    return self.delegate.ListHuntClients(args, context=context)  # pyrefly: ignore[missing-attribute]
 
   def GetHuntContext(
       self,
@@ -986,7 +950,7 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
   ):
     # Everybody can get hunt's context.
 
-    return self.delegate.GetHuntContext(args, context=context)
+    return self.delegate.GetHuntContext(args, context=context)  # pyrefly: ignore[missing-attribute]
 
   def CreateHunt(
       self,
@@ -1002,13 +966,13 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
     # normal approval ACL checks apply. Namely: another user can start
     # such a hunt, if such user gets a valid hunt approval.
     self.admin_access_checker.CheckIfCanStartFlow(
-        context.username, args.flow_name
+        context.username, args.flow_name  # pyrefly: ignore[missing-attribute]
     )
     self.mitigation_flows_access_checker.CheckIfHasAccessToFlow(
-        context.username, args.flow_name
+        context.username, args.flow_name  # pyrefly: ignore[missing-attribute]
     )
 
-    return self.delegate.CreateHunt(args, context=context)
+    return self.delegate.CreateHunt(args, context=context)  # pyrefly: ignore[missing-attribute]
 
   def ModifyHunt(
       self,
@@ -1016,9 +980,9 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
       context: Optional[api_call_context.ApiCallContext] = None,
   ):
     # Starting/stopping hunt or modifying its attributes requires an approval.
-    self.approval_checker.CheckHuntAccess(context, str(args.hunt_id))
+    self.approval_checker.CheckHuntAccess(context, str(args.hunt_id))  # pyrefly: ignore[bad-argument-type]
 
-    return self.delegate.ModifyHunt(args, context=context)
+    return self.delegate.ModifyHunt(args, context=context)  # pyrefly: ignore[missing-attribute]
 
   def _GetHuntObj(self, hunt_id: str) -> hunts_pb2.Hunt:
     try:
@@ -1036,28 +1000,28 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
     hunt_obj = self._GetHuntObj(args.hunt_id)
 
     # Hunt's creator is allowed to delete the hunt.
-    if context.username != hunt_obj.creator:
-      self.approval_checker.CheckHuntAccess(context, str(args.hunt_id))
+    if context.username != hunt_obj.creator:  # pyrefly: ignore[missing-attribute]
+      self.approval_checker.CheckHuntAccess(context, str(args.hunt_id))  # pyrefly: ignore[bad-argument-type]
 
-    return self.delegate.DeleteHunt(args, context=context)
+    return self.delegate.DeleteHunt(args, context=context)  # pyrefly: ignore[missing-attribute]
 
   def GetHuntFilesArchive(
       self,
       args: api_hunt_pb2.ApiGetHuntFilesArchiveArgs,
       context: Optional[api_call_context.ApiCallContext] = None,
   ):
-    self.approval_checker.CheckHuntAccess(context, str(args.hunt_id))
+    self.approval_checker.CheckHuntAccess(context, str(args.hunt_id))  # pyrefly: ignore[bad-argument-type]
 
-    return self.delegate.GetHuntFilesArchive(args, context=context)
+    return self.delegate.GetHuntFilesArchive(args, context=context)  # pyrefly: ignore[missing-attribute]
 
   def GetHuntFile(
       self,
       args: api_hunt_pb2.ApiGetHuntFileArgs,
       context: Optional[api_call_context.ApiCallContext] = None,
   ):
-    self.approval_checker.CheckHuntAccess(context, str(args.hunt_id))
+    self.approval_checker.CheckHuntAccess(context, str(args.hunt_id))  # pyrefly: ignore[bad-argument-type]
 
-    return self.delegate.GetHuntFile(args, context=context)
+    return self.delegate.GetHuntFile(args, context=context)  # pyrefly: ignore[missing-attribute]
 
   def GetCollectedHuntTimelines(
       self,
@@ -1065,7 +1029,7 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
       context: Optional[api_call_context.ApiCallContext] = None,
   ) -> api_timeline.ApiGetCollectedHuntTimelinesHandler:
     # Everybody can export collected hunt timelines.
-    return self.delegate.GetCollectedHuntTimelines(args, context=context)
+    return self.delegate.GetCollectedHuntTimelines(args, context=context)  # pyrefly: ignore[missing-attribute]
 
   # Approvals methods.
   # =================
@@ -1211,7 +1175,7 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
   ):
     # Everybody can list suggestions for approver usernames.
 
-    return self.delegate.ListApproverSuggestions(args, context=context)
+    return self.delegate.ListApproverSuggestions(args, context=context)  # pyrefly: ignore[missing-attribute]
 
   # User settings methods.
   # =====================
@@ -1223,7 +1187,7 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
   ):
     # Everybody can get their own pending notifications count.
 
-    return self.delegate.GetPendingUserNotificationsCount(args, context=context)
+    return self.delegate.GetPendingUserNotificationsCount(args, context=context)  # pyrefly: ignore[missing-attribute]
 
   def ListPendingUserNotifications(
       self,
@@ -1232,7 +1196,7 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
   ):
     # Everybody can get their own pending notifications count.
 
-    return self.delegate.ListPendingUserNotifications(args, context=context)
+    return self.delegate.ListPendingUserNotifications(args, context=context)  # pyrefly: ignore[missing-attribute]
 
   def DeletePendingUserNotification(
       self,
@@ -1241,7 +1205,7 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
   ):
     # Everybody can get their own pending notifications count.
 
-    return self.delegate.DeletePendingUserNotification(args, context=context)
+    return self.delegate.DeletePendingUserNotification(args, context=context)  # pyrefly: ignore[missing-attribute]
 
   def ListAndResetUserNotifications(
       self,
@@ -1250,7 +1214,7 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
   ):
     # Everybody can get their own user notifications.
 
-    return self.delegate.ListAndResetUserNotifications(args, context=context)
+    return self.delegate.ListAndResetUserNotifications(args, context=context)  # pyrefly: ignore[missing-attribute]
 
   def GetGrrUser(
       self,
@@ -1263,7 +1227,7 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
     try:
       # Without access to restricted flows, one can not launch Python hacks and
       # binaries. Hence, we don't display the "Manage binaries" page.
-      self.admin_access_checker.CheckIfHasAdminAccess(context.username)
+      self.admin_access_checker.CheckIfHasAdminAccess(context.username)  # pyrefly: ignore[missing-attribute]
       is_admin = True
     except access_control.UnauthorizedAccess:
       pass
@@ -1277,7 +1241,7 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
   ):
     # Everybody can update their own user settings.
 
-    return self.delegate.UpdateGrrUser(args, context=context)
+    return self.delegate.UpdateGrrUser(args, context=context)  # pyrefly: ignore[missing-attribute]
 
   # Config methods.
   # ==============
@@ -1285,7 +1249,7 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
   def GetConfig(self, args, context=None):
     # Everybody can read the whole config.
 
-    return self.delegate.GetConfig(args, context=context)
+    return self.delegate.GetConfig(args, context=context)  # pyrefly: ignore[missing-attribute]
 
   def GetConfigOption(
       self,
@@ -1294,38 +1258,38 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
   ):
     # Everybody can read selected config options.
 
-    return self.delegate.GetConfigOption(args, context=context)
+    return self.delegate.GetConfigOption(args, context=context)  # pyrefly: ignore[missing-attribute]
 
   def ListGrrBinaries(
       self,
       args: api_config_pb2.ApiListGrrBinariesArgs,
       context: Optional[api_call_context.ApiCallContext] = None,
   ):
-    self.admin_access_checker.CheckIfHasAdminAccess(context.username)
+    self.admin_access_checker.CheckIfHasAdminAccess(context.username)  # pyrefly: ignore[missing-attribute]
 
-    return self.delegate.ListGrrBinaries(args, context=context)
+    return self.delegate.ListGrrBinaries(args, context=context)  # pyrefly: ignore[missing-attribute]
 
   def GetGrrBinary(
       self,
       args: api_config_pb2.ApiGetGrrBinaryArgs,
       context: Optional[api_call_context.ApiCallContext] = None,
   ):
-    self.admin_access_checker.CheckIfHasAdminAccess(context.username)
+    self.admin_access_checker.CheckIfHasAdminAccess(context.username)  # pyrefly: ignore[missing-attribute]
 
-    return self.delegate.GetGrrBinary(args, context=context)
+    return self.delegate.GetGrrBinary(args, context=context)  # pyrefly: ignore[missing-attribute]
 
   def GetGrrBinaryBlob(
       self,
       args: api_config_pb2.ApiGetGrrBinaryBlobArgs,
       context: Optional[api_call_context.ApiCallContext] = None,
   ):
-    self.admin_access_checker.CheckIfHasAdminAccess(context.username)
+    self.admin_access_checker.CheckIfHasAdminAccess(context.username)  # pyrefly: ignore[missing-attribute]
 
-    return self.delegate.GetGrrBinaryBlob(args, context=context)
+    return self.delegate.GetGrrBinaryBlob(args, context=context)  # pyrefly: ignore[missing-attribute]
 
   def GetUiConfig(self, args, context=None):
     # Everybody can read the ui config.
-    return self.delegate.GetUiConfig(args, context=context)
+    return self.delegate.GetUiConfig(args, context=context)  # pyrefly: ignore[missing-attribute]
 
   # Reflection methods.
   # ==================
@@ -1333,7 +1297,7 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
   def ListKbFields(self, args, context=None):
     # Everybody can list knowledge base fields.
 
-    return self.delegate.ListKbFields(args, context=context)
+    return self.delegate.ListKbFields(args, context=context)  # pyrefly: ignore[missing-attribute]
 
   def ListFlowDescriptors(self, args, context=None):
     # Everybody can list flow descritors.
@@ -1345,12 +1309,12 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
   def ListOutputPluginDescriptors(self, args, context=None):
     # Everybody can list output plugin descriptors.
 
-    return self.delegate.ListOutputPluginDescriptors(args, context=context)
+    return self.delegate.ListOutputPluginDescriptors(args, context=context)  # pyrefly: ignore[missing-attribute]
 
   def ListApiMethods(self, args, context=None):
     # Everybody can get the docs.
 
-    return self.delegate.ListApiMethods(args, context=context)
+    return self.delegate.ListApiMethods(args, context=context)  # pyrefly: ignore[missing-attribute]
 
   def GetGrrVersion(
       self,
@@ -1358,7 +1322,7 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
       context: Optional[api_call_context.ApiCallContext] = None,
   ) -> api_metadata.ApiGetGrrVersionHandler:
     # Everybody can get version of the GRR server.
-    return self.delegate.GetGrrVersion(args, context=context)
+    return self.delegate.GetGrrVersion(args, context=context)  # pyrefly: ignore[missing-attribute]
 
   def GetOpenApiDescription(
       self,
@@ -1367,6 +1331,5 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
   ) -> api_metadata.ApiGetOpenApiDescriptionHandler:
     """Returns a description of the API following the OpenAPI specification."""
     # Everybody can get the OpenAPI description.
-    return self.delegate.GetOpenApiDescription(args, context=context)
+    return self.delegate.GetOpenApiDescription(args, context=context)  # pyrefly: ignore[missing-attribute]
 
-  # pytype: enable=attribute-error

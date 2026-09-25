@@ -113,7 +113,7 @@ describe('Fleet Collection Configuration Component', () => {
       );
     }));
 
-    it('is enabled when user has access and fleet collection is not in NOT_STARTED state', fakeAsync(async () => {
+    it('is enabled when user has access and fleet collection is in NOT_STARTED state', fakeAsync(async () => {
       fleetCollectionStoreMock.hasAccess = signal(true);
       fleetCollectionStoreMock.fleetCollection = signal(
         newHunt({
@@ -128,8 +128,23 @@ describe('Fleet Collection Configuration Component', () => {
       expect(await startFleetCollectionButton.isDisabled()).toBeFalse();
     }));
 
+    it('is enabled when user has access and fleet collection is in REACHED_CLIENT_LIMIT state', fakeAsync(async () => {
+      fleetCollectionStoreMock.hasAccess = signal(true);
+      fleetCollectionStoreMock.fleetCollection = signal(
+        newHunt({
+          huntId: '1234',
+          state: HuntState.REACHED_CLIENT_LIMIT,
+        }),
+      );
+      const {harness} = await createComponent();
+
+      const startFleetCollectionButton =
+        await harness.startFleetCollectionButton();
+      expect(await startFleetCollectionButton.isDisabled()).toBeFalse();
+    }));
+
     it('is disabled when user has access and fleet collection is in RUNNING state', fakeAsync(async () => {
-      fleetCollectionStoreMock.hasAccess = signal(false);
+      fleetCollectionStoreMock.hasAccess = signal(true);
       fleetCollectionStoreMock.fleetCollection = signal(
         newHunt({
           huntId: '1234',
@@ -148,28 +163,8 @@ describe('Fleet Collection Configuration Component', () => {
       );
     }));
 
-    it('is disabled when user has access and fleet collection is in REACHED_CLIENT_LIMIT state', fakeAsync(async () => {
-      fleetCollectionStoreMock.hasAccess = signal(false);
-      fleetCollectionStoreMock.fleetCollection = signal(
-        newHunt({
-          huntId: '1234',
-          state: HuntState.REACHED_CLIENT_LIMIT,
-        }),
-      );
-      const {harness} = await createComponent();
-
-      const startFleetCollectionButton =
-        await harness.startFleetCollectionButton();
-      expect(await startFleetCollectionButton.isDisabled()).toBeTrue();
-      const tooltip = await harness.startFleetCollectionTooltip();
-      await tooltip.show();
-      expect(await tooltip.getTooltipText()).toContain(
-        'Can only start a Fleet Collection from paused state.',
-      );
-    }));
-
     it('is disabled when user has access and fleet collection is in CANCELLED state', fakeAsync(async () => {
-      fleetCollectionStoreMock.hasAccess = signal(false);
+      fleetCollectionStoreMock.hasAccess = signal(true);
       fleetCollectionStoreMock.fleetCollection = signal(
         newHunt({
           huntId: '1234',
@@ -189,7 +184,7 @@ describe('Fleet Collection Configuration Component', () => {
     }));
 
     it('is disabled when user has access and fleet collection is in REACHED_TIME_LIMIT state', fakeAsync(async () => {
-      fleetCollectionStoreMock.hasAccess = signal(false);
+      fleetCollectionStoreMock.hasAccess = signal(true);
       fleetCollectionStoreMock.fleetCollection = signal(
         newHunt({
           huntId: '1234',
@@ -227,12 +222,48 @@ describe('Fleet Collection Configuration Component', () => {
       expect(await startFleetCollectionTooltip.getTooltipText()).toBe('');
     }));
 
-    it('calls the store when clicked', fakeAsync(async () => {
+    it('shows no tooltip when user has access and fleet collection is in REACHED_CLIENT_LIMIT state', fakeAsync(async () => {
+      fleetCollectionStoreMock.hasAccess = signal(true);
+      fleetCollectionStoreMock.fleetCollection = signal(
+        newHunt({
+          huntId: '1234',
+          state: HuntState.REACHED_CLIENT_LIMIT,
+        }),
+      );
+      const {harness} = await createComponent();
+
+      const accessTooltip = await harness.accessTooltip();
+      await accessTooltip.show();
+      expect(await accessTooltip.getTooltipText()).toBe('');
+      const startFleetCollectionTooltip =
+        await harness.startFleetCollectionTooltip();
+      await startFleetCollectionTooltip.show();
+      expect(await startFleetCollectionTooltip.getTooltipText()).toBe('');
+    }));
+
+    it('calls the store when clicked in NOT_STARTED state', fakeAsync(async () => {
       fleetCollectionStoreMock.hasAccess = signal(true);
       fleetCollectionStoreMock.fleetCollection = signal(
         newHunt({
           huntId: '1234',
           state: HuntState.NOT_STARTED,
+        }),
+      );
+      const {harness} = await createComponent();
+
+      const startFleetCollectionButton =
+        await harness.startFleetCollectionButton();
+      await startFleetCollectionButton.click();
+
+      expect(fleetCollectionStoreMock.startFleetCollection).toHaveBeenCalled();
+    }));
+
+    it('calls the store when clicked in REACHED_CLIENT_LIMIT state', fakeAsync(async () => {
+      fleetCollectionStoreMock.hasAccess = signal(true);
+      fleetCollectionStoreMock.fleetCollection = signal(
+        newHunt({
+          huntId: '1234',
+          state: HuntState.REACHED_CLIENT_LIMIT,
         }),
       );
       const {harness} = await createComponent();

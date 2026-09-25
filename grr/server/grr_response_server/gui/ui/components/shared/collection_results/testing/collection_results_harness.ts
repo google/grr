@@ -19,7 +19,6 @@ import {ListContainersFlowResultsHarness} from './list_containers_flow_results_h
 import {NetworkConnectionsHarness} from './network_connections_harness';
 import {OsqueryResultsHarness} from './osquery_results_harness';
 import {ProcessesHarness} from './processes_harness';
-import {ReadLowLevelFlowResultsHarness} from './read_low_level_flow_results_harness';
 import {SoftwarePackagezHarness} from './software_packagez_harness';
 import {StatEntryResultsHarness} from './stat_entry_results_harness';
 import {UsersHarness} from './users_harness';
@@ -95,10 +94,6 @@ export class CollectionResultsHarness extends ComponentHarness {
   readonly osqueryResults = this.locatorForOptional(OsqueryResultsHarness);
 
   readonly processes = this.locatorForOptional(ProcessesHarness);
-
-  readonly readLowLevelFlowResults = this.locatorForOptional(
-    ReadLowLevelFlowResultsHarness,
-  );
 
   readonly softwarePackagez = this.locatorForOptional(SoftwarePackagezHarness);
 

@@ -57,7 +57,7 @@ message ApiConfigSection {
   repeated ApiConfigOption options = 2;
 }
 
-// TODO: Remove definitions below once migration is complete.
+// TODO - Remove definitions below once migration is complete.
 // Following messages deliberately copy the standard library well-known types.
 //
 // I've spent way too long trying to use the standard `wrappers_pb2` here.

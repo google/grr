@@ -14,7 +14,6 @@ from grr_response_proto import objects_pb2
 from grr_response_proto import user_pb2
 from grr_response_proto.api import user_pb2 as api_user_pb2
 from grr_response_server import access_control
-from grr_response_server import cronjobs
 from grr_response_server import data_store
 from grr_response_server import email_alerts
 from grr_response_server import flow
@@ -26,17 +25,14 @@ from grr_response_server.gui import api_call_context
 from grr_response_server.gui import api_call_handler_base
 from grr_response_server.gui import api_test_lib
 from grr_response_server.gui.api_plugins import user as user_plugin
-from grr_response_server.rdfvalues import cronjobs as rdf_cronjobs
-from grr_response_server.rdfvalues import mig_objects
+from grr_response_server.models import hunts as models_hunts
 from grr.test_lib import acl_test_lib
 from grr.test_lib import hunt_test_lib
-from grr.test_lib import notification_test_lib
 from grr.test_lib import test_lib
 
 
 class ApiNotificationTest(
     acl_test_lib.AclTestMixin,
-    notification_test_lib.NotificationTestMixin,
     api_test_lib.ApiCallHandlerTest,
 ):
   """Tests for ApiNotification class."""
@@ -55,12 +51,9 @@ class ApiNotificationTest(
     notification.Notify(
         self.context.username, notification_type, message or "", reference
     )
-    notifications = self.GetUserNotifications(self.context.username)
-    notifications = [
-        mig_objects.ToProtoUserNotification(n) for n in notifications
-    ]
-
-    # Treat the notification as an object coming from REL_DB.
+    notifications = data_store.REL_DB.ReadUserNotifications(
+        self.context.username
+    )
     return user_plugin.InitApiNotificationFromUserNotification(notifications[0])
 
   def testDiscoveryNotificationIsParsedCorrectly(self):
@@ -296,9 +289,7 @@ class ApiNotificationTest(
     self.assertEqual(n.reference.vfs.vfs_path, "fs/os/foo/bar")
 
 
-class ApiCreateApprovalHandlerTestMixin(
-    notification_test_lib.NotificationTestMixin, acl_test_lib.AclTestMixin
-):
+class ApiCreateApprovalHandlerTestMixin(acl_test_lib.AclTestMixin):
   """Base class for tests testing Create*ApprovalHandlers."""
 
   def SetUpApprovalTest(self):
@@ -339,7 +330,7 @@ class ApiCreateApprovalHandlerTestMixin(
   def testNotifiesGrrUsers(self):
     self.handler.Handle(self.args, context=self.context)
 
-    notifications = self.GetUserNotifications("approver")
+    notifications = data_store.REL_DB.ReadUserNotifications("approver")
     self.assertLen(notifications, 1)
 
   def testSendsEmailsToGrrUsersAndCcAddresses(self):
@@ -552,7 +543,7 @@ class ApiCreateClientApprovalHandlerTest(
     message = send_fn.call_args[1]["message"]
     self.assertIn(
         (
-            f"http://localhost:8000/v2/clients/{self.client_id}/approvals/"
+            f"http://localhost:8000/clients/{self.client_id}/approvals/"
             f"{approval_id}/users/{self.context.username}"
         ),
         message,
@@ -874,13 +865,25 @@ class ApiCreateCronJobApprovalHandlerTest(
 
     self.SetUpApprovalTest()
 
-    cron_manager = cronjobs.CronManager()
-    cron_args = rdf_cronjobs.CreateCronJobArgs(
-        frequency="1d",
-        allow_overruns=False,
-        flow_name=file.CollectFilesByKnownPath.__name__,
+    cron_id = "CollectFilesByKnownPath_Cron"
+    args = flows_pb2.CronJobAction(
+        action_type=flows_pb2.CronJobAction.ActionType.HUNT_CRON_ACTION,
+        hunt_cron_action=flows_pb2.HuntCronAction(
+            flow_name=file.CollectFilesByKnownPath.__name__,
+            hunt_runner_args=models_hunts.CreateDefaultHuntRunnerArgs(),
+        ),
     )
-    cron_id = cron_manager.CreateJob(cron_args=cron_args)
+    job = flows_pb2.CronJob(
+        cron_job_id=cron_id,
+        enabled=True,
+        frequency=rdfvalue.DurationSeconds.FromHumanReadable(
+            "1d"
+        ).SerializeToWireFormat(),
+        allow_overruns=False,
+        created_at=int(rdfvalue.RDFDatetime.Now()),
+        args=args,
+    )
+    data_store.REL_DB.WriteCronJob(job)
 
     self.handler = user_plugin.ApiCreateCronJobApprovalHandler()
 
@@ -900,13 +903,25 @@ class ApiListCronJobApprovalsHandlerTest(
     self.handler = user_plugin.ApiListCronJobApprovalsHandler()
 
   def testRendersRequestedCronJobApproval(self):
-    cron_manager = cronjobs.CronManager()
-    cron_args = rdf_cronjobs.CreateCronJobArgs(
-        frequency="1d",
-        allow_overruns=False,
-        flow_name=file.CollectFilesByKnownPath.__name__,
+    cron_job_id = "CollectFilesByKnownPath_Cron"
+    args = flows_pb2.CronJobAction(
+        action_type=flows_pb2.CronJobAction.ActionType.HUNT_CRON_ACTION,
+        hunt_cron_action=flows_pb2.HuntCronAction(
+            flow_name=file.CollectFilesByKnownPath.__name__,
+            hunt_runner_args=models_hunts.CreateDefaultHuntRunnerArgs(),
+        ),
     )
-    cron_job_id = cron_manager.CreateJob(cron_args=cron_args)
+    job = flows_pb2.CronJob(
+        cron_job_id=cron_job_id,
+        enabled=True,
+        frequency=rdfvalue.DurationSeconds.FromHumanReadable(
+            "1d"
+        ).SerializeToWireFormat(),
+        allow_overruns=False,
+        created_at=int(rdfvalue.RDFDatetime.Now()),
+        args=args,
+    )
+    data_store.REL_DB.WriteCronJob(job)
 
     self.RequestCronJobApproval(
         cron_job_id,
@@ -1177,7 +1192,7 @@ class ApiGrantClientApprovalHandlerTest(
     send_fn.assert_called_once()
     message = send_fn.call_args[1]["message"]
     self.assertIn(
-        f'href="http://localhost:8000/v2/clients/{self.client_id}"', message
+        f'href="http://localhost:8000/clients/{self.client_id}"', message
     )
     self.assertIn(self.context.username, message)
     self.assertIn("requestreason", message)
@@ -1216,7 +1231,7 @@ class ApiGrantHuntApprovalHandlerTest(
     send_fn.assert_called_once()
     message = send_fn.call_args[1]["message"]
     self.assertIn(
-        f'href="http://localhost:8000/v2/fleet-collections/{self.hunt_id}"',
+        f'href="http://localhost:8000/fleet-collections/{self.hunt_id}"',
         message,
     )
     self.assertIn(self.context.username, message)

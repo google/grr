@@ -232,11 +232,11 @@ class Expression:
     Raises:
       ParseError: If there are too many args.
     """
-    self.args.append(arg)
-    if len(self.args) > self.number_of_args:
+    self.args.append(arg)  # pyrefly: ignore[missing-attribute]
+    if len(self.args) > self.number_of_args:  # pyrefly: ignore[bad-argument-type]
       raise ParseError("Too many args for this expression.")
 
-    elif len(self.args) == self.number_of_args:
+    elif len(self.args) == self.number_of_args:  # pyrefly: ignore[bad-argument-type]
       return True
 
     return False
@@ -271,13 +271,13 @@ class BinaryExpression(Expression):
   def __str__(self) -> str:
     return "Binary Expression: %s %s" % (
         self.operator,
-        [str(x) for x in self.args],
+        [str(x) for x in self.args],  # pyrefly: ignore[not-iterable]
     )
 
   def AddOperands(self, lhs, rhs):
     if isinstance(lhs, Expression) and isinstance(rhs, Expression):
-      self.args.insert(0, lhs)
-      self.args.append(rhs)
+      self.args.insert(0, lhs)  # pyrefly: ignore[missing-attribute]
+      self.args.append(rhs)  # pyrefly: ignore[missing-attribute]
     else:
       raise ParseError(
           "Expected expression, got %s %s %s" % (lhs, self.operator, rhs)
@@ -285,14 +285,14 @@ class BinaryExpression(Expression):
 
   def PrintTree(self, depth=""):
     result = "%s%s\n" % (depth, self.operator)
-    for part in self.args:
+    for part in self.args:  # pyrefly: ignore[not-iterable]
       result += "%s-%s\n" % (depth, part.PrintTree(depth + "  "))
 
     return result
 
   def Compile(self, filter_implemention):
     """Compile the binary expression into a filter object."""
-    operator = self.operator.lower()
+    operator = self.operator.lower()  # pyrefly: ignore[missing-attribute]
     if operator == "and" or operator == "&&":
       method = "AndFilter"
     elif operator == "or" or operator == "||":
@@ -300,7 +300,7 @@ class BinaryExpression(Expression):
     else:
       raise ParseError("Invalid binary operator %s" % operator)
 
-    args = [x.Compile(filter_implemention) for x in self.args]
+    args = [x.Compile(filter_implemention) for x in self.args]  # pyrefly: ignore[not-iterable]
     return filter_implemention.GetFilter(method)(*args)
 
 

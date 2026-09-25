@@ -315,11 +315,9 @@ class FileFinderTest(client_test_lib.EmptyActionTest):
     paths = [searching_path + "/{dpkg.log,dpkg_false.log,auth.log}"]
 
     literal = b"pam_unix(ssh:session)"
-    bytes_before = 10
-    bytes_after = 20
 
     condition = rdf_file_finder.FileFinderCondition.ContentsLiteralMatch(
-        literal=literal, bytes_before=bytes_before, bytes_after=bytes_after
+        literal=literal,
     )
 
     raw_results = self._RunFileFinder(
@@ -330,80 +328,29 @@ class FileFinderTest(client_test_lib.EmptyActionTest):
     )
     self.assertLen(relative_results, 1)
     self.assertIn("auth.log", relative_results)
-    self.assertLen(raw_results[0].matches, 1)
-    buffer_ref = raw_results[0].matches[0]
-
-    with io.open(os.path.join(searching_path, "auth.log"), "rb") as filedesc:
-      orig_data = filedesc.read()
-
-    self.assertLen(buffer_ref.data, bytes_before + len(literal) + bytes_after)
-    self.assertEqual(
-        orig_data[buffer_ref.offset : buffer_ref.offset + buffer_ref.length],
-        buffer_ref.data,
-    )
-
-  def testLiteralMatchConditionAllHits(self):
-    searching_path = os.path.join(self.base_path, "searching")
-    paths = [searching_path + "/{dpkg.log,dpkg_false.log,auth.log}"]
-
-    literal = b"mydomain.com"
-    bytes_before = 10
-    bytes_after = 20
-
-    condition = rdf_file_finder.FileFinderCondition.ContentsLiteralMatch(
-        literal=literal,
-        mode="ALL_HITS",
-        bytes_before=bytes_before,
-        bytes_after=bytes_after,
-    )
-
-    raw_results = self._RunFileFinder(
-        paths, self.stat_action, conditions=[condition]
-    )
-    self.assertLen(raw_results, 1)
-    self.assertLen(raw_results[0].matches, 6)
-    for buffer_ref in raw_results[0].matches:
-      self.assertEqual(
-          buffer_ref.data[bytes_before : bytes_before + len(literal)], literal
-      )
 
   def testLiteralMatchConditionLargeFile(self):
     paths = [os.path.join(self.base_path, "new_places.sqlite")]
 
     literal = b"RecentlyBookmarked"
-    bytes_before = 10
-    bytes_after = 20
 
     condition = rdf_file_finder.FileFinderCondition.ContentsLiteralMatch(
         literal=literal,
-        mode="ALL_HITS",
-        bytes_before=bytes_before,
-        bytes_after=bytes_after,
     )
 
     raw_results = self._RunFileFinder(
         paths, self.stat_action, conditions=[condition]
     )
     self.assertLen(raw_results, 1)
-    self.assertLen(raw_results[0].matches, 1)
-    buffer_ref = raw_results[0].matches[0]
-    with open(paths[0], "rb") as fd:
-      fd.seek(buffer_ref.offset)
-      self.assertEqual(buffer_ref.data, fd.read(buffer_ref.length))
-      self.assertEqual(
-          buffer_ref.data[bytes_before : bytes_before + len(literal)], literal
-      )
 
   def testRegexMatchCondition(self):
     searching_path = os.path.join(self.base_path, "searching")
     paths = [searching_path + "/{dpkg.log,dpkg_false.log,auth.log}"]
 
     regex = rb"pa[nm]_o?unix\(s{2}h"
-    bytes_before = 10
-    bytes_after = 20
 
     condition = rdf_file_finder.FileFinderCondition.ContentsRegexMatch(
-        regex=regex, bytes_before=bytes_before, bytes_after=bytes_after
+        regex=regex,
     )
 
     raw_results = self._RunFileFinder(
@@ -414,42 +361,6 @@ class FileFinderTest(client_test_lib.EmptyActionTest):
     )
     self.assertLen(relative_results, 1)
     self.assertIn("auth.log", relative_results)
-    self.assertLen(raw_results[0].matches, 1)
-    buffer_ref = raw_results[0].matches[0]
-
-    with io.open(os.path.join(searching_path, "auth.log"), "rb") as filedesc:
-      orig_data = filedesc.read()
-
-    self.assertEqual(
-        orig_data[buffer_ref.offset : buffer_ref.offset + buffer_ref.length],
-        buffer_ref.data,
-    )
-
-  def testRegexMatchConditionAllHits(self):
-    searching_path = os.path.join(self.base_path, "searching")
-    paths = [searching_path + "/{dpkg.log,dpkg_false.log,auth.log}"]
-
-    regex = rb"mydo....\.com"
-    bytes_before = 10
-    bytes_after = 20
-
-    condition = rdf_file_finder.FileFinderCondition.ContentsRegexMatch(
-        regex=regex,
-        mode="ALL_HITS",
-        bytes_before=bytes_before,
-        bytes_after=bytes_after,
-    )
-
-    raw_results = self._RunFileFinder(
-        paths, self.stat_action, conditions=[condition]
-    )
-    self.assertLen(raw_results, 1)
-    self.assertLen(raw_results[0].matches, 6)
-    for buffer_ref in raw_results[0].matches:
-      needle = b"mydomain.com"
-      self.assertEqual(
-          buffer_ref.data[bytes_before : bytes_before + len(needle)], needle
-      )
 
   def testContentMatchIgnoreDirsWildcard(self):
     with temp.AutoTempDirPath(remove_non_empty=True) as temp_dirpath:

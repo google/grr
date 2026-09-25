@@ -154,4 +154,14 @@ export class ClientLabelsForm implements AfterViewInit {
       });
     });
   }
+
+  protected getFilteredLabels(value: string | null): readonly string[] {
+    const query = (value ?? '').trim().toLowerCase();
+    if (query === '') {
+      return this.globalStore.allLabels();
+    }
+    return this.globalStore
+      .allLabels()
+      .filter((label) => label.toLowerCase().includes(query));
+  }
 }

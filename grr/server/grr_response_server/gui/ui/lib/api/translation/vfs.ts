@@ -7,7 +7,7 @@ import {
   PathSpecPathType,
   StatEntry,
 } from '../../models/vfs';
-import {assertEnum, assertKeyNonNull, assertNonNull} from '../../preconditions';
+import {assertKeyNonNull, assertNonNull} from '../../preconditions';
 import {
   ApiBrowseFilesystemEntry,
   ApiBrowseFilesystemResult,
@@ -27,8 +27,22 @@ export function parseVfsPath(vfsPath: string): {
   const match = VFS_PATH_RE.exec(vfsPath);
   assertNonNull(match, 'match');
 
-  const pathtype = match[2].toUpperCase();
-  assertEnum(pathtype, PathSpecPathType);
+  const pathPrefix = match[2].toUpperCase();
+
+  let pathtype: PathSpecPathType;
+  if (pathPrefix === 'OS') {
+    pathtype = PathSpecPathType.OS;
+  } else if (pathPrefix === 'TSK') {
+    pathtype = PathSpecPathType.TSK;
+  } else if (pathPrefix === 'NTFS') {
+    pathtype = PathSpecPathType.NTFS;
+  } else if (pathPrefix === 'REGISTRY') {
+    pathtype = PathSpecPathType.REGISTRY;
+  } else if (pathPrefix === 'TEMP') {
+    pathtype = PathSpecPathType.TMPFILE;
+  } else {
+    throw new Error(`Unknown path type: ${pathPrefix}`);
+  }
 
   return {pathtype, path: match[3]};
 }

@@ -3,7 +3,7 @@
  */
 // tslint:disable:no-any
 
-import {Type, signal} from '@angular/core';
+import {Type, computed, signal} from '@angular/core';
 
 import {ApprovalConfig} from '../lib/models/client';
 import {
@@ -20,7 +20,10 @@ import {ClientSearchStore} from './client_search_store';
 import {ClientStore, FlowResults} from './client_store';
 import {FileExplorerStore} from './file_explorer_store';
 import {FileStore} from './file_store';
-import {FleetCollectionStore} from './fleet_collection_store';
+import {
+  FleetCollectionStore,
+  canStartFleetCollection,
+} from './fleet_collection_store';
 import {FleetCollectionsStore} from './fleet_collections_store';
 import {FlowStore} from './flow_store';
 import {GlobalStore} from './global_store';
@@ -62,11 +65,13 @@ export function newGlobalStoreMock(): GlobalStoreMock {
     fetchFlowDescriptors: jasmine.createSpy('fetchFlowDescriptors'),
     fetchBinaryNames: jasmine.createSpy('fetchBinaryNames'),
     getArtifactDescriptorMap: jasmine.createSpy('getArtifactDescriptorMap'),
+    deleteArtifact: jasmine.createSpy('deleteArtifact'),
     fetchWebAuthType: jasmine.createSpy('fetchWebAuthType'),
     fetchExportCommandPrefix: jasmine.createSpy('fetchExportCommandPrefix'),
     fetchOutputPluginDescriptors: jasmine.createSpy(
       'fetchOutputPluginDescriptors',
     ),
+    uploadArtifact: jasmine.createSpy('uploadArtifact'),
   };
 }
 
@@ -254,7 +259,7 @@ export type FleetCollectionStoreMock = Partial<
  * Creates a mock FleetCollectionStore for testing.
  */
 export function newFleetCollectionStoreMock(): FleetCollectionStoreMock {
-  return {
+  const mock: FleetCollectionStoreMock = {
     fleetCollection: signal(null),
     hasAccess: signal(null),
     fleetCollectionApprovals: signal([]),
@@ -295,6 +300,16 @@ export function newFleetCollectionStoreMock(): FleetCollectionStoreMock {
     fleetCollectionResultsPerClientAndType: signal([]),
     hasMoreErrors: signal(false),
   };
+
+  // Derived from the mocked state with the production logic, so that tests
+  // cannot set a fleet collection and a contradicting value here. Reads
+  // `mock.fleetCollection` (not the signal it currently holds) so that tests
+  // replacing the signal before the component is created still work.
+  mock.canStartFleetCollection = computed(() =>
+    canStartFleetCollection(mock.fleetCollection?.()),
+  );
+
+  return mock;
 }
 
 // NewFleetCollectionStore

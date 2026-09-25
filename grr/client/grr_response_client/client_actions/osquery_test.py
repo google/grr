@@ -41,13 +41,6 @@ class OsqueryTest(absltest.TestCase):
     if not config.CONFIG.initialized:
       config.CONFIG.Initialize(FLAGS.config)
 
-  def testConfigurationArgError(self):
-    with self.assertRaises(ValueError):
-      args = rdf_osquery.OsqueryArgs(
-          query="SELECT bar FROM foo;", configuration_path="bar"
-      )
-      _ = list(osquery.Osquery().Process(args))
-
   def testConfigurationContent(self):
     configuration_content = json.dumps(
         {"views": {"bar": "SELECT * FROM processes;"}}
@@ -60,27 +53,8 @@ class OsqueryTest(absltest.TestCase):
     results = list(osquery.Osquery().Process(args))
     self.assertLen(results, 1)
 
-    table = results[0].table
+    table = results[0].table  # pyrefly: ignore[missing-attribute]
     self.assertEqual(list(table.Column("pid")), [str(os.getpid())])
-
-  def testConfigurationPath(self):
-    with temp.AutoTempFilePath() as configuration_path:
-      configuration_content = json.dumps(
-          {"views": {"bar": "SELECT * FROM processes;"}}
-      )
-
-      with io.open(configuration_path, "wt") as config_handle:
-        config_handle.write(configuration_content)
-
-      args = rdf_osquery.OsqueryArgs(
-          query="SELECT * FROM bar where pid = {};".format(os.getpid()),
-          configuration_path=configuration_path,
-      )
-      results = list(osquery.Osquery().Process(args))
-      self.assertLen(results, 1)
-
-      table = results[0].table
-      self.assertEqual(list(table.Column("pid")), [str(os.getpid())])
 
   def testPid(self):
     results = _Query("""
@@ -88,7 +62,7 @@ class OsqueryTest(absltest.TestCase):
     """.format(os.getpid()))
     self.assertLen(results, 1)
 
-    table = results[0].table
+    table = results[0].table  # pyrefly: ignore[missing-attribute]
     self.assertEqual(list(table.Column("pid")), [str(os.getpid())])
 
   def testHash(self):
@@ -109,7 +83,7 @@ class OsqueryTest(absltest.TestCase):
       """.format(filepath))
       self.assertLen(results, 1)
 
-      table = results[0].table
+      table = results[0].table  # pyrefly: ignore[missing-attribute]
       self.assertEqual(list(table.Column("md5")), [md5])
       self.assertEqual(list(table.Column("sha256")), [sha256])
 
@@ -129,7 +103,7 @@ class OsqueryTest(absltest.TestCase):
       """.format(dirpath))
       self.assertLen(results, 1)
 
-      table = results[0].table
+      table = results[0].table  # pyrefly: ignore[missing-attribute]
       self.assertLen(table.rows, 3)
       self.assertEqual(
           list(table.Column("path")),
@@ -162,7 +136,7 @@ class OsqueryTest(absltest.TestCase):
       """.format(filepath))
       self.assertLen(results, 1)
 
-      table = results[0].table
+      table = results[0].table  # pyrefly: ignore[missing-attribute]
       self.assertLen(table.rows, 1)
       self.assertEqual(list(table.Column("path")), [filepath])
       self.assertEqual(list(table.Column("atime")), [str(atime)])
@@ -184,7 +158,7 @@ class OsqueryTest(absltest.TestCase):
     time_after = int(time.time())
     self.assertLen(results, 1)
 
-    table = results[0].table
+    table = results[0].table  # pyrefly: ignore[missing-attribute]
     self.assertLen(table.rows, 1)
 
     time_result = int(list(table.Column("unix_time"))[0])
@@ -198,7 +172,7 @@ class OsqueryTest(absltest.TestCase):
     results = _Query("SELECT hostname FROM system_info;")
     self.assertLen(results, 1)
 
-    table = results[0].table
+    table = results[0].table  # pyrefly: ignore[missing-attribute]
     self.assertLen(table.rows, 1)
 
     # osquery sometimes returns FQDN and sometimes real hostname as the result
@@ -228,13 +202,13 @@ class OsqueryTest(absltest.TestCase):
       self.assertLen(results, 3)
 
       for result in results:
-        self.assertEqual(result.table.query, query)
-        self.assertLen(result.table.header.columns, 1)
-        self.assertEqual(result.table.header.columns[0].name, "filename")
+        self.assertEqual(result.table.query, query)  # pyrefly: ignore[missing-attribute]
+        self.assertLen(result.table.header.columns, 1)  # pyrefly: ignore[missing-attribute]
+        self.assertEqual(result.table.header.columns[0].name, "filename")  # pyrefly: ignore[missing-attribute]
 
-      self.assertEqual(list(results[0].table.Column("filename")), ["bar"])
-      self.assertEqual(list(results[1].table.Column("filename")), ["baz"])
-      self.assertEqual(list(results[2].table.Column("filename")), ["foo"])
+      self.assertEqual(list(results[0].table.Column("filename")), ["bar"])  # pyrefly: ignore[missing-attribute]
+      self.assertEqual(list(results[1].table.Column("filename")), ["baz"])  # pyrefly: ignore[missing-attribute]
+      self.assertEqual(list(results[2].table.Column("filename")), ["foo"])  # pyrefly: ignore[missing-attribute]
 
 
 class FakeOsqueryTest(absltest.TestCase):
@@ -257,7 +231,7 @@ class FakeOsqueryTest(absltest.TestCase):
 
     self.assertLen(results, 1)
 
-    table = results[0].table
+    table = results[0].table  # pyrefly: ignore[missing-attribute]
     self.assertLen(table.header.columns, 2)
     self.assertEqual(table.header.columns[0].name, "foo")
     self.assertEqual(table.header.columns[1].name, "quux")
@@ -290,45 +264,45 @@ class ChunkTableTest(absltest.TestCase):
 
   def testNoRows(self):
     table = rdf_osquery.OsqueryTable()
-    table.header.columns.append(rdf_osquery.OsqueryColumn(name="foo"))
-    table.header.columns.append(rdf_osquery.OsqueryColumn(name="bar"))
-    table.query = "SELECT * FROM quux;"
+    table.header.columns.append(rdf_osquery.OsqueryColumn(name="foo"))  # pyrefly: ignore[missing-attribute]
+    table.header.columns.append(rdf_osquery.OsqueryColumn(name="bar"))  # pyrefly: ignore[missing-attribute]
+    table.query = "SELECT * FROM quux;"  # pyrefly: ignore[missing-attribute]
 
     chunks = list(osquery.ChunkTable(table, max_chunk_size=1024 * 1024 * 1024))
     self.assertEmpty(chunks)
 
   def testSingleRowChunks(self):
     table = rdf_osquery.OsqueryTable()
-    table.query = "SELECT foo, bar, baz FROM quux;"
-    table.header.columns.append(rdf_osquery.OsqueryColumn(name="foo"))
-    table.header.columns.append(rdf_osquery.OsqueryColumn(name="bar"))
-    table.header.columns.append(rdf_osquery.OsqueryColumn(name="baz"))
-    table.rows.append(rdf_osquery.OsqueryRow(values=["ABC", "DEF", "GHI"]))
-    table.rows.append(rdf_osquery.OsqueryRow(values=["JKL", "MNO", "PQR"]))
-    table.rows.append(rdf_osquery.OsqueryRow(values=["RST", "UVW", "XYZ"]))
+    table.query = "SELECT foo, bar, baz FROM quux;"  # pyrefly: ignore[missing-attribute]
+    table.header.columns.append(rdf_osquery.OsqueryColumn(name="foo"))  # pyrefly: ignore[missing-attribute]
+    table.header.columns.append(rdf_osquery.OsqueryColumn(name="bar"))  # pyrefly: ignore[missing-attribute]
+    table.header.columns.append(rdf_osquery.OsqueryColumn(name="baz"))  # pyrefly: ignore[missing-attribute]
+    table.rows.append(rdf_osquery.OsqueryRow(values=["ABC", "DEF", "GHI"]))  # pyrefly: ignore[missing-attribute]
+    table.rows.append(rdf_osquery.OsqueryRow(values=["JKL", "MNO", "PQR"]))  # pyrefly: ignore[missing-attribute]
+    table.rows.append(rdf_osquery.OsqueryRow(values=["RST", "UVW", "XYZ"]))  # pyrefly: ignore[missing-attribute]
 
     chunks = list(osquery.ChunkTable(table, max_chunk_size=9))
     self.assertLen(chunks, 3)
-    self.assertEqual(chunks[0].query, table.query)
-    self.assertEqual(chunks[0].header, table.header)
+    self.assertEqual(chunks[0].query, table.query)  # pyrefly: ignore[missing-attribute]
+    self.assertEqual(chunks[0].header, table.header)  # pyrefly: ignore[missing-attribute]
     self.assertEqual(
-        chunks[0].rows,
+        chunks[0].rows,  # pyrefly: ignore[missing-attribute]
         [
             rdf_osquery.OsqueryRow(values=["ABC", "DEF", "GHI"]),
         ],
     )
-    self.assertEqual(chunks[1].query, table.query)
-    self.assertEqual(chunks[1].header, table.header)
+    self.assertEqual(chunks[1].query, table.query)  # pyrefly: ignore[missing-attribute]
+    self.assertEqual(chunks[1].header, table.header)  # pyrefly: ignore[missing-attribute]
     self.assertEqual(
-        chunks[1].rows,
+        chunks[1].rows,  # pyrefly: ignore[missing-attribute]
         [
             rdf_osquery.OsqueryRow(values=["JKL", "MNO", "PQR"]),
         ],
     )
-    self.assertEqual(chunks[2].query, table.query)
-    self.assertEqual(chunks[2].header, table.header)
+    self.assertEqual(chunks[2].query, table.query)  # pyrefly: ignore[missing-attribute]
+    self.assertEqual(chunks[2].header, table.header)  # pyrefly: ignore[missing-attribute]
     self.assertEqual(
-        chunks[2].rows,
+        chunks[2].rows,  # pyrefly: ignore[missing-attribute]
         [
             rdf_osquery.OsqueryRow(values=["RST", "UVW", "XYZ"]),
         ],
@@ -336,45 +310,45 @@ class ChunkTableTest(absltest.TestCase):
 
   def testMultiRowChunks(self):
     table = rdf_osquery.OsqueryTable()
-    table.query = "SELECT foo, bar, baz FROM quux;"
-    table.header.columns.append(rdf_osquery.OsqueryColumn(name="foo"))
-    table.header.columns.append(rdf_osquery.OsqueryColumn(name="bar"))
-    table.header.columns.append(rdf_osquery.OsqueryColumn(name="baz"))
-    table.rows.append(rdf_osquery.OsqueryRow(values=["A", "B", "C"]))
-    table.rows.append(rdf_osquery.OsqueryRow(values=["D", "E", "F"]))
-    table.rows.append(rdf_osquery.OsqueryRow(values=["G", "H", "I"]))
-    table.rows.append(rdf_osquery.OsqueryRow(values=["J", "K", "L"]))
-    table.rows.append(rdf_osquery.OsqueryRow(values=["M", "N", "O"]))
-    table.rows.append(rdf_osquery.OsqueryRow(values=["P", "Q", "R"]))
-    table.rows.append(rdf_osquery.OsqueryRow(values=["S", "T", "U"]))
-    table.rows.append(rdf_osquery.OsqueryRow(values=["V", "W", "X"]))
+    table.query = "SELECT foo, bar, baz FROM quux;"  # pyrefly: ignore[missing-attribute]
+    table.header.columns.append(rdf_osquery.OsqueryColumn(name="foo"))  # pyrefly: ignore[missing-attribute]
+    table.header.columns.append(rdf_osquery.OsqueryColumn(name="bar"))  # pyrefly: ignore[missing-attribute]
+    table.header.columns.append(rdf_osquery.OsqueryColumn(name="baz"))  # pyrefly: ignore[missing-attribute]
+    table.rows.append(rdf_osquery.OsqueryRow(values=["A", "B", "C"]))  # pyrefly: ignore[missing-attribute]
+    table.rows.append(rdf_osquery.OsqueryRow(values=["D", "E", "F"]))  # pyrefly: ignore[missing-attribute]
+    table.rows.append(rdf_osquery.OsqueryRow(values=["G", "H", "I"]))  # pyrefly: ignore[missing-attribute]
+    table.rows.append(rdf_osquery.OsqueryRow(values=["J", "K", "L"]))  # pyrefly: ignore[missing-attribute]
+    table.rows.append(rdf_osquery.OsqueryRow(values=["M", "N", "O"]))  # pyrefly: ignore[missing-attribute]
+    table.rows.append(rdf_osquery.OsqueryRow(values=["P", "Q", "R"]))  # pyrefly: ignore[missing-attribute]
+    table.rows.append(rdf_osquery.OsqueryRow(values=["S", "T", "U"]))  # pyrefly: ignore[missing-attribute]
+    table.rows.append(rdf_osquery.OsqueryRow(values=["V", "W", "X"]))  # pyrefly: ignore[missing-attribute]
 
     chunks = list(osquery.ChunkTable(table, max_chunk_size=10))
     self.assertLen(chunks, 3)
-    self.assertEqual(chunks[0].query, table.query)
-    self.assertEqual(chunks[0].header, table.header)
+    self.assertEqual(chunks[0].query, table.query)  # pyrefly: ignore[missing-attribute]
+    self.assertEqual(chunks[0].header, table.header)  # pyrefly: ignore[missing-attribute]
     self.assertEqual(
-        chunks[0].rows,
+        chunks[0].rows,  # pyrefly: ignore[missing-attribute]
         [
             rdf_osquery.OsqueryRow(values=["A", "B", "C"]),
             rdf_osquery.OsqueryRow(values=["D", "E", "F"]),
             rdf_osquery.OsqueryRow(values=["G", "H", "I"]),
         ],
     )
-    self.assertEqual(chunks[1].query, table.query)
-    self.assertEqual(chunks[1].header, table.header)
+    self.assertEqual(chunks[1].query, table.query)  # pyrefly: ignore[missing-attribute]
+    self.assertEqual(chunks[1].header, table.header)  # pyrefly: ignore[missing-attribute]
     self.assertEqual(
-        chunks[1].rows,
+        chunks[1].rows,  # pyrefly: ignore[missing-attribute]
         [
             rdf_osquery.OsqueryRow(values=["J", "K", "L"]),
             rdf_osquery.OsqueryRow(values=["M", "N", "O"]),
             rdf_osquery.OsqueryRow(values=["P", "Q", "R"]),
         ],
     )
-    self.assertEqual(chunks[2].query, table.query)
-    self.assertEqual(chunks[2].header, table.header)
+    self.assertEqual(chunks[2].query, table.query)  # pyrefly: ignore[missing-attribute]
+    self.assertEqual(chunks[2].header, table.header)  # pyrefly: ignore[missing-attribute]
     self.assertEqual(
-        chunks[2].rows,
+        chunks[2].rows,  # pyrefly: ignore[missing-attribute]
         [
             rdf_osquery.OsqueryRow(values=["S", "T", "U"]),
             rdf_osquery.OsqueryRow(values=["V", "W", "X"]),
@@ -383,23 +357,23 @@ class ChunkTableTest(absltest.TestCase):
 
   def testMultiByteStrings(self):
     table = rdf_osquery.OsqueryTable()
-    table.query = "SELECT foo, bar, baz FROM quux;"
-    table.header.columns.append(rdf_osquery.OsqueryColumn(name="foo"))
-    table.header.columns.append(rdf_osquery.OsqueryColumn(name="bar"))
-    table.rows.append(rdf_osquery.OsqueryRow(values=["🐔", "🐓"]))
-    table.rows.append(rdf_osquery.OsqueryRow(values=["🐣", "🐤"]))
-    table.rows.append(rdf_osquery.OsqueryRow(values=["🐥", "🦆"]))
+    table.query = "SELECT foo, bar, baz FROM quux;"  # pyrefly: ignore[missing-attribute]
+    table.header.columns.append(rdf_osquery.OsqueryColumn(name="foo"))  # pyrefly: ignore[missing-attribute]
+    table.header.columns.append(rdf_osquery.OsqueryColumn(name="bar"))  # pyrefly: ignore[missing-attribute]
+    table.rows.append(rdf_osquery.OsqueryRow(values=["🐔", "🐓"]))  # pyrefly: ignore[missing-attribute]
+    table.rows.append(rdf_osquery.OsqueryRow(values=["🐣", "🐤"]))  # pyrefly: ignore[missing-attribute]
+    table.rows.append(rdf_osquery.OsqueryRow(values=["🐥", "🦆"]))  # pyrefly: ignore[missing-attribute]
 
     chunks = list(osquery.ChunkTable(table, max_chunk_size=10))
     self.assertLen(chunks, 3)
     self.assertEqual(
-        chunks[0].rows, [rdf_osquery.OsqueryRow(values=["🐔", "🐓"])]
+        chunks[0].rows, [rdf_osquery.OsqueryRow(values=["🐔", "🐓"])]  # pyrefly: ignore[missing-attribute]
     )
     self.assertEqual(
-        chunks[1].rows, [rdf_osquery.OsqueryRow(values=["🐣", "🐤"])]
+        chunks[1].rows, [rdf_osquery.OsqueryRow(values=["🐣", "🐤"])]  # pyrefly: ignore[missing-attribute]
     )
     self.assertEqual(
-        chunks[2].rows, [rdf_osquery.OsqueryRow(values=["🐥", "🦆"])]
+        chunks[2].rows, [rdf_osquery.OsqueryRow(values=["🐥", "🦆"])]  # pyrefly: ignore[missing-attribute]
     )
 
 
@@ -407,8 +381,8 @@ class ParseTableTest(absltest.TestCase):
 
   def testEmpty(self):
     table = osquery.ParseTable([])
-    self.assertEmpty(table.header.columns)
-    self.assertEmpty(table.rows)
+    self.assertEmpty(table.header.columns)  # pyrefly: ignore[missing-attribute]
+    self.assertEmpty(table.rows)  # pyrefly: ignore[missing-attribute]
 
   def testSingleRow(self):
     row = dict()
@@ -418,13 +392,13 @@ class ParseTableTest(absltest.TestCase):
 
     table = osquery.ParseTable([row])
 
-    self.assertLen(table.header.columns, 3)
-    self.assertEqual(table.header.columns[0].name, "foo")
-    self.assertEqual(table.header.columns[1].name, "bar")
-    self.assertEqual(table.header.columns[2].name, "baz")
+    self.assertLen(table.header.columns, 3)  # pyrefly: ignore[missing-attribute]
+    self.assertEqual(table.header.columns[0].name, "foo")  # pyrefly: ignore[missing-attribute]
+    self.assertEqual(table.header.columns[1].name, "bar")  # pyrefly: ignore[missing-attribute]
+    self.assertEqual(table.header.columns[2].name, "baz")  # pyrefly: ignore[missing-attribute]
 
-    self.assertLen(table.rows, 1)
-    self.assertEqual(table.rows[0].values, ["quux", "thud", "norf"])
+    self.assertLen(table.rows, 1)  # pyrefly: ignore[missing-attribute]
+    self.assertEqual(table.rows[0].values, ["quux", "thud", "norf"])  # pyrefly: ignore[missing-attribute]
 
   def testMultiRow(self):
     row0 = dict()
@@ -444,15 +418,15 @@ class ParseTableTest(absltest.TestCase):
 
     table = osquery.ParseTable([row0, row1, row2])
 
-    self.assertLen(table.header.columns, 3)
-    self.assertEqual(table.header.columns[0].name, "A")
-    self.assertEqual(table.header.columns[1].name, "B")
-    self.assertEqual(table.header.columns[2].name, "C")
+    self.assertLen(table.header.columns, 3)  # pyrefly: ignore[missing-attribute]
+    self.assertEqual(table.header.columns[0].name, "A")  # pyrefly: ignore[missing-attribute]
+    self.assertEqual(table.header.columns[1].name, "B")  # pyrefly: ignore[missing-attribute]
+    self.assertEqual(table.header.columns[2].name, "C")  # pyrefly: ignore[missing-attribute]
 
-    self.assertLen(table.rows, 3)
-    self.assertEqual(table.rows[0].values, ["foo", "bar", "baz"])
-    self.assertEqual(table.rows[1].values, ["quux", "norf", "thud"])
-    self.assertEqual(table.rows[2].values, ["blargh", "plugh", "ztesch"])
+    self.assertLen(table.rows, 3)  # pyrefly: ignore[missing-attribute]
+    self.assertEqual(table.rows[0].values, ["foo", "bar", "baz"])  # pyrefly: ignore[missing-attribute]
+    self.assertEqual(table.rows[1].values, ["quux", "norf", "thud"])  # pyrefly: ignore[missing-attribute]
+    self.assertEqual(table.rows[2].values, ["blargh", "plugh", "ztesch"])  # pyrefly: ignore[missing-attribute]
 
   def testIncompatibleRows(self):
     row0 = dict()
@@ -471,7 +445,7 @@ class ParseHeaderTest(absltest.TestCase):
 
   def testEmpty(self):
     header = osquery.ParseHeader([])
-    self.assertEmpty(header.columns, 0)
+    self.assertEmpty(header.columns, 0)  # pyrefly: ignore[missing-attribute]
 
   def testSingleRow(self):
     row = dict()
@@ -481,10 +455,10 @@ class ParseHeaderTest(absltest.TestCase):
 
     header = osquery.ParseHeader([row])
 
-    self.assertLen(header.columns, 3)
-    self.assertEqual(header.columns[0].name, "foo")
-    self.assertEqual(header.columns[1].name, "bar")
-    self.assertEqual(header.columns[2].name, "baz")
+    self.assertLen(header.columns, 3)  # pyrefly: ignore[missing-attribute]
+    self.assertEqual(header.columns[0].name, "foo")  # pyrefly: ignore[missing-attribute]
+    self.assertEqual(header.columns[1].name, "bar")  # pyrefly: ignore[missing-attribute]
+    self.assertEqual(header.columns[2].name, "baz")  # pyrefly: ignore[missing-attribute]
 
   def testMultiRow(self):
     row0 = dict()
@@ -499,10 +473,10 @@ class ParseHeaderTest(absltest.TestCase):
 
     header = osquery.ParseHeader([row0, row1])
 
-    self.assertLen(header.columns, 3)
-    self.assertEqual(header.columns[0].name, "foo")
-    self.assertEqual(header.columns[1].name, "bar")
-    self.assertEqual(header.columns[2].name, "baz")
+    self.assertLen(header.columns, 3)  # pyrefly: ignore[missing-attribute]
+    self.assertEqual(header.columns[0].name, "foo")  # pyrefly: ignore[missing-attribute]
+    self.assertEqual(header.columns[1].name, "bar")  # pyrefly: ignore[missing-attribute]
+    self.assertEqual(header.columns[2].name, "baz")  # pyrefly: ignore[missing-attribute]
 
   def testIncompatibleRows(self):
     row0 = dict()
@@ -523,13 +497,13 @@ class ParseRowTest(absltest.TestCase):
     header = rdf_osquery.OsqueryHeader()
 
     row = osquery.ParseRow(header, {})
-    self.assertEqual(row.values, [])
+    self.assertEqual(row.values, [])  # pyrefly: ignore[missing-attribute]
 
   def testSimple(self):
     header = rdf_osquery.OsqueryHeader()
-    header.columns.append(rdf_osquery.OsqueryColumn(name="foo"))
-    header.columns.append(rdf_osquery.OsqueryColumn(name="bar"))
-    header.columns.append(rdf_osquery.OsqueryColumn(name="baz"))
+    header.columns.append(rdf_osquery.OsqueryColumn(name="foo"))  # pyrefly: ignore[missing-attribute]
+    header.columns.append(rdf_osquery.OsqueryColumn(name="bar"))  # pyrefly: ignore[missing-attribute]
+    header.columns.append(rdf_osquery.OsqueryColumn(name="baz"))  # pyrefly: ignore[missing-attribute]
 
     row = osquery.ParseRow(
         header,
@@ -539,7 +513,7 @@ class ParseRowTest(absltest.TestCase):
             "baz": "thud",
         },
     )
-    self.assertEqual(row.values, ["quux", "norf", "thud"])
+    self.assertEqual(row.values, ["quux", "norf", "thud"])  # pyrefly: ignore[missing-attribute]
 
 
 if __name__ == "__main__":

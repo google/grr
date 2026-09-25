@@ -47,9 +47,12 @@ class InMemoryDBClientMixin(object):
   keywords: dict[str, dict[str, rdfvalue.RDFDatetime]]
   flows: dict[tuple[str, str], flows_pb2.Flow]
   flow_requests: dict[tuple[str, str], dict[str, flows_pb2.FlowRequest]]
-  flow_processing_requests: dict[
-      tuple[str, str, str], flows_pb2.FlowProcessingRequest
+  flow_processing_requests: dict[tuple[str, str], rdfvalue.RDFDatetime]
+  flow_processing_requests_delivery_time: dict[
+      tuple[str, str],
+      rdfvalue.RDFDatetime,
   ]
+  flow_processing_requests_done: set[tuple[str, str]]
   users: dict[str, objects_pb2.GRRUser]
 
   @utils.Synchronized
@@ -178,19 +181,19 @@ class InMemoryDBClientMixin(object):
     for client_id in client_ids:
       try:
         # ReadClientMetadata is implemented in the db.Database class.
-        md = self.ReadClientMetadata(client_id)  # pytype: disable=attribute-error
+        md = self.ReadClientMetadata(client_id)  # pyrefly: ignore[missing-attribute]
       except db.UnknownClientError:
         continue
 
       if md and min_last_ping and rdfvalue.RDFDatetime(md.ping) < min_last_ping:
         continue
       # ReadClientSnapshot is implemented in the db.Database class.
-      last_snapshot = self.ReadClientSnapshot(client_id)  # pytype: disable=attribute-error
+      last_snapshot = self.ReadClientSnapshot(client_id)  # pyrefly: ignore[missing-attribute]
 
       full_info = objects_pb2.ClientFullInfo()
       full_info.metadata.CopyFrom(md)
       # ReadClientLabels is implemented in the db.Database class.
-      full_info.labels.extend(self.ReadClientLabels(client_id))  # pytype: disable=attribute-error
+      full_info.labels.extend(self.ReadClientLabels(client_id))  # pyrefly: ignore[missing-attribute]
 
       if last_snapshot is None:
         full_info.last_snapshot.client_id = client_id
@@ -245,7 +248,7 @@ class InMemoryDBClientMixin(object):
   ) -> Sequence[objects_pb2.ClientSnapshot]:
     """Reads the full history for a particular client."""
     # _ParseTimeRange is implemented in InMemoryDB class that uses this mixin.
-    from_time, to_time = self._ParseTimeRange(timerange)  # pytype: disable=attribute-error
+    from_time, to_time = self._ParseTimeRange(timerange)  # pyrefly: ignore[missing-attribute]
 
     history = self.clients.get(client_id)
     if not history:
@@ -277,7 +280,7 @@ class InMemoryDBClientMixin(object):
   ) -> Sequence[jobs_pb2.StartupInfo]:
     """Reads the full history for a particular client."""
     # _ParseTimeRange is implemented in InMemoryDB class that uses this mixin.
-    from_time, to_time = self._ParseTimeRange(timerange)  # pytype: disable=attribute-error
+    from_time, to_time = self._ParseTimeRange(timerange)  # pyrefly: ignore[missing-attribute]
 
     history = self.startup_history.get(client_id, None)
     if not history:
@@ -535,6 +538,16 @@ class InMemoryDBClientMixin(object):
       self.flow_requests.pop(key)
     for key in [k for k in self.flow_processing_requests if k[0] == client_id]:
       self.flow_processing_requests.pop(key)
+    for key in [
+        key
+        for key in self.flow_processing_requests_delivery_time
+        if key[0] == client_id
+    ]:
+      self.flow_processing_requests_delivery_time.pop(key)
+    for key in [
+        key for key in self.flow_processing_requests_done if key[0] == client_id
+    ]:
+      self.flow_processing_requests_done.remove(key)
 
     for kw in self.keywords:
       self.keywords[kw].pop(client_id, None)

@@ -6,7 +6,6 @@ import re
 
 from google.protobuf import any_pb2
 from grr_response_core.lib import rdfvalue
-from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import crowdstrike_pb2
 from grr_response_proto import jobs_pb2
 from grr_response_proto import signed_commands_pb2
@@ -23,18 +22,12 @@ from grr_response_proto.rrg.action import get_file_contents_pb2 as rrg_get_file_
 from grr_response_proto.rrg.action import get_winreg_value_pb2 as rrg_get_winreg_value_pb2
 
 
-class GetCrowdstrikeAgentIdResult(rdf_structs.RDFProtoStruct):
-  protobuf = crowdstrike_pb2.GetCrowdstrikeAgentIdResult
-  rdf_deps = []
-
-
 class GetCrowdStrikeAgentID(flow_base.FlowBase):
   """Flow that retrieves the identifier of the CrowdStrike agent."""
 
   friendly_name = "Get CrowdStrike agent identifier"
   category = "/Collectors/"
 
-  result_types = (GetCrowdstrikeAgentIdResult,)
   proto_result_types = (crowdstrike_pb2.GetCrowdstrikeAgentIdResult,)
 
   def Start(self) -> None:
@@ -68,7 +61,7 @@ class GetCrowdStrikeAgentID(flow_base.FlowBase):
     action.args.command = command.command
     action.args.command_ed25519_signature = command.ed25519_signature
     action.args.timeout.seconds = 5
-    action.Call(self._OnLinuxRRGResponse)
+    action.Call(self._OnLinuxRRGResponse)  # pyrefly: ignore[bad-argument-type]
 
   def _StartLinux(self) -> None:
     args = jobs_pb2.ExecuteRequest()
@@ -86,10 +79,10 @@ class GetCrowdStrikeAgentID(flow_base.FlowBase):
     action.args.root = rrg_winreg_pb2.LOCAL_MACHINE
     action.args.key = r"SYSTEM\CurrentControlSet\Services\CSAgent\Sim"
     action.args.name = "AG"
-    action.Call(self._OnWindowsRRGResponse)
+    action.Call(self._OnWindowsRRGResponse)  # pyrefly: ignore[bad-argument-type]
 
   def _StartWindows(self) -> None:
-    # TODO: There is no dedicated action for obtaining registry
+    # TODO - There is no dedicated action for obtaining registry
     # values. The existing artifact collector uses `GetFileStat` action for this
     # which is horrible.
     args = jobs_pb2.GetFileStatRequest()
@@ -111,9 +104,9 @@ class GetCrowdStrikeAgentID(flow_base.FlowBase):
     action.args.paths.add().raw_bytes = (
         "/Library/Application Support/CrowdStrike/Falcon/registry.base"
     ).encode()
-    action.args.offset = 0
+    action.args.offsets.append(0)
     action.args.length = 16
-    action.Call(self._OnMacOSRRGResponse)
+    action.Call(self._OnMacOSRRGResponse)  # pyrefly: ignore[bad-argument-type]
 
   def _StartMacOS(self) -> None:
     # The agent identifier is stored in the first 16 bytes of the file so we
@@ -132,7 +125,7 @@ class GetCrowdStrikeAgentID(flow_base.FlowBase):
         next_state=self._OnMacOSResponse.__name__,
     )
 
-  @flow_base.UseProto2AnyResponses
+  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
   def _OnLinuxRRGResponse(
       self,
       responses: flow_responses.Responses[any_pb2.Any],
@@ -156,7 +149,7 @@ class GetCrowdStrikeAgentID(flow_base.FlowBase):
     result.agent_id = match.group("aid")
     self.SendReplyProto(result)
 
-  @flow_base.UseProto2AnyResponses
+  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
   def _OnLinuxResponse(
       self, responses: flow_responses.Responses[any_pb2.Any]
   ) -> None:
@@ -185,7 +178,7 @@ class GetCrowdStrikeAgentID(flow_base.FlowBase):
     result.agent_id = match.group("aid")
     self.SendReplyProto(result)
 
-  @flow_base.UseProto2AnyResponses
+  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
   def _OnWindowsRRGResponse(
       self,
       responses: flow_responses.Responses[any_pb2.Any],
@@ -206,7 +199,7 @@ class GetCrowdStrikeAgentID(flow_base.FlowBase):
     result.agent_id = binascii.hexlify(agent_id_bytes).decode("ascii")
     self.SendReplyProto(result)
 
-  @flow_base.UseProto2AnyResponses
+  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
   def _OnWindowsResponse(
       self, responses: flow_responses.Responses[any_pb2.Any]
   ) -> None:
@@ -232,7 +225,7 @@ class GetCrowdStrikeAgentID(flow_base.FlowBase):
     result.agent_id = binascii.hexlify(agent_id_bytes).decode("ascii")
     self.SendReplyProto(result)
 
-  @flow_base.UseProto2AnyResponses
+  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
   def _OnMacOSRRGResponse(
       self,
       responses: flow_responses.Responses[any_pb2.Any],
@@ -260,7 +253,7 @@ class GetCrowdStrikeAgentID(flow_base.FlowBase):
     result.agent_id = binascii.hexlify(blob).decode("ascii")
     self.SendReplyProto(result)
 
-  @flow_base.UseProto2AnyResponses
+  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
   def _OnMacOSResponse(
       self, responses: flow_responses.Responses[any_pb2.Any]
   ) -> None:

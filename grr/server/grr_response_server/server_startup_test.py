@@ -15,7 +15,7 @@ class CronJobRegistryTest(test_lib.GRRBaseTest):
     super(CronJobRegistryTest, cls).setUpClass()
     testing_startup.TestInit()
 
-  # TODO: Remove once metaclass registry madness is resolved.
+  # TODO - Remove once metaclass registry madness is resolved.
   def testCronJobRegistryInstantiation(self):
     # We import the `server_startup` module to ensure that all cron jobs classes
     # that are really used on the server are imported and populate the registry.

@@ -143,6 +143,16 @@ describe('GlobalStore', () => {
     expect(store.artifactDescriptorMap()).toEqual(artifactDescriptorMap);
   });
 
+  it('calls api to delete artifact and fetches artifact descriptors again', () => {
+    const store = TestBed.inject(GlobalStore);
+
+    store.deleteArtifact('artifact');
+
+    httpApiService.mockedObservables.deleteArtifact.next({});
+    expect(httpApiService.deleteArtifact).toHaveBeenCalledWith('artifact');
+    expect(httpApiService.getArtifactDescriptorMap).toHaveBeenCalled();
+  });
+
   it('calls api to fetch all binaries and stores them when `fetchAllBinaries()` is called', () => {
     const store = TestBed.inject(GlobalStore);
 
@@ -212,5 +222,14 @@ describe('GlobalStore', () => {
 
     expect(httpApiService.listOutputPluginDescriptors).toHaveBeenCalled();
     expect(store.outputPluginDescriptors()).toEqual(outputPluginDescriptors);
+  });
+  it('calls api to upload artifact and fetches artifact descriptors again', () => {
+    const store = TestBed.inject(GlobalStore);
+
+    store.uploadArtifact('artifact');
+
+    httpApiService.mockedObservables.uploadArtifact.next({});
+    expect(httpApiService.uploadArtifact).toHaveBeenCalledWith('artifact');
+    expect(httpApiService.getArtifactDescriptorMap).toHaveBeenCalled();
   });
 });

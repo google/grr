@@ -19,25 +19,7 @@ import {RegistryKey, RegistryValue} from '../../../../lib/models/flow';
 import {CopyButton} from '../../copy_button';
 import {FilterPaginate} from '../../filter_paginate';
 
-type RegistryResult = RegistryKeyWithClientId | RegistryValueWithClientId;
-
-/**
- * Registry key with client id.
- *
- * This is used to display registry keys in a table with client id column.
- */
-export interface RegistryKeyWithClientId extends RegistryKey {
-  clientId: string;
-}
-
-/**
- * Registry value with client id.
- *
- * This is used to display registry values in a table with client id column.
- */
-export interface RegistryValueWithClientId extends RegistryValue {
-  clientId: string;
-}
+type RegistryResult = RegistryKey | RegistryValue;
 
 /**
  * Component that displays a table with Windows Registry keys and values.
@@ -62,17 +44,12 @@ export class RegistryResultsTable implements AfterViewInit {
 
   /** Loaded results to display in the table. */
   readonly results = input.required<readonly RegistryResult[]>();
-  readonly isHuntResult = input.required<boolean>();
 
   readonly dataSource = new MatTableDataSource<RegistryResult>();
 
   protected readonly displayedColumns = computed((): string[] => {
     const availableResults = this.results();
-    const columns = ['ficon'];
-    if (this.isHuntResult()) {
-      columns.push('clientId');
-    }
-    columns.push('path', 'type');
+    const columns = ['ficon', 'path', 'type'];
     if (availableResults.some(isRegistryValue)) {
       columns.push('value');
     }

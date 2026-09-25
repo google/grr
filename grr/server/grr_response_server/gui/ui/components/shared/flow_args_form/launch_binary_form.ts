@@ -68,7 +68,7 @@ export class LaunchBinaryForm extends FlowArgsFormInterface<
 > {
   protected readonly globalStore = inject(GlobalStore);
 
-  // TODO: As future UX improvement, we could highlight binaries
+  // TODO - As future UX improvement, we could highlight binaries
   // that match the current client OS, since binaries are "bound" to one OS on
   // upload.
 

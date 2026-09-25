@@ -45,17 +45,3 @@ def ToRDFTimelineEntry(
   return rdf_timeline.TimelineEntry.FromSerializedBytes(
       proto.SerializeToString()
   )
-
-
-def ToProtoTimelineProgress(
-    rdf: rdf_timeline.TimelineProgress,
-) -> timeline_pb2.TimelineProgress:
-  return rdf.AsPrimitiveProto()
-
-
-def ToRDFTimelineProgress(
-    proto: timeline_pb2.TimelineProgress,
-) -> rdf_timeline.TimelineProgress:
-  return rdf_timeline.TimelineProgress.FromSerializedBytes(
-      proto.SerializeToString()
-  )

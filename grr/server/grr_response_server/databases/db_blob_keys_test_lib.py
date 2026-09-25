@@ -17,20 +17,19 @@ class DatabaseTestBlobKeysMixin:
 
   # This is a test mixin but there is no way to specify this with type system,
   # so we have to make pytype close an eye on this.
-  # pytype: disable=attribute-error
 
   def testWriteBlobEncryptionKeysEmpty(self):
     self.db.WriteBlobEncryptionKeys({})  # Should not fail.
 
   def testReadBlobEncryptionKeysEmpty(self):
     results = self.db.ReadBlobEncryptionKeys([])  # Should not fail.
-    self.assertEmpty(results)
+    self.assertEmpty(results)  # pyrefly: ignore[missing-attribute]
 
   def testReadBlobEncryptionKeysNonExistent(self):
     blob_id = models_blobs.BlobID(os.urandom(32))
 
     results = self.db.ReadBlobEncryptionKeys([blob_id])
-    self.assertEqual(results, {blob_id: None})
+    self.assertEqual(results, {blob_id: None})  # pyrefly: ignore[missing-attribute]
 
   def testReadBlobEncryptionKeysSingle(self):
     blob_id = models_blobs.BlobID(os.urandom(32))
@@ -38,7 +37,7 @@ class DatabaseTestBlobKeysMixin:
     self.db.WriteBlobEncryptionKeys({blob_id: "foo"})
 
     results = self.db.ReadBlobEncryptionKeys([blob_id])
-    self.assertEqual(results, {blob_id: "foo"})
+    self.assertEqual(results, {blob_id: "foo"})  # pyrefly: ignore[missing-attribute]
 
   def testReadBlobEncryptionKeysMultiple(self):
     blob_id_1 = models_blobs.BlobID(os.urandom(32))
@@ -52,7 +51,7 @@ class DatabaseTestBlobKeysMixin:
     })
 
     results = self.db.ReadBlobEncryptionKeys([blob_id_1, blob_id_2, blob_id_3])
-    self.assertEqual(
+    self.assertEqual(  # pyrefly: ignore[missing-attribute]
         results,
         {
             blob_id_1: "foo",
@@ -67,16 +66,15 @@ class DatabaseTestBlobKeysMixin:
     self.db.WriteBlobEncryptionKeys({blob_id: "foo"})
 
     results = self.db.ReadBlobEncryptionKeys([blob_id])
-    self.assertEqual(results[blob_id], "foo")
+    self.assertEqual(results[blob_id], "foo")  # pyrefly: ignore[missing-attribute]
 
     self.db.WriteBlobEncryptionKeys({blob_id: "bar"})
 
     results = self.db.ReadBlobEncryptionKeys([blob_id])
-    self.assertEqual(results[blob_id], "bar")
+    self.assertEqual(results[blob_id], "bar")  # pyrefly: ignore[missing-attribute]
 
     self.db.WriteBlobEncryptionKeys({blob_id: "baz"})
 
     results = self.db.ReadBlobEncryptionKeys([blob_id])
-    self.assertEqual(results[blob_id], "baz")
+    self.assertEqual(results[blob_id], "baz")  # pyrefly: ignore[missing-attribute]
 
-  # pytype: enable=attribute-error

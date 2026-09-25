@@ -108,6 +108,10 @@ describe('Flow Args Form Component', () => {
     const {harness} = await createComponent(FlowType.LAUNCH_BINARY);
     expect(await harness.launchBinaryForm()).toBeDefined();
   });
+  it('renders ListContainersForm', async () => {
+    const {harness} = await createComponent(FlowType.LIST_CONTAINERS);
+    expect(await harness.listContainersForm()).toBeDefined();
+  });
   it('renders ListDirectoryForm', async () => {
     const {harness} = await createComponent(FlowType.LIST_DIRECTORY);
     expect(await harness.listDirectoryForm()).toBeDefined();
@@ -131,10 +135,6 @@ describe('Flow Args Form Component', () => {
   it('renders OsqueryForm', async () => {
     const {harness} = await createComponent(FlowType.OS_QUERY_FLOW);
     expect(await harness.osqueryForm()).toBeDefined();
-  });
-  it('renders ReadLowLevelForm', async () => {
-    const {harness} = await createComponent(FlowType.READ_LOW_LEVEL);
-    expect(await harness.readLowLevelForm()).toBeDefined();
   });
   it('renders StatMultipleFilesForm', async () => {
     const {harness} = await createComponent(FlowType.STAT_MULTIPLE_FILES);

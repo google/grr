@@ -72,7 +72,7 @@ class EncryptedBlobStore(blob_store.BlobStore):
     """Reads specified blobs from the blobstore."""
     blobs = dict()
 
-    # TODO: Refactor `ReadBlobs` to take a collection rather than
+    # TODO - Refactor `ReadBlobs` to take a collection rather than
     # an iterable.
     key_names = self._db.ReadBlobEncryptionKeys(list(blob_ids))
     encrypted_blobs = self._bs.ReadBlobs(blob_ids)

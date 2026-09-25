@@ -34,9 +34,9 @@ class PurePath(pathlib.PurePath, abc.ABC):
       Pure absolute path object corresponding to the given path.
     """
     if os_type == rrg_os_pb2.LINUX or os_type == rrg_os_pb2.MACOS:
-      return PurePosixPath(*paths)
+      return PurePosixPath(*paths)  # pyrefly: ignore[bad-argument-type]
     if os_type == rrg_os_pb2.WINDOWS:
-      return PureWindowsPath(*paths)
+      return PureWindowsPath(*paths)  # pyrefly: ignore[bad-argument-type]
 
     raise ValueError(f"Unexpected operating system type: {os_type}")
 
@@ -67,7 +67,7 @@ class PurePosixPath(pathlib.PurePosixPath, PurePath):
   case for Linux) will be escaped.
   """
 
-  # TODO: There is a discrepancy between how Python 3.10 and 3.12
+  # TODO - There is a discrepancy between how Python 3.10 and 3.12
   # declare the constructor and to support both we need to do weird gymnastics
   # here. Once support for Python 3.10 is gone, we can remove the weird branch
   # in `__init__` and simplify `__new__`.
@@ -90,7 +90,7 @@ class PurePosixPath(pathlib.PurePosixPath, PurePath):
         raise TypeError(f"Unexpected path type: {type(path)}")
 
     self = super().__new__(cls, *paths_str)
-    self._paths_str = paths_str  # pylint: disable=assigning-non-slot
+    self._paths_str = paths_str  # pylint: disable=assigning-non-slot  # pyrefly: ignore[missing-attribute]
     return self
 
   def __init__(
@@ -100,11 +100,11 @@ class PurePosixPath(pathlib.PurePosixPath, PurePath):
     del paths  # Unused.
 
     if pathlib.PurePosixPath.__init__ is not object.__init__:
-      super().__init__(*self._paths_str)  # pytype: disable=attribute-error
+      super().__init__(*self._paths_str)  # pyrefly: ignore[missing-attribute]
 
-    del self._paths_str  # pytype: disable=attribute-error
+    del self._paths_str  # pyrefly: ignore[missing-attribute]
 
-  # TODO: Use `@override` once we are on Python 3.12+.
+  # TODO - Use `@override` once we are on Python 3.12+.
   @property
   def components(self) -> Sequence[str]:
     """Returns path's individual components.
@@ -124,7 +124,7 @@ class PurePosixPath(pathlib.PurePosixPath, PurePath):
     return self.parts[1:]
 
   @property
-  def normal(self) -> "PurePosixPath":
+  def normal(self) -> "PurePosixPath":  # pyrefly: ignore[bad-override]
     """Returns normalized variant of the path."""
     return PurePosixPath(posixpath.normpath(str(self)))
 
@@ -137,7 +137,7 @@ class PureWindowsPath(pathlib.PureWindowsPath, PurePath):
   replacement character (�).
   """
 
-  # TODO: There is a discrepancy between how Python 3.10 and 3.12
+  # TODO - There is a discrepancy between how Python 3.10 and 3.12
   # declare the constructor and to support both we need to do weird gymnastics
   # here. Once support for Python 3.10 is gone, we can remove the weird branch
   # in `__init__` and simplify `__new__`.
@@ -160,7 +160,7 @@ class PureWindowsPath(pathlib.PureWindowsPath, PurePath):
         raise TypeError(f"Unexpected path type: {type(path)}")
 
     self = super().__new__(cls, *paths_str)
-    self._paths_str = paths_str  # pylint: disable=assigning-non-slot
+    self._paths_str = paths_str  # pylint: disable=assigning-non-slot  # pyrefly: ignore[missing-attribute]
     return self
 
   def __init__(
@@ -170,11 +170,11 @@ class PureWindowsPath(pathlib.PureWindowsPath, PurePath):
     del paths  # Unused.
 
     if pathlib.PureWindowsPath.__init__ is not object.__init__:
-      super().__init__(*self._paths_str)  # pytype: disable=attribute-error
+      super().__init__(*self._paths_str)  # pyrefly: ignore[missing-attribute]
 
-    del self._paths_str  # pytype: disable=attribute-error
+    del self._paths_str  # pyrefly: ignore[missing-attribute]
 
-  # TODO: Use `@override` once we are on Python 3.12+.
+  # TODO - Use `@override` once we are on Python 3.12+.
   @property
   def components(self) -> Sequence[str]:
     """Returns path's individual components.

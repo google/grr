@@ -134,10 +134,10 @@ class RegistryTest(absltest.TestCase):
 
     self.assertLen(results, 1)
     self.assertEqual(
-        results[0].stat_entry.pathspec.path,
+        results[0].stat_entry.pathspec.path,  # pyrefly: ignore[missing-attribute]
         "/HKEY_LOCAL_MACHINE/SOFTWARE/GRR_TEST/aaa",
     )
-    self.assertEqual(results[0].stat_entry.pathspec.pathtype, "REGISTRY")
+    self.assertEqual(results[0].stat_entry.pathspec.pathtype, "REGISTRY")  # pyrefly: ignore[missing-attribute]
 
   def testStatExactPath(self):
     results = _RunFileFinder(
@@ -150,11 +150,11 @@ class RegistryTest(absltest.TestCase):
 
     self.assertLen(results, 1)
     self.assertEqual(
-        results[0].stat_entry.pathspec.path,
+        results[0].stat_entry.pathspec.path,  # pyrefly: ignore[missing-attribute]
         "/HKEY_LOCAL_MACHINE/SOFTWARE/GRR_TEST/aaa",
     )
-    self.assertEqual(results[0].stat_entry.pathspec.pathtype, "REGISTRY")
-    self.assertEqual(results[0].stat_entry.st_size, 6)
+    self.assertEqual(results[0].stat_entry.pathspec.pathtype, "REGISTRY")  # pyrefly: ignore[missing-attribute]
+    self.assertEqual(results[0].stat_entry.st_size, 6)  # pyrefly: ignore[missing-attribute]
 
   def testStatExactPathInWindowsNativeFormat(self):
     results = _RunFileFinder(
@@ -167,11 +167,11 @@ class RegistryTest(absltest.TestCase):
 
     self.assertLen(results, 1)
     self.assertEqual(
-        results[0].stat_entry.pathspec.path,
+        results[0].stat_entry.pathspec.path,  # pyrefly: ignore[missing-attribute]
         "/HKEY_LOCAL_MACHINE/SOFTWARE/GRR_TEST/aaa",
     )
-    self.assertEqual(results[0].stat_entry.pathspec.pathtype, "REGISTRY")
-    self.assertEqual(results[0].stat_entry.st_size, 6)
+    self.assertEqual(results[0].stat_entry.pathspec.pathtype, "REGISTRY")  # pyrefly: ignore[missing-attribute]
+    self.assertEqual(results[0].stat_entry.st_size, 6)  # pyrefly: ignore[missing-attribute]
 
   def testStatLongUnicodeName(self):
     results = _RunFileFinder(
@@ -186,10 +186,10 @@ class RegistryTest(absltest.TestCase):
 
     self.assertLen(results, 1)
     self.assertEqual(
-        results[0].stat_entry.pathspec.path,
+        results[0].stat_entry.pathspec.path,  # pyrefly: ignore[missing-attribute]
         "/HKEY_LOCAL_MACHINE/SOFTWARE/GRR_TEST/{}".format(_LONG_KEY),
     )
-    self.assertEqual(results[0].stat_entry.pathspec.pathtype, "REGISTRY")
+    self.assertEqual(results[0].stat_entry.pathspec.pathtype, "REGISTRY")  # pyrefly: ignore[missing-attribute]
 
   def testStatKeyWithDefaultValue(self):
     results = _RunFileFinder(
@@ -202,11 +202,11 @@ class RegistryTest(absltest.TestCase):
 
     self.assertLen(results, 1)
     self.assertEqual(
-        results[0].stat_entry.pathspec.path,
+        results[0].stat_entry.pathspec.path,  # pyrefly: ignore[missing-attribute]
         "/HKEY_LOCAL_MACHINE/SOFTWARE/GRR_TEST/1",
     )
-    self.assertEqual(results[0].stat_entry.pathspec.pathtype, "REGISTRY")
-    self.assertEqual(results[0].stat_entry.st_size, 13)
+    self.assertEqual(results[0].stat_entry.pathspec.pathtype, "REGISTRY")  # pyrefly: ignore[missing-attribute]
+    self.assertEqual(results[0].stat_entry.st_size, 13)  # pyrefly: ignore[missing-attribute]
 
   def testDownloadExactPath(self):
     results = _RunFileFinder(
@@ -220,7 +220,7 @@ class RegistryTest(absltest.TestCase):
     self.assertLen(results, 2)
     self.assertEqual(_DecodeDataBlob(results[0]), "lolcat")
     self.assertEqual(
-        results[1].stat_entry.pathspec.path,
+        results[1].stat_entry.pathspec.path,  # pyrefly: ignore[missing-attribute]
         "/HKEY_LOCAL_MACHINE/SOFTWARE/GRR_TEST/aaa",
     )
 
@@ -275,12 +275,12 @@ class RegistryTest(absltest.TestCase):
 
     self.assertLen(results, 4)
     self.assertEqual(
-        results[1].stat_entry.pathspec.path,
+        results[1].stat_entry.pathspec.path,  # pyrefly: ignore[missing-attribute]
         "/HKEY_LOCAL_MACHINE/SOFTWARE/GRR_TEST/aaa",
     )
     self.assertEqual(_DecodeDataBlob(results[0]), "lolcat")
     self.assertEqual(
-        results[3].stat_entry.pathspec.path,
+        results[3].stat_entry.pathspec.path,  # pyrefly: ignore[missing-attribute]
         "/HKEY_LOCAL_MACHINE/SOFTWARE/GRR_TEST/aba",
     )
     self.assertEqual(_DecodeDataBlob(results[2]), "4294967295")
@@ -295,17 +295,17 @@ class RegistryTest(absltest.TestCase):
     )
 
     self.assertLen(results, 1)
-    self.assertEqual(results[0].hash_entry.num_bytes, 6)
+    self.assertEqual(results[0].hash_entry.num_bytes, 6)  # pyrefly: ignore[missing-attribute]
     self.assertEqual(
-        results[0].hash_entry.md5.HexDigest(),
+        results[0].hash_entry.md5.HexDigest(),  # pyrefly: ignore[missing-attribute]
         hashlib.md5(b"lolcat").hexdigest(),
     )
     self.assertEqual(
-        results[0].hash_entry.sha1.HexDigest(),
+        results[0].hash_entry.sha1.HexDigest(),  # pyrefly: ignore[missing-attribute]
         hashlib.sha1(b"lolcat").hexdigest(),
     )
     self.assertEqual(
-        results[0].hash_entry.sha256.HexDigest(),
+        results[0].hash_entry.sha256.HexDigest(),  # pyrefly: ignore[missing-attribute]
         hashlib.sha256(b"lolcat").hexdigest(),
     )
 
@@ -335,14 +335,14 @@ class RegistryTest(absltest.TestCase):
 
     self.assertLen(results, 1)
     self.assertEqual(
-        results[0].hash_entry.md5.HexDigest(), hashlib.md5(b"lolca").hexdigest()
+        results[0].hash_entry.md5.HexDigest(), hashlib.md5(b"lolca").hexdigest()  # pyrefly: ignore[missing-attribute]
     )
     self.assertEqual(
-        results[0].hash_entry.sha1.HexDigest(),
+        results[0].hash_entry.sha1.HexDigest(),  # pyrefly: ignore[missing-attribute]
         hashlib.sha1(b"lolca").hexdigest(),
     )
     self.assertEqual(
-        results[0].hash_entry.sha256.HexDigest(),
+        results[0].hash_entry.sha256.HexDigest(),  # pyrefly: ignore[missing-attribute]
         hashlib.sha256(b"lolca").hexdigest(),
     )
 
@@ -356,7 +356,7 @@ class RegistryTest(absltest.TestCase):
     )
 
     self.assertCountEqual(
-        [res.stat_entry.pathspec.path for res in results],
+        [res.stat_entry.pathspec.path for res in results],  # pyrefly: ignore[missing-attribute]
         [
             "/HKEY_LOCAL_MACHINE/SOFTWARE/GRR_TEST/aaa",
             "/HKEY_LOCAL_MACHINE/SOFTWARE/GRR_TEST/aba",
@@ -364,14 +364,14 @@ class RegistryTest(absltest.TestCase):
     )
 
     self.assertCountEqual(
-        [res.stat_entry.pathspec.path for res in results],
+        [res.stat_entry.pathspec.path for res in results],  # pyrefly: ignore[missing-attribute]
         [
             "/HKEY_LOCAL_MACHINE/SOFTWARE/GRR_TEST/aaa",
             "/HKEY_LOCAL_MACHINE/SOFTWARE/GRR_TEST/aba",
         ],
     )
-    self.assertEqual(results[0].stat_entry.pathspec.pathtype, "REGISTRY")
-    self.assertEqual(results[1].stat_entry.pathspec.pathtype, "REGISTRY")
+    self.assertEqual(results[0].stat_entry.pathspec.pathtype, "REGISTRY")  # pyrefly: ignore[missing-attribute]
+    self.assertEqual(results[1].stat_entry.pathspec.pathtype, "REGISTRY")  # pyrefly: ignore[missing-attribute]
 
   def testQuestionMarkMatchesOneCharacterOnly(self):
     results = _RunFileFinder(
@@ -393,7 +393,7 @@ class RegistryTest(absltest.TestCase):
     )
 
     self.assertCountEqual(
-        [res.stat_entry.pathspec.path for res in results],
+        [res.stat_entry.pathspec.path for res in results],  # pyrefly: ignore[missing-attribute]
         [
             "/HKEY_LOCAL_MACHINE/SOFTWARE/GRR_TEST/aaa",
             "/HKEY_LOCAL_MACHINE/SOFTWARE/GRR_TEST/aba",
@@ -429,7 +429,7 @@ class RegistryTest(absltest.TestCase):
         )
     )
     self.assertCountEqual(
-        [res.stat_entry.pathspec.path for res in results],
+        [res.stat_entry.pathspec.path for res in results],  # pyrefly: ignore[missing-attribute]
         [
             "/HKEY_LOCAL_MACHINE/SOFTWARE/GRR_TEST/1/aaa",
             "/HKEY_LOCAL_MACHINE/SOFTWARE/GRR_TEST/1/2/aaa",
@@ -446,7 +446,7 @@ class RegistryTest(absltest.TestCase):
         )
     )
     self.assertCountEqual(
-        [res.stat_entry.pathspec.path for res in results],
+        [res.stat_entry.pathspec.path for res in results],  # pyrefly: ignore[missing-attribute]
         [
             "/HKEY_LOCAL_MACHINE/SOFTWARE/GRR_TEST/1/aaa",
             "/HKEY_LOCAL_MACHINE/SOFTWARE/GRR_TEST/1/2/aaa",
@@ -464,7 +464,7 @@ class RegistryTest(absltest.TestCase):
         )
     )
     self.assertCountEqual(
-        [res.stat_entry.pathspec.path for res in results],
+        [res.stat_entry.pathspec.path for res in results],  # pyrefly: ignore[missing-attribute]
         [
             "/HKEY_LOCAL_MACHINE/SOFTWARE/GRR_TEST/1/aaa",
             "/HKEY_LOCAL_MACHINE/SOFTWARE/GRR_TEST/1/aba",
@@ -508,7 +508,7 @@ class RegistryTest(absltest.TestCase):
         )
     )
     self.assertCountEqual(
-        [res.stat_entry.pathspec.path for res in results],
+        [res.stat_entry.pathspec.path for res in results],  # pyrefly: ignore[missing-attribute]
         ["/HKEY_LOCAL_MACHINE/SOFTWARE/GRR_TEST/aaa"],
     )
 
@@ -544,11 +544,8 @@ class RegistryTest(absltest.TestCase):
         )
     )
     self.assertCountEqual(
-        [res.stat_entry.pathspec.path for res in results],
+        [res.stat_entry.pathspec.path for res in results],  # pyrefly: ignore[missing-attribute]
         ["/HKEY_LOCAL_MACHINE/SOFTWARE/GRR_TEST/aaa"],
-    )
-    self.assertCountEqual(
-        [match.data for match in results[0].matches], [b"lol"]
     )
 
   def testSkipsIfContentConditionDoesNotMatch(self):
@@ -570,7 +567,7 @@ class RegistryTest(absltest.TestCase):
     self.assertEmpty(results)
 
   def testGlobbingKeyDoesNotYieldDuplicates(self):
-    opts = globbing.PathOpts(pathtype=rdf_paths.PathSpec.PathType.REGISTRY)
+    opts = globbing.PathOpts(pathtype=rdf_paths.PathSpec.PathType.REGISTRY)  # pyrefly: ignore[missing-attribute]
     results = globbing.ExpandGlobs(
         r"HKEY_LOCAL_MACHINE\SOFTWARE\GRR_TEST\*\aaa", opts
     )
@@ -593,7 +590,7 @@ class OsTest(absltest.TestCase):
       results = _RunFileFinder(
           rdf_file_finder.FileFinderArgs(
               paths=[os.path.join(temp_dir, "**", "*")],
-              pathtype=rdf_paths.PathSpec.PathType.OS,
+              pathtype=rdf_paths.PathSpec.PathType.OS,  # pyrefly: ignore[missing-attribute]
               conditions=[
                   rdf_file_finder.FileFinderCondition.ContentsRegexMatch(
                       regex=b"bar[0-9]+"
@@ -603,7 +600,6 @@ class OsTest(absltest.TestCase):
           )
       )
       self.assertLen(results, 1)
-      self.assertEqual(results[0].matches[0].data, b"bar123")
       files.FlushHandleCache()
 
 
@@ -625,8 +621,8 @@ class NtfsImageTestBase(absltest.TestCase):
 
     pathspec = rdf_paths.PathSpec(
         path=ntfs_img_path,
-        pathtype=rdf_paths.PathSpec.PathType.OS,
-        path_options=rdf_paths.PathSpec.Options.CASE_LITERAL,
+        pathtype=rdf_paths.PathSpec.PathType.OS,  # pyrefly: ignore[missing-attribute]
+        path_options=rdf_paths.PathSpec.Options.CASE_LITERAL,  # pyrefly: ignore[missing-attribute]
     )
 
     if platform.system() == "Windows":
@@ -646,7 +642,7 @@ class NtfsImageTestBase(absltest.TestCase):
           )
       )
       names = [
-          result.stat_entry.pathspec.nested_path.path for result in results
+          result.stat_entry.pathspec.nested_path.path for result in results  # pyrefly: ignore[missing-attribute]
       ]
       self.assertIn("/numbers.txt", names)
       files.FlushHandleCache()
@@ -657,7 +653,7 @@ class NtfsImageTestBase(absltest.TestCase):
     def MockVfsOpen(pathspec, *args, **kwargs):
       self.assertEqual(
           pathspec.implementation_type,
-          rdf_paths.PathSpec.ImplementationType.DIRECT,
+          rdf_paths.PathSpec.ImplementationType.DIRECT,  # pyrefly: ignore[missing-attribute]
       )
       return orig_vfs_open(pathspec, *args, **kwargs)
 
@@ -672,7 +668,7 @@ class NtfsImageTestBase(absltest.TestCase):
           rdf_file_finder.FileFinderArgs(
               paths=[self._paths_expr],
               pathtype=self.pathtype,
-              implementation_type=rdf_paths.PathSpec.ImplementationType.DIRECT,
+              implementation_type=rdf_paths.PathSpec.ImplementationType.DIRECT,  # pyrefly: ignore[missing-attribute]
               action=rdf_file_finder.FileFinderAction.Stat(),
           )
       )
@@ -681,11 +677,11 @@ class NtfsImageTestBase(absltest.TestCase):
 
 
 class NtfsTest(NtfsImageTestBase):
-  pathtype = rdf_paths.PathSpec.PathType.NTFS
+  pathtype = rdf_paths.PathSpec.PathType.NTFS  # pyrefly: ignore[missing-attribute]
 
 
 class TskTest(NtfsImageTestBase):
-  pathtype = rdf_paths.PathSpec.PathType.TSK
+  pathtype = rdf_paths.PathSpec.PathType.TSK  # pyrefly: ignore[missing-attribute]
 
 
 # Abstract test case

@@ -16,13 +16,13 @@ import {HashMultipleFilesForm} from './hash_multiple_files_form';
 import {InterrogateForm} from './interrogate_form';
 import {KillGrrForm} from './kill_grr_form';
 import {LaunchBinaryForm} from './launch_binary_form';
+import {ListContainersForm} from './list_containers_form';
 import {ListDirectoryForm} from './list_directory_form';
 import {ListNamedPipesForm} from './list_named_pipes_form';
 import {ListProcessesForm} from './list_processes_form';
 import {NetstatForm} from './netstat_form';
 import {OnlineNotificationForm} from './online_notification_form';
 import {OsqueryForm} from './osquery_form';
-import {ReadLowLevelForm} from './read_low_level_form';
 import {StatMultipleFilesForm} from './stat_multiple_files_form';
 import {TimelineForm} from './timeline_form';
 import {YaraProcessScanForm} from './yara_process_scan_form';
@@ -46,13 +46,13 @@ import {YaraProcessScanForm} from './yara_process_scan_form';
     InterrogateForm,
     KillGrrForm,
     LaunchBinaryForm,
+    ListContainersForm,
     ListDirectoryForm,
     ListNamedPipesForm,
     ListProcessesForm,
     NetstatForm,
     OnlineNotificationForm,
     OsqueryForm,
-    ReadLowLevelForm,
     ClientRegistryFinderForm,
     StatMultipleFilesForm,
     TimelineForm,

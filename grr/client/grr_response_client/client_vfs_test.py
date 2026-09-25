@@ -10,7 +10,6 @@ from unittest import mock
 
 from absl import app
 from absl.testing import absltest
-import psutil
 
 # pylint: disable=unused-import,g-bad-import-order
 from grr_response_client import client_plugins
@@ -70,24 +69,6 @@ class VFSTest(vfs_test_lib.VfsTestCase, test_lib.GRRBaseTest):
     fd = vfs.VFSOpen(pathspec)
 
     self.TestFileHandling(fd)
-
-  def testOpenFilehandles(self):
-    """Test that file handles are cached."""
-    current_process = psutil.Process(os.getpid())
-    num_open_files = len(current_process.open_files())
-
-    path = os.path.join(self.base_path, "morenumbers.txt")
-
-    fds = []
-    for _ in range(100):
-      fd = vfs.VFSOpen(
-          rdf_paths.PathSpec(path=path, pathtype=rdf_paths.PathSpec.PathType.OS)
-      )
-      self.assertEqual(fd.read(20), b"1\n2\n3\n4\n5\n6\n7\n8\n9\n10")
-      fds.append(fd)
-
-    # This should not create any new file handles.
-    self.assertLess(len(current_process.open_files()) - num_open_files, 5)
 
   def testFileCasing(self):
     """Test our ability to read the correct casing from filesystem."""

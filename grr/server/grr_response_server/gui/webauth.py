@@ -4,7 +4,6 @@
 import base64
 import logging
 
-from google.oauth2 import id_token
 from werkzeug import utils as werkzeug_utils
 
 from grr_response_core import config
@@ -179,58 +178,6 @@ class RemoteUserWebAuthManager(BaseWebAuthManager):
         request.email = request.headers[self.remote_email_header]
       except KeyError:
         pass
-
-    return func(request, *args, **kwargs)
-
-
-class FirebaseWebAuthManager(BaseWebAuthManager):
-  """Manager using Firebase auth service."""
-
-  BEARER_PREFIX = "Bearer "
-  SECURE_TOKEN_PREFIX = "https://securetoken.google.com/"
-
-  def __init__(self, *args, **kwargs):
-    super().__init__(*args, **kwargs)
-
-    def_router = config.CONFIG["API.DefaultRouter"]
-    if def_router != "DisabledApiCallRouter":
-      raise RuntimeError(
-          "Using FirebaseWebAuthManager with API.DefaultRouter being anything "
-          "but DisabledApiCallRouter means risking opening your GRR UI/API to "
-          "the world. Current setting is: %s" % def_router
-      )
-
-  def AuthError(self, message):
-    return http_response.HttpResponse(message, status=403)
-
-  def SecurityCheck(self, func, request, *args, **kwargs):
-    """Check if access should be allowed for the request."""
-
-    try:
-      auth_header = request.headers.get("Authorization", "")
-      if not auth_header.startswith(self.BEARER_PREFIX):
-        raise ValueError("JWT token is missing.")
-
-      token = auth_header[len(self.BEARER_PREFIX) :]
-
-      auth_domain = config.CONFIG["AdminUI.firebase_auth_domain"]
-      project_id = auth_domain.split(".")[0]
-
-      idinfo = id_token.verify_firebase_token(
-          token, request, audience=project_id
-      )
-
-      if idinfo["iss"] != self.SECURE_TOKEN_PREFIX + project_id:
-        raise ValueError("Wrong issuer.")
-
-      request.user = idinfo["email"]
-    except ValueError as e:
-      # For a homepage, just do a pass-through, otherwise JS code responsible
-      # for the Firebase auth won't ever get executed. This approach is safe,
-      # because wsgiapp.HttpRequest object will raise on any attempt to
-      # access uninitialized HttpRequest.user attribute.
-      if request.path != "/":
-        return self.AuthError("JWT token validation failed: %s" % e)
 
     return func(request, *args, **kwargs)
 

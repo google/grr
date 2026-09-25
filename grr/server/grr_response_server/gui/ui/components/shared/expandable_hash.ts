@@ -1,6 +1,12 @@
 import {ClipboardModule} from '@angular/cdk/clipboard';
 import {CommonModule} from '@angular/common';
-import {Component, computed, input, ViewEncapsulation} from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  input,
+  ViewEncapsulation,
+} from '@angular/core';
 import {MatButtonModule} from '@angular/material/button';
 import {MatIconModule} from '@angular/material/icon';
 import {MatMenuModule} from '@angular/material/menu';
@@ -28,6 +34,7 @@ function toHashEntries(hashes: HexHash | undefined): readonly HashEntry[] {
  * with all available hashes, together with copy-to-clipboard buttons.
  */
 @Component({
+  changeDetection: ChangeDetectionStrategy.Eager,
   selector: 'expandable-hash',
   templateUrl: './expandable_hash.ng.html',
   styleUrls: ['./expandable_hash.scss'],

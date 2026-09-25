@@ -5,7 +5,6 @@ import {TestBed, waitForAsync} from '@angular/core/testing';
 import {FormGroup, ReactiveFormsModule} from '@angular/forms';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 
-import {FileFinderContentsLiteralMatchConditionMode} from '../../../../lib/api/api_interfaces';
 import {initTestEnvironment} from '../../../../testing';
 import {
   createLiteralMatchFormGroup,
@@ -54,9 +53,6 @@ describe('Literal Match Subform component', () => {
 
     const literalInput = await harness.literalInput();
     expect(await literalInput.getValue()).toBe('');
-
-    const modeSelect = await harness.modeSelect();
-    expect(await modeSelect.getValueText()).toBe('First Hit');
   });
 
   it('correctly exposes form value', async () => {
@@ -64,12 +60,9 @@ describe('Literal Match Subform component', () => {
 
     const literalInput = await harness.literalInput();
     await literalInput.setValue('test');
-    const modeSelect = await harness.modeSelect();
-    await modeSelect.clickOptions({text: 'All Hits'});
 
     expect(fixture.componentInstance.formGroup.value.literalMatch).toEqual({
       literal: 'test',
-      mode: FileFinderContentsLiteralMatchConditionMode.ALL_HITS,
     });
   });
 });

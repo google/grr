@@ -3,8 +3,6 @@ import {TestBed, waitForAsync} from '@angular/core/testing';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 
 import {
-  FileFinderContentsLiteralMatchConditionMode,
-  FileFinderContentsRegexMatchConditionMode,
   RegistryFinderArgs,
   RegistryFinderConditionType,
 } from '../../../lib/api/api_interfaces';
@@ -63,14 +61,12 @@ describe('Client Registry Finder Form Component', () => {
               conditionType: RegistryFinderConditionType.VALUE_LITERAL_MATCH,
               valueLiteralMatch: {
                 literal: btoa('test'),
-                mode: FileFinderContentsLiteralMatchConditionMode.ALL_HITS,
               },
             },
             {
               conditionType: RegistryFinderConditionType.VALUE_REGEX_MATCH,
               valueRegexMatch: {
                 regex: btoa('test'),
-                mode: FileFinderContentsRegexMatchConditionMode.ALL_HITS,
                 length: '30000000',
               },
             },
@@ -103,16 +99,12 @@ describe('Client Registry Finder Form Component', () => {
     const literalMatchSubform = (await harness.literalMatchSubforms())[0];
     const literalInput = await literalMatchSubform!.literalInput();
     await literalInput.setValue('test');
-    const literalModeSelect = await literalMatchSubform!.modeSelect();
-    await literalModeSelect.clickOptions({text: 'All Hits'});
 
     const regexMatchFilterButton = await harness.addRegexMatchFilterButton();
     await regexMatchFilterButton.click();
     const regexMatchSubform = (await harness.regexMatchSubforms())[0];
     const regexInput = await regexMatchSubform!.regexInput();
     await regexInput.setValue('test');
-    const regexModeSelect = await regexMatchSubform!.modeSelect();
-    await regexModeSelect.clickOptions({text: 'All Hits'});
     const lengthInput = await regexMatchSubform!.lengthInput();
     await lengthInput.setValue('30000000');
 
@@ -146,22 +138,18 @@ describe('Client Registry Finder Form Component', () => {
       valueLiteralMatches: [
         {
           literal: 'test',
-          mode: FileFinderContentsLiteralMatchConditionMode.ALL_HITS,
         },
         {
           literal: 'test2',
-          mode: FileFinderContentsLiteralMatchConditionMode.FIRST_HIT,
         },
       ],
       valueRegexMatches: [
         {
           regex: 'test',
-          mode: FileFinderContentsRegexMatchConditionMode.ALL_HITS,
           length: 30000000,
         },
         {
           regex: 'test2',
-          mode: FileFinderContentsRegexMatchConditionMode.FIRST_HIT,
           length: 10000000,
         },
       ],
@@ -193,21 +181,18 @@ describe('Client Registry Finder Form Component', () => {
           conditionType: RegistryFinderConditionType.VALUE_LITERAL_MATCH,
           valueLiteralMatch: {
             literal: btoa('test'),
-            mode: FileFinderContentsLiteralMatchConditionMode.ALL_HITS,
           },
         },
         {
           conditionType: RegistryFinderConditionType.VALUE_LITERAL_MATCH,
           valueLiteralMatch: {
             literal: btoa('test2'),
-            mode: FileFinderContentsLiteralMatchConditionMode.FIRST_HIT,
           },
         },
         {
           conditionType: RegistryFinderConditionType.VALUE_REGEX_MATCH,
           valueRegexMatch: {
             regex: btoa('test'),
-            mode: FileFinderContentsRegexMatchConditionMode.ALL_HITS,
             length: '30000000',
           },
         },
@@ -215,7 +200,6 @@ describe('Client Registry Finder Form Component', () => {
           conditionType: RegistryFinderConditionType.VALUE_REGEX_MATCH,
           valueRegexMatch: {
             regex: btoa('test2'),
-            mode: FileFinderContentsRegexMatchConditionMode.FIRST_HIT,
             length: '10000000',
           },
         },
@@ -261,21 +245,18 @@ describe('Client Registry Finder Form Component', () => {
           conditionType: RegistryFinderConditionType.VALUE_LITERAL_MATCH,
           valueLiteralMatch: {
             literal: btoa('test'),
-            mode: FileFinderContentsLiteralMatchConditionMode.ALL_HITS,
           },
         },
         {
           conditionType: RegistryFinderConditionType.VALUE_LITERAL_MATCH,
           valueLiteralMatch: {
             literal: btoa('test2'),
-            mode: FileFinderContentsLiteralMatchConditionMode.FIRST_HIT,
           },
         },
         {
           conditionType: RegistryFinderConditionType.VALUE_REGEX_MATCH,
           valueRegexMatch: {
             regex: btoa('test'),
-            mode: FileFinderContentsRegexMatchConditionMode.ALL_HITS,
             length: '30000000',
           },
         },
@@ -283,7 +264,6 @@ describe('Client Registry Finder Form Component', () => {
           conditionType: RegistryFinderConditionType.VALUE_REGEX_MATCH,
           valueRegexMatch: {
             regex: btoa('test2'),
-            mode: FileFinderContentsRegexMatchConditionMode.FIRST_HIT,
             length: '10000000',
           },
         },
@@ -325,22 +305,18 @@ describe('Client Registry Finder Form Component', () => {
       valueLiteralMatches: [
         {
           literal: 'test',
-          mode: FileFinderContentsLiteralMatchConditionMode.ALL_HITS,
         },
         {
           literal: 'test2',
-          mode: FileFinderContentsLiteralMatchConditionMode.FIRST_HIT,
         },
       ],
       valueRegexMatches: [
         {
           regex: 'test',
-          mode: FileFinderContentsRegexMatchConditionMode.ALL_HITS,
           length: 30000000,
         },
         {
           regex: 'test2',
-          mode: FileFinderContentsRegexMatchConditionMode.FIRST_HIT,
           length: 10000000,
         },
       ],
@@ -576,7 +552,6 @@ describe('Client Registry Finder Form Component', () => {
             conditionType: RegistryFinderConditionType.VALUE_REGEX_MATCH,
             valueRegexMatch: {
               regex: btoa('test'),
-              mode: FileFinderContentsRegexMatchConditionMode.ALL_HITS,
               length: '20000000',
             },
           },
@@ -590,8 +565,6 @@ describe('Client Registry Finder Form Component', () => {
       expect(await regexInput.getValue()).toBe('test');
       const lengthInput = await regexMatchSubform!.lengthInput();
       expect(await lengthInput.getValue()).toBe('20000000');
-      const regexModeSelect = await regexMatchSubform!.modeSelect();
-      expect(await regexModeSelect.getValueText()).toBe('All Hits');
     });
 
     it('hides regex match condition when undefined', async () => {
@@ -614,7 +587,6 @@ describe('Client Registry Finder Form Component', () => {
             conditionType: RegistryFinderConditionType.VALUE_LITERAL_MATCH,
             valueLiteralMatch: {
               literal: btoa('test'),
-              mode: FileFinderContentsLiteralMatchConditionMode.ALL_HITS,
             },
           },
         ],
@@ -625,8 +597,6 @@ describe('Client Registry Finder Form Component', () => {
       const literalMatchSubform = (await harness.literalMatchSubforms())[0];
       const literalInput = await literalMatchSubform!.literalInput();
       expect(await literalInput.getValue()).toBe('test');
-      const literalModeSelect = await literalMatchSubform!.modeSelect();
-      expect(await literalModeSelect.getValueText()).toBe('All Hits');
     });
 
     it('hides a literal match condition when undefined', async () => {
@@ -726,7 +696,6 @@ describe('Client Registry Finder Form Component', () => {
             conditionType: RegistryFinderConditionType.VALUE_REGEX_MATCH,
             valueRegexMatch: {
               regex: btoa('test'),
-              mode: FileFinderContentsRegexMatchConditionMode.ALL_HITS,
               length: '20000000',
             },
           },
@@ -734,7 +703,6 @@ describe('Client Registry Finder Form Component', () => {
             conditionType: RegistryFinderConditionType.VALUE_LITERAL_MATCH,
             valueLiteralMatch: {
               literal: btoa('test'),
-              mode: FileFinderContentsLiteralMatchConditionMode.ALL_HITS,
             },
           },
           {
@@ -767,15 +735,11 @@ describe('Client Registry Finder Form Component', () => {
       expect(await regexInput.getValue()).toBe('test');
       const lengthInput = await regexMatchSubform!.lengthInput();
       expect(await lengthInput.getValue()).toBe('20000000');
-      const regexModeSelect = await regexMatchSubform!.modeSelect();
-      expect(await regexModeSelect.getValueText()).toBe('All Hits');
 
       expect(await harness.numLiteralMatchSubforms()).toBe(1);
       const literalMatchSubform = (await harness.literalMatchSubforms())[0];
       const literalInput = await literalMatchSubform!.literalInput();
       expect(await literalInput.getValue()).toBe('test');
-      const literalModeSelect = await literalMatchSubform!.modeSelect();
-      expect(await literalModeSelect.getValueText()).toBe('All Hits');
 
       expect(await harness.numModificationTimeSubforms()).toBe(1);
       const modificationTimeSubform = (

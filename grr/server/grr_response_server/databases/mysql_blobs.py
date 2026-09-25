@@ -136,7 +136,7 @@ class MySQLDBBlobsMixin(blob_store.BlobStore):
         results[blob_id] = blob
       else:
         results[blob_id] += blob
-    return results
+    return results  # pyrefly: ignore[bad-return]
 
   @db_utils.CallLogged
   @db_utils.CallAccounted
@@ -210,5 +210,5 @@ class MySQLDBBlobsMixin(blob_store.BlobStore):
       sha_hash_id = rdf_objects.SHA256HashID.FromSerializedBytes(hash_id)
       refs = objects_pb2.BlobReferences()
       refs.ParseFromString(blob_references)
-      results[sha_hash_id] = list(refs.items)
+      results[sha_hash_id] = list(refs.items)  # pyrefly: ignore[unsupported-operation]
     return results

@@ -1,3 +1,4 @@
+import {A11yModule} from '@angular/cdk/a11y';
 import {CdkDrag, CdkDragHandle} from '@angular/cdk/drag-drop';
 import {CommonModule} from '@angular/common';
 import {
@@ -16,6 +17,7 @@ import {MatIconModule} from '@angular/material/icon';
 import {MatInputModule} from '@angular/material/input';
 import {MatTooltipModule} from '@angular/material/tooltip';
 
+import {FlowRunnerArgsRrgMode} from '../../../lib/api/api_interfaces';
 import {
   FLOW_DETAILS_BY_TYPE,
   FlowCategory,
@@ -40,7 +42,7 @@ export interface CreateFlowDialogData {
   onSubmit: (
     flowName: string,
     flowArgs: object,
-    disableRrgSupport: boolean,
+    rrgMode: FlowRunnerArgsRrgMode,
   ) => void;
   client?: Client;
 }
@@ -51,6 +53,7 @@ export interface CreateFlowDialogData {
   templateUrl: './create_flow_dialog.ng.html',
   styleUrls: ['./create_flow_dialog.scss'],
   imports: [
+    A11yModule,
     CdkDrag,
     CdkDragHandle,
     CollapsibleContainer,
@@ -92,7 +95,9 @@ export class CreateFlowDialog {
     this.dialogData.onSubmit(
       flowName,
       flowArgs,
-      this.disableRrgSupportControl.value,
+      this.disableRrgSupportControl.value
+        ? FlowRunnerArgsRrgMode.DISABLED
+        : FlowRunnerArgsRrgMode.DEFAULT,
     );
   }
 

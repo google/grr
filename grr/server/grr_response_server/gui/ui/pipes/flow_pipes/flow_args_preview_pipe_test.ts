@@ -13,9 +13,7 @@ import {
   ListProcessesArgs,
   MultiGetFileArgs,
   NetstatArgs,
-  NetworkConnectionState,
   OsqueryFlowArgs,
-  ReadLowLevelArgs,
   RecursiveListDirectoryArgs,
   RegistryFinderArgs,
   StatMultipleFilesArgs,
@@ -164,16 +162,11 @@ describe('Flow Args Preview Pipe', () => {
     const flowArgs: ListProcessesArgs = {
       filenameRegex: '/path/to/file',
       fetchBinaries: true,
-      connectionStates: [
-        NetworkConnectionState.CLOSED,
-        NetworkConnectionState.ESTABLISHED,
-        NetworkConnectionState.UNKNOWN,
-      ],
       pids: [12345, 67890],
     };
 
     expect(pipe.transform(flowArgs, flowType)).toEqual(
-      '/path/to/file - with binaries - CLOSED, ESTABLISHED, UNKNOWN - 12345, 67890',
+      '/path/to/file - with binaries - 12345, 67890',
     );
   });
 
@@ -213,15 +206,6 @@ describe('Flow Args Preview Pipe', () => {
     expect(pipe.transform(flowArgs, flowType)).toEqual(
       'SELECT * FROM test_table',
     );
-  });
-
-  it('returns the flow args preview for read low level flow', () => {
-    const flowType = FlowType.READ_LOW_LEVEL;
-    const flowArgs: ReadLowLevelArgs = {
-      path: '/path/to/file',
-    };
-
-    expect(pipe.transform(flowArgs, flowType)).toEqual('/path/to/file');
   });
 
   it('returns the flow args preview for recursive list directory flow', () => {

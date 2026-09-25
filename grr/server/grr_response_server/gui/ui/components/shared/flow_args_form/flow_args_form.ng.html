@@ -21,6 +21,7 @@
         [editable]="editable()"
         [onSubmit]="onSubmit()" />
     }
+
     @case (FlowType.COLLECT_FILES_BY_KNOWN_PATH) {
       <collect-files-by-known-path-form
         [initialFlowArgs]="flowArgs()"
@@ -40,6 +41,7 @@
         [onSubmit]="onSubmit()"
         [client]="client()" />
     }
+
     @case (FlowType.DUMP_PROCESS_MEMORY) {
       <dump-process-memory-form
         [initialFlowArgs]="flowArgs()"
@@ -85,6 +87,12 @@
         [editable]="editable()"
         [onSubmit]="onSubmit()" />
     }
+    @case (FlowType.LIST_CONTAINERS) {
+      <list-containers-form
+        [initialFlowArgs]="flowArgs()"
+        [editable]="editable()"
+        [onSubmit]="onSubmit()" />
+    }
     @case (FlowType.LIST_DIRECTORY) {
       <list-directory-form
         [initialFlowArgs]="flowArgs()"
@@ -118,12 +126,6 @@
     }
     @case (FlowType.OS_QUERY_FLOW) {
       <osquery-form
-        [initialFlowArgs]="flowArgs()"
-        [editable]="editable()"
-        [onSubmit]="onSubmit()" />
-    }
-    @case (FlowType.READ_LOW_LEVEL) {
-      <read-low-level-form
         [initialFlowArgs]="flowArgs()"
         [editable]="editable()"
         [onSubmit]="onSubmit()" />

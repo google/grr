@@ -9,12 +9,12 @@ import time
 from typing import Any, IO, TypeVar, Union
 
 from cryptography.hazmat.primitives.ciphers import aead
-
-from google.protobuf import any_pb2
-from google.protobuf import wrappers_pb2
 from google.protobuf import descriptor
 from google.protobuf import message
 from google.protobuf import symbol_database
+
+from google.protobuf import any_pb2
+from google.protobuf import wrappers_pb2
 from grr_api_client import errors
 from grr_response_proto import containers_pb2
 from grr_response_proto import crowdstrike_pb2
@@ -25,7 +25,6 @@ from grr_response_proto import jobs_pb2
 from grr_response_proto import large_file_pb2
 from grr_response_proto import osquery_pb2
 from grr_response_proto import pipes_pb2
-from grr_response_proto import read_low_level_pb2
 from grr_response_proto import timeline_pb2
 from grr_response_proto.api import artifact_pb2
 from grr_response_proto.api import client_pb2
@@ -125,7 +124,7 @@ class BinaryChunkIterator:
                 "File does not start with Crowdstrike quarantine identifier"
             )
 
-          # TODO: Add a check if the actual file size matches the
+          # TODO - Add a check if the actual file size matches the
           # value in chunk[4:12].
 
           # The remainder of the first chunk belongs to the actual file.
@@ -307,7 +306,7 @@ def Xor(bytestr: bytes, key: int) -> bytes:
   return bytes([byte ^ key for byte in bytestr])
 
 
-class _Unchunked(io.RawIOBase, IO[bytes]):  # pytype: disable=signature-mismatch  # overriding-return-type-checks
+class _Unchunked(io.RawIOBase, IO[bytes]):
   """A raw file-like object that reads chunk stream on demand."""
 
   def __init__(self, chunks: Iterator[bytes]) -> None:
@@ -322,7 +321,7 @@ class _Unchunked(io.RawIOBase, IO[bytes]):  # pytype: disable=signature-mismatch
   def readall(self) -> bytes:
     return b"".join(self._chunks)
 
-  def readinto(self, buf: bytearray) -> int:
+  def readinto(self, buf: bytearray) -> int:  # pyrefly: ignore[bad-override]
     if self._buf.tell() == len(self._buf.getbuffer()):
       self._buf.seek(0, io.SEEK_SET)
       self._buf.truncate()
@@ -350,7 +349,7 @@ def AEADDecrypt(stream: IO[bytes], key: bytes) -> IO[bytes]:
   def Generate() -> Iterator[bytes]:
     # Buffered reader should accept `IO[bytes]` but for now it accepts only
     # `RawIOBase` (which is a concrete base class for all I/O implementations).
-    reader = io.BufferedReader(stream)  # pytype: disable=wrong-arg-types
+    reader = io.BufferedReader(stream)  # pyrefly: ignore[bad-specialization]
 
     # We abort early if there is no data in the stream. Otherwise we would try
     # to read nonce and fail.
@@ -379,7 +378,7 @@ def AEADDecrypt(stream: IO[bytes], key: bytes) -> IO[bytes]:
       if is_last:
         break
 
-  return io.BufferedReader(_Unchunked(Generate()))
+  return io.BufferedReader(_Unchunked(Generate()))  # pyrefly: ignore[bad-specialization]
 
 
 # We use 12 bytes (96 bits) as it is the recommended IV length by NIST for best
@@ -421,7 +420,6 @@ def RegisterProtoDescriptors(
   db.RegisterFileDescriptor(osquery_pb2.DESCRIPTOR)
   db.RegisterFileDescriptor(output_plugin_pb2.DESCRIPTOR)
   db.RegisterFileDescriptor(pipes_pb2.DESCRIPTOR)
-  db.RegisterFileDescriptor(read_low_level_pb2.DESCRIPTOR)
   db.RegisterFileDescriptor(reflection_pb2.DESCRIPTOR)
   db.RegisterFileDescriptor(signed_commands_pb2.DESCRIPTOR)
   db.RegisterFileDescriptor(timeline_pb2.DESCRIPTOR)

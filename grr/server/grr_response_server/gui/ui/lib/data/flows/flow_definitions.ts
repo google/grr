@@ -308,7 +308,7 @@ export const FLOW_DETAILS_BY_TYPE: ReadonlyMap<FlowType, FlowDetails> = new Map(
         description: 'Lists containers on the client',
         category: FlowCategory.PROCESSES,
         restricted: false,
-        hidden: true,
+        hidden: false,
       },
     ],
     [
@@ -407,18 +407,6 @@ export const FLOW_DETAILS_BY_TYPE: ReadonlyMap<FlowType, FlowDetails> = new Map(
         description: 'Execute a query using osquery',
         category: FlowCategory.COLLECTORS,
         favorite: true,
-        restricted: false,
-        hidden: false,
-      },
-    ],
-    [
-      FlowType.READ_LOW_LEVEL,
-      {
-        type: FlowType.READ_LOW_LEVEL,
-        friendlyName: 'Read raw bytes from device',
-        description:
-          'Read raw data from a device - e.g. from a particular disk sector',
-        category: FlowCategory.FILESYSTEM,
         restricted: false,
         hidden: false,
       },

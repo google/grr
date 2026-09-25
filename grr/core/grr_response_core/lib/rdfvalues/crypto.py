@@ -50,10 +50,6 @@ class CipherError(rdfvalue.DecodeError):
   """Raised when decryption failed."""
 
 
-class Certificate(rdf_structs.RDFProtoStruct):
-  protobuf = jobs_pb2.Certificate
-
-
 class RDFX509Cert(rdfvalue.RDFPrimitive):
   """X509 certificates used to communicate with this client."""
 
@@ -551,13 +547,13 @@ class SignedBlob(rdf_structs.RDFProtoStruct):
     Raises:
       rdfvalue.DecodeError if the data is not suitable verified.
     """
-    if self.digest_type != self.HashType.SHA256:
+    if self.digest_type != self.HashType.SHA256:  # pyrefly: ignore[missing-attribute]
       raise rdfvalue.DecodeError("Unsupported digest.")
-    # TODO: Remove PKCS1v15 signature type when client adopted
+    # TODO - Remove PKCS1v15 signature type when client adopted
     # change to PSS.
     if self.signature_type not in [
-        self.SignatureType.RSA_PKCS1v15,
-        self.SignatureType.RSA_PSS,
+        self.SignatureType.RSA_PKCS1v15,  # pyrefly: ignore[missing-attribute]
+        self.SignatureType.RSA_PSS,  # pyrefly: ignore[missing-attribute]
     ]:
       raise rdfvalue.DecodeError("Unsupported signature type.")
 
@@ -585,10 +581,10 @@ class SignedBlob(rdf_structs.RDFProtoStruct):
       logging.warning("signing key is too short.")
 
     self.signature = signing_key.Sign(data)
-    self.signature_type = self.SignatureType.RSA_PSS
+    self.signature_type = self.SignatureType.RSA_PSS  # pyrefly: ignore[missing-attribute]
 
     self.digest = hashlib.sha256(data).digest()
-    self.digest_type = self.HashType.SHA256
+    self.digest_type = self.HashType.SHA256  # pyrefly: ignore[missing-attribute]
     self.data = data
 
     # Test we can verify before we send it off.
@@ -741,44 +737,6 @@ class AES128CBCCipher:
       raise CipherError(e)
 
 
-class SymmetricCipher(rdf_structs.RDFProtoStruct):
-  """Abstract symmetric cipher operations."""
-
-  protobuf = jobs_pb2.SymmetricCipher
-  rdf_deps = [
-      EncryptionKey,
-  ]
-
-  @classmethod
-  def Generate(cls, algorithm):
-    if algorithm != cls.Algorithm.AES128CBC:
-      raise RuntimeError("Algorithm not supported.")
-
-    return cls(
-        _algorithm=algorithm,
-        _key=EncryptionKey.GenerateKey(length=128),
-        _iv=EncryptionKey.GenerateKey(length=128),
-    )
-
-  def _get_cipher(self):
-    if self._algorithm != self.Algorithm.AES128CBC:
-      raise CipherError("Unknown cipher type %s" % self._algorithm)
-
-    return AES128CBCCipher(self._key, self._iv)
-
-  def Encrypt(self, data):
-    if self._algorithm == self.Algorithm.NONE:
-      raise TypeError("Empty encryption is not allowed.")
-
-    return self._get_cipher().Encrypt(data)
-
-  def Decrypt(self, data):
-    if self._algorithm == self.Algorithm.NONE:
-      raise TypeError("Empty encryption is not allowed.")
-
-    return self._get_cipher().Decrypt(data)
-
-
 class HMAC:
   """A wrapper for the cryptography HMAC object."""
 
@@ -860,8 +818,3 @@ def CheckPassword(proto: jobs_pb2.Password, password: str) -> bool:
   h = _CalculateHash(password_bytes, proto.salt, proto.iteration_count)
   return constant_time.bytes_eq(h, proto.hashed_pwd)
 
-
-class Password(rdf_structs.RDFProtoStruct):
-  """A password stored in the database."""
-
-  protobuf = jobs_pb2.Password

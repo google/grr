@@ -2,7 +2,6 @@ import {CommonModule} from '@angular/common';
 import {ChangeDetectionStrategy, Component, inject} from '@angular/core';
 import {MatButtonModule} from '@angular/material/button';
 import {MatDividerModule} from '@angular/material/divider';
-import {Title} from '@angular/platform-browser';
 import {RouterModule} from '@angular/router';
 
 import {ApprovalRequestStore} from '../../../store/approval_request_store';
@@ -36,8 +35,4 @@ export class ClientApprovals {
   protected readonly approvalRequestStore = inject(ApprovalRequestStore);
 
   protected showForm = false;
-
-  constructor() {
-    inject(Title).setTitle('GRR | Client > Approvals');
-  }
 }

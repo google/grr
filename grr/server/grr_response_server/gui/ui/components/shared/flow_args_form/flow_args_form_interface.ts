@@ -1,4 +1,10 @@
-import {Component, computed, effect, input} from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  effect,
+  input,
+} from '@angular/core';
 import {toSignal} from '@angular/core/rxjs-interop';
 import {AbstractControl, FormGroup} from '@angular/forms';
 
@@ -37,7 +43,7 @@ export declare type ControlValues<
   [K in keyof T]: T[K] extends AbstractControl
     ? // For basic {key: FormControl<X>()} mappings, the type is {key: X}.
       T[K]['value']
-    : T[K] extends undefined | infer C extends AbstractControl
+    : T[K] extends undefined | (infer C extends AbstractControl)
       ? // For optional {key?: FormControl<X>()} mappings, the type is
         // {key: X|undefined}.
         C['value'] | undefined
@@ -45,7 +51,7 @@ export declare type ControlValues<
 };
 
 /** Form component to configure arguments for a Flow. */
-@Component({template: ''})
+@Component({changeDetection: ChangeDetectionStrategy.Eager, template: ''})
 export abstract class FlowArgsFormInterface<
   FlowArgs extends object,
   Controls extends {[K in keyof Controls]: AbstractControl},

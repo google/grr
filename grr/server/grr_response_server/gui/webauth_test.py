@@ -5,7 +5,6 @@ import base64
 from unittest import mock
 
 from absl import app
-from google.oauth2 import id_token
 import requests
 from werkzeug import test as werkzeug_test
 
@@ -107,140 +106,6 @@ class RemoteUserWebAuthManagerTest(test_lib.GRRBaseTest):
     self.assertEqual(response, self.success_response)
 
 
-class FirebaseWebAuthManagerTest(test_lib.GRRBaseTest):
-
-  def setUp(self):
-    super().setUp()
-
-    config_overrider = test_lib.ConfigOverrider({
-        "AdminUI.firebase_auth_domain": "foo-bar.firebaseapp.com",
-        "API.DefaultRouter": "DisabledApiCallRouter",
-    })
-    config_overrider.Start()
-    self.addCleanup(config_overrider.Stop)
-
-    self.manager = webauth.FirebaseWebAuthManager()
-    self.success_response = http_response.HttpResponse("foobar")
-
-    self.checked_request = None
-
-  def HandlerStub(self, request, *args, **kwargs):
-    _ = args
-    _ = kwargs
-
-    self.checked_request = request
-
-    return self.success_response
-
-  def testPassesThroughHomepageWhenAuthorizationHeaderIsMissing(self):
-    environ = werkzeug_test.EnvironBuilder().get_environ()
-    request = http_request.HttpRequest(environ)
-
-    response = self.manager.SecurityCheck(self.HandlerStub, request)
-    self.assertEqual(response, self.success_response)
-
-  def testReportsErrorOnNonHomepagesWhenAuthorizationHeaderIsMissing(self):
-    environ = werkzeug_test.EnvironBuilder(path="/foo").get_environ()
-    request = http_request.HttpRequest(environ)
-
-    response = self.manager.SecurityCheck(self.HandlerStub, request)
-    self.assertEqual(
-        response.get_data(as_text=True),
-        "JWT token validation failed: JWT token is missing.",
-    )
-
-  def testReportsErrorWhenBearerPrefixIsMissing(self):
-    environ = werkzeug_test.EnvironBuilder(
-        path="/foo", headers={"Authorization": "blah"}
-    ).get_environ()
-    request = http_request.HttpRequest(environ)
-
-    response = self.manager.SecurityCheck(self.HandlerStub, request)
-    self.assertEqual(
-        response.get_data(as_text=True),
-        "JWT token validation failed: JWT token is missing.",
-    )
-
-  @mock.patch.object(
-      id_token, "verify_firebase_token", side_effect=ValueError("foobar error")
-  )
-  def testPassesThroughHomepageOnVerificationFailure(self, mock_method):
-    _ = mock_method
-
-    environ = werkzeug_test.EnvironBuilder(
-        headers={"Authorization": "Bearer blah"}
-    ).get_environ()
-    request = http_request.HttpRequest(environ)
-
-    response = self.manager.SecurityCheck(self.HandlerStub, request)
-    self.assertEqual(response, self.success_response)
-
-  @mock.patch.object(
-      id_token, "verify_firebase_token", side_effect=ValueError("foobar error")
-  )
-  def testReportsErrorOnVerificationFailureOnNonHomepage(self, mock_method):
-    _ = mock_method
-
-    environ = werkzeug_test.EnvironBuilder(
-        path="/foo", headers={"Authorization": "Bearer blah"}
-    ).get_environ()
-    request = http_request.HttpRequest(environ)
-
-    response = self.manager.SecurityCheck(self.HandlerStub, request)
-    self.assertEqual(
-        response.get_data(as_text=True),
-        "JWT token validation failed: foobar error",
-    )
-
-  @mock.patch.object(id_token, "verify_firebase_token")
-  def testVerifiesTokenWithProjectIdFromDomain(self, mock_method):
-    environ = werkzeug_test.EnvironBuilder(
-        headers={"Authorization": "Bearer blah"}
-    ).get_environ()
-    request = http_request.HttpRequest(environ)
-
-    self.manager.SecurityCheck(self.HandlerStub, request)
-    self.assertEqual(mock_method.call_count, 1)
-    self.assertEqual(mock_method.call_args_list[0][0], ("blah", request))
-    self.assertEqual(mock_method.call_args_list[0][1], dict(audience="foo-bar"))
-
-  @mock.patch.object(
-      id_token, "verify_firebase_token", return_value={"iss": "blah"}
-  )
-  def testReportsErrorIfIssuerIsWrong(self, mock_method):
-    _ = mock_method
-    environ = werkzeug_test.EnvironBuilder(
-        path="/foo", headers={"Authorization": "Bearer blah"}
-    ).get_environ()
-    request = http_request.HttpRequest(environ)
-
-    response = self.manager.SecurityCheck(self.HandlerStub, request)
-    self.assertEqual(
-        response.get_data(as_text=True),
-        "JWT token validation failed: Wrong issuer.",
-    )
-
-  @mock.patch.object(
-      id_token,
-      "verify_firebase_token",
-      return_value={
-          "iss": "https://securetoken.google.com/foo-bar",
-          "email": "foo@bar.com",
-      },
-  )
-  def testFillsRequestUserFromTokenEmailOnSuccess(self, mock_method):
-    _ = mock_method
-    environ = werkzeug_test.EnvironBuilder(
-        headers={"Authorization": "Bearer blah"}
-    ).get_environ()
-    request = http_request.HttpRequest(environ)
-
-    self.manager.SecurityCheck(self.HandlerStub, request)
-
-    self.assertTrue(self.checked_request)
-    self.assertEqual(self.checked_request.user, "foo@bar.com")
-
-
 class IAPWebAuthManagerTest(test_lib.GRRBaseTest):
 
   def testNoHeader(self):
@@ -331,7 +196,7 @@ class IAPWebAuthManagerTest(test_lib.GRRBaseTest):
 
 class BasicWebAuthManagerTest(test_lib.GRRBaseTest):
 
-  # TODO: Stop using `rdf_crypto.Password`.
+  # TODO - Stop using `rdf_crypto.Password`.
   def _SetupUser(self, user: str, password: str) -> None:
     password_proto = jobs_pb2.Password()
     rdf_crypto.SetPassword(password_proto, password)

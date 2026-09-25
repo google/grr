@@ -19,6 +19,6 @@ def GetOpenApiDescription(
   if not isinstance(openapi_proto, metadata_pb2.ApiGetGrrVersionResult):
     raise TypeError(f"Unexpected response type: {type(openapi_proto)}")
 
-  openapi_json = openapi_proto.openapi_description
+  openapi_json = openapi_proto.openapi_description  # pyrefly: ignore[missing-attribute]
 
   return json.loads(openapi_json)

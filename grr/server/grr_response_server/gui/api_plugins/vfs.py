@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """API handlers for dealing with files in a client's virtual file system."""
 
-from collections.abc import Collection, Iterable, Iterator, Sequence
+from collections.abc import Collection, Iterable, Iterator
 import csv
 import io
 import itertools
@@ -14,9 +14,6 @@ import zipfile
 from grr_response_core import config
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
-from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
-from grr_response_core.lib.rdfvalues import crypto as rdf_crypto
-from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_core.lib.util import text
 from grr_response_proto import flows_pb2
 from grr_response_proto import jobs_pb2
@@ -28,13 +25,10 @@ from grr_response_server import file_store
 from grr_response_server import flow
 from grr_response_server import notification
 from grr_response_server.databases import db
+from grr_response_server.flows import file as file_flows
 from grr_response_server.flows.general import filesystem
-from grr_response_server.flows.general import mig_filesystem
-from grr_response_server.flows.general import mig_transfer
-from grr_response_server.flows.general import transfer
 from grr_response_server.gui import api_call_context
 from grr_response_server.gui import api_call_handler_base
-from grr_response_server.rdfvalues import mig_objects
 from grr_response_server.rdfvalues import objects as rdf_objects
 
 # Files can only be accessed if their first path component is from this list.
@@ -122,154 +116,6 @@ class VfsFileContentUpdateNotFoundError(
   """Raised when a file content update operation could not be found."""
 
 
-class ApiAff4ObjectAttributeValue(rdf_structs.RDFProtoStruct):
-  protobuf = vfs_pb2.ApiAff4ObjectAttributeValue
-  rdf_deps = [
-      rdfvalue.RDFDatetime,
-  ]
-
-  def GetValueClass(self):
-    try:
-      return rdfvalue.RDFValue.GetPlugin(self.type)
-    except KeyError:
-      raise ValueError("No class found for type %s." % self.type)
-
-
-class ApiAff4ObjectAttribute(rdf_structs.RDFProtoStruct):
-  protobuf = vfs_pb2.ApiAff4ObjectAttribute
-  rdf_deps = [
-      ApiAff4ObjectAttributeValue,
-  ]
-
-
-class ApiAff4ObjectType(rdf_structs.RDFProtoStruct):
-  """A representation of parts of an Aff4Object.
-
-  ApiAff4ObjectType represents a subset of all attributes of an Aff4Object
-  defined by a certain class of the inheritance hierarchy of the Aff4Object.
-  """
-
-  protobuf = vfs_pb2.ApiAff4ObjectType
-  rdf_deps = [
-      ApiAff4ObjectAttribute,
-  ]
-
-
-class ApiAff4ObjectRepresentation(rdf_structs.RDFProtoStruct):
-  """A proto-based representation of an Aff4Object used to render responses.
-
-  ApiAff4ObjectRepresentation contains all attributes of an Aff4Object,
-  structured by type. If an attribute is found multiple times, it is only
-  added once at the type where it is first encountered.
-  """
-
-  protobuf = vfs_pb2.ApiAff4ObjectRepresentation
-  rdf_deps = [
-      ApiAff4ObjectType,
-  ]
-
-
-class ApiFile(rdf_structs.RDFProtoStruct):
-  protobuf = vfs_pb2.ApiFile
-  rdf_deps = [
-      ApiAff4ObjectRepresentation,
-      rdf_crypto.Hash,
-      rdfvalue.RDFDatetime,
-      rdf_client_fs.StatEntry,
-  ]
-
-  def __init__(self, *args, **kwargs):
-    super().__init__(*args, **kwargs)
-    try:
-      self.age = kwargs["age"]
-    except KeyError:
-      self.age = rdfvalue.RDFDatetime.Now()
-
-
-# TODO: Reassess and migrate to proto-based implementation.
-def _GenerateApiFileDetails(
-    path_infos: Sequence[rdf_objects.PathInfo],
-) -> ApiAff4ObjectRepresentation:
-  """Generate file details based on path infos history."""
-
-  type_attrs = []
-  hash_attrs = []
-  size_attrs = []
-  stat_attrs = []
-  pathspec_attrs = []
-
-  def _Value(age, value):
-    """Generate ApiAff4ObjectAttributeValue from an age and a value."""
-
-    v = ApiAff4ObjectAttributeValue(age=age)
-    # With dynamic values we first have to set the type and
-    # then the value itself.
-    # TODO(user): refactor dynamic values logic so that it's not needed,
-    # possibly just removing the "type" attribute completely.
-    v.Set("type", value.__class__.__name__)
-    v.value = value
-    return v
-
-  for pi in path_infos:
-    if pi.directory:
-      object_type = "VFSDirectory"
-    else:
-      object_type = "VFSFile"
-
-    type_attrs.append(_Value(pi.timestamp, rdfvalue.RDFString(object_type)))
-
-    if pi.hash_entry:
-      hash_attrs.append(_Value(pi.timestamp, pi.hash_entry))
-      size_attrs.append(
-          _Value(pi.timestamp, rdfvalue.RDFInteger(pi.hash_entry.num_bytes))
-      )
-    if pi.stat_entry:
-      stat_attrs.append(_Value(pi.timestamp, pi.stat_entry))
-
-      if pi.stat_entry.pathspec:
-        pathspec_attrs.append(_Value(pi.timestamp, pi.stat_entry.pathspec))
-
-  return ApiAff4ObjectRepresentation(
-      types=[
-          ApiAff4ObjectType(
-              name="AFF4Object",
-              attributes=[
-                  ApiAff4ObjectAttribute(
-                      name="TYPE",
-                      values=type_attrs,
-                  ),
-              ],
-          ),
-          ApiAff4ObjectType(
-              name="AFF4Stream",
-              attributes=[
-                  ApiAff4ObjectAttribute(
-                      name="HASH",
-                      values=hash_attrs,
-                  ),
-                  ApiAff4ObjectAttribute(
-                      name="SIZE",
-                      values=size_attrs,
-                  ),
-              ],
-          ),
-          ApiAff4ObjectType(
-              name="VFSFile",
-              attributes=[
-                  ApiAff4ObjectAttribute(
-                      name="PATHSPEC",
-                      values=pathspec_attrs,
-                  ),
-                  ApiAff4ObjectAttribute(
-                      name="STAT",
-                      values=stat_attrs,
-                  ),
-              ],
-          ),
-      ]
-  )
-
-
 class ApiGetFileDetailsHandler(api_call_handler_base.ApiCallHandler):
   """Retrieves the details of a given file."""
 
@@ -303,9 +149,6 @@ class ApiGetFileDetailsHandler(api_call_handler_base.ApiCallHandler):
           name=args.file_path,
           path=args.file_path,
           is_directory=True,
-          details=ToProtoApiAff4ObjectRepresentation(
-              _GenerateApiFileDetails([])
-          ),
       )
       return vfs_pb2.ApiGetFileDetailsResult(file=api_file)
 
@@ -335,27 +178,11 @@ class ApiGetFileDetailsHandler(api_call_handler_base.ApiCallHandler):
         )[client_path]
     )
 
-    history = data_store.REL_DB.ReadPathInfoHistory(
-        client_id=args.client_id,
-        path_type=path_type,
-        components=components,
-        cutoff=args_timestamp,
-    )
-    history.reverse()
-
-    # It might be the case that we do not have any history about the file, but
-    # we have some information because it is an implicit path.
-    if not history:
-      history = [path_info]
-    history = [mig_objects.ToRDFPathInfo(pi) for pi in history]
     file_obj = vfs_pb2.ApiFile(
         name=components[-1],
         path=rdf_objects.ToCategorizedPath(path_type, components),
         stat=path_info.stat_entry,
         hash=path_info.hash_entry,
-        details=ToProtoApiAff4ObjectRepresentation(
-            _GenerateApiFileDetails(history)
-        ),
         is_directory=path_info.directory,
         age=path_info.timestamp,
     )
@@ -488,7 +315,7 @@ class ApiListFilesHandler(api_call_handler_base.ApiCallHandler):
       args_timestamp = rdfvalue.RDFDatetime.FromMicrosecondsSinceEpoch(
           args.timestamp
       )
-    # TODO: This API handler should return a 404 response if the
+    # TODO - This API handler should return a 404 response if the
     # path is not found. Currently, 500 is returned.
     child_path_infos = data_store.REL_DB.ListChildPathInfos(
         client_id=args.client_id,
@@ -960,19 +787,17 @@ class ApiCreateVfsRefreshOperationHandler(api_call_handler_base.ApiCallHandler):
   ) -> vfs_pb2.ApiCreateVfsRefreshOperationResult:
     if args.max_depth == 1:
       flow_args = flows_pb2.ListDirectoryArgs(pathspec=self._FindPathspec(args))
-      flow_args = mig_filesystem.ToRDFListDirectoryArgs(flow_args)
       flow_cls = filesystem.ListDirectory
     else:
       flow_args = flows_pb2.RecursiveListDirectoryArgs(
           pathspec=self._FindPathspec(args), max_depth=args.max_depth
       )
-      flow_args = mig_filesystem.ToRDFRecursiveListDirectoryArgs(flow_args)
       flow_cls = filesystem.RecursiveListDirectory
 
     flow_id = flow.StartFlow(
         client_id=str(args.client_id),
         flow_cls=flow_cls,
-        flow_args=flow_args,
+        proto_flow_args=flow_args,
         creator=context.username if context else None,
     )
 
@@ -1274,7 +1099,7 @@ class ApiUpdateVfsFileContentHandler(api_call_handler_base.ApiCallHandler):
 
     path_type, components = rdf_objects.ParseCategorizedPath(args.file_path)
 
-    path_info = data_store.REL_DB.ReadPathInfo(
+    path_info: objects_pb2.PathInfo = data_store.REL_DB.ReadPathInfo(
         str(args.client_id), path_type, components
     )
 
@@ -1289,13 +1114,13 @@ class ApiUpdateVfsFileContentHandler(api_call_handler_base.ApiCallHandler):
           components=components,
       )
 
-    flow_args = flows_pb2.MultiGetFileArgs(
-        pathspecs=[path_info.stat_entry.pathspec]
+    flow_args = flows_pb2.CollectFilesByKnownPathArgs(
+        paths=[path_info.stat_entry.pathspec.path]
     )
     flow_id = flow.StartFlow(
         client_id=args.client_id,
-        flow_cls=transfer.MultiGetFile,
-        flow_args=mig_transfer.ToRDFMultiGetFileArgs(flow_args),
+        flow_cls=file_flows.CollectFilesByKnownPath,
+        proto_flow_args=flow_args,
         creator=context.username,
     )
 
@@ -1324,7 +1149,10 @@ class ApiGetVfsFileContentUpdateStateHandler(
           "Operation with id %s not found" % args.operation_id
       ) from e
 
-    if flow_obj.flow_class_name != "MultiGetFile":
+    if flow_obj.flow_class_name not in [
+        "MultiGetFile",
+        "CollectFilesByKnownPath",
+    ]:
       raise VfsFileContentUpdateNotFoundError(
           "Operation with id %s not found" % args.operation_id
       )
@@ -1460,11 +1288,3 @@ class ApiGetVfsFilesArchiveHandler(api_call_handler_base.ApiCallHandler):
     return api_call_handler_base.ApiBinaryStream(
         prefix + ".zip", content_generator=content_generator
     )
-
-
-# TODO: Temporary copy of migration function due to cyclic
-# dependency.
-def ToProtoApiAff4ObjectRepresentation(
-    rdf: ApiAff4ObjectRepresentation,
-) -> vfs_pb2.ApiAff4ObjectRepresentation:
-  return rdf.AsPrimitiveProto()

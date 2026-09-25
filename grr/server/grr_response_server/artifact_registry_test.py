@@ -6,8 +6,10 @@ from absl import app
 from absl.testing import absltest
 
 from grr_response_core.lib.rdfvalues import artifacts as rdf_artifacts
-from grr_response_core.lib.rdfvalues import mig_artifacts
+from grr_response_core.lib.rdfvalues import mig_protodict
 from grr_response_core.lib.util import temp
+from grr_response_proto import artifact_pb2
+from grr_response_proto import jobs_pb2
 from grr_response_server import artifact_registry as ar
 from grr_response_server import data_store
 from grr.test_lib import test_lib
@@ -86,7 +88,7 @@ class ArtifactRegistrySourcesTest(absltest.TestCase):
 class ArtifactTest(absltest.TestCase):
 
   def testValidateSyntaxSimple(self):
-    artifact = rdf_artifacts.Artifact(
+    artifact = artifact_pb2.Artifact(
         name="Foo",
         doc="This is Foo.",
         supported_os=["Windows"],
@@ -95,22 +97,24 @@ class ArtifactTest(absltest.TestCase):
     ar.ValidateSyntax(artifact)
 
   def testValidateSyntaxWithSources(self):
-    registry_key_source = {
-        "type": rdf_artifacts.ArtifactSource.SourceType.REGISTRY_KEY,
-        "attributes": {
+    registry_key_source = artifact_pb2.ArtifactSource(
+        type=artifact_pb2.ArtifactSource.SourceType.REGISTRY_KEY,
+        attributes=mig_protodict.FromNativeDictToProtoDict({
             "keys": [
                 r"%%current_control_set%%\Control\Session "
                 r"Manager\Environment\Path"
             ],
-        },
-    }
+        }),
+    )
 
-    file_source = {
-        "type": rdf_artifacts.ArtifactSource.SourceType.FILE,
-        "attributes": {"paths": [r"%%environ_systemdrive%%\Temp"]},
-    }
+    file_source = artifact_pb2.ArtifactSource(
+        type=artifact_pb2.ArtifactSource.SourceType.FILE,
+        attributes=mig_protodict.FromNativeDictToProtoDict({
+            "paths": [r"%%environ_systemdrive%%\Temp"],
+        }),
+    )
 
-    artifact = rdf_artifacts.Artifact(
+    artifact = artifact_pb2.Artifact(
         name="Bar",
         doc="This is Bar.",
         supported_os=["Windows"],
@@ -120,7 +124,7 @@ class ArtifactTest(absltest.TestCase):
     ar.ValidateSyntax(artifact)
 
   def testValidateSyntaxMissingDoc(self):
-    artifact = rdf_artifacts.Artifact(name="Baz", supported_os=["Linux"])
+    artifact = artifact_pb2.Artifact(name="Baz", supported_os=["Linux"])
 
     with self.assertRaisesRegex(
         rdf_artifacts.ArtifactSyntaxError, "missing doc"
@@ -128,7 +132,7 @@ class ArtifactTest(absltest.TestCase):
       ar.ValidateSyntax(artifact)
 
   def testValidateSyntaxInvalidSupportedOs(self):
-    artifact = rdf_artifacts.Artifact(
+    artifact = artifact_pb2.Artifact(
         name="Quux", doc="This is Quux.", supported_os=["Solaris"]
     )
 
@@ -136,12 +140,12 @@ class ArtifactTest(absltest.TestCase):
       ar.ValidateSyntax(artifact)
 
   def testValidateSyntaxBadSource(self):
-    source = {
-        "type": rdf_artifacts.ArtifactSource.SourceType.ARTIFACT_GROUP,
-        "attributes": {},
-    }
+    source = artifact_pb2.ArtifactSource(
+        type=artifact_pb2.ArtifactSource.SourceType.ARTIFACT_GROUP,
+        attributes=jobs_pb2.Dict(),
+    )
 
-    artifact = rdf_artifacts.Artifact(
+    artifact = artifact_pb2.Artifact(
         name="Barf", doc="This is Barf.", sources=[source]
     )
 
@@ -154,95 +158,93 @@ class ArtifactTest(absltest.TestCase):
 class ArtifactSourceTest(absltest.TestCase):
 
   def testValidateDirectory(self):
-    source = rdf_artifacts.ArtifactSource(
-        type=rdf_artifacts.ArtifactSource.SourceType.PATH,
-        attributes={
+    source = artifact_pb2.ArtifactSource(
+        type=artifact_pb2.ArtifactSource.SourceType.PATH,
+        attributes=mig_protodict.FromNativeDictToProtoDict({
             "paths": ["/home", "/usr"],
-        },
+        }),
     )
 
-    source.Validate()
+    ar.ValidateSource(source)
 
   def testValidateRegistrykey(self):
-    source = rdf_artifacts.ArtifactSource(
-        type=rdf_artifacts.ArtifactSource.SourceType.REGISTRY_KEY,
-        attributes={
+    source = artifact_pb2.ArtifactSource(
+        type=artifact_pb2.ArtifactSource.SourceType.REGISTRY_KEY,
+        attributes=mig_protodict.FromNativeDictToProtoDict({
             "keys": [r"Foo\Bar\Baz"],
-        },
+        }),
     )
 
-    source.Validate()
+    ar.ValidateSource(source)
 
   def testValidateCommand(self):
-    source = rdf_artifacts.ArtifactSource(
-        type=rdf_artifacts.ArtifactSource.SourceType.COMMAND,
-        attributes={
+    source = artifact_pb2.ArtifactSource(
+        type=artifact_pb2.ArtifactSource.SourceType.COMMAND,
+        attributes=mig_protodict.FromNativeDictToProtoDict({
             "cmd": "quux",
             "args": ["-foo", "-bar"],
-        },
+        }),
     )
 
-    source.Validate()
+    ar.ValidateSource(source)
 
   def testValidateCommandWithSingleArgumentContainingSpace(self):
-    source = rdf_artifacts.ArtifactSource(
-        type=rdf_artifacts.ArtifactSource.SourceType.COMMAND,
-        attributes={
+    source = artifact_pb2.ArtifactSource(
+        type=artifact_pb2.ArtifactSource.SourceType.COMMAND,
+        attributes=mig_protodict.FromNativeDictToProtoDict({
             "cmd": "quux",
             "args": ["-foo -bar"],
-        },
+        }),
     )
 
     with self.assertRaisesRegex(
         rdf_artifacts.ArtifactSourceSyntaxError, "'-foo -bar'"
     ):
-      source.Validate()
+      ar.ValidateSource(source)
 
   def testValidatePathsIsAList(self):
-    source = rdf_artifacts.ArtifactSource(
-        type=rdf_artifacts.ArtifactSource.SourceType.FILE,
-        attributes={
+    source = artifact_pb2.ArtifactSource(
+        type=artifact_pb2.ArtifactSource.SourceType.FILE,
+        attributes=mig_protodict.FromNativeDictToProtoDict({
             "paths": "/bin",
-        },
+        }),
     )
 
     with self.assertRaisesRegex(
         rdf_artifacts.ArtifactSourceSyntaxError, "not a list"
     ):
-      source.Validate()
+      ar.ValidateSource(source)
 
   def testValidatePathIsAString(self):
-    source = rdf_artifacts.ArtifactSource(
-        type=rdf_artifacts.ArtifactSource.SourceType.ARTIFACT_GROUP,
-        attributes={
+    source = artifact_pb2.ArtifactSource(
+        type=artifact_pb2.ArtifactSource.SourceType.ARTIFACT_GROUP,
+        attributes=mig_protodict.FromNativeDictToProtoDict({
             "names": ["Foo", "Bar"],
             "path": ["/tmp", "/var"],
-        },
+        }),
     )
 
     with self.assertRaisesRegex(
         rdf_artifacts.ArtifactSourceSyntaxError, "not a string"
     ):
-      source.Validate()
+      ar.ValidateSource(source)
 
   def testValidateMissingRequiredAttributes(self):
-    source = rdf_artifacts.ArtifactSource(
-        type=rdf_artifacts.ArtifactSource.SourceType.PATH,
-        attributes={},
+    source = artifact_pb2.ArtifactSource(
+        type=artifact_pb2.ArtifactSource.SourceType.PATH,
+        attributes=jobs_pb2.Dict(),
     )
 
     expected = "missing required attributes: 'paths'"
     with self.assertRaisesRegex(
         rdf_artifacts.ArtifactSourceSyntaxError, expected
     ):
-      source.Validate()
+      ar.ValidateSource(source)
 
 
 class ArtifactRegistryTest(absltest.TestCase):
 
   def testArtifactsFromYamlIgnoresDeprecatedFields(self):
-    registry = ar.ArtifactRegistry()
-
     yaml = textwrap.dedent("""\
     name: Foo
     doc: Lorem ipsum.
@@ -262,20 +264,17 @@ class ArtifactRegistryTest(absltest.TestCase):
           paths: ['/norf', '/thud']
     provides: [domain]
     """)
-    artifacts = registry.ArtifactsFromYaml(yaml)
+    artifacts = ar.ArtifactsFromYaml(yaml)
     artifacts.sort(key=lambda artifact: artifact.name)
 
     self.assertLen(artifacts, 2)
     self.assertEqual(artifacts[0].name, "Foo")
-    self.assertFalse(artifacts[0].HasField("labels"))
     self.assertEqual(artifacts[1].name, "Quux")
-    self.assertFalse(artifacts[1].HasField("labels"))
 
   def testDatabaseArtifactsAreLoadedEvenIfNoDatastoreIsRegistered(self):
     rel_db = data_store.REL_DB
 
-    artifact = rdf_artifacts.Artifact(name="Foo")
-    rel_db.WriteArtifact(mig_artifacts.ToProtoArtifact(artifact))
+    rel_db.WriteArtifact(artifact_pb2.Artifact(name="Foo"))
 
     registry = ar.ArtifactRegistry()
     registry.ReloadDatastoreArtifacts()
@@ -284,7 +283,7 @@ class ArtifactRegistryTest(absltest.TestCase):
 
   def testExistsTrue(self):
     registry = ar.ArtifactRegistry()
-    registry.RegisterArtifact(rdf_artifacts.Artifact(name="Foo"))
+    registry.RegisterArtifact(artifact_pb2.Artifact(name="Foo"))
 
     self.assertTrue(registry.Exists("Foo"))
 

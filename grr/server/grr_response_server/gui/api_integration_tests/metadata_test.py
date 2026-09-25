@@ -15,10 +15,8 @@ class ApiClientLibMetadataTest(api_integration_test_lib.ApiIntegrationTest):
     # TODO(user): Move this import to the top as soon as GitHub
     # issue #813 (https://github.com/google/grr/issues/813) is resolved.
     try:
-      # pytype: disable=import-error
       # pylint: disable=g-import-not-at-top
-      import openapi_spec_validator
-      # pytype: enable=import-error
+      import openapi_spec_validator  # pyrefly: ignore[missing-import]
       # pylint: enable=g-import-not-at-top
     except ImportError:
       raise absltest.SkipTest("`openapi-spec-validator` not installed")

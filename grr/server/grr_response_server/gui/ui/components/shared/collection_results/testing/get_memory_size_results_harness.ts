@@ -4,6 +4,5 @@ import {ComponentHarness} from '@angular/cdk/testing';
 export class GetMemorySizeResultsHarness extends ComponentHarness {
   static hostSelector = 'get-memory-size-results';
 
-  readonly clientIds = this.locatorForAll('.client-id');
   readonly memorySize = this.locatorForAll('.memory-size');
 }

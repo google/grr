@@ -3,17 +3,15 @@
 
 from collections.abc import Mapping
 import ipaddress
-from typing import Optional, Union
+from typing import Sequence, Union
 
 from google.protobuf import message as pb_message
-from grr_response_core.lib import rdfvalue
+
+from grr_response_core.lib.util import text
 from grr_response_proto import jobs_pb2
 from grr_response_proto import objects_pb2
 from grr_response_proto.api import client_pb2
-from grr_response_server import fleetspeak_utils
 from grr_response_server.models import protobuf_utils as models_utils
-from fleetspeak.src.common.proto.fleetspeak import common_pb2
-from fleetspeak.src.server.proto.fleetspeak_server import admin_pb2
 
 
 def FleetspeakValidationInfoFromDict(
@@ -58,122 +56,6 @@ def FleetspeakValidationInfoToDict(
 
     result[tag.key] = tag.value
 
-  return result
-
-
-def ApiFleetspeakAddressFromFleetspeakProto(
-    fs_address: common_pb2.Address,
-) -> client_pb2.ApiFleetspeakAddress:
-  res = client_pb2.ApiFleetspeakAddress(
-      service_name=fs_address.service_name,
-  )
-  if fs_address.client_id:
-    res.client_id = fleetspeak_utils.FleetspeakIDToGRRID(fs_address.client_id)
-  return res
-
-
-def ApiFleetspeakAnnotationsFromFleetspeakProto(
-    fs_annotations: common_pb2.Annotations,
-) -> client_pb2.ApiFleetspeakAnnotations:
-  result = client_pb2.ApiFleetspeakAnnotations()
-  for entry in fs_annotations.entries:
-    result.entries.append(
-        client_pb2.ApiFleetspeakAnnotations.Entry(
-            key=entry.key, value=entry.value
-        )
-    )
-  return result
-
-
-def ApiFleetspeakValidationInfoFromFleetspeakProto(
-    fs_val_info: common_pb2.ValidationInfo,
-) -> client_pb2.ApiFleetspeakValidationInfo:
-  result = client_pb2.ApiFleetspeakValidationInfo()
-  for key, value in fs_val_info.tags.items():
-    result.tags.append(
-        client_pb2.ApiFleetspeakValidationInfo.Tag(key=key, value=value)
-    )
-  return result
-
-
-def ApiFleetspeakMessageResultFromFleetspeakProto(
-    fs_msg_res: common_pb2.MessageResult,
-) -> client_pb2.ApiFleetspeakMessageResult:
-  result = client_pb2.ApiFleetspeakMessageResult(
-      failed=fs_msg_res.failed,
-      failed_reason=fs_msg_res.failed_reason,
-  )
-  if fs_msg_res.HasField("processed_time"):
-    result.processed_time = rdfvalue.RDFDatetime.FromDatetime(
-        fs_msg_res.processed_time.ToDatetime()
-    ).AsMicrosecondsSinceEpoch()
-  return result
-
-
-def _PriorityFromFleetspeakProto(
-    priority: common_pb2.Message.Priority,
-) -> Optional["client_pb2.ApiFleetspeakMessage.Priority"]:
-  if priority == common_pb2.Message.Priority.LOW:
-    return client_pb2.ApiFleetspeakMessage.Priority.LOW
-  elif priority == common_pb2.Message.Priority.MEDIUM:
-    return client_pb2.ApiFleetspeakMessage.Priority.MEDIUM
-  elif priority == common_pb2.Message.Priority.HIGH:
-    return client_pb2.ApiFleetspeakMessage.Priority.HIGH
-  else:
-    return None
-
-
-def ApiFleetspeakMessageFromFleetspeakProto(
-    fs_msg: common_pb2.Message,
-) -> client_pb2.ApiFleetspeakMessage:
-  """Creates an ApiFleetspeakMessage from the given Fleetspeak Message proto."""
-
-  result = client_pb2.ApiFleetspeakMessage()
-  if fs_msg.message_id:
-    result.message_id = fs_msg.message_id
-  if fs_msg.source_message_id:
-    result.source_message_id = fs_msg.source_message_id
-  if fs_msg.message_type:
-    result.message_type = fs_msg.message_type
-  if fs_msg.background:
-    result.background = fs_msg.background
-  if fs_msg.priority:
-    result.priority = _PriorityFromFleetspeakProto(fs_msg.priority)
-  if fs_msg.HasField("source"):
-    result.source.CopyFrom(
-        ApiFleetspeakAddressFromFleetspeakProto(fs_msg.source)
-    )
-  if fs_msg.HasField("destination"):
-    result.destination.CopyFrom(
-        ApiFleetspeakAddressFromFleetspeakProto(fs_msg.destination)
-    )
-  if fs_msg.HasField("creation_time"):
-    result.creation_time = rdfvalue.RDFDatetime.FromDatetime(
-        fs_msg.creation_time.ToDatetime()
-    ).AsMicrosecondsSinceEpoch()
-  if fs_msg.HasField("data"):
-    result.data.CopyFrom(fs_msg.data)
-  if fs_msg.HasField("validation_info"):
-    result.validation_info.CopyFrom(
-        ApiFleetspeakValidationInfoFromFleetspeakProto(fs_msg.validation_info)
-    )
-  if fs_msg.HasField("result"):
-    result.result.CopyFrom(
-        ApiFleetspeakMessageResultFromFleetspeakProto(fs_msg.result)
-    )
-  if fs_msg.HasField("annotations"):
-    result.annotations.CopyFrom(
-        ApiFleetspeakAnnotationsFromFleetspeakProto(fs_msg.annotations)
-    )
-  return result
-
-
-def ApiGetFleetspeakPendingMessagesResultFromFleetspeakProto(
-    fs_res: admin_pb2.GetPendingMessagesResponse,
-) -> client_pb2.ApiGetFleetspeakPendingMessagesResult:
-  result = client_pb2.ApiGetFleetspeakPendingMessagesResult()
-  for message in fs_res.messages:
-    result.messages.append(ApiFleetspeakMessageFromFleetspeakProto(message))
   return result
 
 
@@ -347,3 +229,126 @@ def SetGrrMessagePayload(
   # the server when available, so for consistency we set it here too, even
   # if it's an outbound message.
   message.payload_any.Pack(payload)
+
+
+def GetIpAddressesFromClientSnapshot(
+    client: objects_pb2.ClientSnapshot,
+) -> Sequence[str]:
+  """IP addresses from all interfaces."""
+  result = []
+  filtered_ips = ["127.0.0.1", "::1", "fe80::1"]
+
+  for interface in client.interfaces:
+    for address in interface.addresses:
+      # IP address can be stored as either human-readable string or
+      # packed bytes.
+      if address.HasField("packed_bytes"):
+        if address.address_type == jobs_pb2.NetworkAddress.Family.INET:
+          ip = str(ipaddress.IPv4Address(address.packed_bytes))
+        elif address.address_type == jobs_pb2.NetworkAddress.Family.INET6:
+          ip = str(ipaddress.IPv6Address(address.packed_bytes))
+        else:
+          continue
+      else:
+        continue
+
+      if ip not in filtered_ips:
+        result.append(ip)
+
+  return sorted(result)
+
+
+def HumanReadableMacAddress(mac_address: bytes) -> str:
+  """Returns a human readable MAC address from a binary MAC address.
+
+  For values previously stored as an RDFBytes MacAddress.
+
+  Args:
+    mac_address: A binary MAC address.
+
+  Returns:
+    A human readable MAC address.
+  """
+  return text.Hexify(mac_address)
+
+
+def GetMacAddressesFromClientSnapshot(
+    snapshot: objects_pb2.ClientSnapshot,
+) -> list[str]:
+  """Returns a list of MAC addresses, excluding null addresses."""
+  result = set()
+  for interface in snapshot.interfaces:
+    # We exlclude null addresses.
+    if interface.mac_address and interface.mac_address != b"\x00" * len(
+        interface.mac_address
+    ):
+      result.add(HumanReadableMacAddress(interface.mac_address))
+  return sorted(result)
+
+
+def GetSummaryFromClientSnapshot(
+    snapshot: objects_pb2.ClientSnapshot,
+) -> jobs_pb2.ClientSummary:
+  """Creates a ClientSummary proto from a ClientSnapshot proto.
+
+  Args:
+    snapshot: The ClientSnapshot proto to summarize.
+
+  Returns:
+    A ClientSummary proto containing key information from the snapshot.
+
+  Raises:
+    ValueError: If an unknown cloud type is encountered.
+  """
+  summary = jobs_pb2.ClientSummary()
+  summary.client_id = snapshot.client_id
+  summary.timestamp = snapshot.timestamp
+
+  summary.system_info.release = snapshot.os_release
+  summary.system_info.version = str(snapshot.os_version or "")
+  summary.system_info.kernel = snapshot.kernel
+  summary.system_info.machine = snapshot.arch
+  summary.system_info.install_date = snapshot.install_time
+  kb = snapshot.knowledge_base
+  if kb:
+    summary.system_info.fqdn = kb.fqdn
+    summary.system_info.system = kb.os
+    summary.users.extend(kb.users)
+    summary.interfaces.extend(snapshot.interfaces)
+    summary.client_info.CopyFrom(snapshot.startup_info.client_info)
+
+    # We use knowledge base release information only if it was not set already
+    # (and the same applies to the version information). This is because the
+    # knowledge base information comes from artifact definitions that are less
+    # precise than platform information obtained through the `distro` package.
+    if not summary.system_info.release and kb.os_release:
+      summary.system_info.release = kb.os_release
+      if not summary.system_info.version and kb.os_major_version:
+        summary.system_info.version = "%d.%d" % (
+            kb.os_major_version,
+            kb.os_minor_version,
+        )
+
+  summary.edr_agents.extend(snapshot.edr_agents)
+  if snapshot.HasField("fleetspeak_validation_info"):
+    summary.fleetspeak_validation_info.CopyFrom(
+        snapshot.fleetspeak_validation_info
+    )
+
+  hwi = snapshot.hardware_info
+  if hwi:
+    summary.serial_number = hwi.serial_number
+    summary.system_manufacturer = hwi.system_manufacturer
+    summary.system_uuid = hwi.system_uuid
+
+  cloud_instance_type = snapshot.cloud_instance.cloud_type
+  if cloud_instance_type != jobs_pb2.CloudInstance.InstanceType.UNSET:
+    summary.cloud_type = cloud_instance_type
+    if cloud_instance_type == jobs_pb2.CloudInstance.InstanceType.GOOGLE:
+      summary.cloud_instance_id = snapshot.cloud_instance.google.unique_id
+    elif cloud_instance_type == jobs_pb2.CloudInstance.InstanceType.AMAZON:
+      summary.cloud_instance_id = snapshot.cloud_instance.amazon.instance_id
+    else:
+      raise ValueError("Bad cloud type: %s" % cloud_instance_type)
+
+  return summary

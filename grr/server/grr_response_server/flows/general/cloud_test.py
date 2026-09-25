@@ -6,7 +6,6 @@ from absl.testing import absltest
 
 from grr_response_client import actions
 from grr_response_core.lib.rdfvalues import cloud as rdf_cloud
-from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_core.lib.rdfvalues import mig_cloud
 from grr_response_proto import cloud_pb2
 from grr_response_proto import flows_pb2
@@ -25,7 +24,6 @@ from grr_response_proto import rrg_pb2
 from grr_response_proto.rrg import os_pb2 as rrg_os_pb2
 from grr_response_proto.rrg.action import execute_signed_command_pb2 as rrg_execute_signed_command_pb2
 from grr_response_proto.rrg.action import get_tcp_response_pb2 as rrg_get_tcp_response_pb2
-from grr_response_proto.rrg.action import query_wmi_pb2 as rrg_query_wmi_pb2
 
 
 class CollectCloudVMMetadataTest(flow_test_lib.FlowTestsBaseclass):
@@ -40,7 +38,7 @@ class CollectCloudVMMetadataTest(flow_test_lib.FlowTestsBaseclass):
       self,
       db: abstract_db.Database,
   ) -> None:
-    # TODO: Load signed commands from the `.textproto` file to
+    # TODO - Load signed commands from the `.textproto` file to
     # ensure integrity.
     command = rrg_execute_signed_command_pb2.Command()
     command.path.raw_bytes = "/usr/sbin/dmidecode".encode("utf-8")
@@ -153,7 +151,7 @@ class CollectCloudVMMetadataTest(flow_test_lib.FlowTestsBaseclass):
             "example-project",
         ]).encode("ascii")
       else:
-        result.data = "\r\n".join([
+        result.data = "\r\n".join([  # pyrefly: ignore[bad-assignment]
             "HTTP/1.1 404 Not Found",
             "Metadata-Flavor: Google",
             "Date: Fri, 14 Feb 2025 12:03:10 GMT",
@@ -171,7 +169,7 @@ class CollectCloudVMMetadataTest(flow_test_lib.FlowTestsBaseclass):
     flow_id = rrg_test_lib.ExecuteFlow(
         client_id=client_id,
         flow_cls=cloud.CollectCloudVMMetadata,
-        flow_args=rdf_flows.EmptyFlowArgs(),
+        flow_args=flows_pb2.EmptyFlowArgs(),
         handlers={
             rrg_pb2.Action.EXECUTE_SIGNED_COMMAND: ExecuteSignedCommandHandler,
             rrg_pb2.Action.GET_TCP_RESPONSE: GetTcpResponseHandler,
@@ -221,7 +219,7 @@ class CollectCloudVMMetadataTest(flow_test_lib.FlowTestsBaseclass):
       self,
       db: abstract_db.Database,
   ) -> None:
-    # TODO: Load signed commands from the `.textproto` file to
+    # TODO - Load signed commands from the `.textproto` file to
     # ensure integrity.
     command = rrg_execute_signed_command_pb2.Command()
     command.path.raw_bytes = "/usr/sbin/dmidecode".encode("utf-8")
@@ -265,7 +263,7 @@ class CollectCloudVMMetadataTest(flow_test_lib.FlowTestsBaseclass):
 
       result = rrg_get_tcp_response_pb2.Result()
 
-      # TODO: The responses below were generated with the help of
+      # TODO - The responses below were generated with the help of
       # Gemini as we do not have access to the real AWS instance. From what I've
       # checked it nailed the sample format for each property when compared to
       # the real-world data we currently have in our database. Nevertheless, it
@@ -362,7 +360,7 @@ class CollectCloudVMMetadataTest(flow_test_lib.FlowTestsBaseclass):
     flow_id = rrg_test_lib.ExecuteFlow(
         client_id=client_id,
         flow_cls=cloud.CollectCloudVMMetadata,
-        flow_args=rdf_flows.EmptyFlowArgs(),
+        flow_args=flows_pb2.EmptyFlowArgs(),
         handlers={
             rrg_pb2.Action.EXECUTE_SIGNED_COMMAND: ExecuteSignedCommandHandler,
             rrg_pb2.Action.GET_TCP_RESPONSE: GetTcpResponseHandler,
@@ -412,20 +410,6 @@ class CollectCloudVMMetadataTest(flow_test_lib.FlowTestsBaseclass):
         db,
         os_type=rrg_os_pb2.WINDOWS,
     )
-
-    def QueryWmiHandler(session: rrg_test_lib.Session) -> None:
-      args = rrg_query_wmi_pb2.Args()
-      assert session.args.Unpack(args)
-
-      if not args.query.strip().startswith("SELECT "):
-        raise RuntimeError("Non-`SELECT` WMI query")
-
-      if "Win32_Service" not in args.query or "GCEAgent" not in args.query:
-        raise RuntimeError(f"Unexpected WMI query: {args.query!r}")
-
-      result = rrg_query_wmi_pb2.Result()
-      result.row["Name"].string = "GCEAgent"
-      session.Reply(result)
 
     def GetTcpResponseHandler(session: rrg_test_lib.Session) -> None:
       args = rrg_get_tcp_response_pb2.Args()
@@ -525,11 +509,15 @@ class CollectCloudVMMetadataTest(flow_test_lib.FlowTestsBaseclass):
     flow_id = rrg_test_lib.ExecuteFlow(
         client_id=client_id,
         flow_cls=cloud.CollectCloudVMMetadata,
-        flow_args=rdf_flows.EmptyFlowArgs(),
-        handlers={
+        flow_args=flows_pb2.EmptyFlowArgs(),
+        handlers={  # pyrefly: ignore[unsupported-operation]
             rrg_pb2.Action.GET_TCP_RESPONSE: GetTcpResponseHandler,
-            rrg_pb2.Action.QUERY_WMI: QueryWmiHandler,
-        },
+        }
+        | rrg_test_lib.FakeWmiHandlers({
+            "Win32_Service": [
+                {"Name": "GCEAgent"},
+            ],
+        }),
     )
 
     flow_obj = db.ReadFlowObject(client_id, flow_id)
@@ -579,20 +567,6 @@ class CollectCloudVMMetadataTest(flow_test_lib.FlowTestsBaseclass):
         db,
         os_type=rrg_os_pb2.WINDOWS,
     )
-
-    def QueryWmiHandler(session: rrg_test_lib.Session) -> None:
-      args = rrg_query_wmi_pb2.Args()
-      assert session.args.Unpack(args)
-
-      if not args.query.strip().startswith("SELECT "):
-        raise RuntimeError("Non-`SELECT` WMI query")
-
-      if "Win32_Service" not in args.query or "AWSLiteAgent" not in args.query:
-        raise RuntimeError(f"Unexpected WMI query: {args.query!r}")
-
-      result = rrg_query_wmi_pb2.Result()
-      result.row["Name"].string = "AWSLiteAgent"
-      session.Reply(result)
 
     token = "".join(random.choices(string.ascii_letters + string.digits, k=128))
 
@@ -682,11 +656,15 @@ class CollectCloudVMMetadataTest(flow_test_lib.FlowTestsBaseclass):
     flow_id = rrg_test_lib.ExecuteFlow(
         client_id=client_id,
         flow_cls=cloud.CollectCloudVMMetadata,
-        flow_args=rdf_flows.EmptyFlowArgs(),
-        handlers={
+        flow_args=flows_pb2.EmptyFlowArgs(),
+        handlers={  # pyrefly: ignore[unsupported-operation]
             rrg_pb2.Action.GET_TCP_RESPONSE: GetTcpResponseHandler,
-            rrg_pb2.Action.QUERY_WMI: QueryWmiHandler,
-        },
+        }
+        | rrg_test_lib.FakeWmiHandlers({
+            "Win32_Service": [
+                {"Name": "AWSLiteAgent"},
+            ],
+        }),
     )
 
     flow_obj = db.ReadFlowObject(client_id, flow_id)
@@ -738,12 +716,12 @@ class CollectCloudVMMetadataTest(flow_test_lib.FlowTestsBaseclass):
       out_rdfvalues = [rdf_cloud.CloudMetadataResponses]
 
       def Run(self, args: rdf_cloud.CloudMetadataRequests) -> None:
-        args = mig_cloud.ToProtoCloudMetadataRequests(args)
+        args = mig_cloud.ToProtoCloudMetadataRequests(args)  # pyrefly: ignore[bad-assignment]
 
         result = flows_pb2.CloudMetadataResponses()
         result.instance_type = jobs_pb2.CloudInstance.InstanceType.GOOGLE
 
-        for request in args.requests:
+        for request in args.requests:  # pyrefly: ignore[missing-attribute]
           instance_type = request.instance_type
           if instance_type != jobs_pb2.CloudInstance.InstanceType.GOOGLE:
             continue
@@ -783,7 +761,9 @@ class CollectCloudVMMetadataTest(flow_test_lib.FlowTestsBaseclass):
         creator=creator,
     )
 
-    results = flow_test_lib.GetFlowResults(client_id, flow_id)
+    results = flow_test_lib.GetUnpackedFlowResults(
+        client_id, flow_id, cloud_pb2.CollectCloudVMMetadataResult
+    )
     self.assertLen(results, 1)
 
     self.assertEqual(
@@ -834,12 +814,12 @@ class CollectCloudVMMetadataTest(flow_test_lib.FlowTestsBaseclass):
       out_rdfvalues = [rdf_cloud.CloudMetadataResponses]
 
       def Run(self, args: rdf_cloud.CloudMetadataRequests) -> None:
-        args = mig_cloud.ToProtoCloudMetadataRequests(args)
+        args = mig_cloud.ToProtoCloudMetadataRequests(args)  # pyrefly: ignore[bad-assignment]
 
         result = flows_pb2.CloudMetadataResponses()
         result.instance_type = jobs_pb2.CloudInstance.InstanceType.AMAZON
 
-        for request in args.requests:
+        for request in args.requests:  # pyrefly: ignore[missing-attribute]
           instance_type = request.instance_type
           if instance_type != jobs_pb2.CloudInstance.InstanceType.AMAZON:
             continue
@@ -879,7 +859,9 @@ class CollectCloudVMMetadataTest(flow_test_lib.FlowTestsBaseclass):
         creator=creator,
     )
 
-    results = flow_test_lib.GetFlowResults(client_id, flow_id)
+    results = flow_test_lib.GetUnpackedFlowResults(
+        client_id, flow_id, cloud_pb2.CollectCloudVMMetadataResult
+    )
     self.assertLen(results, 1)
 
     self.assertEqual(

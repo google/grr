@@ -8,7 +8,6 @@ import {
 import {MatIconModule} from '@angular/material/icon';
 import {MatListModule} from '@angular/material/list';
 import {MatTooltipModule} from '@angular/material/tooltip';
-import {Title} from '@angular/platform-browser';
 import {Router, RouterModule} from '@angular/router';
 
 import {ClientHistoryEntry, ClientStore} from '../../../store/client_store';
@@ -36,8 +35,6 @@ export class ClientHistory {
   private readonly router = inject(Router);
 
   constructor() {
-    inject(Title).setTitle('GRR | Client > History');
-
     const initialNavigation = effect(() => {
       if (!this.router.url.endsWith('history')) {
         initialNavigation.destroy();

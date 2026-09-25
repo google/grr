@@ -53,24 +53,6 @@ def InitApiCronJobFromCronJob(
   return api_cron_job
 
 
-def CreateCronJobArgsFromApiCreateCronJobArgs(
-    api_create: cron_pb2.ApiCreateCronJobArgs,
-) -> flows_pb2.CreateCronJobArgs:
-  """Creates a CreateCronJobArgs from an ApiCronJob."""
-  create_args = flows_pb2.CreateCronJobArgs()
-  models_utils.CopyAttr(api_create, create_args, "flow_name")
-  if api_create.HasField("flow_args"):
-    create_args.flow_args.CopyFrom(api_create.flow_args)
-  if api_create.HasField("hunt_runner_args"):
-    create_args.hunt_runner_args.CopyFrom(api_create.hunt_runner_args)
-  models_utils.CopyAttr(api_create, create_args, "description")
-  models_utils.CopyAttr(api_create, create_args, "periodicity", "frequency")
-  models_utils.CopyAttr(api_create, create_args, "lifetime")
-  models_utils.CopyAttr(api_create, create_args, "allow_overruns")
-
-  return create_args
-
-
 class CronJobNotFoundError(api_call_handler_base.ResourceNotFoundError):
   """Raised when a cron job could not be found."""
 
@@ -186,32 +168,6 @@ class ApiGetCronJobRunHandler(api_call_handler_base.ApiCallHandler):
       )
     run = mig_cronjobs.ToProtoCronJobRun(run)
     return InitApiCronJobRunFromRunObject(run)
-
-
-class ApiCreateCronJobHandler(api_call_handler_base.ApiCallHandler):
-  """Creates a new cron job."""
-
-  proto_args_type = cron_pb2.ApiCreateCronJobArgs
-  proto_result_type = cron_pb2.ApiCronJob
-
-  def Handle(
-      self,
-      source_args: cron_pb2.ApiCreateCronJobArgs,
-      context: Optional[api_call_context.ApiCallContext] = None,
-  ) -> cron_pb2.ApiCronJob:
-    # Make sure we don't modify source arguments.
-    args = cron_pb2.ApiCreateCronJobArgs()
-    args.CopyFrom(source_args)
-    args.hunt_runner_args.ClearField("original_object")
-
-    cron_manager = cronjobs.CronManager()
-    cron_args = CreateCronJobArgsFromApiCreateCronJobArgs(args)
-    cron_args = mig_cronjobs.ToRDFCreateCronJobArgs(cron_args)
-    cron_job_id = cron_manager.CreateJob(cron_args=cron_args, enabled=False)
-
-    cron_obj = cron_manager.ReadJob(cron_job_id)
-    cron_obj = mig_cronjobs.ToProtoCronJob(cron_obj)
-    return InitApiCronJobFromCronJob(cron_obj)
 
 
 class ApiForceRunCronJobHandler(api_call_handler_base.ApiCallHandler):

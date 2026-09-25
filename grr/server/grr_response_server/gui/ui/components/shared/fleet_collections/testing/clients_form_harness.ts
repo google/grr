@@ -40,6 +40,28 @@ export class ClientsFormHarness extends ComponentHarness {
     MatButtonHarness.with({text: 'Reset initial rules'}),
   );
 
+  async setMatchMode(matchMode: string) {
+    const matchModeFormField = await this.matchModeFormField();
+    if (!matchModeFormField) {
+      throw new Error('Match mode form field is not present');
+    }
+    const matchModeSelect =
+      await matchModeFormField.getControl(MatSelectHarness);
+    if (!matchModeSelect) {
+      throw new Error('Match mode select is not present');
+    }
+    await matchModeSelect.open();
+    const options = await matchModeSelect.getOptions();
+    for (const option of options) {
+      const text = await option.getText();
+      if (text === matchMode) {
+        await option.click();
+        return;
+      }
+    }
+    throw new Error(`Match mode ${matchMode} not found`);
+  }
+
   async getMatchMode(): Promise<string> {
     const matchModeFormField = await this.matchModeFormField();
     if (!matchModeFormField) {

@@ -4,7 +4,6 @@ import {
   AfterViewInit,
   ChangeDetectionStrategy,
   Component,
-  computed,
   effect,
   inject,
   input,
@@ -19,9 +18,7 @@ import {
   YaraProcessScanMatch,
   YaraStringMatch,
 } from '../../../lib/api/api_interfaces';
-import {isHuntResult} from '../../../lib/models/hunt';
 import {CollectionResult} from '../../../lib/models/result';
-import {CopyButton} from '../copy_button';
 import {FilterPaginate} from '../filter_paginate';
 
 const BASE_COLUMNS: readonly string[] = [
@@ -35,7 +32,6 @@ const BASE_COLUMNS: readonly string[] = [
 ];
 
 interface YaraProcessScanMatchFlattened {
-  clientId: string;
   process: Process | undefined;
   match: YaraMatch;
   context: string;
@@ -46,23 +42,21 @@ interface YaraProcessScanMatchFlattened {
 function flattenYaraProcessScanMatches(
   collectionResults: readonly CollectionResult[],
 ): readonly YaraProcessScanMatchFlattened[] {
-  const flattenedYaraProcessScanMatches: YaraProcessScanMatchFlattened[] = [];
-  for (const result of collectionResults) {
-    const yaraProcessScanMatch = result.payload as YaraProcessScanMatch;
-    for (const match of yaraProcessScanMatch.match ?? []) {
-      for (const stringMatch of match.stringMatches ?? []) {
-        flattenedYaraProcessScanMatches.push({
-          clientId: result.clientId,
-          process: yaraProcessScanMatch.process,
-          match,
-          context: atob(stringMatch.context ?? ''),
-          stringMatch,
-          data: atob(stringMatch.data ?? ''),
-        });
-      }
-    }
-  }
-  return flattenedYaraProcessScanMatches;
+  return collectionResults
+    .map((flowResult) => flowResult.payload as YaraProcessScanMatch)
+    .flatMap((match) =>
+      (match.match ?? []).flatMap((yaraMatch) =>
+        (yaraMatch.stringMatches ?? []).map((stringMatch) => {
+          return {
+            process: match.process,
+            match: yaraMatch,
+            context: atob(stringMatch.context ?? ''),
+            stringMatch,
+            data: atob(stringMatch.data ?? ''),
+          };
+        }),
+      ),
+    );
 }
 
 /**
@@ -75,13 +69,7 @@ function flattenYaraProcessScanMatches(
     './collection_result_styles.scss',
     './yara_process_scan_matches.scss',
   ],
-  imports: [
-    CommonModule,
-    CopyButton,
-    FilterPaginate,
-    MatSortModule,
-    MatTableModule,
-  ],
+  imports: [CommonModule, FilterPaginate, MatSortModule, MatTableModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class YaraProcessScanMatches implements AfterViewInit {
@@ -89,28 +77,20 @@ export class YaraProcessScanMatches implements AfterViewInit {
   @ViewChild(MatSort) sort!: MatSort;
 
   /** Loaded results to display in the table. */
-  readonly collectionResults = input.required<readonly CollectionResult[]>();
-
-  readonly flattenedYaraProcessScanMatches = computed(() =>
-    flattenYaraProcessScanMatches(this.collectionResults()),
-  );
-
-  readonly isHuntResult = computed(() =>
-    this.collectionResults().some(isHuntResult),
-  );
+  readonly collectionResults = input.required<
+    readonly YaraProcessScanMatchFlattened[],
+    readonly CollectionResult[]
+  >({
+    transform: flattenYaraProcessScanMatches,
+  });
 
   readonly dataSource = new MatTableDataSource<YaraProcessScanMatchFlattened>();
-  protected readonly displayedColumns = computed(() => {
-    if (this.isHuntResult()) {
-      return ['clientId', ...BASE_COLUMNS];
-    }
-    return BASE_COLUMNS;
-  });
+  protected readonly displayedColumns = BASE_COLUMNS;
 
   constructor() {
     effect(() => {
-      if (this.flattenedYaraProcessScanMatches().length > 0) {
-        this.dataSource.data = this.flattenedYaraProcessScanMatches().slice();
+      if (this.collectionResults().length > 0) {
+        this.dataSource.data = this.collectionResults().slice();
       }
     });
   }
@@ -120,9 +100,6 @@ export class YaraProcessScanMatches implements AfterViewInit {
     // Conversion from table column name to the data accessor, this is required
     // for sorting and filtering.
     this.dataSource.sortingDataAccessor = (item, property) => {
-      if (property === 'clientId') {
-        return item.clientId;
-      }
       if (property === 'pid') {
         return item.process?.pid ?? '';
       }
@@ -136,7 +113,6 @@ export class YaraProcessScanMatches implements AfterViewInit {
       filter: string,
     ) => {
       return (
-        data.clientId?.toString().includes(filter) ||
         data.process?.pid?.toString().includes(filter) ||
         data.process?.name?.includes(filter) ||
         data.match?.ruleName?.includes(filter) ||

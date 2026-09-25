@@ -6,6 +6,5 @@ import {CodeblockHarness} from '../data_renderer/testing/codeblock_harness';
 export class ExecutePythonHackResultsHarness extends ComponentHarness {
   static hostSelector = 'execute-python-hack-results';
 
-  readonly clientIds = this.locatorForAll('.client-id');
   readonly codeblocks = this.locatorForAll(CodeblockHarness);
 }

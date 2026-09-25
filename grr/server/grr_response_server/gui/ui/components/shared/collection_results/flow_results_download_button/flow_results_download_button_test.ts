@@ -249,20 +249,6 @@ describe('Flow Results Download Button Component', () => {
     });
   });
 
-  describe('for READ_LOW_LEVEL', () => {
-    it('has custom `Download data` button', async () => {
-      const flow = newFlow({
-        name: 'ReadLowLevel',
-        flowType: FlowType.READ_LOW_LEVEL,
-        resultCounts: [{type: 'ReadLowLevelResult', count: 1}],
-        state: FlowState.FINISHED,
-      });
-      const {harness} = await createComponent(flow);
-
-      expect(await harness.hasDownloadMenuItem('Download data')).toBeTrue();
-    });
-  });
-
   describe('for TIMELINE_FLOW', () => {
     it('has custom `Download body file` buttons', async () => {
       const flow = newFlow({

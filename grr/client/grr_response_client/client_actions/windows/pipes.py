@@ -17,14 +17,12 @@ def ListNamedPipes() -> Iterator[rdf_client.NamedPipe]:
     raise RuntimeError(f"Unsupported platform: {platform.system()}")
 
   # pylint: disable=g-import-not-at-top
-  # pytype: disable=import-error
   import ctypes
   import ctypes.wintypes
-  import win32api
-  import win32file
-  import win32pipe
-  import winerror
-  # pytype: enable=import-error
+  import win32api  # pyrefly: ignore[missing-source-for-stubs]
+  import win32file  # pyrefly: ignore[missing-source-for-stubs]
+  import win32pipe  # pyrefly: ignore[missing-source-for-stubs]
+  import winerror  # pyrefly: ignore[missing-source-for-stubs]
   # pylint: enable=g-import-not-at-top
 
   # The `GetNamedPipeHandleState` function provided by the `win32pipe` module is
@@ -32,9 +30,7 @@ def ListNamedPipes() -> Iterator[rdf_client.NamedPipe]:
   # go to a lower level and use raw Windows API calls to get this information.
   #
   # https://docs.microsoft.com/en-us/windows/win32/api/namedpipeapi/nf-namedpipeapi-getnamedpipehandlestatew
-  # pytype: disable=module-attr
-  GetNamedPipeHandleStateW = ctypes.windll.kernel32.GetNamedPipeHandleStateW  # pylint: disable=invalid-name
-  # pytype: enable=module-attr
+  GetNamedPipeHandleStateW = ctypes.windll.kernel32.GetNamedPipeHandleStateW  # pylint: disable=invalid-name  # pyrefly: ignore[missing-attribute]
   GetNamedPipeHandleStateW.argtypes = [
       ctypes.wintypes.HANDLE,
       ctypes.wintypes.LPDWORD,
@@ -51,11 +47,9 @@ def ListNamedPipes() -> Iterator[rdf_client.NamedPipe]:
   # it ourselves.
   #
   # https://docs.microsoft.com/en-us/windows/win32/api/namedpipeapi/nf-namedpipeapi-getnamedpipeclientcomputernamew
-  # pytype: disable=module-attr
   GetNamedPipeClientComputerNameW = (  # pylint: disable=invalid-name
-      ctypes.windll.kernel32.GetNamedPipeClientComputerNameW
+      ctypes.windll.kernel32.GetNamedPipeClientComputerNameW  # pyrefly: ignore[missing-attribute]
   )
-  # pytype: enable=module-attr
   GetNamedPipeClientComputerNameW.argtypes = [
       ctypes.wintypes.HANDLE,
       ctypes.wintypes.LPWSTR,
@@ -66,7 +60,7 @@ def ListNamedPipes() -> Iterator[rdf_client.NamedPipe]:
   # https://docs.microsoft.com/en-us/windows/win32/ipc/pipe-names
   for name in os.listdir(r"\\.\pipe"):
     pipe = rdf_client.NamedPipe()
-    pipe.name = name
+    pipe.name = name  # pyrefly: ignore[missing-attribute]
 
     try:
       handle = win32file.CreateFile(
@@ -81,27 +75,27 @@ def ListNamedPipes() -> Iterator[rdf_client.NamedPipe]:
 
     with contextlib.closing(handle):
       try:
-        pipe_info = win32pipe.GetNamedPipeInfo(handle)
+        pipe_info = win32pipe.GetNamedPipeInfo(handle)  # pyrefly: ignore[bad-argument-type]
         flags, in_buffer_size, out_buffer_size, max_instance_count = pipe_info
 
-        pipe.flags = flags
-        pipe.in_buffer_size = in_buffer_size
-        pipe.out_buffer_size = out_buffer_size
-        pipe.max_instance_count = max_instance_count
+        pipe.flags = flags  # pyrefly: ignore[missing-attribute]
+        pipe.in_buffer_size = in_buffer_size  # pyrefly: ignore[missing-attribute]
+        pipe.out_buffer_size = out_buffer_size  # pyrefly: ignore[missing-attribute]
+        pipe.max_instance_count = max_instance_count  # pyrefly: ignore[missing-attribute]
       except win32pipe.error as error:
         # Getting the information might fail (for whatever reason), but we don't
         # want to fail action execution as other probing calls might succeed.
         logging.error("Failed to get info about pipe '%s': '%s'", name, error)
 
       try:
-        pipe.server_pid = win32pipe.GetNamedPipeServerProcessId(handle)
+        pipe.server_pid = win32pipe.GetNamedPipeServerProcessId(handle)  # pyrefly: ignore[missing-attribute]
       except win32pipe.error as error:
         # See similar comment for `GetNamedPipeInfo` for more information.
         message = "Failed to get server pid of pipe '%s': '%s'"
         logging.error(message, name, error)
 
       try:
-        pipe.client_pid = win32pipe.GetNamedPipeClientProcessId(handle)
+        pipe.client_pid = win32pipe.GetNamedPipeClientProcessId(handle)  # pyrefly: ignore[missing-attribute]
       except win32pipe.error as error:
         # See similar comment for `GetNamedPipeInfo` for more information.
         message = "Failed to get client pid of pipe '%s': '%s'"
@@ -123,9 +117,9 @@ def ListNamedPipes() -> Iterator[rdf_client.NamedPipe]:
         error = win32api.GetLastError()
         logging.error("Failed to get state of pipe '%s': %s", name, error)
       else:
-        pipe.cur_instance_count = cur_instance_count.value
+        pipe.cur_instance_count = cur_instance_count.value  # pyrefly: ignore[missing-attribute]
 
-      client_computer_name = (ctypes.wintypes.WCHAR * _COMPUTER_NAME_MAX_SIZE)()  # pytype: disable=not-callable
+      client_computer_name = (ctypes.wintypes.WCHAR * _COMPUTER_NAME_MAX_SIZE)()
       status = GetNamedPipeClientComputerNameW(
           ctypes.wintypes.HANDLE(int(handle)),
           client_computer_name,
@@ -140,7 +134,7 @@ def ListNamedPipes() -> Iterator[rdf_client.NamedPipe]:
         if error != winerror.ERROR_PIPE_LOCAL:
           logging.error("Failed to get hostname of pipe '%s': %s", name, error)
       else:
-        pipe.client_computer_name = client_computer_name.value
+        pipe.client_computer_name = client_computer_name.value  # pyrefly: ignore[missing-attribute]
 
       yield pipe
 

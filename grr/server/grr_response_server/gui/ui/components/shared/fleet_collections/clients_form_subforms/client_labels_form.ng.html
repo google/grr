@@ -16,7 +16,7 @@
         <mat-label>Label name</mat-label>
         <input matInput [formControl]="labelName" [matAutocomplete]="auto">
         <mat-autocomplete #auto="matAutocomplete">
-          @for (label of globalStore.allLabels(); track label) {
+          @for (label of getFilteredLabels(labelName.value); track label) {
             <mat-option [value]="label"> {{label}}</mat-option>
           }
         </mat-autocomplete>

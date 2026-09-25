@@ -8,19 +8,39 @@ package rrg.action.get_file_contents;
 
 import "grr_response_proto/rrg/fs.proto";
 
+// Mode of the blob transfer to the GRR server.
+enum Mode {
+  // Blobs are sent to the blob sink (default).
+  //
+  // This is the recommended approach because replies are stored in the GRR
+  // database which can add unnecessary clutter. By using a storage designed
+  // specifically for large binary data we relieve the GRR database from this
+  // burden.
+  SINK = 0;
+  // Blobs are sent directly in the reply.
+  //
+  // This should be used only in flows where we know that the results won't be
+  // very big and reaching out to blobstore to read the transferred blobs will
+  // be the slow part.
+  INLINE = 1;
+}
+
 message Args {
   // Absolute paths to the file to get the contents of.
   repeated rrg.fs.Path paths = 1;
 
-  // Byte offset from which the content should be retrieved.
+  // Byte offsets from which the content should be retrieved.
   //
-  // If unset, starts from the beginning of the file.
-  uint64 offset = 2;
+  // If none are provided, starts from the beginning of the file.
+  repeated uint64 offsets = 2;
 
   // Number of bytes to from the file from the given offset to fetch.
   //
-  // If unset, collects the entire file (possibly in multible results).
+  // If unset, collects the entire file (possibly in multiple results).
   uint64 length = 3;
+
+  // Mode of the blob transfer to use for the files.
+  Mode mode = 4;
 }
 
 message Result {
@@ -37,10 +57,17 @@ message Result {
   // Set only if `error` is not set.
   uint64 length = 2;
 
-  // A SHA-256 hash of the file part sent to the blob sink.
-  //
-  // Set only if `error` is not set.
-  bytes blob_sha256 = 3;
+  oneof blob {
+    // A SHA-256 hash of the file part sent to the blob sink.
+    //
+    // Set only if using the blob sink mode and `error` is not set.
+    bytes blob_sha256 = 3;
+
+    // Actual contents of the file part referenced in this result.
+    //
+    // Set only if using the blob inline mode and `error` is not set.
+    bytes blob_contents = 6;
+  }
 
   // Error message set if something went wrong when processing the file.
   string error = 5;

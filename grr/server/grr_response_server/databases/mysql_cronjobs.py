@@ -78,7 +78,7 @@ class MySQLDBCronJobMixin(object):
     if forced_run_requested is not None:
       job.forced_run_requested = forced_run_requested
     if last_run_status is not None:
-      job.last_run_status = last_run_status
+      job.last_run_status = last_run_status  # pyrefly: ignore[bad-assignment]
     if last_run_time is not None:
       job.last_run_time = mysql_utils.TimestampToMicrosecondsSinceEpoch(
           last_run_time
@@ -211,13 +211,13 @@ class MySQLDBCronJobMixin(object):
       args.append(int(last_run_status))
     if last_run_time != db.Database.UNCHANGED:
       updates.append("last_run_time=FROM_UNIXTIME(%s)")
-      args.append(mysql_utils.RDFDatetimeToTimestamp(last_run_time))
+      args.append(mysql_utils.RDFDatetimeToTimestamp(last_run_time))  # pyrefly: ignore[no-matching-overload]
     if current_run_id != db.Database.UNCHANGED:
       updates.append("current_run_id=%s")
       args.append(db_utils.CronJobRunIDToInt(current_run_id))
     if state != db.Database.UNCHANGED:
       updates.append("state=%s")
-      args.append(state.SerializeToString())
+      args.append(state.SerializeToString())  # pyrefly: ignore[missing-attribute]
     if forced_run_requested != db.Database.UNCHANGED:
       updates.append("forced_run_requested=%s")
       args.append(forced_run_requested)
@@ -228,7 +228,7 @@ class MySQLDBCronJobMixin(object):
     query = "UPDATE cron_jobs SET "
     query += ", ".join(updates)
     query += " WHERE job_id=%s"
-    res = cursor.execute(query, args + [cronjob_id])
+    res = cursor.execute(query, args + [cronjob_id])  # pyrefly: ignore[missing-attribute]
     if res != 1:
       raise db.UnknownCronJobError("CronJob with id %s not found." % cronjob_id)
 
@@ -314,7 +314,7 @@ class MySQLDBCronJobMixin(object):
 
     if unleased_jobs:
       raise ValueError("CronJobs to return are not leased: %s" % unleased_jobs)
-    if returned != len(jobs):
+    if returned != len(jobs):  # pyrefly: ignore[unbound-name]
       raise ValueError(
           "%d cronjobs in %s could not be returned."
           % ((len(jobs) - returned), jobs)

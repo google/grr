@@ -3,13 +3,11 @@
 
 from absl import app
 
-from google.protobuf import any_pb2
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import mig_protodict
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
+from grr_response_core.lib.util import random
 from grr_response_proto import flows_pb2
-from grr_response_proto import jobs_pb2
-from grr_response_proto import objects_pb2
 from grr_response_proto.api import cron_pb2
 from grr_response_server import cronjobs
 from grr_response_server import data_store
@@ -17,82 +15,8 @@ from grr_response_server.flows.general import file_finder
 from grr_response_server.gui import api_test_lib
 from grr_response_server.gui import mig_api_call_handler_utils
 from grr_response_server.gui.api_plugins import cron as cron_plugin
-from grr_response_server.rdfvalues import cronjobs as rdf_cronjobs
-from grr.test_lib import flow_test_lib
+from grr_response_server.models import hunts as models_hunts
 from grr.test_lib import test_lib
-
-
-class CreateCronJobArgsFromApiCreateCronJobArgsTest(test_lib.GRRBaseTest):
-  """Test for CreateCronJobArgsFromApiCreateCronJobArgs."""
-
-  def testBasicConversion(self):
-    api_args = cron_pb2.ApiCreateCronJobArgs(
-        flow_name="ClientFileFinder",
-        description="Test Description",
-        periodicity=42,
-        lifetime=84,
-        allow_overruns=True,
-    )
-
-    create_args = cron_plugin.CreateCronJobArgsFromApiCreateCronJobArgs(
-        api_args
-    )
-
-    self.assertEqual(create_args.flow_name, "ClientFileFinder")
-    self.assertEqual(create_args.description, "Test Description")
-    self.assertEqual(create_args.frequency, 42)
-    self.assertEqual(create_args.lifetime, 84)
-    self.assertTrue(create_args.allow_overruns)
-    self.assertFalse(create_args.HasField("flow_args"))
-    self.assertFalse(create_args.HasField("hunt_runner_args"))
-
-  def testConversionWithFlowArgs(self):
-    flow_args = flows_pb2.FileFinderArgs(
-        paths=["/foo", "/bar"],
-        pathtype=jobs_pb2.PathSpec.PathType.OS,
-        action=flows_pb2.FileFinderAction(
-            action_type=flows_pb2.FileFinderAction.Action.STAT
-        ),
-    )
-    packed_flow_args = any_pb2.Any()
-    packed_flow_args.Pack(flow_args)
-    api_args = cron_pb2.ApiCreateCronJobArgs(
-        flow_name=file_finder.ClientFileFinder.__name__,
-        flow_args=packed_flow_args,
-    )
-
-    create_args = cron_plugin.CreateCronJobArgsFromApiCreateCronJobArgs(
-        api_args
-    )
-
-    self.assertEqual(
-        create_args.flow_name, file_finder.ClientFileFinder.__name__
-    )
-    unpacked_flow_args = flows_pb2.FileFinderArgs()
-    create_args.flow_args.Unpack(unpacked_flow_args)
-    self.assertEqual(list(unpacked_flow_args.paths), ["/foo", "/bar"])
-
-  def testConversionWithHuntRunnerArgs(self):
-    api_args = cron_pb2.ApiCreateCronJobArgs(
-        hunt_runner_args=flows_pb2.HuntRunnerArgs(
-            client_rule_set=jobs_pb2.ForemanClientRuleSet(
-                rules=[
-                    jobs_pb2.ForemanClientRule(
-                        rule_type=jobs_pb2.ForemanClientRule.Type.REGEX,
-                        regex=jobs_pb2.ForemanRegexClientRule(
-                            attribute_regex="bar",
-                            field=jobs_pb2.ForemanRegexClientRule.ForemanStringField.CLIENT_NAME,
-                        ),
-                    )
-                ]
-            )
-        )
-    )
-
-    create_args = cron_plugin.CreateCronJobArgsFromApiCreateCronJobArgs(
-        api_args
-    )
-    self.assertEqual(create_args.hunt_runner_args, api_args.hunt_runner_args)
 
 
 class ApiCronJobTest(test_lib.GRRBaseTest):
@@ -159,45 +83,53 @@ class CronJobsTestMixin(object):
   def CreateCronJob(
       self,
       flow_name,
+      job_id=None,
+      flow_args=None,
       periodicity="1d",
       lifetime="7d",
       description="",
       enabled=True,
+      allow_overruns=False,
   ):
-    args = rdf_cronjobs.CreateCronJobArgs(
-        flow_name=flow_name,
-        description=description,
-        frequency=periodicity,
-        lifetime=lifetime,
-    )
-    return cronjobs.CronManager().CreateJob(args, enabled=enabled)
+    if not flow_name:
+      raise ValueError("Unspecified flow name")
 
+    if not job_id:
+      # TODO - UInt16 is too small for randomly generated IDs.
+      uid = random.UInt16()
+      job_id = "%s_%s" % (flow_name, uid)
 
-class ApiCreateCronJobHandlerTest(api_test_lib.ApiCallHandlerTest):
-  """Test for ApiCreateCronJobHandler."""
+    frequency = rdfvalue.DurationSeconds.FromHumanReadable(
+        periodicity
+    ).SerializeToWireFormat()
+    lifetime = rdfvalue.DurationSeconds.FromHumanReadable(
+        lifetime
+    ).SerializeToWireFormat()
 
-  def setUp(self):
-    super().setUp()
-    self.handler = cron_plugin.ApiCreateCronJobHandler()
-
-  def testHiddenFieldsAreCleared(self):
-    args = cron_pb2.ApiCreateCronJobArgs(
-        flow_name=flow_test_lib.FlowWithOneNestedFlow.__name__,
-        hunt_runner_args=flows_pb2.HuntRunnerArgs(
-            original_object=flows_pb2.FlowLikeObjectReference(
-                object_type=flows_pb2.FlowLikeObjectReference.ObjectType.FLOW_REFERENCE,
-                flow_reference=objects_pb2.FlowReference(
-                    flow_id="2134", client_id="C.5678"
-                ),
-            )
+    args = flows_pb2.CronJobAction(
+        action_type=flows_pb2.CronJobAction.ActionType.HUNT_CRON_ACTION,
+        hunt_cron_action=flows_pb2.HuntCronAction(
+            flow_name=flow_name,
+            hunt_runner_args=models_hunts.CreateDefaultHuntRunnerArgs(),
         ),
     )
-    result = self.handler.Handle(args, context=self.context)
-    self.assertFalse(
-        result.args.hunt_cron_action.hunt_runner_args.HasField(
-            "original_object"
-        )
+    # This is bad, we're deprecating it so nothing to do at the moment.
+    if flow_args:
+      args.hunt_cron_action.flow_args = flow_args.SerializeToString()
+
+    job = flows_pb2.CronJob(
+        cron_job_id=job_id,
+        description=description,
+        enabled=enabled,
+        frequency=frequency,
+        lifetime=lifetime,
+        allow_overruns=allow_overruns,
+        created_at=int(rdfvalue.RDFDatetime.Now()),
+        args=args,
     )
+    data_store.REL_DB.WriteCronJob(job)
+
+    return job_id
 
 
 class ApiDeleteCronJobHandlerTest(

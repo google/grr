@@ -36,7 +36,7 @@ class EmbeddedRDFValue(rdf_structs.RDFProtoStruct):
   def payload(self):
     """Extracts and returns the serialized object."""
     try:
-      rdf_cls = self.classes.get(self.name)
+      rdf_cls = self.classes.get(self.name)  # pyrefly: ignore[missing-attribute]
       if rdf_cls:
         value = rdf_cls.FromSerializedBytes(self.data)
 
@@ -87,21 +87,21 @@ class DataBlob(rdf_structs.RDFProtoStruct):
       self.none = "None"
 
     elif isinstance(value, rdfvalue.RDFValue):
-      self.rdf_value.data = value.SerializeToBytes()
-      self.rdf_value.name = value.__class__.__name__
+      self.rdf_value.data = value.SerializeToBytes()  # pyrefly: ignore[missing-attribute]
+      self.rdf_value.name = value.__class__.__name__  # pyrefly: ignore[missing-attribute]
 
     elif isinstance(value, (list, tuple)):
-      self.list.content.Extend(
+      self.list.content.Extend(  # pyrefly: ignore[missing-attribute]
           [DataBlob().SetValue(v, raise_on_error=raise_on_error) for v in value]
       )
 
     elif isinstance(value, set):
-      self.set.content.Extend(
+      self.set.content.Extend(  # pyrefly: ignore[missing-attribute]
           [DataBlob().SetValue(v, raise_on_error=raise_on_error) for v in value]
       )
 
     elif isinstance(value, dict):
-      self.dict.FromDict(value, raise_on_error=raise_on_error)
+      self.dict.FromDict(value, raise_on_error=raise_on_error)  # pyrefly: ignore[missing-attribute]
 
     else:
       for type_mapping, member in type_mappings:
@@ -122,7 +122,7 @@ class DataBlob(rdf_structs.RDFProtoStruct):
 
     return self
 
-  # TODO: Defaulting to ignoring errors is unexpected and
+  # TODO - Defaulting to ignoring errors is unexpected and
   #  problematic.
   def GetValue(self, ignore_error=True):
     """Extracts and returns a single value from a DataBlob."""
@@ -152,8 +152,8 @@ class DataBlob(rdf_structs.RDFProtoStruct):
     # Unpack RDFValues.
     if self.HasField("rdf_value"):
       try:
-        rdf_class = rdfvalue.RDFValue.classes[self.rdf_value.name]
-        return serialization.FromBytes(rdf_class, self.rdf_value.data)
+        rdf_class = rdfvalue.RDFValue.classes[self.rdf_value.name]  # pyrefly: ignore[missing-attribute]
+        return serialization.FromBytes(rdf_class, self.rdf_value.data)  # pyrefly: ignore[missing-attribute]
       except (ValueError, KeyError) as e:
         if ignore_error:
           logging.exception("Error during GetValue() of %s", self)
@@ -162,10 +162,10 @@ class DataBlob(rdf_structs.RDFProtoStruct):
         raise
 
     elif self.HasField("list"):
-      return [x.GetValue() for x in self.list.content]
+      return [x.GetValue() for x in self.list.content]  # pyrefly: ignore[missing-attribute]
 
     elif self.HasField("set"):
-      return set([x.GetValue() for x in self.set.content])
+      return set([x.GetValue() for x in self.set.content])  # pyrefly: ignore[missing-attribute]
 
     else:
       return values[0]
@@ -196,7 +196,7 @@ class Dict(rdf_structs.RDFProtoStruct):
   def __init__(self, initializer=None, **kwargs):
     super().__init__(initializer=None)
 
-    self.dat: Union[list[KeyValue], rdf_structs.RepeatedFieldHelper] = None
+    self.dat: Union[list[KeyValue], rdf_structs.RepeatedFieldHelper] = None  # pyrefly: ignore[bad-assignment]
 
     # Support initializing from a mapping
     if isinstance(initializer, dict):
@@ -232,33 +232,33 @@ class Dict(rdf_structs.RDFProtoStruct):
           k=DataBlob().SetValue(key, raise_on_error=raise_on_error),
           v=DataBlob().SetValue(value, raise_on_error=raise_on_error),
       )
-    self.dat = self._values.values()  # pytype: disable=annotation-type-mismatch
+    self.dat = self._values.values()  # pyrefly: ignore[bad-assignment]
     return self
 
   def __getitem__(self, key):
-    return self._values[key].v.GetValue()
+    return self._values[key].v.GetValue()  # pyrefly: ignore[unsupported-operation]
 
   def __contains__(self, key):
-    return key in self._values
+    return key in self._values  # pyrefly: ignore[not-iterable]
 
-  # TODO: This implementation is flawed. It returns a new instance
+  # TODO - This implementation is flawed. It returns a new instance
   # on each invocation, effectively preventing changes to mutable
   # datastructures, e.g. `dct["key"] = []; dct["key"].append(5)`.
   def GetItem(self, key, default=None):
-    if key in self._values:
-      return self._values[key].v.GetValue()
+    if key in self._values:  # pyrefly: ignore[not-iterable]
+      return self._values[key].v.GetValue()  # pyrefly: ignore[unsupported-operation]
     return default
 
   def Items(self):
-    for x in self._values.values():
+    for x in self._values.values():  # pyrefly: ignore[missing-attribute]
       yield x.k.GetValue(), x.v.GetValue()
 
   def Values(self):
-    for x in self._values.values():
+    for x in self._values.values():  # pyrefly: ignore[missing-attribute]
       yield x.v.GetValue()
 
   def Keys(self):
-    for x in self._values.values():
+    for x in self._values.values():  # pyrefly: ignore[missing-attribute]
       yield x.k.GetValue()
 
   get = utils.Proxy("GetItem")
@@ -274,10 +274,10 @@ class Dict(rdf_structs.RDFProtoStruct):
     if not isinstance(self.dat, rdf_structs.RepeatedFieldHelper):
       raise TypeError("self.dat has an unexpected type %s" % self.dat.__class__)
     cast(rdf_structs.RepeatedFieldHelper, self.dat).dirty = True
-    del self._values[key]
+    del self._values[key]  # pyrefly: ignore[unsupported-operation]
 
   def __len__(self):
-    return len(self._values)
+    return len(self._values)  # pyrefly: ignore[bad-argument-type]
 
   def SetItem(self, key, value, raise_on_error=True):
     """Alternative to __setitem__ that can ignore errors.
@@ -300,7 +300,7 @@ class Dict(rdf_structs.RDFProtoStruct):
     if not isinstance(self.dat, rdf_structs.RepeatedFieldHelper):
       raise TypeError("self.dat has an unexpected type %s" % self.dat.__class__)
     cast(rdf_structs.RepeatedFieldHelper, self.dat).dirty = True
-    self._values[key] = KeyValue(
+    self._values[key] = KeyValue(  # pyrefly: ignore[unsupported-operation]
         k=DataBlob().SetValue(key, raise_on_error=raise_on_error),
         v=DataBlob().SetValue(value, raise_on_error=raise_on_error),
     )
@@ -313,12 +313,12 @@ class Dict(rdf_structs.RDFProtoStruct):
     if not isinstance(self.dat, rdf_structs.RepeatedFieldHelper):
       raise TypeError("self.dat has an unexpected type %s" % self.dat.__class__)
     cast(rdf_structs.RepeatedFieldHelper, self.dat).dirty = True
-    self._values[key] = KeyValue(
+    self._values[key] = KeyValue(  # pyrefly: ignore[unsupported-operation]
         k=DataBlob().SetValue(key), v=DataBlob().SetValue(value)
     )
 
   def __iter__(self):
-    for x in self._values.values():
+    for x in self._values.values():  # pyrefly: ignore[missing-attribute]
       yield x.k.GetValue()
 
   # Required, because in Python 3 overriding `__eq__` nullifies `__hash__`.
@@ -333,21 +333,21 @@ class Dict(rdf_structs.RDFProtoStruct):
       return False
 
   def GetRawData(self):
-    self.dat = self._values.values()  # pytype: disable=annotation-type-mismatch
+    self.dat = self._values.values()  # pyrefly: ignore[missing-attribute]
     return super().GetRawData()
 
   def _CopyRawData(self):
-    self.dat = self._values.values()  # pytype: disable=annotation-type-mismatch
+    self.dat = self._values.values()  # pyrefly: ignore[missing-attribute]
     return super()._CopyRawData()
 
   def SetRawData(self, raw_data):
     super().SetRawData(raw_data)
     self._values = {}
     for d in self.dat:
-      self._values[d.k.GetValue()] = d
+      self._values[d.k.GetValue()] = d  # pyrefly: ignore[missing-attribute]
 
   def SerializeToBytes(self):
-    self.dat = self._values.values()  # pytype: disable=annotation-type-mismatch
+    self.dat = self._values.values()  # pyrefly: ignore[missing-attribute]
     return super().SerializeToBytes()
 
   def __str__(self) -> str:
@@ -386,7 +386,7 @@ class AttributedDict(Dict):
       self.SetItem(item, value)
 
   def __setitem__(self, key, value):
-    # TODO: This behavior should be removed once migration is done.
+    # TODO - This behavior should be removed once migration is done.
     if isinstance(key, bytes):
       key = key.decode("utf-8")
 
@@ -396,7 +396,7 @@ class AttributedDict(Dict):
     raise TypeError("Non-string key: {!r}".format(key))
 
   def __getitem__(self, key):
-    # TODO: This behavior should be removed once migration is done.
+    # TODO - This behavior should be removed once migration is done.
     if isinstance(key, bytes):
       key = key.decode("utf-8")
 
@@ -405,7 +405,7 @@ class AttributedDict(Dict):
 
     raise TypeError("Non-string key: {!r}".format(key))
 
-  # TODO: This behavior should be removed once migration is done.
+  # TODO - This behavior should be removed once migration is done.
   # Because of Python 3 migration and incompatibilities between Pythons in how
   # attributed dicts are serialized, we are forced to have this dirty hack in
   # here. Once migration is done and we are sure that the old serialized data
@@ -415,25 +415,25 @@ class AttributedDict(Dict):
     """Turns byte string keys into unicode string keys."""
     byte_keys = set()
 
-    for key in self._values.keys():
+    for key in self._values.keys():  # pyrefly: ignore[missing-attribute]
       if isinstance(key, bytes):
         byte_keys.add(key)
       elif not isinstance(key, str):
         raise TypeError("Non-string key: {!r}".format(key))
 
     for byte_key in byte_keys:
-      value = self._values[byte_key].v
-      del self._values[byte_key]
+      value = self._values[byte_key].v  # pyrefly: ignore[unsupported-operation]
+      del self._values[byte_key]  # pyrefly: ignore[unsupported-operation]
 
       string_key = byte_key.decode("utf-8")
 
       entry = KeyValue(k=DataBlob().SetValue(string_key), v=value)
-      self._values[string_key] = entry
+      self._values[string_key] = entry  # pyrefly: ignore[unsupported-operation]
 
     # If we made any changes, update `self.dat` (whatever it is, but other
     # methods seem to do the same in case of modifying the internal state).
     if byte_keys:
-      self.dat = list(self._values.values())
+      self.dat = list(self._values.values())  # pyrefly: ignore[missing-attribute]
 
 
 class BlobArray(rdf_structs.RDFProtoStruct):
@@ -445,4 +445,4 @@ class BlobArray(rdf_structs.RDFProtoStruct):
 
 # TODO(user):pytype: Mapping is likely using abc.ABCMeta that provides a
 # "register" method. Type checker doesn't see this, unfortunately.
-abc.Mapping.register(Dict)  # pytype: disable=attribute-error
+abc.Mapping.register(Dict)  # pyrefly: ignore[missing-attribute]

@@ -5,7 +5,6 @@ import {
   ChangeDetectionStrategy,
   Component,
   ViewChild,
-  computed,
   effect,
   inject,
   input,
@@ -16,7 +15,6 @@ import {MatTableDataSource, MatTableModule} from '@angular/material/table';
 import {ListContainersFlowResult as ApiListContainersFlowResult} from '../../../lib/api/api_interfaces';
 import {translateContainerDetails} from '../../../lib/api/translation/flow';
 import {ContainerDetails} from '../../../lib/models/flow';
-import {isHuntResult} from '../../../lib/models/hunt';
 import {CollectionResult} from '../../../lib/models/result';
 import {CopyButton} from '../copy_button';
 import {FilterPaginate} from '../filter_paginate';
@@ -35,33 +33,14 @@ const COLUMNS: readonly string[] = [
   'networks',
 ];
 
-const HUNT_COLUMNS: readonly string[] = ['clientId', ...COLUMNS];
-
-interface ContainerDetailsWithClientId extends ContainerDetails {
-  clientId: string;
-}
-
 function containerDetailsFromCollectionResults(
   collectionResults: readonly CollectionResult[],
-): readonly ContainerDetailsWithClientId[] {
+): readonly ContainerDetails[] {
   return collectionResults
-    .map((result) => {
-      const containers = (result.payload as ApiListContainersFlowResult)
-        .containers;
-
-      const containerDetails: ContainerDetailsWithClientId[] = [];
-      for (const container of containers ?? []) {
-        if (!container) {
-          continue;
-        }
-        containerDetails.push({
-          ...translateContainerDetails(container),
-          clientId: result.clientId,
-        });
-      }
-      return containerDetails;
-    })
-    .flat();
+    .map((result) => (result.payload as ApiListContainersFlowResult).containers)
+    .flat()
+    .filter((container) => container !== undefined)
+    .map(translateContainerDetails);
 }
 
 /**
@@ -86,25 +65,20 @@ export class ListContainersFlowResults implements AfterViewInit {
   @ViewChild(MatSort) sort!: MatSort;
 
   /** Loaded results to display in the table. */
-  readonly collectionResults = input.required<readonly CollectionResult[]>();
-
-  readonly containerDetails = computed(() =>
-    containerDetailsFromCollectionResults(this.collectionResults()),
-  );
+  readonly collectionResults = input.required<
+    readonly ContainerDetails[],
+    readonly CollectionResult[]
+  >({
+    transform: containerDetailsFromCollectionResults,
+  });
 
   protected readonly dataSource = new MatTableDataSource<ContainerDetails>();
-
-  protected readonly displayedColumns = computed(() => {
-    if (this.collectionResults().some(isHuntResult)) {
-      return HUNT_COLUMNS;
-    }
-    return COLUMNS;
-  });
+  protected readonly displayedColumns = COLUMNS;
 
   constructor() {
     effect(() => {
-      if (this.containerDetails().length > 0) {
-        this.dataSource.data = this.containerDetails().slice();
+      if (this.collectionResults().length > 0) {
+        this.dataSource.data = this.collectionResults().slice();
       }
     });
   }

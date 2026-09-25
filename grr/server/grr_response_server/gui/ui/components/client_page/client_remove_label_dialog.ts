@@ -1,5 +1,5 @@
 import {CommonModule} from '@angular/common';
-import {Component, inject} from '@angular/core';
+import {ChangeDetectionStrategy, Component, inject} from '@angular/core';
 import {MatButton} from '@angular/material/button';
 import {
   MAT_DIALOG_DATA,
@@ -17,6 +17,7 @@ export interface ClientRemoveLabelDialogData {
 
 /** Dialog to confirm removal of a label. */
 @Component({
+  changeDetection: ChangeDetectionStrategy.Eager,
   selector: 'client-remove-label-dialog',
   templateUrl: './client_remove_label_dialog.ng.html',
   imports: [CommonModule, MatButton, MatDialogModule],

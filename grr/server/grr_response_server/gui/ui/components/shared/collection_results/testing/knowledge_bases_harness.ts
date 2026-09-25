@@ -6,7 +6,6 @@ import {KnowledgeBaseDetailsHarness} from '../data_renderer/testing/knowledge_ba
 export class KnowledgeBasesHarness extends ComponentHarness {
   static hostSelector = 'knowledge-bases';
 
-  readonly clientIds = this.locatorForAll('.client-id');
   readonly knowledgeBaseDetailsHarnesses = this.locatorForAll(
     KnowledgeBaseDetailsHarness,
   );

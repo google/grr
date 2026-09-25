@@ -178,7 +178,7 @@ class Filename(ConfigFilter):
     precondition.AssertType(data, str)
     try:
       with io.open(data, "r") as fd:
-        return fd.read()  # pytype: disable=bad-return-type
+        return fd.read()
     except IOError as e:
       raise FilterError("%s: %s" % (data, e))
 
@@ -190,7 +190,7 @@ class OptionalFile(ConfigFilter):
     precondition.AssertType(data, str)
     try:
       with io.open(data, "r") as fd:
-        return fd.read()  # pytype: disable=bad-return-type
+        return fd.read()
     except IOError:
       return ""
 
@@ -412,7 +412,7 @@ class StringInterpolator(lexer.Lexer):
     arg = self.stack.pop(-1)
 
     # Filters can be specified as a comma separated list.
-    for filter_name in match.group(1).split(","):
+    for filter_name in match.group(1).split(","):  # pyrefly: ignore[missing-attribute]
       filter_object = ConfigFilter.classes_by_name.get(filter_name)
       if filter_object is None:
         raise FilterError("Unknown filter function %r" % filter_name)
@@ -1134,7 +1134,7 @@ class GrrConfigManager(object):
         # TODO(hanuszczak): Investigate why pytype complains here (probably for
         # valid reasons, because this code does not looks like something well-
         # typed).
-        value = context_raw_data.get(name)  # pytype: disable=attribute-error
+        value = context_raw_data.get(name)
         if value is not None:
           if isinstance(value, str):
             value = value.strip()
@@ -1393,25 +1393,6 @@ class GrrConfigManager(object):
         )
     )
 
-  def DEFINE_semantic_enum(
-      self,
-      enum_container: rdf_structs.EnumContainer,
-      name: str,
-      default: Optional[rdf_structs.EnumNamedValue] = None,
-      help: str = "",
-  ) -> None:
-    if not isinstance(enum_container, rdf_structs.EnumContainer):
-      raise ValueError("enum_container must be an EnumContainer.")
-
-    self.AddOption(
-        type_info.RDFEnumType(
-            enum_container=enum_container,
-            name=name,
-            default=default,
-            description=help,
-        )
-    )
-
   def DEFINE_semantic_struct(self, semantic_type, name, default=None, help=""):
     if not issubclass(semantic_type, rdf_structs.RDFStruct):
       raise ValueError(
@@ -1488,15 +1469,6 @@ def DEFINE_list(name, default, help):
 
 def DEFINE_semantic_value(semantic_type, name, default=None, help=""):
   _CONFIG.DEFINE_semantic_value(semantic_type, name, default=default, help=help)
-
-
-def DEFINE_semantic_enum(
-    semantic_enum: rdf_structs.EnumContainer,
-    name: str,
-    default: Optional[rdf_structs.EnumNamedValue] = None,
-    help: str = "",
-) -> None:
-  _CONFIG.DEFINE_semantic_enum(semantic_enum, name, default=default, help=help)
 
 
 def DEFINE_semantic_struct(semantic_type, name, default=None, help=""):

@@ -5,10 +5,6 @@ from collections.abc import Iterable
 from typing import Optional
 
 from google.protobuf import any_pb2
-from grr_response_core import config
-from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
-from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
-from grr_response_core.lib.rdfvalues import mig_file_finder
 from grr_response_core.lib.rdfvalues import mig_paths
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_proto import flows_pb2
@@ -24,20 +20,20 @@ from grr_response_server.flows.general import transfer
 
 def _CollectionLevelToStopAt(
     collection_level: flows_pb2.CollectFilesByKnownPathArgs.CollectionLevel,
-) -> transfer.MultiGetFileArgs.StopAt:
+) -> flows_pb2.MultiGetFileArgs.StopAt:
   """Converts a CollectionLevel to an equivalent StopAt enum."""
   if (
       collection_level
       == flows_pb2.CollectFilesByKnownPathArgs.CollectionLevel.STAT
   ):
-    return transfer.MultiGetFileArgs.StopAt.STAT
+    return flows_pb2.MultiGetFileArgs.StopAt.STAT
   elif (
       collection_level
       == flows_pb2.CollectFilesByKnownPathArgs.CollectionLevel.HASH
   ):
-    return transfer.MultiGetFileArgs.StopAt.HASH
+    return flows_pb2.MultiGetFileArgs.StopAt.HASH
   else:
-    return transfer.MultiGetFileArgs.StopAt.NOTHING
+    return flows_pb2.MultiGetFileArgs.StopAt.NOTHING
 
 
 class CollectFilesByKnownPath(
@@ -53,18 +49,9 @@ class CollectFilesByKnownPath(
   category = "/Filesystem/"
   behaviours = flow_base.BEHAVIOUR_DEBUG
 
-  args_type = rdf_file_finder.CollectFilesByKnownPathArgs
-  result_types = (rdf_file_finder.CollectFilesByKnownPathResult,)
-  progress_type = rdf_file_finder.CollectFilesByKnownPathProgress
-
   proto_args_type = flows_pb2.CollectFilesByKnownPathArgs
   proto_result_types = (flows_pb2.CollectFilesByKnownPathResult,)
   proto_progress_type = flows_pb2.CollectFilesByKnownPathProgress
-
-  only_protos_allowed = True
-
-  def GetProgress(self) -> rdf_file_finder.CollectFilesByKnownPathProgress:
-    return mig_file_finder.ToRDFCollectFilesByKnownPathProgress(self.progress)
 
   def GetProgressProto(self) -> flows_pb2.CollectFilesByKnownPathProgress:
     return self.progress
@@ -86,21 +73,18 @@ class CollectFilesByKnownPath(
     else:
       return self.ReceiveFetchedFileContents.__name__
 
-  def _ReportProgress(
-      self, paths: Iterable[str], pathtype: jobs_pb2.PathSpec.PathType
-  ) -> None:
-    for path in paths:
-      result = flows_pb2.CollectFilesByKnownPathResult(
-          stat=jobs_pb2.StatEntry(
-              pathspec=jobs_pb2.PathSpec(path=path, pathtype=pathtype)
-          ),
-          status=flows_pb2.CollectFilesByKnownPathResult.Status.IN_PROGRESS,
-      )
-      self.SendReplyProto(result)
-
   def Start(self):
     stop_at = _CollectionLevelToStopAt(self.proto_args.collection_level)
     unique_paths = set(list(path for path in self.proto_args.paths))
+    # TODO - `MultiGetFile` mangles Windows slashes and the logic
+    # of this flow does not account for different paths in results (as it just
+    # removes done paths). So, instead of demangling them (which is not easy as
+    # path can contain both back- and forward-slashes at the same time and we
+    # cannot be sure which was which), we pre-mangle them before passing them
+    # to `MultiGetFile`.
+    if self.client_os == "Windows":
+      unique_paths = set(path.replace("\\", "/") for path in unique_paths)
+
     mgf_args = flows_pb2.MultiGetFileArgs(
         pathspecs=[
             jobs_pb2.PathSpec(path=path, pathtype=jobs_pb2.PathSpec.PathType.OS)
@@ -109,7 +93,6 @@ class CollectFilesByKnownPath(
         stop_at=stop_at,
     )
     self.progress.num_in_progress = len(unique_paths)
-    self._ReportProgress(unique_paths, jobs_pb2.PathSpec.PathType.OS)
 
     self.CallFlowProto(
         transfer.MultiGetFile.__name__,
@@ -127,15 +110,13 @@ class CollectFilesByKnownPath(
       self,
       paths: Iterable[str],
   ) -> None:
-    fallback_type = config.CONFIG["Server.raw_filesystem_access_pathtype"]
     mgf_args = flows_pb2.MultiGetFileArgs(
         pathspecs=[
-            jobs_pb2.PathSpec(path=path, pathtype=fallback_type)
+            jobs_pb2.PathSpec(path=path, pathtype=jobs_pb2.PathSpec.NTFS)
             for path in paths
         ],
         stop_at=_CollectionLevelToStopAt(self.proto_args.collection_level),
     )
-    self._ReportProgress(paths, fallback_type)
     self.CallFlowProto(
         transfer.MultiGetFile.__name__,
         flow_args=mgf_args,
@@ -148,20 +129,20 @@ class CollectFilesByKnownPath(
         },
     )
 
-  @flow_base.UseProto2AnyResponses
+  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
   def ReceiveFetchedFileStats(
       self,
       responses: flow_responses.Responses[any_pb2.Any],
   ):
     """This method will be called after MultiGetFile has fetched file stats."""
     if not responses.success:
-      if responses.status and responses.status.error_message:
+      if responses.status and responses.status.error_message:  # pyrefly: ignore[missing-attribute]
         details = responses.status.error_message
       else:
         details = responses.status
       self.Log(f"Failed to fetch file stats: {details}")
 
-    remaining_paths = set(responses.request_data["requested_paths"])
+    remaining_paths = set(responses.request_data["requested_paths"])  # pyrefly: ignore[unsupported-operation]
 
     for response_any in responses:
       response = jobs_pb2.StatEntry()
@@ -176,12 +157,12 @@ class CollectFilesByKnownPath(
       )
       self.SendReplyProto(result)
 
-    requested_paths = responses.request_data["requested_paths"]
+    requested_paths = responses.request_data["requested_paths"]  # pyrefly: ignore[unsupported-operation]
     if len(requested_paths) == len(list(responses)):
       return  # All paths succeeded.
 
     # Some paths failed.
-    is_fallback = bool("is_fallback" in responses.request_data)
+    is_fallback = bool("is_fallback" in responses.request_data)  # pyrefly: ignore[not-iterable]
     if self._IsRetryable(is_fallback):
       self.progress.num_raw_fs_access_retries += len(remaining_paths)
       self._RetryPaths(remaining_paths)
@@ -194,9 +175,7 @@ class CollectFilesByKnownPath(
         result.status = flows_pb2.CollectFilesByKnownPathResult.Status.FAILED
         result.stat.pathspec.path = path
         if is_fallback:
-          result.stat.pathspec.pathtype = config.CONFIG[
-              "Server.raw_filesystem_access_pathtype"
-          ]
+          result.stat.pathspec.pathtype = jobs_pb2.PathSpec.PathType.NTFS
         else:
           result.stat.pathspec.pathtype = jobs_pb2.PathSpec.PathType.OS
 
@@ -213,7 +192,7 @@ class CollectFilesByKnownPath(
     # `MultiGetFile`. FlowIDs are not stored in the VFS, so we can't use
     # that to grab the specific version of the file we want. So, for now, we
     # just grab the latest version available.
-    # TODO: Once we have a way to grab the flow-specific
+    # TODO - Once we have a way to grab the flow-specific
     # version of the file, we should use that instead of the latest version.
     history = data_store.REL_DB.ReadPathInfoHistory(
         self.client_id, client_path.path_type, client_path.components
@@ -223,20 +202,20 @@ class CollectFilesByKnownPath(
     latest_path_info = history[-1]
     return latest_path_info.hash_entry
 
-  @flow_base.UseProto2AnyResponses
+  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
   def ReceiveFetchedFileHashes(
       self,
       responses: flow_responses.Responses[any_pb2.Any],
   ):
     """This method will be called after MultiGetFile has fetched file hashes."""
     if not responses.success:
-      if responses.status and responses.status.error_message:
+      if responses.status and responses.status.error_message:  # pyrefly: ignore[missing-attribute]
         details = responses.status.error_message
       else:
         details = responses.status
       self.Log(f"Failed to fetch file hashes: {details}")
 
-    remaining_paths = set(responses.request_data["requested_paths"])
+    remaining_paths = set(responses.request_data["requested_paths"])  # pyrefly: ignore[unsupported-operation]
 
     for response_any in responses:
       response = jobs_pb2.StatEntry()
@@ -257,12 +236,12 @@ class CollectFilesByKnownPath(
         )
         self.SendReplyProto(result)
 
-    requested_paths = responses.request_data["requested_paths"]
+    requested_paths = responses.request_data["requested_paths"]  # pyrefly: ignore[unsupported-operation]
     if len(requested_paths) == len(list(responses)):
       return  # All paths succeeded.
 
     # Remaining paths weren't successfully fetched.
-    is_fallback = "is_fallback" in responses.request_data
+    is_fallback = "is_fallback" in responses.request_data  # pyrefly: ignore[not-iterable]
     if self._IsRetryable(is_fallback):
       self.progress.num_raw_fs_access_retries += len(remaining_paths)
       self._RetryPaths(remaining_paths)
@@ -275,9 +254,7 @@ class CollectFilesByKnownPath(
         result.status = flows_pb2.CollectFilesByKnownPathResult.Status.FAILED
         result.stat.pathspec.path = path
         if is_fallback:
-          result.stat.pathspec.pathtype = config.CONFIG[
-              "Server.raw_filesystem_access_pathtype"
-          ]
+          result.stat.pathspec.pathtype = jobs_pb2.PathSpec.PathType.NTFS
         else:
           result.stat.pathspec.pathtype = jobs_pb2.PathSpec.PathType.OS
 
@@ -293,20 +270,20 @@ class CollectFilesByKnownPath(
     except file_store.FileHasNoContentError:
       return False
 
-  @flow_base.UseProto2AnyResponses
+  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
   def ReceiveFetchedFileContents(
       self,
       responses: flow_responses.Responses[any_pb2.Any],
   ):
     """This method will be called after MultiGetFile has fetched file contents."""
     if not responses.success:
-      if responses.status and responses.status.error_message:
+      if responses.status and responses.status.error_message:  # pyrefly: ignore[missing-attribute]
         details = responses.status.error_message
       else:
         details = responses.status
       self.Log(f"Failed to fetch file contents: {details}")
 
-    remaining_paths = set(responses.request_data["requested_paths"])
+    remaining_paths = set(responses.request_data["requested_paths"])  # pyrefly: ignore[unsupported-operation]
 
     for response_any in responses:
       response = jobs_pb2.StatEntry()
@@ -328,12 +305,12 @@ class CollectFilesByKnownPath(
         )
         self.SendReplyProto(result)
 
-    requested_paths = responses.request_data["requested_paths"]
+    requested_paths = responses.request_data["requested_paths"]  # pyrefly: ignore[unsupported-operation]
     if len(requested_paths) == len(list(responses)):
       return  # All paths succeeded.
 
     # Remaining paths weren't successfully fetched.
-    is_fallback = "is_fallback" in responses.request_data
+    is_fallback = "is_fallback" in responses.request_data  # pyrefly: ignore[not-iterable]
     if self._IsRetryable(is_fallback):
       self.progress.num_raw_fs_access_retries += len(remaining_paths)
       self._RetryPaths(remaining_paths)
@@ -346,9 +323,7 @@ class CollectFilesByKnownPath(
         result.status = flows_pb2.CollectFilesByKnownPathResult.Status.FAILED
         result.stat.pathspec.path = path
         if is_fallback:
-          result.stat.pathspec.pathtype = config.CONFIG[
-              "Server.raw_filesystem_access_pathtype"
-          ]
+          result.stat.pathspec.pathtype = jobs_pb2.PathSpec.PathType.NTFS
         else:
           result.stat.pathspec.pathtype = jobs_pb2.PathSpec.PathType.OS
 
@@ -366,20 +341,13 @@ class CollectMultipleFiles(
 
   friendly_name = "Collect multiple files"
   category = "/Filesystem/"
-  args_type = rdf_file_finder.CollectMultipleFilesArgs
-  result_types = (rdf_file_finder.CollectMultipleFilesResult,)
-  progress_type = rdf_file_finder.CollectMultipleFilesProgress
   behaviours = flow_base.BEHAVIOUR_DEBUG
 
   proto_args_type = flows_pb2.CollectMultipleFilesArgs
   proto_result_types = (flows_pb2.CollectMultipleFilesResult,)
   proto_progress_type = flows_pb2.CollectMultipleFilesProgress
-  only_protos_allowed = True
 
   MAX_FILE_SIZE = 1024 * 1024 * 1024 * 10  # 10GiB
-
-  def GetProgress(self) -> rdf_file_finder.CollectMultipleFilesProgress:
-    return mig_file_finder.ToRDFCollectMultipleFilesProgress(self.progress)
 
   def GetProgressProto(self) -> flows_pb2.CollectMultipleFilesProgress:
     return self.progress
@@ -409,7 +377,7 @@ class CollectMultipleFiles(
         else None,
     )
 
-  def Start(self):  # pytype: disable=signature-mismatch  # overriding-parameter-count-checks
+  def Start(self):
     """See base class."""
     self.progress = flows_pb2.CollectMultipleFilesProgress(
         num_found=0,
@@ -434,13 +402,13 @@ class CollectMultipleFiles(
         next_state=self.ProcessStatResponses.__name__,
     )
 
-  @flow_base.UseProto2AnyResponses
+  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
   def ProcessStatResponses(
       self,
       responses: flow_responses.Responses[any_pb2.Any],
   ) -> None:
     if not responses.success:
-      if responses.status and responses.status.error_message:
+      if responses.status and responses.status.error_message:  # pyrefly: ignore[missing-attribute]
         details = responses.status.error_message
       else:
         details = responses.status
@@ -476,19 +444,19 @@ class CollectMultipleFiles(
 
     self.progress.num_in_progress += len(paths)
 
-  @flow_base.UseProto2AnyResponses
+  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
   def ProcessCollectedResponses(
       self,
       responses: flow_responses.Responses[any_pb2.Any],
   ) -> None:
     if not responses.success:
-      if responses.status and responses.status.error_message:
+      if responses.status and responses.status.error_message:  # pyrefly: ignore[missing-attribute]
         details = responses.status.error_message
       else:
         details = responses.status
       self.Log(f"Failed while hashing files: {details}")
 
-    requested_paths = responses.request_data["requested_paths"]
+    requested_paths = responses.request_data["requested_paths"]  # pyrefly: ignore[unsupported-operation]
 
     for response_any in responses:
       ff_result = flows_pb2.FileFinderResult()
@@ -506,13 +474,12 @@ class CollectMultipleFiles(
       self.SendReplyProto(result)
 
     # If some of the requested paths were not returned, fallback once.
-    is_fallback = "is_fallback" in responses.request_data
-    fallback_type = config.CONFIG["Server.raw_filesystem_access_pathtype"]
+    is_fallback = "is_fallback" in responses.request_data  # pyrefly: ignore[not-iterable]
     if requested_paths and self.client_os == "Windows" and not is_fallback:
       conditions = self._BuildConditionsFromArgs()
       file_finder_args = flows_pb2.FileFinderArgs(
           paths=requested_paths,
-          pathtype=fallback_type,
+          pathtype=jobs_pb2.PathSpec.PathType.NTFS,
           conditions=conditions,
           action=flows_pb2.FileFinderAction(
               action_type=flows_pb2.FileFinderAction.Action.DOWNLOAD
@@ -535,9 +502,10 @@ class CollectMultipleFiles(
           f"File {path} could not be fetched ({is_fallback=}), check flow logs"
           " for more details."
       )
-      path_type = (
-          jobs_pb2.PathSpec.PathType.OS if not is_fallback else fallback_type
-      )
+      if is_fallback:
+        path_type = jobs_pb2.PathSpec.PathType.NTFS
+      else:
+        path_type = jobs_pb2.PathSpec.PathType.OS
       result = flows_pb2.CollectMultipleFilesResult(
           stat=jobs_pb2.StatEntry(
               pathspec=jobs_pb2.PathSpec(path=path, pathtype=path_type)
@@ -571,8 +539,6 @@ class StatMultipleFiles(
   category = "/Filesystem/"
   behaviours = flow_base.BEHAVIOUR_BASIC
 
-  args_type = rdf_file_finder.StatMultipleFilesArgs
-  result_types = (rdf_client_fs.StatEntry,)
   proto_args_type = flows_pb2.StatMultipleFilesArgs
   proto_result_types = (jobs_pb2.StatEntry,)
   only_protos_allowed = True
@@ -616,7 +582,7 @@ class StatMultipleFiles(
         next_state=self.ProcessResponses.__name__,
     )
 
-  @flow_base.UseProto2AnyResponses
+  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
   def ProcessResponses(
       self, responses: flow_responses.Responses[any_pb2.Any]
   ) -> None:
@@ -642,18 +608,11 @@ class HashMultipleFiles(
   category = "/Filesystem/"
   behaviours = flow_base.BEHAVIOUR_BASIC
 
-  args_type = rdf_file_finder.HashMultipleFilesArgs
-  result_types = (rdf_file_finder.CollectMultipleFilesResult,)
-  progress_type = rdf_file_finder.HashMultipleFilesProgress
   proto_args_type = flows_pb2.HashMultipleFilesArgs
   proto_result_types = (flows_pb2.CollectMultipleFilesResult,)
   proto_progress_type = flows_pb2.HashMultipleFilesProgress
-  only_protos_allowed = True
 
   MAX_FILE_SIZE = 1024 * 1024 * 1024 * 10  # 10GiB
-
-  def GetProgress(self) -> rdf_file_finder.HashMultipleFilesProgress:
-    return mig_file_finder.ToRDFHashMultipleFilesProgress(self.progress)
 
   def GetProgressProto(self) -> flows_pb2.HashMultipleFilesProgress:
     return self.progress
@@ -694,7 +653,7 @@ class HashMultipleFiles(
     )
     file_finder_args = flows_pb2.FileFinderArgs(
         paths=self.proto_args.path_expressions,
-        pathtype=rdf_paths.PathSpec.PathType.OS,
+        pathtype=rdf_paths.PathSpec.PathType.OS,  # pyrefly: ignore[missing-attribute]
         conditions=self._BuildConditionsFromArgs(),
         action=flows_pb2.FileFinderAction(
             action_type=flows_pb2.FileFinderAction.Action.STAT
@@ -706,13 +665,13 @@ class HashMultipleFiles(
         next_state=self.ProcessStatResponses.__name__,
     )
 
-  @flow_base.UseProto2AnyResponses
+  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
   def ProcessStatResponses(
       self,
       responses: flow_responses.Responses[any_pb2.Any],
   ) -> None:
     if not responses.success:
-      if responses.status and responses.status.error_message:
+      if responses.status and responses.status.error_message:  # pyrefly: ignore[missing-attribute]
         details = responses.status.error_message
       else:
         details = responses.status
@@ -732,7 +691,7 @@ class HashMultipleFiles(
     conditions = self._BuildConditionsFromArgs()
     file_finder_args = flows_pb2.FileFinderArgs(
         paths=paths,
-        pathtype=rdf_paths.PathSpec.PathType.OS,
+        pathtype=rdf_paths.PathSpec.PathType.OS,  # pyrefly: ignore[missing-attribute]
         conditions=conditions,
         action=flows_pb2.FileFinderAction(
             action_type=flows_pb2.FileFinderAction.Action.HASH
@@ -747,19 +706,19 @@ class HashMultipleFiles(
 
     self.progress.num_in_progress += len(paths)
 
-  @flow_base.UseProto2AnyResponses
+  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
   def ProcessHashResponses(
       self,
       responses: flow_responses.Responses[any_pb2.Any],
   ) -> None:
     if not responses.success:
-      if responses.status and responses.status.error_message:
+      if responses.status and responses.status.error_message:  # pyrefly: ignore[missing-attribute]
         details = responses.status.error_message
       else:
         details = responses.status
       self.Log(f"Failed while hashing files: {details}")
 
-    requested_paths = responses.request_data["requested_paths"]
+    requested_paths = responses.request_data["requested_paths"]  # pyrefly: ignore[unsupported-operation]
 
     for response_any in responses:
       ff_result = flows_pb2.FileFinderResult()
@@ -777,13 +736,12 @@ class HashMultipleFiles(
       self.SendReplyProto(result)
 
     # If some of the requested paths were not returned, fallback once.
-    is_fallback = "is_fallback" in responses.request_data
-    fallback_type = config.CONFIG["Server.raw_filesystem_access_pathtype"]
+    is_fallback = "is_fallback" in responses.request_data  # pyrefly: ignore[not-iterable]
     if requested_paths and self.client_os == "Windows" and not is_fallback:
       conditions = self._BuildConditionsFromArgs()
       file_finder_args = flows_pb2.FileFinderArgs(
           paths=requested_paths,
-          pathtype=fallback_type,
+          pathtype=jobs_pb2.PathSpec.PathType.NTFS,
           conditions=conditions,
           action=flows_pb2.FileFinderAction(
               action_type=flows_pb2.FileFinderAction.Action.HASH
@@ -806,9 +764,10 @@ class HashMultipleFiles(
           f"File {path} could not be fetched ({is_fallback=}), check flow logs"
           " for more details."
       )
-      path_type = (
-          jobs_pb2.PathSpec.PathType.OS if not is_fallback else fallback_type
-      )
+      if is_fallback:
+        path_type = jobs_pb2.PathSpec.PathType.NTFS
+      else:
+        path_type = jobs_pb2.PathSpec.PathType.OS
       result = flows_pb2.CollectMultipleFilesResult(
           stat=jobs_pb2.StatEntry(
               pathspec=jobs_pb2.PathSpec(path=path, pathtype=path_type)

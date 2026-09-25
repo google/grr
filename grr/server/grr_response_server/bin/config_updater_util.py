@@ -14,12 +14,12 @@ import time
 from typing import Optional
 from urllib import parse as urlparse
 
+from google.protobuf import text_format
 import MySQLdb
 from MySQLdb.constants import CR as mysql_conn_errors
 from MySQLdb.constants import ER as general_mysql_errors
 import pkg_resources
 
-from google.protobuf import text_format
 from grr_api_client import errors as api_errors
 from grr_api_client import root as api_root
 from grr_response_client_builder import repacking
@@ -105,9 +105,7 @@ def RetryQuestion(question_text, output_re="", default_val=None):
       new_text = "%s [%s]: " % (question_text, default_val)
     else:
       new_text = "%s: " % question_text
-    # pytype: disable=wrong-arg-count
     output = input(new_text) or str(default_val)
-    # pytype: enable=wrong-arg-count
     output = output.strip()
     if not output_re or re.match(output_re, output):
       break
@@ -137,9 +135,7 @@ def RetryIntQuestion(question_text: str, default_int: int) -> int:
 
 def GetPassword(question_text: str) -> str:
   # TODO(hanuszczak): Incorrect type specification for `getpass`.
-  # pytype: disable=wrong-arg-types
   return getpass.getpass(prompt=question_text)
-  # pytype: enable=wrong-arg-types
 
 
 def ConfigureHostnames(config, external_hostname: Optional[str] = None):
@@ -337,16 +333,16 @@ class FleetspeakConfig:
   def __init__(self):
 
     self.use_fleetspeak: bool = False
-    self.external_hostname: str = None
+    self.external_hostname: str = None  # pyrefly: ignore[bad-assignment]
     self.admin_port = 4444
     self.grr_port = 11111
     self.https_port = 4443
-    self.mysql_username: str = None
-    self.mysql_password: str = None
-    self.mysql_host: str = None
+    self.mysql_username: str = None  # pyrefly: ignore[bad-assignment]
+    self.mysql_password: str = None  # pyrefly: ignore[bad-assignment]
+    self.mysql_host: str = None  # pyrefly: ignore[bad-assignment]
     self.mysql_port = 3306
-    self.mysql_database: str = None
-    self.mysql_unix_socket: str = None
+    self.mysql_database: str = None  # pyrefly: ignore[bad-assignment]
+    self.mysql_unix_socket: str = None  # pyrefly: ignore[bad-assignment]
     self.config_dir = package.ResourcePath(
         "fleetspeak-server-bin", "fleetspeak-server-bin/etc/fleetspeak-server"
     )
@@ -427,7 +423,7 @@ class FleetspeakConfig:
         self.mysql_host or config["Mysql.host"],
     )
     self.mysql_port = (
-        RetryIntQuestion(
+        RetryIntQuestion(  # pyrefly: ignore[bad-assignment]
             "Fleetspeak MySQL Port (0 for local socket)", self.mysql_port or 0
         )
         or None
@@ -614,7 +610,7 @@ class FleetspeakConfig:
         "Mysql.database_password": self.mysql_password,
     }
     if self.mysql_port is not None:
-      db_options["Mysql.port"] = self.mysql_port
+      db_options["Mysql.port"] = self.mysql_port  # pyrefly: ignore[bad-assignment]
     if self.mysql_unix_socket is not None:
       db_options["Mysql.unix_socket"] = self.mysql_unix_socket
     # In Python, localhost is automatically mapped to connecting via the UNIX
@@ -764,7 +760,6 @@ def FinalizeConfigInit(
     CreateUser("admin", password=admin_password, is_admin=True)
   except UserAlreadyExistsError:
     if prompt:
-      # pytype: disable=wrong-arg-count
       if (
           input(
               "User 'admin' already exists, do you want to "
@@ -773,7 +768,6 @@ def FinalizeConfigInit(
           or "N"
       ) == "Y":
         UpdateUser("admin", password=admin_password, is_admin=True)
-      # pytype: enable=wrong-arg-count
     else:
       UpdateUser("admin", password=admin_password, is_admin=True)
 
@@ -820,19 +814,17 @@ def Initialize(
 ):
   """Initialize or update a GRR configuration."""
 
-  print("Checking write access on config %s" % config["Config.writeback"])
-  if not os.access(config.parser.config_path, os.W_OK):
+  print("Checking write access on config %s" % config["Config.writeback"])  # pyrefly: ignore[unsupported-operation]
+  if not os.access(config.parser.config_path, os.W_OK):  # pyrefly: ignore[missing-attribute]
     raise IOError("Config not writeable (need sudo?)")
 
   print("\nStep 0: Importing Configuration from previous installation.")
   options_imported = 0
-  prev_config_file = config.Get("ConfigUpdater.old_config", default=None)
+  prev_config_file = config.Get("ConfigUpdater.old_config", default=None)  # pyrefly: ignore[missing-attribute]
   if prev_config_file and os.access(prev_config_file, os.R_OK):
     print("Found config file %s." % prev_config_file)
-    # pytype: disable=wrong-arg-count
     if input("Do you want to import this configuration? [yN]: ").upper() == "Y":
       options_imported = ImportConfig(prev_config_file, config)
-    # pytype: enable=wrong-arg-count
   else:
     print("No old config file found.")
 
@@ -845,13 +837,12 @@ def Initialize(
   ConfigureEmails(config)
 
   print("\nStep 2: Key Generation")
-  if config.Get("PrivateKeys.executable_signing_private_key", default=None):
+  if config.Get("PrivateKeys.executable_signing_private_key", default=None):  # pyrefly: ignore[missing-attribute]
     if options_imported > 0:
       print(
           "Since you have imported keys from another installation in the "
           "last step,\nyou probably do not want to generate new keys now."
       )
-    # pytype: disable=wrong-arg-count
     if (
         input(
             "You already have keys in your config, do you want to"
@@ -860,7 +851,6 @@ def Initialize(
         or "N"
     ) == "Y":
       config_updater_keys_util.GenerateKeys(config, overwrite_keys=True)
-    # pytype: enable=wrong-arg-count
   else:
     config_updater_keys_util.GenerateKeys(config)
 
@@ -921,7 +911,7 @@ def InitializeNoPrompt(
   external hostname, admin password, and MySQL password; everything else is set
   automatically.
   """
-  if config["Server.initialized"]:
+  if config["Server.initialized"]:  # pyrefly: ignore[unsupported-operation]
     raise ValueError("Config has already been initialized.")
   if not external_hostname:
     raise ValueError(
@@ -932,25 +922,25 @@ def InitializeNoPrompt(
   if mysql_password is None:
     raise ValueError("--noprompt set, but --mysql_password was not provided.")
 
-  print("Checking write access on config %s" % config.parser)
-  if not os.access(config.parser.config_path, os.W_OK):
+  print("Checking write access on config %s" % config.parser)  # pyrefly: ignore[missing-attribute]
+  if not os.access(config.parser.config_path, os.W_OK):  # pyrefly: ignore[missing-attribute]
     raise IOError("Config not writeable (need sudo?)")
 
   config_dict = {}
   config_dict["Database.implementation"] = "MysqlDB"
   config_dict["Blobstore.implementation"] = "DbBlobStore"
 
-  config_dict["Mysql.host"] = mysql_hostname or config["Mysql.host"]
-  config_dict["Mysql.port"] = mysql_port or config["Mysql.port"]
+  config_dict["Mysql.host"] = mysql_hostname or config["Mysql.host"]  # pyrefly: ignore[unsupported-operation]
+  config_dict["Mysql.port"] = mysql_port or config["Mysql.port"]  # pyrefly: ignore[unsupported-operation]
   config_dict["Mysql.database_name"] = config_dict["Mysql.database"] = (
-      mysql_db or config["Mysql.database_name"]
+      mysql_db or config["Mysql.database_name"]  # pyrefly: ignore[unsupported-operation]
   )
   config_dict["Mysql.database_username"] = config_dict["Mysql.username"] = (
-      mysql_username or config["Mysql.database_username"]
+      mysql_username or config["Mysql.database_username"]  # pyrefly: ignore[unsupported-operation]
   )
   config_dict["AdminUI.url"] = "http://%s:%s" % (
       external_hostname,
-      config["AdminUI.port"],
+      config["AdminUI.port"],  # pyrefly: ignore[unsupported-operation]
   )
   config_dict["Logging.domain"] = external_hostname
   config_dict["Monitoring.alert_email"] = (
@@ -976,18 +966,18 @@ def InitializeNoPrompt(
     print("Error: Could not connect to MySQL with the given configuration.")
     raise ConfigInitError()
   for key, value in config_dict.items():
-    config.Set(key, value)
+    config.Set(key, value)  # pyrefly: ignore[missing-attribute]
   config_updater_keys_util.GenerateKeys(config)
 
   fs_config = FleetspeakConfig()
   fs_config.use_fleetspeak = use_fleetspeak
   fs_config.external_hostname = external_hostname
-  fs_config.mysql_username = mysql_username  # pytype: disable=annotation-type-mismatch  # attribute-variable-annotations
+  fs_config.mysql_username = mysql_username  # pyrefly: ignore[bad-assignment]
   fs_config.mysql_password = mysql_password
-  fs_config.mysql_host = mysql_hostname  # pytype: disable=annotation-type-mismatch  # attribute-variable-annotations
+  fs_config.mysql_host = mysql_hostname  # pyrefly: ignore[bad-assignment]
   if mysql_port:
     fs_config.mysql_port = mysql_port
-  fs_config.mysql_database = mysql_fleetspeak_db  # pytype: disable=annotation-type-mismatch  # attribute-variable-annotations
+  fs_config.mysql_database = mysql_fleetspeak_db  # pyrefly: ignore[bad-assignment]
   fs_config.Write(config)
 
   FinalizeConfigInit(

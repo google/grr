@@ -9,7 +9,6 @@ from grr_response_core import config
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import config as rdf_config
-from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_proto import config_pb2
 from grr_response_proto.api import config_pb2 as api_config_pb2
 from grr_response_server import maintenance_utils
@@ -230,34 +229,17 @@ class ApiGetConfigOptionHandlerTest(api_test_lib.ApiCallHandlerTest):
     self.assertTrue(result.is_invalid)
 
   def testRendersRDFDuration(self):
-    with test_lib.ConfigOverrider(
-        {"Server.fleetspeak_last_ping_threshold": "1h"}
-    ):
+    with test_lib.ConfigOverrider({"Cron.interrogate_duration": "1d"}):
       result = self.handler.Handle(
           api_config_pb2.ApiGetConfigOptionArgs(
-              name="Server.fleetspeak_last_ping_threshold"
+              name="Cron.interrogate_duration"
           )
       )
-    self.assertEqual(result.name, "Server.fleetspeak_last_ping_threshold")
+    self.assertEqual(result.name, "Cron.interrogate_duration")
     self.assertEqual(result.type, "Int64Value")
     unpacked = api_config_pb2.Int64Value()
     result.value.Unpack(unpacked)
-    self.assertEqual(unpacked.value, rdfvalue.Duration("1h").microseconds)
-
-  def testRendersRDFEnum(self):
-    with test_lib.ConfigOverrider(
-        {"Server.raw_filesystem_access_pathtype": "TSK"}
-    ):
-      result = self.handler.Handle(
-          api_config_pb2.ApiGetConfigOptionArgs(
-              name="Server.raw_filesystem_access_pathtype"
-          )
-      )
-    self.assertEqual(result.name, "Server.raw_filesystem_access_pathtype")
-    self.assertEqual(result.type, "StringValue")
-    unpacked = api_config_pb2.StringValue()
-    result.value.Unpack(unpacked)
-    self.assertEqual(unpacked.value, str(rdf_paths.PathSpec.PathType.TSK))
+    self.assertEqual(unpacked.value, rdfvalue.Duration("1d").microseconds)
 
   def testRendersChoice(self):
     with test_lib.ConfigOverrider({"ClientBuilder.build_type": "Debug"}):

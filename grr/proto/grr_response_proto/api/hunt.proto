@@ -3,7 +3,6 @@ syntax = "proto2";
 import "google/protobuf/any.proto";
 import "grr_response_proto/analysis.proto";
 import "grr_response_proto/api/flow.proto";
-import "grr_response_proto/api/output_plugin.proto";
 import "grr_response_proto/api_utils.proto";
 import "grr_response_proto/flows.proto";
 import "grr_response_proto/jobs.proto";
@@ -398,18 +397,6 @@ message ApiGetHuntResultsExportCommandResult {
   optional string command = 1 [(sem_type) = {
     description: "Command that may be used to export hunt results."
   }];
-}
-
-message ApiListHuntOutputPluginsArgs {
-  optional string hunt_id = 1
-      [(sem_type) = { type: "ApiHuntId", description: "Hunt id." }];
-}
-
-message ApiListHuntOutputPluginsResult {
-  repeated ApiOutputPlugin items = 1;
-
-  optional int64 total_count = 2
-      [(sem_type) = { description: "Total count of items." }];
 }
 
 message ApiListHuntOutputPluginLogsArgs {

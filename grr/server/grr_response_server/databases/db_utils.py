@@ -227,7 +227,7 @@ class BatchPlanner(Generic[_T]):
   affect less total rows than the limit.
   """
 
-  # TODO: as soon as GRR is fully Python 3.7, this should
+  # TODO - as soon as GRR is fully Python 3.7, this should
   # be replaced with a generic NamedTuple. Unfortunately, Python 3.6
   # has issues with NamedTuples and generics. See:
   # https://stackoverflow.com/questions/50530959/generic-namedtuple-in-python-3-6
@@ -243,10 +243,10 @@ class BatchPlanner(Generic[_T]):
     """
     self._limit = limit
 
-    self._current_batch: list[BatchPlanner[_T].BatchPart] = []
+    self._current_batch: list[BatchPlanner[_T].BatchPart] = []  # pyrefly: ignore[missing-attribute]
     self._current_batch_size = 0
 
-    self._batches: list[BatchPlanner[_T].Batch] = []
+    self._batches: list[BatchPlanner[_T].Batch] = []  # pyrefly: ignore[missing-attribute]
 
   def _PlanOperation(self, key: _T, offset: int, count: int) -> int:
     """An utility method to plan a single operation.

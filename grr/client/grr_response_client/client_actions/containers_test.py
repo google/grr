@@ -34,17 +34,17 @@ class ListContainersTest(client_test_lib.EmptyActionTest):
       self.assertNotEmpty(results)
       self.assertLen(results, 2)
       self.assertIsInstance(results[0], rdf_containers.ListContainersResult)
-      self.assertLen(results[0].cli_outputs, 3)
-      self.assertEqual(results[0].cli_outputs[0].binary, "crictl")
-      self.assertEqual(results[0].cli_outputs[0].exit_status, 2)
-      self.assertEqual(results[0].cli_outputs[1].binary, "crictl")
-      self.assertEqual(results[0].cli_outputs[1].exit_status, 0)
-      self.assertEqual(results[0].cli_outputs[2].binary, "docker")
-      self.assertEqual(results[0].cli_outputs[2].exit_status, 0)
-      self.assertEmpty(results[0].cli_outputs[2].stdout)
+      self.assertLen(results[0].cli_outputs, 3)  # pyrefly: ignore[missing-attribute]
+      self.assertEqual(results[0].cli_outputs[0].binary, "crictl")  # pyrefly: ignore[missing-attribute]
+      self.assertEqual(results[0].cli_outputs[0].exit_status, 2)  # pyrefly: ignore[missing-attribute]
+      self.assertEqual(results[0].cli_outputs[1].binary, "crictl")  # pyrefly: ignore[missing-attribute]
+      self.assertEqual(results[0].cli_outputs[1].exit_status, 0)  # pyrefly: ignore[missing-attribute]
+      self.assertEqual(results[0].cli_outputs[2].binary, "docker")  # pyrefly: ignore[missing-attribute]
+      self.assertEqual(results[0].cli_outputs[2].exit_status, 0)  # pyrefly: ignore[missing-attribute]
+      self.assertEmpty(results[0].cli_outputs[2].stdout)  # pyrefly: ignore[missing-attribute]
       self.assertIsInstance(results[1], rdf_flows.GrrStatus)
-      self.assertEqual(rdf_flows.GrrStatus.ReturnedStatus.OK, results[1].status)
-      self.assertEmpty(results[1].error_message)
+      self.assertEqual(rdf_flows.GrrStatus.ReturnedStatus.OK, results[1].status)  # pyrefly: ignore[missing-attribute]
+      self.assertEmpty(results[1].error_message)  # pyrefly: ignore[missing-attribute]
 
   def testListContainersHostroot(self):
     def MockExecute(cmd, cmdargs):
@@ -64,16 +64,16 @@ class ListContainersTest(client_test_lib.EmptyActionTest):
       self.assertNotEmpty(results)
       self.assertLen(results, 2)
       self.assertIsInstance(results[0], rdf_containers.ListContainersResult)
-      self.assertLen(results[0].cli_outputs, 3)
-      self.assertEqual(results[0].cli_outputs[0].binary, "crictl")
-      self.assertEqual(results[0].cli_outputs[0].exit_status, 0)
-      self.assertEqual(results[0].cli_outputs[1].binary, "crictl")
-      self.assertEqual(results[0].cli_outputs[1].exit_status, 0)
-      self.assertEqual(results[0].cli_outputs[2].binary, "docker")
-      self.assertEqual(results[0].cli_outputs[2].exit_status, 0)
+      self.assertLen(results[0].cli_outputs, 3)  # pyrefly: ignore[missing-attribute]
+      self.assertEqual(results[0].cli_outputs[0].binary, "crictl")  # pyrefly: ignore[missing-attribute]
+      self.assertEqual(results[0].cli_outputs[0].exit_status, 0)  # pyrefly: ignore[missing-attribute]
+      self.assertEqual(results[0].cli_outputs[1].binary, "crictl")  # pyrefly: ignore[missing-attribute]
+      self.assertEqual(results[0].cli_outputs[1].exit_status, 0)  # pyrefly: ignore[missing-attribute]
+      self.assertEqual(results[0].cli_outputs[2].binary, "docker")  # pyrefly: ignore[missing-attribute]
+      self.assertEqual(results[0].cli_outputs[2].exit_status, 0)  # pyrefly: ignore[missing-attribute]
       self.assertIsInstance(results[1], rdf_flows.GrrStatus)
-      self.assertEqual(rdf_flows.GrrStatus.ReturnedStatus.OK, results[1].status)
-      self.assertEmpty(results[1].error_message)
+      self.assertEqual(rdf_flows.GrrStatus.ReturnedStatus.OK, results[1].status)  # pyrefly: ignore[missing-attribute]
+      self.assertEmpty(results[1].error_message)  # pyrefly: ignore[missing-attribute]
 
   def testListContainersError(self):
     def MockExecute(cmd, cmdargs):
@@ -89,9 +89,9 @@ class ListContainersTest(client_test_lib.EmptyActionTest):
       self.assertLen(results, 1)
       self.assertIsInstance(results[0], rdf_flows.GrrStatus)
       self.assertEqual(
-          rdf_flows.GrrStatus.ReturnedStatus.GENERIC_ERROR, results[0].status
+          rdf_flows.GrrStatus.ReturnedStatus.GENERIC_ERROR, results[0].status  # pyrefly: ignore[missing-attribute]
       )
-      self.assertNotEmpty(results[0].error_message)
+      self.assertNotEmpty(results[0].error_message)  # pyrefly: ignore[missing-attribute]
 
 
 def main(argv):

@@ -45,7 +45,7 @@ RRG_REQUEST_COUNT = metrics.Counter(
 def SendGrrMessageThroughFleetspeak(
     grr_id: str,
     grr_msg: rdf_flows.GrrMessage,
-    labels: Collection[str],  # TODO: Remove once RRG rollout done.
+    labels: Collection[str],  # TODO - Remove once RRG rollout done.
 ) -> None:
   """Sends the given GrrMessage through FS with retrying.
 
@@ -69,13 +69,13 @@ def SendGrrMessageThroughFleetspeak(
       ),
   )
   fs_msg.data.Pack(grr_msg.AsPrimitiveProto())
-  if grr_msg.session_id is not None:
+  if grr_msg.session_id is not None:  # pyrefly: ignore[missing-attribute]
     annotation = fs_msg.annotations.entries.add()
-    annotation.key, annotation.value = "flow_id", grr_msg.session_id.Basename()
-  if grr_msg.request_id is not None:
+    annotation.key, annotation.value = "flow_id", grr_msg.session_id.Basename()  # pyrefly: ignore[missing-attribute]
+  if grr_msg.request_id is not None:  # pyrefly: ignore[missing-attribute]
     annotation = fs_msg.annotations.entries.add()
     annotation.key, annotation.value = "request_id", str(grr_msg.request_id)
-  fleetspeak_connector.CONN.outgoing.InsertMessage(
+  fleetspeak_connector.CONN.outgoing.InsertMessage(  # pyrefly: ignore[missing-attribute]
       fs_msg,
       single_try_timeout=WRITE_SINGLE_TRY_TIMEOUT,
       timeout=WRITE_TOTAL_TIMEOUT,
@@ -83,7 +83,7 @@ def SendGrrMessageThroughFleetspeak(
 
   GRR_REQUEST_COUNT.Increment(
       fields=[
-          grr_msg.name,
+          grr_msg.name,  # pyrefly: ignore[missing-attribute]
           ",".join(sorted(labels)),
       ]
   )
@@ -93,7 +93,7 @@ def SendGrrMessageThroughFleetspeak(
 def SendGrrMessageProtoThroughFleetspeak(
     grr_id: str,
     grr_msg: jobs_pb2.GrrMessage,
-    labels: Collection[str],  # TODO: Remove once RRG rollout done.
+    labels: Collection[str],  # TODO - Remove once RRG rollout done.
 ) -> None:
   """Sends the given GrrMessage through FS with retrying.
 
@@ -125,7 +125,7 @@ def SendGrrMessageProtoThroughFleetspeak(
     annotation = fs_msg.annotations.entries.add()
     annotation.key = "request_id"
     annotation.value = str(grr_msg.request_id)
-  fleetspeak_connector.CONN.outgoing.InsertMessage(
+  fleetspeak_connector.CONN.outgoing.InsertMessage(  # pyrefly: ignore[missing-attribute]
       fs_msg,
       single_try_timeout=WRITE_SINGLE_TRY_TIMEOUT,
       timeout=WRITE_TOTAL_TIMEOUT,
@@ -143,7 +143,7 @@ def SendGrrMessageProtoThroughFleetspeak(
 def SendRrgRequest(
     client_id: str,
     request: rrg_pb2.Request,
-    labels: Collection[str],  # TODO: Remove once RRG rollout done.
+    labels: Collection[str],  # TODO - Remove once RRG rollout done.
 ) -> None:
   """Sends a RRG action request to the specified endpoint.
 
@@ -169,7 +169,7 @@ def SendRrgRequest(
       value=str(request.request_id),
   )
 
-  fleetspeak_connector.CONN.outgoing.InsertMessage(
+  fleetspeak_connector.CONN.outgoing.InsertMessage(  # pyrefly: ignore[missing-attribute]
       message,
       single_try_timeout=WRITE_SINGLE_TRY_TIMEOUT,
       timeout=WRITE_TOTAL_TIMEOUT,
@@ -193,7 +193,7 @@ def KillFleetspeak(grr_id: str, force: bool) -> None:
   fs_msg.destination.service_name = "system"
   fs_msg.data.Pack(die_req)
 
-  fleetspeak_connector.CONN.outgoing.InsertMessage(
+  fleetspeak_connector.CONN.outgoing.InsertMessage(  # pyrefly: ignore[missing-attribute]
       fs_msg,
       single_try_timeout=WRITE_SINGLE_TRY_TIMEOUT,
       timeout=WRITE_TOTAL_TIMEOUT,
@@ -210,7 +210,7 @@ def RestartFleetspeakGrrService(grr_id: str) -> None:
   fs_msg.destination.service_name = "system"
   fs_msg.data.Pack(restart_req)
 
-  fleetspeak_connector.CONN.outgoing.InsertMessage(
+  fleetspeak_connector.CONN.outgoing.InsertMessage(  # pyrefly: ignore[missing-attribute]
       fs_msg,
       single_try_timeout=WRITE_SINGLE_TRY_TIMEOUT,
       timeout=WRITE_TOTAL_TIMEOUT,
@@ -222,7 +222,7 @@ def DeleteFleetspeakPendingMessages(grr_id: str) -> None:
   """Deletes fleetspeak messages pending for the given client."""
   delete_req = admin_pb2.DeletePendingMessagesRequest()
   delete_req.client_ids.append(GRRIDToFleetspeakID(grr_id))
-  fleetspeak_connector.CONN.outgoing.DeletePendingMessages(
+  fleetspeak_connector.CONN.outgoing.DeletePendingMessages(  # pyrefly: ignore[missing-attribute]
       delete_req,
       single_try_timeout=WRITE_SINGLE_TRY_TIMEOUT,
       timeout=WRITE_TOTAL_TIMEOUT,
@@ -233,28 +233,12 @@ def DeleteFleetspeakPendingMessages(grr_id: str) -> None:
 def GetFleetspeakPendingMessageCount(grr_id: str) -> int:
   get_req = admin_pb2.GetPendingMessageCountRequest()
   get_req.client_ids.append(GRRIDToFleetspeakID(grr_id))
-  get_resp = fleetspeak_connector.CONN.outgoing.GetPendingMessageCount(
+  get_resp = fleetspeak_connector.CONN.outgoing.GetPendingMessageCount(  # pyrefly: ignore[missing-attribute]
       get_req,
       single_try_timeout=READ_SINGLE_TRY_TIMEOUT,
       timeout=READ_TOTAL_TIMEOUT,
   )
   return get_resp.count
-
-
-@FLEETSPEAK_CALL_LATENCY.Timed(fields=["GetPendingMessages"])
-def GetFleetspeakPendingMessages(
-    grr_id: str, offset: int, limit: int, want_data: bool
-) -> admin_pb2.GetPendingMessagesResponse:
-  get_req = admin_pb2.GetPendingMessagesRequest()
-  get_req.client_ids.append(GRRIDToFleetspeakID(grr_id))
-  get_req.offset = offset
-  get_req.limit = limit
-  get_req.want_data = want_data
-  return fleetspeak_connector.CONN.outgoing.GetPendingMessages(
-      get_req,
-      single_try_timeout=READ_SINGLE_TRY_TIMEOUT,
-      timeout=READ_TOTAL_TIMEOUT,
-  )
 
 
 def FleetspeakIDToGRRID(fs_id: bytes) -> str:
@@ -284,7 +268,7 @@ def GetLabelsFromFleetspeak(client_id):
   Returns:
     A list of client labels.
   """
-  res = fleetspeak_connector.CONN.outgoing.ListClients(
+  res = fleetspeak_connector.CONN.outgoing.ListClients(  # pyrefly: ignore[missing-attribute]
       admin_pb2.ListClientsRequest(client_ids=[GRRIDToFleetspeakID(client_id)]),
       single_try_timeout=READ_SINGLE_TRY_TIMEOUT,
       timeout=READ_TOTAL_TIMEOUT,
@@ -323,7 +307,7 @@ def FetchClientResourceUsageRecords(
   Returns:
     A list of client resource usage records retrieved from Fleetspeak.
   """
-  res = fleetspeak_connector.CONN.outgoing.FetchClientResourceUsageRecords(
+  res = fleetspeak_connector.CONN.outgoing.FetchClientResourceUsageRecords(  # pyrefly: ignore[missing-attribute]
       admin_pb2.FetchClientResourceUsageRecordsRequest(
           client_id=GRRIDToFleetspeakID(client_id),
           start_timestamp=start_range,

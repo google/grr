@@ -68,7 +68,7 @@ def osquery_table_pretty(table: osquery_pb2.OsqueryTable,
 class _RepresenterList(list):
   """Parent of representer lists that ensures that slices have the same type."""
 
-  def __getitem__(self, key: Union[int, slice]) -> Union[Any, list[Any]]:
+  def __getitem__(self, key: Union[int, slice]) -> Union[Any, list[Any]]:  # pyrefly: ignore[bad-override]
     if isinstance(key, slice):
       return type(self)(super().__getitem__(key))
     return super().__getitem__(key)
@@ -104,7 +104,7 @@ class StatEntryList(_RepresenterList):
     with p.group(4, '', ''):
       p.group_stack[-1].want_break = True
 
-      for path, stat_entry in self._hierarchy[root]:
+      for path, stat_entry in self._hierarchy[root]:  # pyrefly: ignore[unsupported-operation]
         p.breakable()
         p.text(str(_StatEntryData(stat_entry)))
         self._repr_contents(path, p)
@@ -129,7 +129,7 @@ class StatEntryList(_RepresenterList):
     with p.group(0, '', ''):
       p.group_stack[-1].want_break = True
 
-      for path, _ in self._hierarchy['']:
+      for path, _ in self._hierarchy['']:  # pyrefly: ignore[unsupported-operation]
         p.breakable()
         p.text(path)
         self._repr_contents(path, p)

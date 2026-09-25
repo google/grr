@@ -1,6 +1,6 @@
 import {ComponentHarness} from '@angular/cdk/testing';
 import {TestbedHarnessEnvironment} from '@angular/cdk/testing/testbed';
-import {Component} from '@angular/core';
+import {ChangeDetectionStrategy, Component} from '@angular/core';
 import {fakeAsync, TestBed, tick, waitForAsync} from '@angular/core/testing';
 import {MatTableDataSource, MatTableModule} from '@angular/material/table';
 import {MatTableHarness} from '@angular/material/table/testing';
@@ -28,6 +28,7 @@ function generateTableData(length: number) {
 }
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.Eager,
   selector: 'test-component',
   template: `
 <filter-paginate [dataSource]="dataSource">

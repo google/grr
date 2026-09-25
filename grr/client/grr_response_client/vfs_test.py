@@ -29,11 +29,11 @@ class VfsImplementationTypeTest(absltest.TestCase):
     return rdf_paths.PathSpec(
         implementation_type=implementation_type,
         path=ntfs_img_path,
-        pathtype=rdf_paths.PathSpec.PathType.OS,
-        path_options=rdf_paths.PathSpec.Options.CASE_LITERAL,
+        pathtype=rdf_paths.PathSpec.PathType.OS,  # pyrefly: ignore[missing-attribute]
+        path_options=rdf_paths.PathSpec.Options.CASE_LITERAL,  # pyrefly: ignore[missing-attribute]
         nested_path=rdf_paths.PathSpec(
             path=path,
-            pathtype=rdf_paths.PathSpec.PathType.NTFS,
+            pathtype=rdf_paths.PathSpec.PathType.NTFS,  # pyrefly: ignore[missing-attribute]
             path_options=path_options,
         ),
     )
@@ -41,12 +41,12 @@ class VfsImplementationTypeTest(absltest.TestCase):
   def _CheckHasImplementationType(
       self,
       pathspec: rdf_paths.PathSpec,
-      implementation_type: rdf_paths.PathSpec.ImplementationType,
+      implementation_type: rdf_paths.PathSpec.ImplementationType,  # pyrefly: ignore[missing-attribute]
   ) -> None:
     if implementation_type is None:
       self.assertFalse(pathspec.HasField("implementation_type"))
     else:
-      self.assertEqual(pathspec.implementation_type, implementation_type)
+      self.assertEqual(pathspec.implementation_type, implementation_type)  # pyrefly: ignore[missing-attribute]
     for i, component in enumerate(pathspec):
       if i > 0:
         self.assertFalse(component.HasField("implementation_type"))
@@ -54,7 +54,7 @@ class VfsImplementationTypeTest(absltest.TestCase):
   def _OpenAndCheckImplementationType(
       self,
       pathspec: rdf_paths.PathSpec,
-      implementation_type: rdf_paths.PathSpec.ImplementationType,
+      implementation_type: rdf_paths.PathSpec.ImplementationType,  # pyrefly: ignore[missing-attribute]
   ) -> None:
     with vfs.VFSOpen(pathspec) as f:
       self._CheckHasImplementationType(f.pathspec, implementation_type)
@@ -72,28 +72,28 @@ class VfsImplementationTypeTest(absltest.TestCase):
 
   def testVfsOpen_direct_nestedPath(self):
     pathspec = self._CreateNestedPathSpec(
-        "/", rdf_paths.PathSpec.ImplementationType.DIRECT
+        "/", rdf_paths.PathSpec.ImplementationType.DIRECT  # pyrefly: ignore[missing-attribute]
     )
     self._OpenAndCheckImplementationType(
-        pathspec, rdf_paths.PathSpec.ImplementationType.DIRECT
+        pathspec, rdf_paths.PathSpec.ImplementationType.DIRECT  # pyrefly: ignore[missing-attribute]
     )
 
   def testVfsOpen_direct_caseLiteral_nestedPath(self):
     pathspec = self._CreateNestedPathSpec(
         "/",
-        rdf_paths.PathSpec.ImplementationType.DIRECT,
-        rdf_paths.PathSpec.Options.CASE_LITERAL,
+        rdf_paths.PathSpec.ImplementationType.DIRECT,  # pyrefly: ignore[missing-attribute]
+        rdf_paths.PathSpec.Options.CASE_LITERAL,  # pyrefly: ignore[missing-attribute]
     )
     self._OpenAndCheckImplementationType(
-        pathspec, rdf_paths.PathSpec.ImplementationType.DIRECT
+        pathspec, rdf_paths.PathSpec.ImplementationType.DIRECT  # pyrefly: ignore[missing-attribute]
     )
 
   def testVfsOpen_sandbox_nestedPath(self):
     pathspec = self._CreateNestedPathSpec(
-        "/", rdf_paths.PathSpec.ImplementationType.SANDBOX
+        "/", rdf_paths.PathSpec.ImplementationType.SANDBOX  # pyrefly: ignore[missing-attribute]
     )
     self._OpenAndCheckImplementationType(
-        pathspec, rdf_paths.PathSpec.ImplementationType.SANDBOX
+        pathspec, rdf_paths.PathSpec.ImplementationType.SANDBOX  # pyrefly: ignore[missing-attribute]
     )
 
   def testVfsOpen_default_rawPath(self):
@@ -101,7 +101,7 @@ class VfsImplementationTypeTest(absltest.TestCase):
         client_utils, "GetRawDevice", new=self._MockGetRawDevice
     ):
       pathspec = rdf_paths.PathSpec(
-          path="/", pathtype=rdf_paths.PathSpec.PathType.NTFS
+          path="/", pathtype=rdf_paths.PathSpec.PathType.NTFS  # pyrefly: ignore[missing-attribute]
       )
       self._OpenAndCheckImplementationType(pathspec, None)
 
@@ -111,11 +111,11 @@ class VfsImplementationTypeTest(absltest.TestCase):
     ):
       pathspec = rdf_paths.PathSpec(
           path="/",
-          pathtype=rdf_paths.PathSpec.PathType.NTFS,
-          implementation_type=rdf_paths.PathSpec.ImplementationType.DIRECT,
+          pathtype=rdf_paths.PathSpec.PathType.NTFS,  # pyrefly: ignore[missing-attribute]
+          implementation_type=rdf_paths.PathSpec.ImplementationType.DIRECT,  # pyrefly: ignore[missing-attribute]
       )
       self._OpenAndCheckImplementationType(
-          pathspec, rdf_paths.PathSpec.ImplementationType.DIRECT
+          pathspec, rdf_paths.PathSpec.ImplementationType.DIRECT  # pyrefly: ignore[missing-attribute]
       )
 
   def testVfsOpen_sandbox_rawPath(self):
@@ -124,11 +124,11 @@ class VfsImplementationTypeTest(absltest.TestCase):
     ):
       pathspec = rdf_paths.PathSpec(
           path="/",
-          pathtype=rdf_paths.PathSpec.PathType.NTFS,
-          implementation_type=rdf_paths.PathSpec.ImplementationType.SANDBOX,
+          pathtype=rdf_paths.PathSpec.PathType.NTFS,  # pyrefly: ignore[missing-attribute]
+          implementation_type=rdf_paths.PathSpec.ImplementationType.SANDBOX,  # pyrefly: ignore[missing-attribute]
       )
       self._OpenAndCheckImplementationType(
-          pathspec, rdf_paths.PathSpec.ImplementationType.SANDBOX
+          pathspec, rdf_paths.PathSpec.ImplementationType.SANDBOX  # pyrefly: ignore[missing-attribute]
       )
 
 

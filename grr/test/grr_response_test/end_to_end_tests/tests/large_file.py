@@ -17,7 +17,7 @@ from grr_response_proto import jobs_pb2
 from grr_response_proto import large_file_pb2
 from grr_response_test.end_to_end_tests import test_base
 
-# TODO: Get rid of these flags (e.g. by including credentials into
+# TODO - Get rid of these flags (e.g. by including credentials into
 # a resource file in the repository).
 
 FLAG_gcs_creds_file = flags.DEFINE_string(

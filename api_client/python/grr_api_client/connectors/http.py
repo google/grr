@@ -9,14 +9,14 @@ import re
 from typing import Any, NamedTuple, Optional, Union
 from urllib import parse as urlparse
 
-import pkg_resources
-import requests
-from werkzeug import routing
-
 from google.protobuf import descriptor
 from google.protobuf import json_format
 from google.protobuf import message
 from google.protobuf import symbol_database
+import pkg_resources
+import requests
+from werkzeug import routing
+
 from grr_api_client import errors
 from grr_api_client import utils
 from grr_api_client.connectors import abstract
@@ -145,7 +145,7 @@ class HttpConnector(abstract.Connector):
     self.session = requests.Session()
     self.session.auth = auth
     self.session.cert = cert
-    self.session.proxies = proxies
+    self.session.proxies = proxies  # pyrefly: ignore[bad-assignment]
     self.session.trust_env = trust_env
     self.session.verify = verify
 
@@ -290,12 +290,12 @@ class HttpConnector(abstract.Connector):
     method = None
     for rule in self.handlers_map.iter_rules():
       if rule.endpoint == handler_name:
-        method = [m for m in rule.methods if m != "HEAD"][0]
+        method = [m for m in rule.methods if m != "HEAD"][0]  # pyrefly: ignore[not-iterable]
 
     if not method:
       raise RuntimeError("Can't find method for %s" % handler_name)
 
-    return method, url, list(path_params.keys())
+    return method, url, list(path_params.keys())  # pyrefly: ignore[bad-return]
 
   def _ArgsToQueryParams(
       self,
@@ -361,7 +361,7 @@ class HttpConnector(abstract.Connector):
   ) -> requests.Request:
     self._InitializeIfNeeded()
     method, url, path_params_names = self._GetMethodUrlAndPathParamsNames(
-        method_name, args)
+        method_name, args)  # pyrefly: ignore[bad-argument-type]
 
     if method == "GET":
       body = None

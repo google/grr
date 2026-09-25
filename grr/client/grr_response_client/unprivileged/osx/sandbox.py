@@ -36,7 +36,7 @@ def EnterSandbox(user: str, group: str) -> None:
   if not (user or group):
     return
 
-  libc = ctypes.cdll.LoadLibrary(ctypes.util.find_library("c"))
+  libc = ctypes.cdll.LoadLibrary(ctypes.util.find_library("c"))  # pyrefly: ignore[bad-argument-type]
   sandbox_init = getattr(libc, "sandbox_init", None)
   if sandbox_init:
     sandbox_init.argtypes = [

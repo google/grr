@@ -46,9 +46,7 @@ def _start_remote_debugging(port):
   """Sets up remote debugging using pydevd, connecting to localhost:`port`."""
   try:
     print("Connecting to remote debugger on localhost:{}.".format(port))
-    # pytype: disable=import-error
-    import pydevd  # pylint: disable=g-import-not-at-top
-    # pytype: enable=import-error
+    import pydevd  # pylint: disable=g-import-not-at-top  # pyrefly: ignore[missing-import]
     pydevd.settrace(
         "localhost",
         port=port,

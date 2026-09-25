@@ -28,10 +28,10 @@ CHINESE_FILE_FILE_REF = 844424930132045
 
 # Default StatEntry.ntfs values for files and directories
 S_DEFAULT_FILE = filesystem_pb2.StatEntry.Ntfs(
-    is_directory=False, flags=stat.FILE_ATTRIBUTE_ARCHIVE  # pytype: disable=module-attr
+    is_directory=False, flags=stat.FILE_ATTRIBUTE_ARCHIVE
 )
 S_DEFAULT_DIR = filesystem_pb2.StatEntry.Ntfs(
-    is_directory=True, flags=stat.FILE_ATTRIBUTE_ARCHIVE  # pytype: disable=module-attr
+    is_directory=True, flags=stat.FILE_ATTRIBUTE_ARCHIVE
 )
 
 S_MODE_ALL = stat.S_IRWXU | stat.S_IRWXG | stat.S_IRWXO
@@ -75,11 +75,11 @@ def _ParseTimestamp(s: str) -> timestamp_pb2.Timestamp:
 class NtfsImageTest(absltest.TestCase, abc.ABC):
 
   # Set by subclasses.
-  _IMPLEMENTATION_TYPE: filesystem_pb2.ImplementationType = None
+  _IMPLEMENTATION_TYPE: filesystem_pb2.ImplementationType = None  # pyrefly: ignore[bad-assignment]
 
-  _server: communication.Server = None
-  _client: client.Client = None
-  _exit_stack: contextlib.ExitStack = None
+  _server: communication.Server = None  # pyrefly: ignore[bad-assignment]
+  _client: client.Client = None  # pyrefly: ignore[bad-assignment]
+  _exit_stack: contextlib.ExitStack = None  # pyrefly: ignore[bad-assignment]
 
   @abc.abstractmethod
   def _ExpectedStatEntry(
@@ -217,8 +217,8 @@ class NtfsImageTest(absltest.TestCase, abc.ABC):
                   st_ctime=_ParseTimestamp("2020-04-08 20:15:07.835354"),
                   ntfs=filesystem_pb2.StatEntry.Ntfs(
                       is_directory=False,
-                      flags=stat.FILE_ATTRIBUTE_ARCHIVE  # pytype: disable=module-attr
-                      | stat.FILE_ATTRIBUTE_HIDDEN,  # pytype: disable=module-attr
+                      flags=stat.FILE_ATTRIBUTE_ARCHIVE
+                      | stat.FILE_ATTRIBUTE_HIDDEN,
                   ),
                   st_size=0,
                   st_gid=0,
@@ -253,8 +253,8 @@ class NtfsImageTest(absltest.TestCase, abc.ABC):
                   st_ctime=_ParseTimestamp("2020-04-08 20:14:55.254657"),
                   ntfs=filesystem_pb2.StatEntry.Ntfs(
                       is_directory=False,
-                      flags=stat.FILE_ATTRIBUTE_ARCHIVE  # pytype: disable=module-attr
-                      | stat.FILE_ATTRIBUTE_READONLY,  # pytype: disable=module-attr
+                      flags=stat.FILE_ATTRIBUTE_ARCHIVE
+                      | stat.FILE_ATTRIBUTE_READONLY,
                   ),
                   st_size=0,
                   st_gid=0,

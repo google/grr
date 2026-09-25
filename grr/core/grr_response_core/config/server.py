@@ -5,7 +5,6 @@
 from grr_response_core import version
 from grr_response_core.lib import config_lib
 from grr_response_core.lib import rdfvalue
-from grr_response_core.lib.rdfvalues import paths as rdf_paths
 
 VERSION = version.Version()
 
@@ -106,9 +105,6 @@ config_lib.DEFINE_bool(
     "Server.initialized", False, "True once config_updater initialize has been "
     "run at least once.")
 
-config_lib.DEFINE_string("Server.ip_resolver_class", "IPResolver",
-                         "The ip resolver class to use.")
-
 config_lib.DEFINE_string("Server.email_alerter_class", "SMTPEmailAlerter",
                          "The email alerter class to use.")
 
@@ -171,54 +167,6 @@ config_lib.DEFINE_integer(
     "Server.max_unbound_read_size",
     10000000,
     help="The number of bytes allowed for unbounded reads from a file object")
-
-# Data retention policies.
-config_lib.DEFINE_semantic_value(
-    rdfvalue.Duration,
-    "DataRetention.cron_jobs_flows_ttl",
-    default=None,
-    help="Cron job flows TTL specified as the duration string. "
-    "Examples: 90d, 180d, 1y. If not set, cron jobs flows will be retained "
-    "forever.")
-
-config_lib.DEFINE_semantic_value(
-    rdfvalue.Duration,
-    "DataRetention.hunts_ttl",
-    default=None,
-    help="Hunts TTL specified as the duration string. Examples: 90d, "
-    "180d, 1y. If not set, hunts will be retained forever.")
-
-config_lib.DEFINE_string(
-    "DataRetention.hunts_ttl_exception_label",
-    default="retain",
-    help="Hunts marked with this label "
-    "will be retained forever.")
-
-config_lib.DEFINE_semantic_value(
-    rdfvalue.Duration,
-    "DataRetention.tmp_ttl",
-    default=None,
-    help="Temp TTL specified as the duration string. Examples: 90d, "
-    "180d, 1y. If not set, temp objects will be retained forever.")
-
-config_lib.DEFINE_string(
-    "DataRetention.tmp_ttl_exception_label",
-    default="retain",
-    help="Temp objects marked with this "
-    "label will be retained forever.")
-
-config_lib.DEFINE_semantic_value(
-    rdfvalue.Duration,
-    "DataRetention.inactive_client_ttl",
-    default=None,
-    help="Temp TTL specified as the duration string. Examples: 90d, "
-    "180d, 1y. If not set, inactive clients will be retained forever.")
-
-config_lib.DEFINE_string(
-    "DataRetention.inactive_client_ttl_exception_label",
-    default="retain",
-    help="Inactive clients marked with "
-    "this label will be retained forever.")
 
 config_lib.DEFINE_float(
     "Hunt.default_client_rate",
@@ -283,14 +231,6 @@ config_lib.DEFINE_list(
     "a Fleetspeak label is not in the map, it will be written as is to GRR's "
     "DB as part of the Interrogate flow.")
 
-config_lib.DEFINE_semantic_value(
-    rdfvalue.Duration,
-    "Server.fleetspeak_last_ping_threshold",
-    default="2h",
-    help="Age above which to consider last-ping timestamps for Fleetspeak "
-    "clients as stale, and in need of updating (by querying Fleetspeak "
-    "servers).")
-
 config_lib.DEFINE_integer(
     "Server.fleetspeak_list_clients_batch_size",
     default=5000,
@@ -335,15 +275,18 @@ config_lib.DEFINE_integer(
     ),
 )
 
-config_lib.DEFINE_semantic_enum(
-    rdf_paths.PathSpec.PathType,
-    "Server.raw_filesystem_access_pathtype",
-    default=rdf_paths.PathSpec.PathType.NTFS,
-    help="PathType to use for raw filesystem access on Windows.")
-
 config_lib.DEFINE_boolean(
     "Server.grr_binaries_readonly", False,
     "When set to True, uploaded GRR binaries can't be deleted or overwritten.")
+
+config_lib.DEFINE_list(
+    name="Interrogate.startup_exclude_labels",
+    default=[],
+    help=(
+        "List of labels for which interrogation is not started upon receiving "
+        "the agent startup notification."
+    ),
+)
 
 config_lib.DEFINE_boolean(
     name="Interrogate.collect_crowdstrike_agent_id",
@@ -351,15 +294,6 @@ config_lib.DEFINE_boolean(
     help=(
         "Whether the interrogate flow should collect identifier of the "
         "endpoint's CrowdStrike agent."
-    ),
-)
-
-config_lib.DEFINE_boolean(
-    name="Interrogate.collect_passwd_cache_users",
-    default=False,
-    help=(
-        "Whether the interrogate flow should collect user information using the"
-        "`/etc/passwd.cache` file."
     ),
 )
 
@@ -387,15 +321,6 @@ config_lib.DEFINE_integer(
     help=(
         "The TTL until the signed URL expires"
         " (https://cloud.google.com/storage/docs/access-control/signed-urls#signing-resumable)."
-    ),
-)
-
-config_lib.DEFINE_string(
-    "Server.disable_rrg_support",
-    default=False,
-    help=(
-        "Disables support for RRG agents (forces the traffic to always be "
-        "routed to the Python agent)."
     ),
 )
 

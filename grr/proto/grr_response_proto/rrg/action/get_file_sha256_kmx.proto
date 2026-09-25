@@ -1,0 +1,59 @@
+// Copyright 2026 Google LLC
+//
+// Use of this source code is governed by an MIT-style license that can be found
+// in the LICENSE file or at https://opensource.org/licenses/MIT.
+syntax = "proto3";
+
+package rrg.action.get_file_sha256_kmx;
+
+import "grr_response_proto/rrg/fs.proto";
+
+message Args {
+  oneof volume {
+    // Absolute path to the raw volume holding the files to get the SHA-256 of.
+    //
+    // For example, `\\?\Volume{f000f000-baa5-f000-baa5-f00ba5f00ba5}`.
+    rrg.fs.Path volume_path = 4;
+
+    // Absolute path to the point (e.g. a drive letter) where a volume holding
+    // the files to get the SHA-256 of is mounted.
+    //
+    // For example, `C:\`.
+    //
+    // This is supported only on Windows.
+    rrg.fs.Path volume_mount_path = 5;
+  }
+
+  // Path (relative to the volume root) to the file to get the SHA-256 hash of.
+  rrg.fs.Path path = 1;
+
+  // Byte offsets from which the content should be hashed.
+  //
+  // If none are provided, hashes from the beginning of the file (returning only
+  // one result).
+  repeated uint64 offsets = 2;
+
+  // Number of bytes to hash (from the start offset).
+  //
+  // This is value serves as an upper bound: if the file is shorter than the
+  // specified length, only bytes that actually exist are going to be hashed.
+  //
+  // If unset, hashes until the end of the file.
+  uint64 length = 3;
+}
+
+message Result {
+  // Path (relative to the volume root) to the file this result corresponds to.
+  rrg.fs.Path path = 1;
+
+  // Byte offset from which the file content was hashed.
+  uint64 offset = 2;
+
+  // Number of bytes of the file used to produce the hash.
+  uint64 length = 3;
+
+  // SHA-256 [1] hash digest of the file content.
+  //
+  // [1]: https://en.wikipedia.org/wiki/SHA-2
+  bytes sha256 = 4;
+}

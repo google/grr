@@ -15,12 +15,13 @@ from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.util import precondition
+from grr_response_proto import jobs_pb2
+from grr_response_proto import objects_pb2
 from grr_response_server import client_fixture
 from grr_response_server import data_store
 from grr_response_server import file_store
 from grr_response_server.databases import db
 from grr_response_server.models import blobs as models_blobs
-from grr_response_server.rdfvalues import mig_objects
 from grr_response_server.rdfvalues import objects as rdf_objects
 
 # pylint: mode=test
@@ -545,33 +546,33 @@ def CreateFile(client_path, content=b""):
 
   blob_id = models_blobs.BlobID.Of(content)
 
-  stat_entry = rdf_client_fs.StatEntry(
-      pathspec=rdf_paths.PathSpec(
-          pathtype=rdf_objects.PathInfo.PathTypeToPathspecPathType(
-              client_path.path_type
-          ),
-          path="/" + "/".join(client_path.components),
-      ),
-      st_mode=33206,
-      st_size=len(content),
-  )
-
   data_store.BLOBS.WriteBlobs({blob_id: content})
-  blob_ref = rdf_objects.BlobReference(
+  blob_ref = objects_pb2.BlobReference(
       size=len(content), offset=0, blob_id=bytes(blob_id)
   )
   hash_id = file_store.AddFileWithUnknownHash(client_path, [blob_ref])
 
-  path_info = rdf_objects.PathInfo()
-  path_info.path_type = client_path.path_type
-  path_info.components = client_path.components
-  path_info.hash_entry.num_bytes = len(content)
-  path_info.hash_entry.sha256 = hash_id.AsBytes()
-  path_info.stat_entry = stat_entry
-
-  data_store.REL_DB.WritePathInfos(
-      client_path.client_id, [mig_objects.ToProtoPathInfo(path_info)]
+  path_info = objects_pb2.PathInfo(
+      path_type=client_path.path_type,
+      components=client_path.components,
+      hash_entry=jobs_pb2.Hash(
+          num_bytes=len(content),
+          sha256=hash_id.AsBytes(),
+      ),
+      stat_entry=jobs_pb2.StatEntry(
+          pathspec=jobs_pb2.PathSpec(
+              # TODO - Move this conversion function somewhere else.
+              pathtype=rdf_objects.PathInfo.PathTypeToPathspecPathType(
+                  client_path.path_type
+              ),
+              path="/" + "/".join(client_path.components),
+          ),
+          st_mode=33206,
+          st_size=len(content),
+      ),
   )
+
+  data_store.REL_DB.WritePathInfos(client_path.client_id, [path_info])
 
 
 def CreateDirectory(client_path):
@@ -582,27 +583,25 @@ def CreateDirectory(client_path):
   """
   precondition.AssertType(client_path, db.ClientPath)
 
-  stat_entry = rdf_client_fs.StatEntry(
-      pathspec=rdf_paths.PathSpec(
-          pathtype=client_path.path_type, path="/".join(client_path.components)
+  path_info = objects_pb2.PathInfo(
+      path_type=client_path.path_type,
+      components=client_path.components,
+      stat_entry=jobs_pb2.StatEntry(
+          pathspec=jobs_pb2.PathSpec(
+              pathtype=client_path.path_type,
+              path="/".join(client_path.components),
+          ),
+          st_mode=16895,
       ),
-      st_mode=16895,
+      directory=True,
   )
 
-  path_info = rdf_objects.PathInfo()
-  path_info.path_type = client_path.path_type
-  path_info.components = client_path.components
-  path_info.stat_entry = stat_entry
-  path_info.directory = True
-
-  data_store.REL_DB.WritePathInfos(
-      client_path.client_id, [mig_objects.ToProtoPathInfo(path_info)]
-  )
+  data_store.REL_DB.WritePathInfos(client_path.client_id, [path_info])
 
 
 def GenerateBlobRefs(
     blob_size: int, contents: bytes
-) -> tuple[Iterable[bytes], Iterable[rdf_objects.BlobReference]]:
+) -> tuple[Iterable[bytes], Iterable[objects_pb2.BlobReference]]:
   """Generates a series of blob data and references.
 
   Args:
@@ -622,7 +621,7 @@ def GenerateBlobRefs(
   for data in blob_data:
     blob_id = models_blobs.BlobID.Of(data)
     blob_refs.append(
-        rdf_objects.BlobReference(
+        objects_pb2.BlobReference(
             offset=offset, size=len(data), blob_id=bytes(blob_id)
         )
     )
@@ -632,7 +631,7 @@ def GenerateBlobRefs(
 
 def CreateFileWithBlobRefsAndData(
     client_path: db.ClientPath,
-    blob_refs: Iterable[rdf_objects.BlobReference],
+    blob_refs: Iterable[objects_pb2.BlobReference],
     blob_data: Iterable[bytes],
 ):
   """Writes a file with given data and blob refs to the data/blob store.
@@ -643,23 +642,21 @@ def CreateFileWithBlobRefsAndData(
     blob_data: Blob data to be written to the blob store.
   """
 
-  path_info = rdf_objects.PathInfo.OS(components=client_path.components)
-
   data_store.BLOBS.WriteBlobs(
       {models_blobs.BlobID.Of(bdata): bdata for bdata in blob_data}
   )
 
   hash_id = rdf_objects.SHA256HashID.FromData(b"".join(blob_data))
-  blob_refs = list(map(mig_objects.ToProtoBlobReference, blob_refs))
-  data_store.REL_DB.WriteHashBlobReferences({hash_id: blob_refs})
+  data_store.REL_DB.WriteHashBlobReferences({hash_id: list(blob_refs)})
 
-  path_info = rdf_objects.PathInfo(
-      path_type=client_path.path_type, components=client_path.components
+  path_info = objects_pb2.PathInfo(
+      path_type=client_path.path_type,
+      components=client_path.components,
+      hash_entry=jobs_pb2.Hash(
+          sha256=hash_id.AsBytes(),
+      ),
   )
-  path_info.hash_entry.sha256 = hash_id.AsBytes()
-  data_store.REL_DB.WritePathInfos(
-      client_path.client_id, [mig_objects.ToProtoPathInfo(path_info)]
-  )
+  data_store.REL_DB.WritePathInfos(client_path.client_id, [path_info])
 
 
 class VfsTestCase(absltest.TestCase):

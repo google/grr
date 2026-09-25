@@ -1,70 +1,77 @@
 #!/usr/bin/env python
 """Flows for handling the collection for artifacts."""
+
 from collections.abc import Sequence
-import hashlib
-import itertools
 import logging
-import pathlib
-import stat
 from typing import Optional
 
 from google.protobuf import any_pb2
-from grr_response_core import config
 from grr_response_core.lib import artifact_utils
-from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import artifacts as rdf_artifacts
-from grr_response_core.lib.rdfvalues import client_action as rdf_client_action
-from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
-from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
-from grr_response_core.lib.rdfvalues import mig_artifacts
-from grr_response_core.lib.rdfvalues import mig_client
-from grr_response_core.lib.rdfvalues import mig_client_fs
-from grr_response_core.lib.rdfvalues import mig_file_finder
+from grr_response_core.lib.rdfvalues import mig_protodict
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
-from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr_response_proto import artifact_pb2
 from grr_response_proto import flows_pb2
 from grr_response_proto import jobs_pb2
+from grr_response_proto import knowledge_base_pb2
 from grr_response_proto import objects_pb2
 from grr_response_proto import signed_commands_pb2
-from grr_response_server import artifact
 from grr_response_server import artifact_registry
 from grr_response_server import data_store
-from grr_response_server import file_store
 from grr_response_server import flow_base
 from grr_response_server import flow_responses
-from grr_response_server import rrg_fs
-from grr_response_server import rrg_glob
-from grr_response_server import rrg_path
 from grr_response_server import rrg_stubs
 from grr_response_server import rrg_winreg
 from grr_response_server import server_stubs
-from grr_response_server.databases import db as abstract_db
 from grr_response_server.flows.general import discovery
 from grr_response_server.flows.general import file_finder
 from grr_response_server.flows.general import filesystem
-from grr_response_server.flows.general import mig_transfer
 from grr_response_server.flows.general import transfer
-from grr_response_server.models import blobs as models_blobs
-from grr_response_server.rdfvalues import mig_objects
-from grr_response_proto.rrg import fs_pb2 as rrg_fs_pb2
-from grr_response_proto.rrg import os_pb2 as rrg_os_pb2
 from grr_response_proto.rrg import winreg_pb2 as rrg_winreg_pb2
 from grr_response_proto.rrg.action import execute_signed_command_pb2 as rrg_execute_signed_command_pb2
-from grr_response_proto.rrg.action import get_file_contents_pb2 as rrg_get_file_contents_pb2
-from grr_response_proto.rrg.action import get_file_metadata_pb2 as rrg_get_file_metadata_pb2
 from grr_response_proto.rrg.action import list_winreg_keys_pb2 as rrg_list_winreg_keys_pb2
 from grr_response_proto.rrg.action import list_winreg_values_pb2 as rrg_list_winreg_values_pb2
 from grr_response_proto.rrg.action import query_wmi_pb2 as rrg_query_wmi_pb2
 
 
+def _GetKnowledgeBase(
+    client_snapshot: Optional[objects_pb2.ClientSnapshot],
+    allow_uninitialized: bool = False,
+) -> knowledge_base_pb2.KnowledgeBase:
+  """Returns a knowledgebase from an rdf client object."""
+  if not allow_uninitialized:
+    if client_snapshot is None:
+      raise artifact_utils.KnowledgeBaseUninitializedError(
+          "No client snapshot given."
+      )
+    if client_snapshot.knowledge_base is None:
+      raise artifact_utils.KnowledgeBaseUninitializedError(
+          "KnowledgeBase empty for %s." % client_snapshot.client_id
+      )
+    kb = client_snapshot.knowledge_base
+    if not kb.os:
+      raise artifact_utils.KnowledgeBaseAttributesMissingError(
+          "KnowledgeBase missing OS for %s. Knowledgebase content: %s"
+          % (client_snapshot.client_id, kb)
+      )
+  if client_snapshot is None or client_snapshot.knowledge_base is None:
+    return knowledge_base_pb2.KnowledgeBase()
+
+  version = client_snapshot.os_version.split(".")
+  kb = client_snapshot.knowledge_base
+  try:
+    kb.os_major_version = int(version[0])
+    if len(version) > 1:
+      kb.os_minor_version = int(version[1])
+  except ValueError:
+    pass
+
+  return kb
+
+
 def _ReadClientKnowledgeBase(client_id, allow_uninitialized=False):
   client = data_store.REL_DB.ReadClientSnapshot(client_id)
-  if client is not None:
-    client = mig_objects.ToRDFClientSnapshot(client)
-  return artifact.GetKnowledgeBase(
-      client, allow_uninitialized=allow_uninitialized
-  )
+  return _GetKnowledgeBase(client, allow_uninitialized=allow_uninitialized)
 
 
 class ArtifactCollectorFlow(
@@ -100,25 +107,10 @@ class ArtifactCollectorFlow(
   """
 
   category = "/Collectors/"
-  args_type = rdf_artifacts.ArtifactCollectorFlowArgs
   proto_args_type = flows_pb2.ArtifactCollectorFlowArgs
-
-  progress_type = rdf_artifacts.ArtifactCollectorFlowProgress
   proto_progress_type = flows_pb2.ArtifactCollectorFlowProgress
-
   proto_store_type = flows_pb2.ArtifactCollectorFlowStore
 
-  only_protos_allowed = True
-
-  result_types = (
-      rdf_protodict.Dict,
-      rdf_client_fs.StatEntry,
-      rdf_client_action.ExecuteResponse,
-      # ArtifactCollectorFlow has many more result types. For now, only result
-      # types required for UI type generation are captured here, add other
-      # types when needed.
-      rdfvalue.RDFValue,
-  )
   proto_result_types = (
       jobs_pb2.StatEntry,
       jobs_pb2.ExecuteResponse,
@@ -126,8 +118,10 @@ class ArtifactCollectorFlow(
   )
   behaviours = flow_base.BEHAVIOUR_BASIC
 
-  _BLOB_WAIT_DELAY = rdfvalue.Duration.From(60, rdfvalue.SECONDS)
-  _BLOB_WAIT_COUNT_LIMIT = 5
+  @classmethod
+  def ValidateArgs(cls, args: flows_pb2.ArtifactCollectorFlowArgs) -> None:
+    if not args.artifact_list:
+      raise ValueError("No artifacts specified.")
 
   def Start(self):
     """For each artifact, create subflows for each collector."""
@@ -143,9 +137,7 @@ class ArtifactCollectorFlow(
     if not self.store.HasField("knowledge_base"):
       # If not provided, get a knowledge base from the client.
       try:
-        kb = mig_client.ToProtoKnowledgeBase(
-            _ReadClientKnowledgeBase(self.client_id)
-        )
+        kb = _ReadClientKnowledgeBase(self.client_id)
         self.store.knowledge_base.CopyFrom(kb)
       except artifact_utils.KnowledgeBaseUninitializedError:
         # If no-one has ever initialized the knowledge base, we should do so
@@ -169,7 +161,7 @@ class ArtifactCollectorFlow(
       artifact_registry.REGISTRY.ReloadDatastoreArtifacts()
       return artifact_registry.REGISTRY.GetArtifact(name)
 
-  @flow_base.UseProto2AnyResponses
+  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
   def StartCollection(
       self, responses: flow_responses.Responses[any_pb2.Any]
   ) -> None:
@@ -181,9 +173,7 @@ class ArtifactCollectorFlow(
 
     if not self.store.knowledge_base:
       self.store.knowledge_base.CopyFrom(
-          mig_client.ToProtoKnowledgeBase(
-              _ReadClientKnowledgeBase(self.client_id, allow_uninitialized=True)
-          )
+          _ReadClientKnowledgeBase(self.client_id, allow_uninitialized=True)
       )
 
     for artifact_name in self.proto_args.artifact_list:
@@ -196,14 +186,16 @@ class ArtifactCollectorFlow(
 
       self._Collect(artifact_obj)
 
-  def _Collect(self, artifact_obj: rdf_artifacts.Artifact) -> None:
+  def _Collect(self, artifact_obj: artifact_pb2.Artifact) -> None:
     """Collect the raw data from the client for this artifact."""
-    artifact_name = str(artifact_obj.name)
+    artifact_name = artifact_obj.name
 
     # Ensure attempted artifacts are shown in progress, even with 0 results.
     progress = self._GetOrInsertArtifactProgress(artifact_name)
 
-    if not MeetsOSConditions(self.store.knowledge_base, artifact_obj):
+    if not MeetsOSConditions(
+        self.store.knowledge_base, artifact_obj.supported_os
+    ):
       logging.debug(
           "%s: Artifact %s not supported on os %s (options %s)",
           self.client_id,
@@ -219,13 +211,13 @@ class ArtifactCollectorFlow(
     sources_ran = 0
     # Call the source defined action for each source.
     for source in artifact_obj.sources:
-      if not MeetsOSConditions(self.store.knowledge_base, source):
+      if not MeetsOSConditions(self.store.knowledge_base, source.supported_os):
         continue
 
       sources_ran += 1
 
       type_name = source.type
-      source_type = rdf_artifacts.ArtifactSource.SourceType
+      source_type = artifact_pb2.ArtifactSource.SourceType
       self.current_artifact_name = artifact_name
       if type_name == source_type.COMMAND:
         self._RunCommand(source)
@@ -269,445 +261,44 @@ class ArtifactCollectorFlow(
 
   def _GetPaths(
       self,
-      source: rdf_artifacts.ArtifactSource,
+      source: artifact_pb2.ArtifactSource,
       action: flows_pb2.FileFinderAction,
   ):
     """Get a set of files."""
-    if (
-        # RRG at version at least 0.0.3 is required as previous ones do not
-        # support collection of multiple files.
-        self.rrg_version >= (0, 0, 3)
-        # RRG at version at least 0.0.7 is required as previous ones might trip
-        # over Fleetspeak message limit when calling `get_file_contents`.
-        and (
-            source.type != artifact_pb2.ArtifactSource.FILE
-            or self.rrg_version >= (0, 0, 7)
-        )
-        # Raw filesystem access is not supported in RRG yet.
-        and not self.args.use_raw_filesystem_access
-    ):
-      if self.client_os in ["Linux", "Darwin"]:
-        path_cls = pathlib.PurePosixPath
-      elif self.client_os == "Windows":
-        path_cls = pathlib.PureWindowsPath
-      else:
-        raise flow_base.FlowError(f"Unexpected OS: {self.client_os}")
-
-      action = rrg_stubs.GetFileMetadata()
-
-      path_regexes = []
-      path_pruning_regexes = []
-
-      for path in self._InterpolateList(source.attributes.get("paths", [])):
-        glob = rrg_glob.Glob(path_cls(path))
-
-        action.args.paths.add().raw_bytes = bytes(glob.root)
-        action.args.max_depth = max(action.args.max_depth, glob.root_level)
-
-        path_regexes.append(glob.regex.pattern)
-        path_pruning_regexes.append(glob.pruning_regex.pattern)
-
-      if action.args.max_depth > 0:
-        action.args.path_pruning_regex = "|".join(path_pruning_regexes)
-
-        # Path pruning can yield additional entries (as it is used to guide the
-        # search, not to filter results). Thus, we use filter to only return
-        # what we are actually interested in.
-        #
-        # Note that we use this only in case there are any pruning regexes. If
-        # there are none, there are no globs and thus we do not need to filter
-        # anything.
-        path_filter = action.AddFilter()
-        for path_regex in path_regexes:
-          path_cond = path_filter.conditions.add()
-          path_cond.field.extend([
-              rrg_get_file_metadata_pb2.Result.PATH_FIELD_NUMBER,
-              rrg_fs_pb2.Path.RAW_BYTES_FIELD_NUMBER,
-          ])
-          path_cond.bytes_match = path_regex
-
-      action.context["artifact_name"] = str(self.current_artifact_name)
-      if source.type == artifact_pb2.ArtifactSource.PATH:
-        action.Call(self._ProcessRRGGetFileMetadata)
-      elif source.type == artifact_pb2.ArtifactSource.FILE:
-        action.Call(self._ProcessRRGGetFileMetadataThenCollect)
-
-      return
-
+    attributes = mig_protodict.FromProtoDictToNativeDict(source.attributes)
     flow_args = flows_pb2.FileFinderArgs(
-        paths=self._InterpolateList(source.attributes.get("paths", [])),
+        paths=self._InterpolateList(attributes.get("paths", [])),
         action=action,
     )
 
-    if self.args.use_raw_filesystem_access:
+    if self.proto_args.use_raw_filesystem_access:
       if self.client_os == "Windows":
-        flow_args.pathtype = config.CONFIG[
-            "Server.raw_filesystem_access_pathtype"
-        ]
+        flow_args.pathtype = jobs_pb2.PathSpec.PathType.NTFS
       else:
-        flow_args.pathtype = jobs_pb2.PathSpec.PathType.TSK
+        raise flow_base.FlowError("Raw filesystem access not supported")
     else:
       flow_args.pathtype = jobs_pb2.PathSpec.PathType.OS
 
-    if self.args.HasField("implementation_type"):
-      flow_args.implementation_type = self.args.implementation_type
+    if self.proto_args.HasField("implementation_type"):
+      flow_args.implementation_type = self.proto_args.implementation_type
 
     self.CallFlowProto(
         file_finder.ClientFileFinder.__name__,
         flow_args=flow_args,
         request_data={
             "artifact_name": self.current_artifact_name,
-            "source": source.ToPrimitiveDict(),
         },
         next_state=self.ProcessFileFinderResults.__name__,
     )
 
-  @flow_base.UseProto2AnyResponses
-  def _ProcessRRGGetFileMetadata(
-      self,
-      responses: flow_responses.Responses[any_pb2.Any],
-  ) -> None:
-    artifact_name = responses.request_data["artifact_name"]
-    artifact_progress = self._GetOrInsertArtifactProgress(artifact_name)
-
-    if not responses.success:
-      self.Log(
-          "File metadata collection for artifact %r failed : %s",
-          artifact_name,
-          responses.status,
-      )
-      artifact_progress.status = flows_pb2.ArtifactProgress.Status.FAILURE
-      return
-
-    artifact_progress.status = flows_pb2.ArtifactProgress.Status.SUCCESS
-    artifact_progress.num_results += len(responses)
-
-    path_infos = self._ParseRRGGetFileMetadataResponses(responses)
-    data_store.REL_DB.WritePathInfos(self.client_id, path_infos)
-
-  @flow_base.UseProto2AnyResponses
-  def _ProcessRRGGetFileMetadataThenCollect(
-      self,
-      responses: flow_responses.Responses[any_pb2.Any],
-  ) -> None:
-    artifact_name = responses.request_data["artifact_name"]
-    artifact_progress = self._GetOrInsertArtifactProgress(artifact_name)
-
-    if not responses.success:
-      self.Log(
-          "File metadata collection for artifact %r failed : %s",
-          artifact_name,
-          responses.status,
-      )
-      artifact_progress.status = flows_pb2.ArtifactProgress.Status.FAILURE
-      return
-
-    path_infos = self._ParseRRGGetFileMetadataResponses(responses)
-
-    # We won't get any blobs for empty files and thus we do not need to even
-    # make an additional action call for them. We just prefill their hash and
-    # write them to the filestore right away.
-    empty_path_infos = []
-    empty_client_paths = []
-
-    for path_info in path_infos:
-      if (
-          stat.S_ISREG(path_info.stat_entry.st_mode)
-          and path_info.stat_entry.st_size == 0
-      ):
-        empty_path_infos.append(path_info)
-        empty_client_paths.append(
-            abstract_db.ClientPath.OS(
-                client_id=self.client_id,
-                components=path_info.components,
-            )
-        )
-
-    if empty_client_paths:
-      empty_blob_id = data_store.BLOBS.WriteBlobWithUnknownHash(b"")
-
-      empty_blob_ref = objects_pb2.BlobReference()
-      empty_blob_ref.offset = 0
-      empty_blob_ref.size = 0
-      empty_blob_ref.blob_id = bytes(empty_blob_id)
-      empty_blob_ref = mig_objects.ToRDFBlobReference(empty_blob_ref)
-
-      file_store.AddFilesWithUnknownHashes(
-          {client_path: [empty_blob_ref] for client_path in empty_client_paths},
-          use_external_stores=False,
-      )
-
-      for path_info in empty_path_infos:
-        path_info.hash_entry.sha256 = hashlib.sha256(b"").digest()
-
-    data_store.REL_DB.WritePathInfos(self.client_id, path_infos)
-
-    get_file_contents_paths_bytes = set()
-
-    for response_any in responses:
-      response = rrg_get_file_metadata_pb2.Result()
-      response.ParseFromString(response_any.value)
-
-      if response.metadata.type == rrg_fs_pb2.FileMetadata.Type.FILE:
-        get_file_contents_paths_bytes.add(response.path.raw_bytes)
-
-    self.store.blob_wait_count = 0
-    self.store.path_infos.extend(path_infos)
-
-    if get_file_contents_paths_bytes:
-      get_file_contents = rrg_stubs.GetFileContents()
-      get_file_contents.context["artifact_name"] = artifact_name
-
-      for path_bytes in get_file_contents_paths_bytes:
-        get_file_contents.args.paths.add().raw_bytes = path_bytes
-
-      get_file_contents.Call(self._ProcessRRGGetFileContents)
-
-  def _ParseRRGGetFileMetadataResponses(
-      self,
-      responses: flow_responses.Responses[any_pb2.Any],
-  ) -> Sequence[objects_pb2.PathInfo]:
-    artifact_name = responses.request_data["artifact_name"]
-    artifact_progress = self._GetOrInsertArtifactProgress(artifact_name)
-
-    if not responses.success:
-      self.Log(
-          "File content collection for artifact %r failed : %s",
-          artifact_name,
-          responses.status,
-      )
-      artifact_progress.status = flows_pb2.ArtifactProgress.Status.FAILURE
-      return []
-
-    artifact_progress.status = flows_pb2.ArtifactProgress.Status.SUCCESS
-    artifact_progress.num_results += len(responses)
-
-    # It is possible to receive duplicated entries in case the action invocation
-    # had some overlapping paths (e.g. the same path twice). Thus we accumulate
-    # responses into a dictionary indexed by path to collapse these.
-    responses_by_path = {}
-
-    for response_any in responses:
-      response = rrg_get_file_metadata_pb2.Result()
-      response.ParseFromString(response_any.value)
-
-      # TODO: For now we return all responses but this way we will
-      # also return results the user did not ask about because of the way
-      # globbing works. Returning more than necessary is not wrong per se, but
-      # we should filter responses to retain only those that the user expects.
-
-      path = rrg_path.PurePath.For(self.rrg_os_type, response.path)
-
-      # In case of duplicate path generally the entries should be the same, but
-      # it is possible that e.g. the file was modified inbetween two stat calls.
-      # We retain the last entry but log that we did discard a different record.
-      if path in responses_by_path and responses_by_path[path] != response:
-        self.Log(
-            "Duplicated metadata for '%s', discarding: %r",
-            path,
-            responses_by_path[path],
-        )
-
-      responses_by_path[path] = response
-
-    path_infos: list[objects_pb2.PathInfo] = []
-
-    for path, response in responses_by_path.items():
-      symlink = rrg_path.PurePath.For(self.rrg_os_type, response.symlink)
-
-      result = rrg_fs.StatEntry(response.metadata)
-      result.pathspec.pathtype = jobs_pb2.PathSpec.PathType.OS
-      result.pathspec.path = str(path)
-      # TODO: Fix path separator in stat entries.
-      if self.rrg_os_type == rrg_os_pb2.WINDOWS:
-        result.pathspec.path = str(path).replace("\\", "/")
-
-      if response.metadata.type == rrg_fs_pb2.FileMetadata.Type.SYMLINK:
-        result.symlink = str(symlink)
-
-      self.SendReplyProto(result, tag=f"artifact:{artifact_name}")
-
-      path_info = objects_pb2.PathInfo()
-      path_info.path_type = objects_pb2.PathInfo.PathType.OS
-      path_info.components.extend(path.components)
-
-      if response.metadata.type == rrg_fs_pb2.FileMetadata.DIR:
-        path_info.directory = True
-
-      path_info.stat_entry.CopyFrom(result)
-      path_infos.append(path_info)
-
-    return path_infos
-
-  @flow_base.UseProto2AnyResponses
-  def _ProcessRRGGetFileContents(
-      self,
-      responses: flow_responses.Responses[any_pb2.Any],
-  ) -> None:
-    artifact_name = responses.request_data["artifact_name"]
-    artifact_progress = self._GetOrInsertArtifactProgress(artifact_name)
-
-    if not responses.success:
-      self.Log(
-          "File content collection for artifact %r failed: %s",
-          artifact_name,
-          responses.status,
-      )
-      artifact_progress.status = flows_pb2.ArtifactProgress.Status.FAILURE
-      return
-
-    responses_by_path = {}
-
-    for response_any in responses:
-      response = rrg_get_file_contents_pb2.Result()
-      response.ParseFromString(response_any.value)
-
-      path = rrg_path.PurePath.For(self.rrg_os_type, response.path)
-
-      if response.error:
-        self.Log(
-            "File content collection for path %r (artifact %r) failed: %s",
-            path,
-            artifact_name,
-            response.error,
-        )
-        continue
-
-      responses_by_path.setdefault(path, []).append(response)
-
-    # First we verify that the results are "complete", that is: there are no
-    # gaps in the content we collected. We do it be ensuring that all responses
-    # for particular file form a continuous sequence. This should always be the
-    # case or otherwise the action should have reported an error, so we fail
-    # hard in case the assumption does not hold.
-
-    for path, responses in responses_by_path.items():
-      responses.sort(key=lambda _: _.offset)
-
-      for response, response_next in itertools.pairwise(responses):
-        if response.offset + response.length != response_next.offset:
-          raise flow_base.FlowError(
-              f"Missing file content for {path!r}: "
-              f"response at {response.offset} of length {response.length} "
-              f"followed by response at {response_next.offset}"
-          )
-
-      # TODO: We verified all the responses pairwise but we did
-      # not check that the last response matches the whole expected file size.
-      # This we could get from the file metadata collection. It's not a big deal
-      # so we skip it for now.
-
-    # Now we verify that blobs arrived in blobstore. It is okay if this is not
-    # the case (as they are sent through a separate channel and flow processing
-    # might have kicked in before blobstore accepted them).
-
-    blob_ids_pending: set[models_blobs.BlobID] = set()
-
-    for responses in responses_by_path.values():
-      for response in responses:
-        blob_ids_pending.add(models_blobs.BlobID(response.blob_sha256))
-
-    for blob_id, exists in data_store.BLOBS.CheckBlobsExist(
-        blob_ids_pending
-    ).items():
-      if exists:
-        blob_ids_pending.remove(blob_id)
-
-    if blob_ids_pending:
-      self.store.blob_wait_count += 1
-      if self.store.blob_wait_count > self._BLOB_WAIT_COUNT_LIMIT:
-        raise flow_base.FlowError(
-            f"Reached blob wait limit ({len(blob_ids_pending)} blobs pending)",
-        )
-
-      self.Log(
-          "Waiting for %d blobs to arrive in blobstore (attempt %d out of %d)",
-          len(blob_ids_pending),
-          self.store.blob_wait_count,
-          self._BLOB_WAIT_COUNT_LIMIT,
-      )
-
-      self.CallStateProto(
-          next_state=self._ProcessRRGGetFileContents.__name__,
-          responses=list(
-              itertools.chain.from_iterable(responses_by_path.values())
-          ),
-          request_data={"artifact_name": artifact_name},
-          start_time=rdfvalue.RDFDatetime.Now() + self._BLOB_WAIT_DELAY,
-      )
-      return
-
-    # Finally, we build association between collected blobs and paths that is to
-    # be stored in the file store.
-
-    blob_refs_by_client_path = {}
-
-    for path, responses in responses_by_path.items():
-      blob_refs = blob_refs_by_client_path.setdefault(
-          abstract_db.ClientPath.OS(self.client_id, path.components),
-          [],
-      )
-
-      for response in responses:
-        blob_ref = objects_pb2.BlobReference()
-        blob_ref.offset = response.offset
-        blob_ref.size = response.length
-        blob_ref.blob_id = response.blob_sha256
-
-        blob_refs.append(mig_objects.ToRDFBlobReference(blob_ref))
-
-    hash_ids_by_client_path = file_store.AddFilesWithUnknownHashes(
-        blob_refs_by_client_path,
-        use_external_stores=False,
-    )
-
-    path_infos_with_content = []
-    path_infos_without_content = []
-
-    for path_info in self.store.path_infos:
-      client_path = abstract_db.ClientPath.OS(
-          client_id=self.client_id,
-          components=path_info.components,
-      )
-
-      try:
-        hash_id = hash_ids_by_client_path[client_path]
-      except KeyError:
-        path_infos_without_content.append(path_info)
-      else:
-        path_info.hash_entry.sha256 = hash_id.AsBytes()
-        path_infos_with_content.append(path_info)
-
-    # `path_infos_with_content` can contain duplicated values (if the artifact
-    # specifies the same file twice or multiple artifacts have a file overlap),
-    # so we need to de-duplicate them by path.
-    path_infos_with_content = {
-        tuple(path_info.components): path_info
-        for path_info in path_infos_with_content
-    }.values()
-
-    data_store.REL_DB.WritePathInfos(
-        self.client_id,
-        path_infos_with_content,
-    )
-
-    # We delete path infos from the store to free up space since they will be of
-    # no use anymore. We only delete paths for which we collected content.
-    #
-    # For efficiency reasons, we clear the list and re-add path infos that are
-    # still missing content.
-    # TODO: Replace with `clear()` once upgraded.
-    del self.store.path_infos[:]
-    self.store.path_infos.extend(path_infos_without_content)
-
-  @flow_base.UseProto2AnyResponses
+  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
   def ProcessFileFinderResults(
       self, responses: flow_responses.Responses[any_pb2.Any]
   ) -> None:
     """Process the results of a file finder flow."""
     if not responses.success:
       self.Log(
-          "Failed to fetch files %s" % responses.request_data["artifact_name"]
+          "Failed to fetch files %s" % responses.request_data["artifact_name"]  # pyrefly: ignore[unsupported-operation]
       )
     else:
       stat_entries = []
@@ -722,12 +313,10 @@ class ArtifactCollectorFlow(
           messages=stat_entries,
       )
 
-  def _GetRegistryKey(self, source: rdf_artifacts.ArtifactSource) -> None:
+  def _GetRegistryKey(self, source: artifact_pb2.ArtifactSource) -> None:
     artifact_name = str(self.current_artifact_name)
 
     if self.rrg_support:
-      source = mig_artifacts.ToProtoArtifactSource(source)
-
       for attr_kv in source.attributes.dat:
         if attr_kv.k.string != "keys":
           raise flow_base.FlowError(f"Non-keys attribute: {attr_kv}")
@@ -781,7 +370,7 @@ class ArtifactCollectorFlow(
             ])
 
             list_winreg_values.context["artifact_name"] = artifact_name
-            list_winreg_values.Call(self._ProcessRRGListWinregValues)
+            list_winreg_values.Call(self._ProcessRRGListWinregValues)  # pyrefly: ignore[bad-argument-type]
 
             # We only need to do extra filtering if there is a glob. If there is
             # no globbing, we simply return all subkeys.
@@ -800,32 +389,32 @@ class ArtifactCollectorFlow(
               list_winreg_keys.AddFilter().conditions.append(subkey_glob_cond)
 
             list_winreg_keys.context["artifact_name"] = artifact_name
-            list_winreg_keys.Call(self._ProcessRRGListWinregKeys)
+            list_winreg_keys.Call(self._ProcessRRGListWinregKeys)  # pyrefly: ignore[bad-argument-type]
 
       return
 
+    attributes = mig_protodict.FromProtoDictToNativeDict(source.attributes)
     self.CallFlowProto(
         file_finder.ClientFileFinder.__name__,
-        flow_args=mig_file_finder.ToProtoFileFinderArgs(
-            rdf_file_finder.FileFinderArgs(
-                paths=self._InterpolateList(source.attributes.get("keys", [])),
-                pathtype=rdf_paths.PathSpec.PathType.REGISTRY,
-                action=rdf_file_finder.FileFinderAction.Stat(),
-            )
+        flow_args=flows_pb2.FileFinderArgs(
+            paths=self._InterpolateList(attributes.get("keys", [])),
+            pathtype=jobs_pb2.PathSpec.PathType.REGISTRY,
+            action=flows_pb2.FileFinderAction(
+                action_type=flows_pb2.FileFinderAction.Action.STAT
+            ),
         ),
         request_data={
             "artifact_name": self.current_artifact_name,
-            "source": source.ToPrimitiveDict(),
         },
         next_state=self.ProcessFileFinderKeys.__name__,
     )
 
-  @flow_base.UseProto2AnyResponses
+  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
   def _ProcessRRGListWinregValues(
       self,
       responses: flow_responses.Responses[any_pb2.Any],
   ) -> None:
-    artifact_name = responses.request_data["artifact_name"]
+    artifact_name = responses.request_data["artifact_name"]  # pyrefly: ignore[unsupported-operation]
     artifact_progress = self._GetOrInsertArtifactProgress(artifact_name)
 
     if not responses.success:
@@ -848,12 +437,12 @@ class ArtifactCollectorFlow(
           tag=f"artifact:{artifact_name}",
       )
 
-  @flow_base.UseProto2AnyResponses
+  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
   def _ProcessRRGListWinregKeys(
       self,
       responses: flow_responses.Responses[any_pb2.Any],
   ) -> None:
-    artifact_name = responses.request_data["artifact_name"]
+    artifact_name = responses.request_data["artifact_name"]  # pyrefly: ignore[unsupported-operation]
     artifact_progress = self._GetOrInsertArtifactProgress(artifact_name)
 
     if not responses.success:
@@ -876,11 +465,9 @@ class ArtifactCollectorFlow(
           tag=f"artifact:{artifact_name}",
       )
 
-  def _GetRegistryValue(self, source: rdf_artifacts.ArtifactSource) -> None:
+  def _GetRegistryValue(self, source: artifact_pb2.ArtifactSource) -> None:
     """Retrieve directly specified registry values, returning Stat objects."""
     if self.rrg_support:
-      source = mig_artifacts.ToProtoArtifactSource(source)
-
       if len(source.attributes.dat) != 1:
         raise flow_base.FlowError(
             f"Unexpected attributes: {source.attributes.dat}",
@@ -949,13 +536,14 @@ class ArtifactCollectorFlow(
           ])
 
           action.context["artifact_name"] = str(self.current_artifact_name)
-          action.Call(self._ProcessRRGListWinregValues)
+          action.Call(self._ProcessRRGListWinregValues)  # pyrefly: ignore[bad-argument-type]
 
       return
 
     new_paths = set()
     has_glob = False
-    for kvdict in source.attributes["key_value_pairs"]:
+    attributes = mig_protodict.FromProtoDictToNativeDict(source.attributes)
+    for kvdict in attributes["key_value_pairs"]:
       if "*" in kvdict["key"] or rdf_paths.GROUPING_PATTERN.search(
           kvdict["key"]
       ):
@@ -990,16 +578,15 @@ class ArtifactCollectorFlow(
     if has_glob:
       self.CallFlowProto(
           file_finder.ClientFileFinder.__name__,
-          flow_args=mig_file_finder.ToProtoFileFinderArgs(
-              rdf_file_finder.FileFinderArgs(
-                  paths=new_paths,
-                  pathtype=rdf_paths.PathSpec.PathType.REGISTRY,
-                  action=rdf_file_finder.FileFinderAction.Stat(),
-              )
+          flow_args=flows_pb2.FileFinderArgs(
+              paths=new_paths,
+              pathtype=jobs_pb2.PathSpec.PathType.REGISTRY,
+              action=flows_pb2.FileFinderAction(
+                  action_type=flows_pb2.FileFinderAction.Action.STAT
+              ),
           ),
           request_data={
               "artifact_name": self.current_artifact_name,
-              "source": source.ToPrimitiveDict(),
           },
           next_state=self.ProcessFileFinderKeys.__name__,
       )
@@ -1017,19 +604,18 @@ class ArtifactCollectorFlow(
             jobs_pb2.GetFileStatRequest(pathspec=pathspec),
             request_data={
                 "artifact_name": self.current_artifact_name,
-                "source": source.ToPrimitiveDict(),
             },
             next_state=self.ProcessCollectedRegistryStatEntry.__name__,
         )
 
-  @flow_base.UseProto2AnyResponses
+  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
   def ProcessFileFinderKeys(
       self,
       responses: flow_responses.Responses[any_pb2.Any],
   ) -> None:
     if not responses.success:
       self.Log(
-          "Failed to fetch keys %s" % responses.request_data["artifact_name"]
+          "Failed to fetch keys %s" % responses.request_data["artifact_name"]  # pyrefly: ignore[unsupported-operation]
       )
     # We're only interested in the `StatEntry`s, not  `FileFinderResult`s.
     stat_entries = []
@@ -1047,38 +633,37 @@ class ArtifactCollectorFlow(
 
   def _StartSubArtifactCollector(
       self,
-      artifact_list: Sequence[rdf_artifacts.ArtifactName],
-      source: rdf_artifacts.ArtifactSource,
+      artifact_list: list[str],
+      source: artifact_pb2.ArtifactSource,
       next_state: str,
   ) -> None:
     self.CallFlowProto(
         ArtifactCollectorFlow.__name__,
-        flow_args=mig_artifacts.ToProtoArtifactCollectorFlowArgs(
-            rdf_artifacts.ArtifactCollectorFlowArgs(
-                artifact_list=artifact_list,
-                use_raw_filesystem_access=self.args.use_raw_filesystem_access,
-                implementation_type=self.args.implementation_type,
-                max_file_size=self.args.max_file_size,
-                ignore_interpolation_errors=self.args.ignore_interpolation_errors,
-                knowledge_base=self.args.knowledge_base,
-            )
+        flow_args=flows_pb2.ArtifactCollectorFlowArgs(
+            artifact_list=artifact_list,
+            use_raw_filesystem_access=self.proto_args.use_raw_filesystem_access,
+            implementation_type=self.proto_args.implementation_type,
+            max_file_size=self.proto_args.max_file_size,
+            ignore_interpolation_errors=self.proto_args.ignore_interpolation_errors,
+            knowledge_base=self.proto_args.knowledge_base,
         ),
         request_data={
             "artifact_name": self.current_artifact_name,
-            "source": source.ToPrimitiveDict(),
         },
         next_state=next_state,
     )
 
-  def _CollectArtifacts(self, source: rdf_artifacts.ArtifactSource) -> None:
+  def _CollectArtifacts(self, source: artifact_pb2.ArtifactSource) -> None:
+    attributes = mig_protodict.FromProtoDictToNativeDict(source.attributes)
     self._StartSubArtifactCollector(
-        artifact_list=source.attributes["names"],
+        artifact_list=attributes["names"],
         source=source,
         next_state=self.ProcessCollected.__name__,
     )
 
-  def _RunCommand(self, source: rdf_artifacts.ArtifactSource) -> None:
+  def _RunCommand(self, source: artifact_pb2.ArtifactSource) -> None:
     """Run a command."""
+    attributes = mig_protodict.FromProtoDictToNativeDict(source.attributes)
     if self.rrg_support:
       if self.client_os == "Linux":
         operating_system = signed_commands_pb2.SignedCommand.OS.LINUX
@@ -1093,8 +678,8 @@ class ArtifactCollectorFlow(
 
       command = data_store.REL_DB.LookupSignedCommand(
           operating_system=operating_system,
-          path=source.attributes["cmd"],
-          args=source.attributes.get("args", []),
+          path=attributes["cmd"],
+          args=attributes.get("args", []),
       )
 
       action = rrg_stubs.ExecuteSignedCommand()
@@ -1102,26 +687,26 @@ class ArtifactCollectorFlow(
       action.args.command_ed25519_signature = command.ed25519_signature
       action.args.timeout.seconds = 30
       action.context["artifact_name"] = str(self.current_artifact_name)
-      action.Call(self._ProcessRRGCommand)
+      action.Call(self._ProcessRRGCommand)  # pyrefly: ignore[bad-argument-type]
     else:
       self.CallClientProto(
           server_stubs.ExecuteCommand,
           jobs_pb2.ExecuteRequest(
-              cmd=source.attributes["cmd"],
-              args=source.attributes.get("args", []),
+              cmd=attributes["cmd"],
+              args=attributes.get("args", []),
           ),
           request_data={
               "artifact_name": self.current_artifact_name,
-              "source": source.ToPrimitiveDict(),
           },
           next_state=self.ProcessCollected.__name__,
       )
 
-  def _WMIQuery(self, source: rdf_artifacts.ArtifactSource) -> None:
+  def _WMIQuery(self, source: artifact_pb2.ArtifactSource) -> None:
     """Run a Windows WMI Query."""
-    query = source.attributes["query"]
+    attributes = mig_protodict.FromProtoDictToNativeDict(source.attributes)
+    query = attributes["query"]
     queries = self._Interpolate(query)
-    base_object = source.attributes.get("base_object")
+    base_object = attributes.get("base_object")
     for query in queries:
       if self.rrg_support:
         action = rrg_stubs.QueryWmi()
@@ -1135,7 +720,7 @@ class ArtifactCollectorFlow(
           raise flow_base.FlowError(f"Invalid WMI base object: {base_object}")
 
         action.context["artifact_name"] = str(self.current_artifact_name)
-        action.Call(self._ProcessRRGWMIQuery)
+        action.Call(self._ProcessRRGWMIQuery)  # pyrefly: ignore[bad-argument-type]
       else:
         self.CallClientProto(
             server_stubs.WmiQuery,
@@ -1145,7 +730,6 @@ class ArtifactCollectorFlow(
             ),
             request_data={
                 "artifact_name": self.current_artifact_name,
-                "source": source.ToPrimitiveDict(),
             },
             next_state=self.ProcessCollected.__name__,
         )
@@ -1195,7 +779,7 @@ class ArtifactCollectorFlow(
 
     return interpolation.results
 
-  @flow_base.UseProto2AnyResponses
+  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
   def ProcessCollected(
       self, responses: flow_responses.Responses[any_pb2.Any]
   ) -> None:
@@ -1209,7 +793,7 @@ class ArtifactCollectorFlow(
       artifact_utils.ArtifactProcessingError: On failure to process.
     """
     flow_name = self.__class__.__name__
-    artifact_name = str(responses.request_data["artifact_name"])
+    artifact_name = str(responses.request_data["artifact_name"])  # pyrefly: ignore[unsupported-operation]
 
     progress = self._GetOrInsertArtifactProgress(artifact_name)
 
@@ -1266,12 +850,12 @@ class ArtifactCollectorFlow(
           ", ".join(skipped_result_types),
       )
 
-  @flow_base.UseProto2AnyResponses
+  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
   def _ProcessRRGCommand(
       self,
       responses: flow_responses.Responses[any_pb2.Any],
   ) -> None:
-    artifact_name = responses.request_data["artifact_name"]
+    artifact_name = responses.request_data["artifact_name"]  # pyrefly: ignore[unsupported-operation]
     artifact_progress = self._GetOrInsertArtifactProgress(artifact_name)
 
     if not responses.success:
@@ -1308,12 +892,12 @@ class ArtifactCollectorFlow(
 
       self.SendReplyProto(result, tag=f"artifact:{artifact_name}")
 
-  @flow_base.UseProto2AnyResponses
+  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
   def _ProcessRRGWMIQuery(
       self,
       responses: flow_responses.Responses[any_pb2.Any],
   ) -> None:
-    artifact_name = responses.request_data["artifact_name"]
+    artifact_name = responses.request_data["artifact_name"]  # pyrefly: ignore[unsupported-operation]
     artifact_progress = self._GetOrInsertArtifactProgress(artifact_name)
 
     if not responses.success:
@@ -1356,7 +940,7 @@ class ArtifactCollectorFlow(
 
       self.SendReplyProto(result, tag=f"artifact:{artifact_name}")
 
-  @flow_base.UseProto2AnyResponses
+  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
   def ProcessCollectedRegistryStatEntry(
       self, responses: flow_responses.Responses[any_pb2.Any]
   ) -> None:
@@ -1376,13 +960,11 @@ class ArtifactCollectorFlow(
       return
 
     stat_entries = []
-    rdf_stat_entries = []
     for response in responses:
       result = jobs_pb2.StatEntry()
       response.Unpack(result)
       stat_entries.append(result)
-      rdf_stat_entries.append(mig_client_fs.ToRDFStatEntry(result))
-    filesystem.WriteStatEntries(rdf_stat_entries, client_id=self.client_id)
+    filesystem.WriteStatEntries(stat_entries, client_id=self.client_id)
 
     self.CallStateInlineProto(
         next_state=self.ProcessCollected.__name__,
@@ -1415,13 +997,13 @@ class ArtifactCollectorFlow(
         pathspec = rdf_paths.PathSpec(path=pathspec)
 
       if isinstance(pathspec, rdf_paths.PathSpec):
-        if not pathspec.path:
+        if not pathspec.path:  # pyrefly: ignore[missing-attribute]
           self.Log("Skipping empty pathspec.")
           continue
         if self.proto_args.use_raw_filesystem_access:
-          pathspec.pathtype = rdf_paths.PathSpec.PathType.TSK
+          pathspec.pathtype = rdf_paths.PathSpec.PathType.TSK  # pyrefly: ignore[missing-attribute]
         else:
-          pathspec.pathtype = rdf_paths.PathSpec.PathType.OS
+          pathspec.pathtype = rdf_paths.PathSpec.PathType.OS  # pyrefly: ignore[missing-attribute]
 
         self.download_list.append(pathspec)
 
@@ -1435,20 +1017,12 @@ class ArtifactCollectorFlow(
       request_data = responses.request_data.ToDict()
       self.CallFlowProto(
           transfer.MultiGetFile.__name__,
-          flow_args=mig_transfer.ToProtoMultiGetFileArgs(
-              transfer.MultiGetFileArgs(
-                  pathspecs=self.download_list,
-                  request_data=request_data,
-              )
-          ),
+          flow_args=flows_pb2.MultiGetFileArgs(pathspecs=self.download_list),
+          request_data=request_data,
           next_state=self.ProcessCollected.__name__,
       )
     else:
       self.Log("No files to download")
-
-  # TODO: Remove this method.
-  def GetProgress(self) -> rdf_artifacts.ArtifactCollectorFlowProgress:
-    return mig_artifacts.ToRDFArtifactCollectorFlowProgress(self.progress)
 
   def GetProgressProto(self) -> flows_pb2.ArtifactCollectorFlowProgress:
     return self.progress
@@ -1480,9 +1054,10 @@ class ArtifactCollectorFlow(
       )
 
 
-def MeetsOSConditions(knowledge_base, source):
-  """Check supported OS on the source."""
-  if source.supported_os and knowledge_base.os not in source.supported_os:
-    return False
+def MeetsOSConditions(
+    knowledge_base: knowledge_base_pb2.KnowledgeBase,
+    supported_os: Sequence[str],
+) -> bool:
+  """Checks whether the OS in the knowledge base is supported."""
 
-  return True
+  return (not supported_os) or (knowledge_base.os in supported_os)

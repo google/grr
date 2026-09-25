@@ -221,7 +221,7 @@ class TSKFile(vfs_base.VFSHandler):
       if name in [".", ".."] or name in self._IGNORE_FILES:
         continue
 
-      # TODO: TSK lists duplicate filenames. Only return unique
+      # TODO - TSK lists duplicate filenames. Only return unique
       # names from ListNames(), because parts of the system fail otherwise.
       if name not in seen_names:
         seen_names.add(name)

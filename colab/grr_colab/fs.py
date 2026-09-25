@@ -2,9 +2,7 @@
 """Module that contains API to perform filesystem operations on a GRR client."""
 from collections.abc import Sequence
 import io
-import itertools
 
-from google.protobuf import message
 from grr_api_client import client
 from grr_api_client import errors as api_errors
 from grr_colab import _timeout
@@ -99,79 +97,9 @@ class FileSystem(object):
       res.append(result.payload.stat_entry)
     return res
 
-  def grep(
-      self, path: str, pattern: bytes
-  ) -> Sequence[jobs_pb2.BufferReference]:
-    """Greps for given content on the specified path.
-
-    Args:
-      path: A path to a file to be searched.
-      pattern: A regular expression on search for.
-
-    Returns:
-      A list of buffer references to the matched content.
-    """
-    args = flows_pb2.FileFinderArgs()
-    args.paths.append(path)
-    args.pathtype = self._path_type
-
-    cond = args.conditions.add()
-    cond.condition_type = \
-      flows_pb2.FileFinderCondition.Type.CONTENTS_REGEX_MATCH
-    cond.contents_regex_match.mode = \
-      flows_pb2.FileFinderContentsRegexMatchCondition.ALL_HITS
-    cond.contents_regex_match.regex = pattern
-
-    args.action.action_type = flows_pb2.FileFinderAction.Action.STAT
-
-    try:
-      ff = self._client.CreateFlow(name='FileFinder', args=args)
-    except api_errors.AccessForbiddenError as e:
-      raise errors.ApprovalMissingError(self.id, e)
-
-    _timeout.await_flow(ff)
-
-    results = itertools.chain.from_iterable(
-        _all_matches(result.payload) for result in ff.ListResults()
-    )
-    return representer.BufferReferenceList(results)
-
-  def fgrep(
-      self, path: str, literal: bytes
-  ) -> Sequence[jobs_pb2.BufferReference]:
-    """Greps for given content on the specified path.
-
-    Args:
-      path: A path to a file to be searched.
-      literal: A literal expression on search for.
-
-    Returns:
-      A list of buffer references to the matched content.
-    """
-    args = flows_pb2.FileFinderArgs()
-    args.paths.append(path)
-    args.pathtype = self._path_type
-
-    cond = args.conditions.add()
-    cond.condition_type = \
-      flows_pb2.FileFinderCondition.Type.CONTENTS_LITERAL_MATCH
-    cond.contents_literal_match.mode = \
-      flows_pb2.FileFinderContentsLiteralMatchCondition.Mode.ALL_HITS
-    cond.contents_literal_match.literal = literal
-
-    args.action.action_type = flows_pb2.FileFinderAction.Action.STAT
-
-    try:
-      ff = self._client.CreateFlow(name='FileFinder', args=args)
-    except api_errors.AccessForbiddenError as e:
-      raise errors.ApprovalMissingError(self.id, e)
-
-    _timeout.await_flow(ff)
-
-    results = itertools.chain.from_iterable(
-        _all_matches(result.payload) for result in ff.ListResults()
-    )
-    return representer.BufferReferenceList(results)
+  # TODO - `grep` and `fgrep` methods could be implemented by using
+  # the RRG `GREP_FILE_CONTENTS` action (e.g. through some simple pass-through
+  # flow).
 
   def wget(self, path: str) -> str:
     """Downloads a file and returns a link to it.
@@ -219,19 +147,3 @@ class FileSystem(object):
       raise errors.ApprovalMissingError(self.id, e)
 
     _timeout.await_flow(cff)
-
-
-def _all_matches(result: message.Message) -> list[jobs_pb2.BufferReference]:
-  """Returns all matchches of a file finder result.
-
-  Args:
-    result: A file finder result message.
-
-  Raises:
-    IndexError: If given result does not have any matches.
-    TypeError: If given result message is not a file finder result.
-  """
-  if not isinstance(result, flows_pb2.FileFinderResult):
-    raise TypeError(f'Unexpected flow result type: {type(result)}')
-
-  return result.matches

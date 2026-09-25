@@ -21,6 +21,7 @@ import requests
 from grr_api_client import api as grr_api
 from grr_response_core.lib.rdfvalues import crypto as rdf_crypto
 from grr_response_core.lib.util import temp
+from grr_response_proto import flows_pb2
 from grr_response_server.flows.general import processes
 from grr_response_server.gui import api_auth_manager
 from grr_response_server.gui import api_call_router_without_checks
@@ -125,13 +126,13 @@ class ApiSslE2ETestMixin(object):
 
   def testPostMethodWorks(self):
     client_id = self.SetupClient(0)
-    args = processes.ListProcessesArgs(
+    args = flows_pb2.ListProcessesArgs(
         filename_regex="blah", fetch_binaries=True
     )
 
     client_ref = self.api.Client(client_id=client_id)
     result_flow = client_ref.CreateFlow(
-        name=processes.ListProcesses.__name__, args=args.AsPrimitiveProto()
+        name=processes.ListProcesses.__name__, args=args
     )
     self.assertTrue(result_flow.client_id)
 
@@ -152,7 +153,7 @@ class ApiSslWithoutCABundleTest(ApiSslServerTestBase):
   def testConnectionFails(self):
     client_id = self.SetupClient(0)
 
-    # TODO: Enable version validation.
+    # TODO - Enable version validation.
     api = grr_api.InitHttp(
         api_endpoint=self.__class__.ssl_endpoint, validate_version=False
     )
@@ -165,7 +166,7 @@ class ApiSslWithEnvVarWithoutMergingTest(ApiSslServerTestBase):
   def testConnectionFails(self):
     client_id = self.SetupClient(0)
 
-    # TODO: Enable version validation.
+    # TODO - Enable version validation.
     api = grr_api.InitHttp(
         api_endpoint=self.__class__.ssl_endpoint,
         trust_env=False,
@@ -253,7 +254,7 @@ class ApiSslProxyTest(ApiSslServerTestBase):
   def testProxyConnection(self):
     client_id = self.SetupClient(0)
 
-    # TODO: Enable version validation.
+    # TODO - Enable version validation.
     api = grr_api.InitHttp(
         api_endpoint=self.__class__.ssl_endpoint,
         proxies={"https": "http://localhost:%d" % self.proxy_port},

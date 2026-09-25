@@ -7,7 +7,6 @@ from typing import Optional
 import MySQLdb
 
 from grr_response_core.lib import rdfvalue
-from grr_response_core.lib.rdfvalues import mig_crypto
 from grr_response_core.lib.util import random
 from grr_response_proto import jobs_pb2
 from grr_response_proto import objects_pb2
@@ -85,8 +84,7 @@ class MySQLDBUsersMixin(object):
     values = {"username": username, "username_hash": mysql_utils.Hash(username)}
 
     if password is not None:
-      rdf_password = mig_crypto.ToRDFPassword(password)
-      values["password"] = rdf_password.SerializeToBytes()
+      values["password"] = password.SerializeToString()
     if ui_mode is not None:
       values["ui_mode"] = int(ui_mode)
     if canary_mode is not None:

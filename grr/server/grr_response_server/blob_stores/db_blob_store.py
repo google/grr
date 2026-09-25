@@ -22,7 +22,7 @@ class DbBlobStore(blob_store.BlobStore):
       # The global database object is the validation wrapper, so we need to take
       # its delegate (as the validation wrapper does not implement the blobstore
       # interface).
-      delegate = data_store.REL_DB.delegate  # pytype: disable=attribute-error
+      delegate = data_store.REL_DB.delegate  # pyrefly: ignore[missing-attribute]
       if not isinstance(delegate, blob_store.BlobStore):
         raise TypeError(
             f"Database blobstore delegate of '{type(delegate)}' "

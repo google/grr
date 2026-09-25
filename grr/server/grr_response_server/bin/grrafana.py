@@ -160,16 +160,16 @@ class Grrafana(object):
   def __init__(self) -> None:
     """Initializes a new GRRafana HTTP server instance."""
     self._url_map = werkzeug_routing.Map([
-        werkzeug_routing.Rule("/", endpoint=self._OnRoot, methods=["GET"]),  # pytype: disable=wrong-arg-types
+        werkzeug_routing.Rule("/", endpoint=self._OnRoot, methods=["GET"]),
         werkzeug_routing.Rule(
             "/search", endpoint=self._OnSearch, methods=["POST"]
-        ),  # pytype: disable=wrong-arg-types
+        ),
         werkzeug_routing.Rule(
             "/query", endpoint=self._OnQuery, methods=["POST"]
-        ),  # pytype: disable=wrong-arg-types
+        ),
         werkzeug_routing.Rule(
             "/annotations", endpoint=self._OnAnnotations, methods=["POST"]
-        ),  # pytype: disable=wrong-arg-types
+        ),
     ])
 
   def _DispatchRequest(
@@ -179,7 +179,7 @@ class Grrafana(object):
     """Maps requests to different methods."""
     adapter = self._url_map.bind_to_environ(request.environ)
     endpoint, values = adapter.match()
-    return endpoint(request, **values)  # pytype: disable=not-callable
+    return endpoint(request, **values)
 
   # fmt: off
   # pylint: disable=line-too-long
@@ -212,7 +212,7 @@ class Grrafana(object):
   ) -> Iterable[bytes]:
     request = werkzeug_wrappers.Request(environ)
     response = self._DispatchRequest(request)
-    return response(environ, start_response)
+    return response(environ, start_response)  # pyrefly: ignore[bad-argument-type]
 
   def _OnRoot(
       self,

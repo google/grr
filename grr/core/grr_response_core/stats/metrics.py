@@ -46,8 +46,8 @@ class Counter(AbstractMetric):
     super().__init__(
         rdf_stats.MetricMetadata(
             varname=name,
-            metric_type=rdf_stats.MetricMetadata.MetricType.COUNTER,
-            value_type=rdf_stats.MetricMetadata.ValueType.INT,
+            metric_type=rdf_stats.MetricMetadata.MetricType.COUNTER,  # pyrefly: ignore[missing-attribute]
+            value_type=rdf_stats.MetricMetadata.ValueType.INT,  # pyrefly: ignore[missing-attribute]
             fields_defs=stats_utils.FieldDefinitionProtosFromTuples(fields),
             docstring=docstring,
             units=units,
@@ -85,7 +85,7 @@ class Gauge(AbstractMetric):
     super().__init__(
         rdf_stats.MetricMetadata(
             varname=name,
-            metric_type=rdf_stats.MetricMetadata.MetricType.GAUGE,
+            metric_type=rdf_stats.MetricMetadata.MetricType.GAUGE,  # pyrefly: ignore[missing-attribute]
             value_type=stats_utils.MetricValueTypeFromPythonType(value_type),
             fields_defs=stats_utils.FieldDefinitionProtosFromTuples(fields),
             docstring=docstring,
@@ -119,8 +119,8 @@ class Event(AbstractMetric):
         rdf_stats.MetricMetadata(
             varname=name,
             bins=bins,
-            metric_type=rdf_stats.MetricMetadata.MetricType.EVENT,
-            value_type=rdf_stats.MetricMetadata.ValueType.DISTRIBUTION,
+            metric_type=rdf_stats.MetricMetadata.MetricType.EVENT,  # pyrefly: ignore[missing-attribute]
+            value_type=rdf_stats.MetricMetadata.ValueType.DISTRIBUTION,  # pyrefly: ignore[missing-attribute]
             fields_defs=stats_utils.FieldDefinitionProtosFromTuples(fields),
             docstring=docstring,
             units=units,

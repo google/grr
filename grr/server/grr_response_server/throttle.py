@@ -3,8 +3,9 @@
 
 from typing import Iterable, Optional
 
-from google.protobuf import any_pb2
 from google.protobuf import message as pb_message
+
+from google.protobuf import any_pb2
 from grr_response_core.lib import rdfvalue
 from grr_response_proto import flows_pb2
 from grr_response_server import data_store

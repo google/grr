@@ -74,18 +74,18 @@ class InMemoryDBCronJobMixin(object):
       raise db.UnknownCronJobError(f"Cron job {cronjob_id} not known.")
 
     if last_run_status != db.Database.UNCHANGED:
-      job.last_run_status = last_run_status
+      job.last_run_status = last_run_status  # pyrefly: ignore[bad-assignment]
     if last_run_time != db.Database.UNCHANGED:
-      job.last_run_time = last_run_time.AsMicrosecondsSinceEpoch()
+      job.last_run_time = last_run_time.AsMicrosecondsSinceEpoch()  # pyrefly: ignore[missing-attribute]
     if current_run_id != db.Database.UNCHANGED:
       if current_run_id is None:
         job.ClearField("current_run_id")
       else:
         job.current_run_id = current_run_id
     if state != db.Database.UNCHANGED:
-      job.state.CopyFrom(state)
+      job.state.CopyFrom(state)  # pyrefly: ignore[bad-argument-type]
     if forced_run_requested != db.Database.UNCHANGED:
-      job.forced_run_requested = forced_run_requested
+      job.forced_run_requested = forced_run_requested  # pyrefly: ignore[bad-assignment]
 
   @utils.Synchronized
   def EnableCronJob(self, cronjob_id: str) -> None:
@@ -116,7 +116,7 @@ class InMemoryDBCronJobMixin(object):
     for job_run in self.ReadCronJobRuns(cronjob_id):
       del self.cronjob_runs[(cronjob_id, job_run.run_id)]
 
-    # TODO: Use protos in approvals.
+    # TODO - Use protos in approvals.
     for approvals in self.approvals_by_username.values():
       # We use `list` around dictionary items iterator to avoid errors about
       # dictionary modification during iteration.

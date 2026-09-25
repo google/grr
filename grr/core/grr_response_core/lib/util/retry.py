@@ -117,13 +117,13 @@ class When(Generic[_E]):
     opts = self._opts
 
     @functools.wraps(func)
-    def Wrapped(*args, **kwargs) -> On._R:
+    def Wrapped(*args, **kwargs) -> On._R:  # pyrefly: ignore[invalid-type-var]
       attempts = 0
       delay = opts.init_delay
 
       while True:
         try:
-          return func(*args, **kwargs)
+          return func(*args, **kwargs)  # pyrefly: ignore[bad-return]
         except self._exception as error:
           attempts += 1
           if attempts == opts.attempts:
@@ -143,4 +143,4 @@ class When(Generic[_E]):
           # unpredictable.
           delay = min(delay * opts.backoff, opts.max_delay)
 
-    return Wrapped
+    return Wrapped  # pyrefly: ignore[bad-return]

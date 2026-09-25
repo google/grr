@@ -16,7 +16,6 @@ import {MatFormFieldModule} from '@angular/material/form-field';
 import {MatIconModule} from '@angular/material/icon';
 import {MatInputModule} from '@angular/material/input';
 import {MatTooltipModule} from '@angular/material/tooltip';
-import {Title} from '@angular/platform-browser';
 import {ActivatedRoute, Router, RouterModule} from '@angular/router';
 
 import {
@@ -150,8 +149,6 @@ export class NewFleetCollection {
   });
 
   constructor() {
-    inject(Title).setTitle('GRR | New Fleet Collection');
-
     // Already fetch the output plugin descriptors when the page is loaded. This
     // will make the output plugin form initialization faster.
     this.globalStore.fetchOutputPluginDescriptors();
@@ -196,7 +193,7 @@ export class NewFleetCollection {
     effect(() => {
       // As soon as the new fleet collection is created we redirect to the
       // fleet collection results page.
-      // TODO: Check approval and only then redirect to the
+      // TODO - Check approval and only then redirect to the
       // approval page.
       if (this.newFleetCollectionStore.newFleetCollection() !== undefined) {
         this.router.navigate([

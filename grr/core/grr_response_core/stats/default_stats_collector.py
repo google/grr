@@ -187,13 +187,13 @@ class DefaultStatsCollector(stats_collector.StatsCollector):
     field_defs = stats_utils.FieldDefinitionTuplesFromProtos(
         metadata.fields_defs
     )
-    if metadata.metric_type == rdf_stats.MetricMetadata.MetricType.COUNTER:
+    if metadata.metric_type == rdf_stats.MetricMetadata.MetricType.COUNTER:  # pyrefly: ignore[missing-attribute]
       self._counter_metrics[metadata.varname] = _CounterMetric(field_defs)
-    elif metadata.metric_type == rdf_stats.MetricMetadata.MetricType.EVENT:
+    elif metadata.metric_type == rdf_stats.MetricMetadata.MetricType.EVENT:  # pyrefly: ignore[missing-attribute]
       self._event_metrics[metadata.varname] = _EventMetric(
           list(metadata.bins), field_defs
       )
-    elif metadata.metric_type == rdf_stats.MetricMetadata.MetricType.GAUGE:
+    elif metadata.metric_type == rdf_stats.MetricMetadata.MetricType.GAUGE:  # pyrefly: ignore[missing-attribute]
       value_type = stats_utils.PythonTypeFromMetricValueType(
           metadata.value_type
       )

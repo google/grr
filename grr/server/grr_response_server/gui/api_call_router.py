@@ -282,15 +282,15 @@ class ApiCallRouterStub(ApiCallRouter):
     raise NotImplementedError()
 
   @Category("Artifacts")
-  @ProtoArgsType(api_artifact_pb2.ApiDeleteArtifactsArgs)
-  @Http("DELETE", "/api/v2/artifacts")
+  @ProtoArgsType(api_artifact_pb2.ApiDeleteArtifactArgs)
+  @Http("DELETE", "/api/v2/artifacts/<name>")
   @NoAuditLogRequired()
-  def DeleteArtifacts(
+  def DeleteArtifact(
       self,
-      args: api_artifact_pb2.ApiDeleteArtifactsArgs,
+      args: api_artifact_pb2.ApiDeleteArtifactArgs,
       context: Optional[api_call_context.ApiCallContext] = None,
   ):
-    """Delete one of previously uploaded artifacts."""
+    """Delete one previously uploaded artifacts."""
 
     raise NotImplementedError()
 
@@ -412,20 +412,6 @@ class ApiCallRouterStub(ApiCallRouter):
     raise NotImplementedError()
 
   @Category("Clients")
-  @ProtoArgsType(api_client_pb2.ApiGetLastClientIPAddressArgs)
-  @ProtoResultType(api_client_pb2.ApiGetLastClientIPAddressResult)
-  @Http("GET", "/api/v2/clients/<client_id>/last-ip")
-  @NoAuditLogRequired()
-  def GetLastClientIPAddress(
-      self,
-      args: api_client_pb2.ApiGetLastClientIPAddressArgs,
-      context: Optional[api_call_context.ApiCallContext] = None,
-  ):
-    """Get last known client IP address."""
-
-    raise NotImplementedError()
-
-  @Category("Clients")
   @ProtoArgsType(api_client_pb2.ApiListClientCrashesArgs)
   @ProtoResultType(api_client_pb2.ApiListClientCrashesResult)
   @Http("GET", "/api/v2/clients/<client_id>/crashes")
@@ -466,17 +452,6 @@ class ApiCallRouterStub(ApiCallRouter):
       args: api_client_pb2.ApiDeleteFleetspeakPendingMessagesArgs,
       context: Optional[api_call_context.ApiCallContext] = None,
   ) -> api_client.ApiDeleteFleetspeakPendingMessagesHandler:
-    raise NotImplementedError()
-
-  @Category("Clients")
-  @ProtoArgsType(api_client_pb2.ApiGetFleetspeakPendingMessagesArgs)
-  @ProtoResultType(api_client_pb2.ApiGetFleetspeakPendingMessagesResult)
-  @Http("GET", "/api/v2/clients/<client_id>/fleetspeak/messages/pending")
-  def GetFleetspeakPendingMessages(
-      self,
-      args: api_client_pb2.ApiGetFleetspeakPendingMessagesArgs,
-      context: Optional[api_call_context.ApiCallContext] = None,
-  ) -> api_client.ApiGetFleetspeakPendingMessagesHandler:
     raise NotImplementedError()
 
   @Category("Clients")
@@ -1090,19 +1065,6 @@ class ApiCallRouterStub(ApiCallRouter):
     raise NotImplementedError()
 
   @Category("Cron")
-  @ProtoArgsType(api_cron_pb2.ApiCreateCronJobArgs)
-  @ProtoResultType(api_cron_pb2.ApiCronJob)
-  @Http("POST", "/api/v2/cron-jobs")
-  def CreateCronJob(
-      self,
-      args: api_cron_pb2.ApiCreateCronJobArgs,
-      context: Optional[api_call_context.ApiCallContext] = None,
-  ):
-    """Create new cron job."""
-
-    raise NotImplementedError()
-
-  @Category("Cron")
   @ProtoArgsType(api_cron_pb2.ApiGetCronJobArgs)
   @ProtoResultType(api_cron_pb2.ApiCronJob)
   @Http("GET", "/api/v2/cron-jobs/<cron_job_id>")
@@ -1296,19 +1258,6 @@ class ApiCallRouterStub(ApiCallRouter):
       context: Optional[api_call_context.ApiCallContext] = None,
   ):
     """Get export command that exports hunt results."""
-
-    raise NotImplementedError()
-
-  @Category("Hunts")
-  @ProtoArgsType(api_hunt_pb2.ApiListHuntOutputPluginsArgs)
-  @ProtoResultType(api_hunt_pb2.ApiListHuntOutputPluginsResult)
-  @Http("GET", "/api/v2/hunts/<hunt_id>/output-plugins")
-  def ListHuntOutputPlugins(
-      self,
-      args: api_hunt_pb2.ApiListHuntOutputPluginsArgs,
-      context: Optional[api_call_context.ApiCallContext] = None,
-  ):
-    """List output plugins used by the hunt."""
 
     raise NotImplementedError()
 

@@ -4,6 +4,7 @@
 from typing import Any, Optional
 
 from google.protobuf import message
+
 from grr_api_client import artifact
 from grr_api_client import client
 from grr_api_client import config
@@ -18,7 +19,7 @@ from grr_api_client import utils
 from grr_api_client import yara
 from grr_response_proto import flows_pb2
 from grr_response_proto.api import config_pb2
-# TODO: Remove this import once the SignedCommands API is
+# TODO - Remove this import once the SignedCommands API is
 # implemented. Currently required to be able to parse responses from the server.
 from grr_response_proto.api import signed_commands_pb2  # pylint: disable=unused-import
 
@@ -55,9 +56,9 @@ class GrrApi(object):
       hunt_runner_args: Optional[flows_pb2.HuntRunnerArgs] = None,
   ) -> hunt.Hunt:
     return hunt.CreateHunt(
-        flow_name=flow_name,
-        flow_args=flow_args,
-        hunt_runner_args=hunt_runner_args,
+        flow_name=flow_name,  # pyrefly: ignore[bad-argument-type]
+        flow_args=flow_args,  # pyrefly: ignore[bad-argument-type]
+        hunt_runner_args=hunt_runner_args,  # pyrefly: ignore[bad-argument-type]
         context=self._context,
     )
 
@@ -140,7 +141,7 @@ def InitHttp(
       auth=auth,
       proxies=proxies,
       verify=verify,
-      cert=cert,
+      cert=cert,  # pyrefly: ignore[bad-argument-type]
       trust_env=trust_env,
       validate_version=validate_version,
   )

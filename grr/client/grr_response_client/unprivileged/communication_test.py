@@ -87,9 +87,7 @@ class CommunicationTest(absltest.TestCase):
           "KernelTime": 43 * 10 * 1000 * 1000,
       }
 
-    # pytype: disable=import-error
-    import win32process  # pylint: disable=g-import-not-at-top
-    # pytype: enable=import-error
+    import win32process  # pylint: disable=g-import-not-at-top  # pyrefly: ignore[missing-source-for-stubs]
     with mock.patch.object(
         win32process, "GetProcessTimes", _MockGetProcessTimes
     ):
@@ -200,7 +198,7 @@ class PipeTransportTest(absltest.TestCase):
 
     class ShortReadIO(io.BytesIO):
 
-      def read(self, size: int) -> bytes:
+      def read(self, size: int) -> bytes:  # pyrefly: ignore[bad-override]
         del size  # unused
         return super().read(2)
 
@@ -213,7 +211,7 @@ class PipeTransportTest(absltest.TestCase):
     class ShortReadIO(io.BytesIO):
       _first_read = True
 
-      def read(self, size: int) -> bytes:
+      def read(self, size: int) -> bytes:  # pyrefly: ignore[bad-override]
         if self._first_read:
           self._first_read = False
           return super().read(2)
@@ -228,7 +226,7 @@ class PipeTransportTest(absltest.TestCase):
 
     class ShortWriteIO(io.BytesIO):
 
-      def write(self, data: bytes) -> int:
+      def write(self, data: bytes) -> int:  # pyrefly: ignore[bad-override]
         return super().write(data[:2])
 
     short_write_io = ShortWriteIO()

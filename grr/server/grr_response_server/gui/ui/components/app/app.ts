@@ -103,7 +103,10 @@ export class App {
       );
       if (routeWithPageViewTracking) {
         // Google Analytics script is inserted in the base html file.
-        const gtag = (window as {gtag?: Function}).gtag;
+        // Use bracket notation to prevent Closure Compiler from renaming 'gtag'
+        // in production.
+        // tslint:disable-next-line:no-any
+        const gtag = (window as any)['gtag'];
         if (!gtag) return;
 
         gtag('event', 'page_view', {

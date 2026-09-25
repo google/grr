@@ -1,6 +1,5 @@
 import {computed, DestroyRef, inject} from '@angular/core';
 import {takeUntilDestroyed} from '@angular/core/rxjs-interop';
-import {tapResponse} from '@ngrx/operators';
 import {
   patchState,
   signalStore,
@@ -11,7 +10,7 @@ import {
 } from '@ngrx/signals';
 import {rxMethod} from '@ngrx/signals/rxjs-interop';
 import {of, pipe} from 'rxjs';
-import {switchMap, takeWhile} from 'rxjs/operators';
+import {switchMap, takeWhile, tap} from 'rxjs/operators';
 import {ApiGetHuntClientCompletionStatsResult} from '../lib/api/api_interfaces';
 
 import {DEFAULT_POLLING_INTERVAL} from '../lib/api/http_api_service';
@@ -40,6 +39,22 @@ export interface PerClientAndTypeFleetCollectionResults {
   clientId: string;
   resultType: PayloadType;
   results: HuntResult[];
+}
+
+/**
+ * Whether a Fleet Collection can be (re)started.
+ *
+ * A Fleet Collection is paused server-side both before it is started for the
+ * first time (NOT_STARTED) and after it hits its client limit
+ * (REACHED_CLIENT_LIMIT), so it can be (re)started from either state.
+ */
+export function canStartFleetCollection(
+  fleetCollection: Hunt | null | undefined,
+): boolean {
+  return (
+    fleetCollection?.state === HuntState.NOT_STARTED ||
+    fleetCollection?.state === HuntState.REACHED_CLIENT_LIMIT
+  );
 }
 
 interface FleetCollectionStoreState {
@@ -101,15 +116,8 @@ export const FleetCollectionStore = signalStore(
               // updated. This only has an effect on the UI state showing the
               // access, as API calls will still fail.
               takeWhile((hasAccess) => !hasAccess, true),
-              tapResponse({
-                next: (hasAccess: boolean) => {
-                  patchState(store, {hasAccess});
-                },
-                error: (err) => {
-                  throw new Error(
-                    `Failed to verify fleet collection access: ${err}`,
-                  );
-                },
+              tap((hasAccess: boolean) => {
+                patchState(store, {hasAccess});
               }),
             );
         }),
@@ -131,15 +139,8 @@ export const FleetCollectionStore = signalStore(
                   ),
                 true,
               ),
-              tapResponse({
-                next: (approvals: HuntApproval[]) => {
-                  patchState(store, {fleetCollectionApprovals: approvals});
-                },
-                error: (err) => {
-                  throw new Error(
-                    `Failed to fetch fleet collection approvals: ${err}`,
-                  );
-                },
+              tap((approvals: HuntApproval[]) => {
+                patchState(store, {fleetCollectionApprovals: approvals});
               }),
             );
         }),
@@ -154,15 +155,10 @@ export const FleetCollectionStore = signalStore(
           return httpApiService
             .fetchHunt(fleetCollectionId, DEFAULT_POLLING_INTERVAL)
             .pipe(
-              tapResponse({
-                next: (fleetCollection: Hunt) => {
-                  patchState(store, {
-                    fleetCollection,
-                  });
-                },
-                error: (err) => {
-                  throw new Error(`Failed to fetch fleet collection: ${err}`);
-                },
+              tap((fleetCollection: Hunt) => {
+                patchState(store, {
+                  fleetCollection,
+                });
               }),
             );
         }),
@@ -176,20 +172,11 @@ export const FleetCollectionStore = signalStore(
           }
           return httpApiService.listResultsForHunt(args).pipe(
             takeUntilDestroyed(destroyRef),
-            tapResponse({
-              next: (fleetCollectionResults: ListHuntResultsResult) => {
-                patchState(store, {
-                  fleetCollectionResults: fleetCollectionResults.results,
-                  totalResultsCount: fleetCollectionResults.totalCount,
-                });
-              },
-              error: (err) => {
-                // TODO: Revisit this once approvals are
-                // implemented.
-                throw new Error(
-                  `Failed to fetch fleet collection results: ${err}`,
-                );
-              },
+            tap((fleetCollectionResults: ListHuntResultsResult) => {
+              patchState(store, {
+                fleetCollectionResults: fleetCollectionResults.results,
+                totalResultsCount: fleetCollectionResults.totalCount,
+              });
             }),
           );
         }),
@@ -203,18 +190,11 @@ export const FleetCollectionStore = signalStore(
           }
           return httpApiService.listErrorsForHunt(args).pipe(
             takeUntilDestroyed(destroyRef),
-            tapResponse({
-              next: (result: ListHuntErrorsResult) => {
-                patchState(store, {
-                  fleetCollectionErrors: result.errors,
-                  totalErrorsCount: result.totalCount,
-                });
-              },
-              error: (err) => {
-                throw new Error(
-                  `Failed to fetch fleet collection errors: ${err}`,
-                );
-              },
+            tap((result: ListHuntErrorsResult) => {
+              patchState(store, {
+                fleetCollectionErrors: result.errors,
+                totalErrorsCount: result.totalCount,
+              });
             }),
           );
         }),
@@ -235,19 +215,10 @@ export const FleetCollectionStore = signalStore(
               DEFAULT_POLLING_INTERVAL,
             )
             .pipe(
-              tapResponse({
-                next: (progressData: ApiGetHuntClientCompletionStatsResult) => {
-                  patchState(store, {
-                    fleetCollectionProgress: progressData,
-                  });
-                },
-                error: (err) => {
-                  // TODO: Revisit this once approvals are
-                  // implemented.
-                  throw new Error(
-                    `Failed to fetch fleet collection results: ${err}`,
-                  );
-                },
+              tap((progressData: ApiGetHuntClientCompletionStatsResult) => {
+                patchState(store, {
+                  fleetCollectionProgress: progressData,
+                });
               }),
             );
         }),
@@ -321,9 +292,15 @@ export const FleetCollectionStore = signalStore(
           });
         });
     },
+    // For now we fetch a limited amount of logs (200) to avoid performance
+    // issues. If we want to fetch all logs we should implement a way load more.
     fetchFleetCollectionLogs(fleetCollectionId: string) {
       httpApiService
-        .fetchHuntLogs(fleetCollectionId)
+        .fetchHuntLogs({
+          huntId: fleetCollectionId,
+          offset: 0,
+          count: 200,
+        })
         .pipe(takeUntilDestroyed(destroyRef))
         .subscribe((result: ListHuntLogsResult) => {
           patchState(store, {
@@ -345,6 +322,9 @@ export const FleetCollectionStore = signalStore(
     ),
     hasMoreErrors: computed(
       () => store.fleetCollectionErrors().length < store.totalErrorsCount(),
+    ),
+    canStartFleetCollection: computed(() =>
+      canStartFleetCollection(store.fleetCollection()),
     ),
     fleetCollectionResultsPerClientAndType: computed<
       PerClientAndTypeFleetCollectionResults[]

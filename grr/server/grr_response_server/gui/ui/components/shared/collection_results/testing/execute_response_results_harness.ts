@@ -4,7 +4,6 @@ import {ComponentHarness} from '@angular/cdk/testing';
 export class ExecuteResponseResultsHarness extends ComponentHarness {
   static hostSelector = 'execute-response-results';
 
-  readonly clientIds = this.locatorForAll('.client-id');
   readonly results = this.locatorForAll('.result');
 
   async getCmd(index: number) {

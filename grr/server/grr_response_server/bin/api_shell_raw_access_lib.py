@@ -4,6 +4,7 @@
 from typing import Optional
 
 from google.protobuf import message
+
 from grr_api_client import connectors
 from grr_api_client import errors
 from grr_api_client import utils
@@ -104,7 +105,7 @@ class RawConnector(connectors.Connector):
   def page_size(self) -> int:
     return self._page_size
 
-  def SendRequest(  # pytype: disable=signature-mismatch  # overriding-parameter-type-checks
+  def SendRequest(  # pyrefly: ignore[bad-override]
       self,
       handler_name: str,
       args: message.Message,

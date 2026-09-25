@@ -1,4 +1,4 @@
-import {Component, DebugElement} from '@angular/core';
+import {ChangeDetectionStrategy, Component, DebugElement} from '@angular/core';
 import {ComponentFixture, TestBed, waitForAsync} from '@angular/core/testing';
 import {ReactiveFormsModule, UntypedFormControl} from '@angular/forms';
 import {By} from '@angular/platform-browser';
@@ -10,6 +10,7 @@ import {
 } from './comma_separated_value_accessor';
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.Eager,
   template: '<input commaSeparatedInput [formControl]="formControl">',
   imports: [CommaSeparatedValueAccessor, ReactiveFormsModule],
 })
@@ -109,6 +110,7 @@ describe('Comma Separated Value Accessor', () => {
   });
 
   @Component({
+    changeDetection: ChangeDetectionStrategy.Eager,
     template: '<input commaSeparatedNumberInput [formControl]="formControl">',
     imports: [CommaSeparatedNumberValueAccessor, ReactiveFormsModule],
   })

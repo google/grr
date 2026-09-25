@@ -81,7 +81,9 @@
       }
       <tr>
         <td>Status:</td>
-        <td>{{a.status.type}}</td>
+        <td>
+          {{a.status.type}}{{a.status.type === 'valid' ? '' : ' - ' + a.status.reason}}
+        </td>
       </tr>
       @if (a.approvers.length > 0) {
         <tr>

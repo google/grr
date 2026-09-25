@@ -93,6 +93,6 @@ class InMemoryDBBlobsMixin(blob_store.BlobStore):
 
         blob_ref_copies.append(blob_ref_copy)
 
-      result[hash_id] = blob_ref_copies
+      result[hash_id] = blob_ref_copies  # pyrefly: ignore[unsupported-operation]
 
     return result

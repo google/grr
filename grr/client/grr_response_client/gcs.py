@@ -249,7 +249,7 @@ class UploadSession(object):
 
       PutChunk()
 
-      # TODO: Add support for more detailed progress updates that
+      # TODO - Add support for more detailed progress updates that
       # would include state of the upload.
       opts.progress_callback()
 

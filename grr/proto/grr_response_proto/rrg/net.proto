@@ -99,7 +99,7 @@ message Interface {
   // Note that on some system (e.g. Linux), the interface may consist of pretty
   // much arbitrary bytes and might not be compatible with Unicode. Because this
   // is not very probable and ergonomics of using a raw `bytes` field, invalid
-  // bytes are going to be subsituted with the replacement character ("�").
+  // bytes are going to be substituted with the replacement character ("�").
   string name = 1;
 
   // MAC address associated with the interface.

@@ -7,7 +7,7 @@ import {
 import {Duration} from '../date_time';
 
 import {ApiListHuntsArgsRobotFilter} from '../api/api_interfaces';
-import {FlowType, isFlowResult} from './flow';
+import {FlowType} from './flow';
 import {OutputPlugin} from './output_plugin';
 import {CollectionResult} from './result';
 import {Approval, ApprovalRequest} from './user';
@@ -122,13 +122,16 @@ export declare interface ListHuntErrorsArgs {
   readonly filter?: string;
 }
 
+/** Arguments for listing hunt logs. */
+export declare interface ListHuntLogsArgs {
+  readonly huntId: string;
+  readonly offset?: number;
+  readonly count?: number;
+  readonly filter?: string;
+}
+
 /** HuntResult represents a single hunt result. */
 export declare interface HuntResult extends CollectionResult {}
-
-/** Type guard for HuntResult. */
-export function isHuntResult(result: CollectionResult): result is HuntResult {
-  return !isFlowResult(result);
-}
 
 /** HuntError represents a single hunt error. */
 export declare interface HuntError {

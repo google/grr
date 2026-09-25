@@ -1,13 +1,16 @@
 #!/usr/bin/env python
 """Test the webhistory flows."""
 
+import sys
 from unittest import mock
 
 from absl import app
 
 from grr_response_core.lib.rdfvalues import client as rdf_client
+from grr_response_core.lib.rdfvalues import mig_paths
 from grr_response_proto import flows_pb2
 from grr_response_proto import jobs_pb2
+from grr_response_server import data_store
 from grr_response_server import flow_base
 from grr_response_server.databases import db
 from grr_response_server.flows.general import collectors
@@ -38,7 +41,7 @@ class TestWebHistoryWithArtifacts(flow_test_lib.FlowTestsBaseclass):
 class MockArtifactCollectorFlow(collectors.ArtifactCollectorFlow):
 
   def Start(self):
-    for artifact_name in self.args.artifact_list:
+    for artifact_name in self.proto_args.artifact_list:
       self.SendReplyProto(
           jobs_pb2.StatEntry(
               pathspec=jobs_pb2.PathSpec(
@@ -55,7 +58,7 @@ class MockArtifactCollectorFlowWithDuplicatesAndExtensions(
   """Mock artifact collector flow for archive mapping tests."""
 
   def Start(self):
-    for artifact_name in self.args.artifact_list:
+    for artifact_name in self.proto_args.artifact_list:
       self.SendReplyProto(
           jobs_pb2.StatEntry(
               pathspec=jobs_pb2.PathSpec(
@@ -80,8 +83,9 @@ class CollectBrowserHistoryTest(flow_test_lib.FlowTestsBaseclass):
     super().setUp()
     self.client_id = self.SetupClient(0)
 
-  def _RunCollectBrowserHistory(self, **kwargs):
-    flow_args = webhistory.CollectBrowserHistoryArgs(**kwargs)
+  def _RunCollectBrowserHistory(
+      self, flow_args: flows_pb2.CollectBrowserHistoryArgs
+  ):
     flow_id = flow_test_lib.StartAndRunFlow(
         webhistory.CollectBrowserHistory,
         creator=self.test_username,
@@ -90,8 +94,10 @@ class CollectBrowserHistoryTest(flow_test_lib.FlowTestsBaseclass):
         flow_args=flow_args,
     )
 
-    results = flow_test_lib.GetFlowResults(self.client_id, flow_id)
-    progress = flow_test_lib.GetFlowProgress(self.client_id, flow_id)
+    results = flow_test_lib.GetUnpackedFlowResults(
+        self.client_id, flow_id, flows_pb2.CollectBrowserHistoryResult
+    )
+    progress = flow_test_lib.GetFlowProgressProto(self.client_id, flow_id)
 
     return flow_id, results, progress
 
@@ -107,7 +113,9 @@ class CollectBrowserHistoryTest(flow_test_lib.FlowTestsBaseclass):
         collectors, "ArtifactCollectorFlow", MockArtifactCollectorFlow
     ):
       flow_id, results, progress = self._RunCollectBrowserHistory(
-          browsers=[flows_pb2.Browser.CHROMIUM_BASED_BROWSERS]
+          flows_pb2.CollectBrowserHistoryArgs(
+              browsers=[flows_pb2.Browser.CHROMIUM_BASED_BROWSERS]
+          )
       )
 
     self.assertLen(results, 1)
@@ -119,8 +127,8 @@ class CollectBrowserHistoryTest(flow_test_lib.FlowTestsBaseclass):
         [r.stat_entry.pathspec.path for r in results],
     )
     self.assertEqual(
-        list(flow_test_lib.GetFlowResultsByTag(self.client_id, flow_id).keys()),
-        ["CHROMIUM_BASED_BROWSERS"],
+        flow_test_lib.GetFlowResultTags(self.client_id, flow_id),
+        {"CHROMIUM_BASED_BROWSERS"},
     )
 
     self.assertLen(progress.browsers, 1)
@@ -137,18 +145,22 @@ class CollectBrowserHistoryTest(flow_test_lib.FlowTestsBaseclass):
         collectors, "ArtifactCollectorFlow", MockArtifactCollectorFlow
     ):
       flow_id, results, progress = self._RunCollectBrowserHistory(
-          browsers=[
-              flows_pb2.Browser.CHROMIUM_BASED_BROWSERS,
-              flows_pb2.Browser.INTERNET_EXPLORER,
-              flows_pb2.Browser.SAFARI,
-          ]
+          flows_pb2.CollectBrowserHistoryArgs(
+              browsers=[
+                  flows_pb2.Browser.CHROMIUM_BASED_BROWSERS,
+                  flows_pb2.Browser.INTERNET_EXPLORER,
+                  flows_pb2.Browser.SAFARI,
+              ]
+          )
       )
 
     # MockArtifactCollectorFlow will produce a single stat entry with a
     # pathspec /home/foo/<artifact name> for each artifact scheduled for
     # collection. Hence, by looking at results we can make sure that
     # all artifacts were scheduled for collection.
-    pathspecs = [r.stat_entry.pathspec for r in results]
+    pathspecs = [
+        mig_paths.ToRDFPathSpec(r.stat_entry.pathspec) for r in results
+    ]
     self.assertCountEqual(
         [
             "ChromiumBasedBrowsersHistoryDatabaseFile",
@@ -159,8 +171,8 @@ class CollectBrowserHistoryTest(flow_test_lib.FlowTestsBaseclass):
     )
     # Check that tags for all browsers are present in the results set.
     self.assertCountEqual(
-        flow_test_lib.GetFlowResultsByTag(self.client_id, flow_id).keys(),
-        ["CHROMIUM_BASED_BROWSERS", "INTERNET_EXPLORER", "SAFARI"],
+        flow_test_lib.GetFlowResultTags(self.client_id, flow_id),
+        {"CHROMIUM_BASED_BROWSERS", "INTERNET_EXPLORER", "SAFARI"},
     )
 
     self.assertLen(progress.browsers, 3)
@@ -181,17 +193,21 @@ class CollectBrowserHistoryTest(flow_test_lib.FlowTestsBaseclass):
         collectors, "ArtifactCollectorFlow", MockArtifactCollectorFlow
     ):
       flow_id, _, _ = self._RunCollectBrowserHistory(
-          browsers=[
-              flows_pb2.Browser.CHROMIUM_BASED_BROWSERS,
-              flows_pb2.Browser.SAFARI,
-          ]
+          flows_pb2.CollectBrowserHistoryArgs(
+              browsers=[
+                  flows_pb2.Browser.CHROMIUM_BASED_BROWSERS,
+                  flows_pb2.Browser.SAFARI,
+              ]
+          )
       )
       flow = flow_base.FlowBase.CreateFlowInstance(
-          flow_test_lib.GetFlowObj(self.client_id, flow_id)
+          data_store.REL_DB.ReadFlowObject(self.client_id, flow_id)
       )
-      results = flow_test_lib.GetRawFlowResults(self.client_id, flow_id)
+      results = data_store.REL_DB.ReadFlowResults(
+          self.client_id, flow_id, offset=0, count=sys.maxsize
+      )
 
-      mappings = flow.GetFilesArchiveMappings(results)
+      mappings = list(flow.GetFilesArchiveMappings(results))
 
     self.assertCountEqual(
         mappings,
@@ -219,16 +235,20 @@ class CollectBrowserHistoryTest(flow_test_lib.FlowTestsBaseclass):
         MockArtifactCollectorFlowWithDuplicatesAndExtensions,
     ):
       flow_id, _, _ = self._RunCollectBrowserHistory(
-          browsers=[
-              flows_pb2.Browser.CHROMIUM_BASED_BROWSERS,
-          ]
+          flows_pb2.CollectBrowserHistoryArgs(
+              browsers=[
+                  flows_pb2.Browser.CHROMIUM_BASED_BROWSERS,
+              ]
+          )
       )
       flow = flow_base.FlowBase.CreateFlowInstance(
-          flow_test_lib.GetFlowObj(self.client_id, flow_id)
+          data_store.REL_DB.ReadFlowObject(self.client_id, flow_id)
       )
-      results = flow_test_lib.GetRawFlowResults(self.client_id, flow_id)
+      results = data_store.REL_DB.ReadFlowResults(
+          self.client_id, flow_id, offset=0, count=sys.maxsize
+      )
 
-      mappings = flow.GetFilesArchiveMappings(results)
+      mappings = list(flow.GetFilesArchiveMappings(results))
 
     self.assertCountEqual(
         mappings,
@@ -262,7 +282,7 @@ class CollectBrowserHistoryTest(flow_test_lib.FlowTestsBaseclass):
     with self.assertRaisesRegex(
         RuntimeError, "Need to collect at least one type of history."
     ):
-      self._RunCollectBrowserHistory()
+      self._RunCollectBrowserHistory(flows_pb2.CollectBrowserHistoryArgs())
 
 
 def main(argv):

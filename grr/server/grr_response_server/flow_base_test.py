@@ -7,8 +7,6 @@ from google.protobuf import any_pb2
 from google.protobuf import empty_pb2
 from google.protobuf import wrappers_pb2
 from grr_response_core.lib.rdfvalues import client as rdf_client
-from grr_response_core.lib.rdfvalues import flows as rdf_flows
-from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_core.stats import default_stats_collector
 from grr_response_core.stats import metrics
@@ -24,7 +22,6 @@ from grr_response_server import flow_responses
 from grr_response_server.databases import db as abstract_db
 from grr_response_server.databases import db_test_utils
 from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
-from grr_response_server.rdfvalues import mig_flow_objects
 from grr.test_lib import action_mocks
 from grr.test_lib import db_test_lib
 from grr.test_lib import flow_test_lib
@@ -38,7 +35,8 @@ from grr_response_proto.rrg import startup_pb2 as rrg_startup_pb2
 
 
 class FlowBaseTest(
-    flow_test_lib.FlowTestsBaseclass, stats_test_lib.StatsCollectorTestMixin
+    flow_test_lib.FlowTestsBaseclass,
+    stats_test_lib.StatsCollectorTestMixin,
 ):
 
   @classmethod
@@ -55,10 +53,10 @@ class FlowBaseTest(
   def testLogWithFormatArgs(self, db: abstract_db.Database) -> None:
     client_id = db_test_utils.InitializeClient(db)
 
-    flow = rdf_flow_objects.Flow()
+    flow = flows_pb2.Flow()
     flow.client_id = client_id
     flow.flow_id = self._FLOW_ID
-    db.WriteFlowObject(mig_flow_objects.ToProtoFlow(flow))
+    db.WriteFlowObject(flow)
 
     flow = FlowBaseTest.Flow(flow)
     flow.Log("foo %s %s", "bar", 42)
@@ -71,10 +69,10 @@ class FlowBaseTest(
   def testLogWithoutFormatArgs(self, db: abstract_db.Database) -> None:
     client_id = db_test_utils.InitializeClient(db)
 
-    flow = rdf_flow_objects.Flow()
+    flow = flows_pb2.Flow()
     flow.client_id = client_id
     flow.flow_id = self._FLOW_ID
-    db.WriteFlowObject(mig_flow_objects.ToProtoFlow(flow))
+    db.WriteFlowObject(flow)
 
     flow = FlowBaseTest.Flow(flow)
     flow.Log("foo %s %s")
@@ -92,26 +90,26 @@ class FlowBaseTest(
     startup_info.client_info.client_version = 1337
     db.WriteClientStartupInfo(client_id, startup_info)
 
-    flow = rdf_flow_objects.Flow()
+    flow = flows_pb2.Flow()
     flow.client_id = client_id
     flow.flow_id = self._FLOW_ID
 
     flow = FlowBaseTest.Flow(flow)
     self.assertIsInstance(flow.client_info, rdf_client.ClientInformation)
-    self.assertEqual(flow.client_info.client_name, "rrg")
-    self.assertEqual(flow.client_info.client_version, 1337)
+    self.assertEqual(flow.client_info.client_name, "rrg")  # pyrefly: ignore[missing-attribute]
+    self.assertEqual(flow.client_info.client_version, 1337)  # pyrefly: ignore[missing-attribute]
 
   @db_test_lib.WithDatabase
   def testClientInfoDefault(self, db: abstract_db.Database):
     client_id = db_test_utils.InitializeClient(db)
 
-    flow = rdf_flow_objects.Flow()
+    flow = flows_pb2.Flow()
     flow.client_id = client_id
     flow.flow_id = self._FLOW_ID
 
     flow = FlowBaseTest.Flow(flow)
     self.assertIsInstance(flow.client_info, rdf_client.ClientInformation)
-    self.assertEmpty(flow.client_info.client_name)
+    self.assertEmpty(flow.client_info.client_name)  # pyrefly: ignore[missing-attribute]
 
   @db_test_lib.WithDatabase
   def testClientLabels(self, db: abstract_db.Database):
@@ -121,7 +119,7 @@ class FlowBaseTest(
     db.AddClientLabels(client_id, owner=user, labels=["foo"])
     db.AddClientLabels(client_id, owner=user, labels=["bar"])
 
-    flow = rdf_flow_objects.Flow()
+    flow = flows_pb2.Flow()
     flow.client_id = client_id
     flow.flow_id = self._FLOW_ID
 
@@ -133,7 +131,7 @@ class FlowBaseTest(
   def testClientLabels_Empty(self, db: abstract_db.Database):
     client_id = db_test_utils.InitializeClient(db)
 
-    flow = rdf_flow_objects.Flow()
+    flow = flows_pb2.Flow()
     flow.client_id = client_id
     flow.flow_id = self._FLOW_ID
 
@@ -144,7 +142,7 @@ class FlowBaseTest(
   def testPythonAgentSupportFalse(self, db: abstract_db.Database):
     client_id = db_test_utils.InitializeRRGClient(db)
 
-    flow = rdf_flow_objects.Flow()
+    flow = flows_pb2.Flow()
     flow.client_id = client_id
     flow.flow_id = self._FLOW_ID
 
@@ -158,7 +156,7 @@ class FlowBaseTest(
     startup = jobs_pb2.StartupInfo()
     db.WriteClientStartupInfo(client_id, startup)
 
-    flow = rdf_flow_objects.Flow()
+    flow = flows_pb2.Flow()
     flow.client_id = client_id
     flow.flow_id = self._FLOW_ID
 
@@ -173,7 +171,7 @@ class FlowBaseTest(
     startup.client_info.client_version = 4321
     db.WriteClientStartupInfo(client_id, startup)
 
-    flow = rdf_flow_objects.Flow()
+    flow = flows_pb2.Flow()
     flow.client_id = client_id
     flow.flow_id = self._FLOW_ID
 
@@ -184,7 +182,7 @@ class FlowBaseTest(
   def testNoRrgStartup(self, db: abstract_db.Database):
     client_id = db_test_utils.InitializeClient(db)
 
-    flow = rdf_flow_objects.Flow()
+    flow = flows_pb2.Flow()
     flow.client_id = client_id
     flow.flow_id = self._FLOW_ID
 
@@ -207,7 +205,7 @@ class FlowBaseTest(
     rrg_startup.path.raw_bytes = "/usr/sbin/rrg".encode()
     db.WriteClientRRGStartup(client_id, rrg_startup)
 
-    flow = rdf_flow_objects.Flow()
+    flow = flows_pb2.Flow()
     flow.client_id = client_id
     flow.flow_id = self._FLOW_ID
 
@@ -222,7 +220,7 @@ class FlowBaseTest(
   def testNoRrgVersion(self, db: abstract_db.Database):
     client_id = db_test_utils.InitializeClient(db)
 
-    flow = rdf_flow_objects.Flow()
+    flow = flows_pb2.Flow()
     flow.client_id = client_id
     flow.flow_id = self._FLOW_ID
 
@@ -240,7 +238,7 @@ class FlowBaseTest(
     rrg_startup.metadata.version.patch = 3
     db.WriteClientRRGStartup(client_id, rrg_startup)
 
-    flow = rdf_flow_objects.Flow()
+    flow = flows_pb2.Flow()
     flow.client_id = client_id
     flow.flow_id = self._FLOW_ID
 
@@ -251,7 +249,7 @@ class FlowBaseTest(
   def testRrgSupport(self, db: abstract_db.Database):
     client_id = db_test_utils.InitializeRRGClient(db)
 
-    flow = rdf_flow_objects.Flow()
+    flow = flows_pb2.Flow()
     flow.client_id = client_id
     flow.flow_id = self._FLOW_ID
 
@@ -262,10 +260,10 @@ class FlowBaseTest(
   def testRrgSupport_Disable(self, db: abstract_db.Database):
     client_id = db_test_utils.InitializeRRGClient(db)
 
-    flow = rdf_flow_objects.Flow()
+    flow = flows_pb2.Flow()
     flow.client_id = client_id
     flow.flow_id = self._FLOW_ID
-    flow.disable_rrg_support = True
+    flow.rrg_mode = flows_pb2.FlowRunnerArgs.RrgMode.DISABLED
 
     flow = FlowBaseTest.Flow(flow)
     self.assertFalse(flow.rrg_support)
@@ -281,7 +279,7 @@ class FlowBaseTest(
     startup.os_type = rrg_os_pb2.LINUX
     db.WriteClientRRGStartup(client_id, startup)
 
-    flow = rdf_flow_objects.Flow()
+    flow = flows_pb2.Flow()
     flow.client_id = client_id
     flow.flow_id = self._FLOW_ID
 
@@ -303,7 +301,7 @@ class FlowBaseTest(
     snapshot.knowledge_base.os = "Linux"
     data_store.REL_DB.WriteClientSnapshot(snapshot)
 
-    flow = rdf_flow_objects.Flow()
+    flow = flows_pb2.Flow()
     flow.client_id = client_id
     flow.flow_id = self._FLOW_ID
 
@@ -314,7 +312,7 @@ class FlowBaseTest(
   def testDefaultExcludeLabels_Empty(self, db: abstract_db.Database):
     client_id = db_test_utils.InitializeRRGClient(db)
 
-    flow = rdf_flow_objects.Flow()
+    flow = flows_pb2.Flow()
     flow.client_id = client_id
 
     flow = FlowBaseTest.Flow(flow)
@@ -327,7 +325,7 @@ class FlowBaseTest(
     with test_lib.ConfigOverrider(
         {"AdminUI.hunt_config": {"default_exclude_labels": ["foo", "bar"]}}
     ):
-      flow = rdf_flow_objects.Flow()
+      flow = flows_pb2.Flow()
       flow.client_id = client_id
 
       flow = FlowBaseTest.Flow(flow)
@@ -345,7 +343,7 @@ class FlowBaseTest(
         {"AdminUI.hunt_config": {"default_exclude_labels": ["foo", "bar"]}}
     ):
 
-      flow = rdf_flow_objects.Flow()
+      flow = flows_pb2.Flow()
       flow.client_id = client_id
 
       flow = FlowBaseTest.Flow(flow)
@@ -361,7 +359,7 @@ class FlowBaseTest(
     with test_lib.ConfigOverrider(
         {"AdminUI.hunt_config": {"default_exclude_labels": ["foo", "bar"]}}
     ):
-      flow = rdf_flow_objects.Flow()
+      flow = flows_pb2.Flow()
       flow.client_id = client_id
 
       flow = FlowBaseTest.Flow(flow)
@@ -373,15 +371,12 @@ class FlowBaseTest(
   ):
     client_id = db_test_utils.InitializeClient(db)
 
-    flow = rdf_flow_objects.Flow()
+    flow = flows_pb2.Flow()
     flow.client_id = client_id
     flow.flow_id = self._FLOW_ID
-    db.WriteFlowObject(mig_flow_objects.ToProtoFlow(flow))
+    db.WriteFlowObject(flow)
 
-    flow_obj = FlowBaseTest.Flow(flow)
-    progress = flow_obj.GetProgress()
-    self.assertIsInstance(progress, rdf_flow_objects.DefaultFlowProgress)
-
+    flow_obj = FlowBaseTest.Flow(proto_flow=flow)
     progress = flow_obj.GetProgressProto()
     self.assertIsInstance(progress, flows_pb2.DefaultFlowProgress)
 
@@ -391,10 +386,10 @@ class FlowBaseTest(
   ):
     client_id = db_test_utils.InitializeClient(db)
 
-    flow = rdf_flow_objects.Flow()
+    flow = flows_pb2.Flow()
     flow.client_id = client_id
     flow.flow_id = self._FLOW_ID
-    db.WriteFlowObject(mig_flow_objects.ToProtoFlow(flow))
+    db.WriteFlowObject(flow)
 
     flow_2 = db.ReadFlowObject(client_id, self._FLOW_ID)
     result_metadata = flow_2.result_metadata
@@ -409,15 +404,15 @@ class FlowBaseTest(
   ):
     client_id = db_test_utils.InitializeClient(db)
 
-    flow = rdf_flow_objects.Flow()
+    flow = flows_pb2.Flow()
     flow.client_id = client_id
     flow.flow_id = self._FLOW_ID
-    db.WriteFlowObject(mig_flow_objects.ToProtoFlow(flow))
+    db.WriteFlowObject(flow)
 
-    flow_obj = FlowBaseTest.Flow(flow)
+    flow_obj = FlowBaseTest.Flow(proto_flow=flow)
     flow_obj.PersistState()
 
-    db.WriteFlowObject(mig_flow_objects.ToProtoFlow(flow_obj.rdf_flow))
+    db.WriteFlowObject(flow_obj.proto_flow)
     flow_2 = db.ReadFlowObject(client_id, self._FLOW_ID)
     result_metadata = flow_2.result_metadata
 
@@ -431,18 +426,22 @@ class FlowBaseTest(
   ):
     client_id = db_test_utils.InitializeClient(db)
 
-    flow = rdf_flow_objects.Flow()
+    flow = flows_pb2.Flow()
     flow.client_id = client_id
     flow.flow_id = self._FLOW_ID
-    db.WriteFlowObject(mig_flow_objects.ToProtoFlow(flow))
+    db.WriteFlowObject(flow)
 
-    flow_obj = FlowBaseTest.Flow(flow)
-    flow_obj.SendReply(rdf_client.ClientInformation())
-    flow_obj.SendReply(rdf_client.StartupInfo())
-    flow_obj.SendReply(rdf_client.StartupInfo())
-    flow_obj.SendReply(rdf_client.StartupInfo(), tag="foo")
+    flow_obj = FlowBaseTest.Flow(proto_flow=flow)
+    flow_obj.proto_result_types = (  # pyrefly: ignore[bad-assignment]
+        jobs_pb2.ClientInformation,
+        jobs_pb2.StartupInfo,
+    )
+    flow_obj.SendReplyProto(jobs_pb2.ClientInformation())
+    flow_obj.SendReplyProto(jobs_pb2.StartupInfo())
+    flow_obj.SendReplyProto(jobs_pb2.StartupInfo())
+    flow_obj.SendReplyProto(jobs_pb2.StartupInfo(), tag="foo")
     flow_obj.PersistState()
-    db.WriteFlowObject(mig_flow_objects.ToProtoFlow(flow_obj.rdf_flow))
+    db.WriteFlowObject(flow_obj.proto_flow)
 
     flow_2 = db.ReadFlowObject(client_id, self._FLOW_ID)
     result_metadata = flow_2.result_metadata
@@ -473,18 +472,18 @@ class FlowBaseTest(
     class MultipleReturnTypesSendReplyProto(flow_base.FlowBase):
       proto_result_types = [jobs_pb2.ClientInformation, jobs_pb2.StartupInfo]
 
-    flow = rdf_flow_objects.Flow()
+    flow = flows_pb2.Flow()
     flow.client_id = client_id
     flow.flow_id = self._FLOW_ID
-    db.WriteFlowObject(mig_flow_objects.ToProtoFlow(flow))
+    db.WriteFlowObject(flow)
 
-    flow_obj = MultipleReturnTypesSendReplyProto(flow)
+    flow_obj = MultipleReturnTypesSendReplyProto(proto_flow=flow)
     flow_obj.SendReplyProto(jobs_pb2.ClientInformation())
     flow_obj.SendReplyProto(jobs_pb2.StartupInfo())
     flow_obj.SendReplyProto(jobs_pb2.StartupInfo())
     flow_obj.SendReplyProto(jobs_pb2.StartupInfo(), tag="foo")
     flow_obj.PersistState()
-    db.WriteFlowObject(mig_flow_objects.ToProtoFlow(flow_obj.rdf_flow))
+    db.WriteFlowObject(flow_obj.proto_flow)
 
     flow_2 = db.ReadFlowObject(client_id, self._FLOW_ID)
     result_metadata = flow_2.result_metadata
@@ -512,16 +511,17 @@ class FlowBaseTest(
   ):
     client_id = db_test_utils.InitializeClient(db)
 
-    flow = rdf_flow_objects.Flow()
+    flow = flows_pb2.Flow()
     flow.client_id = client_id
     flow.flow_id = self._FLOW_ID
-    db.WriteFlowObject(mig_flow_objects.ToProtoFlow(flow))
+    db.WriteFlowObject(flow)
 
-    flow_obj = FlowBaseTest.Flow(flow)
-    flow_obj.SendReply(rdf_client.ClientInformation())
+    flow_obj = FlowBaseTest.Flow(proto_flow=flow)
+    flow_obj.proto_result_types = (jobs_pb2.ClientInformation,)  # pyrefly: ignore[bad-assignment]
+    flow_obj.SendReplyProto(jobs_pb2.ClientInformation())
     flow_obj.PersistState()
     flow_obj.PersistState()
-    db.WriteFlowObject(mig_flow_objects.ToProtoFlow(flow_obj.rdf_flow))
+    db.WriteFlowObject(flow_obj.proto_flow)
 
     flow_2 = db.ReadFlowObject(client_id, self._FLOW_ID)
     result_metadata = flow_2.result_metadata
@@ -543,16 +543,16 @@ class FlowBaseTest(
     class ClientInfoSendReplyProto(flow_base.FlowBase):
       proto_result_types = [jobs_pb2.ClientInformation]
 
-    flow = rdf_flow_objects.Flow()
+    flow = flows_pb2.Flow()
     flow.client_id = client_id
     flow.flow_id = self._FLOW_ID
-    db.WriteFlowObject(mig_flow_objects.ToProtoFlow(flow))
+    db.WriteFlowObject(flow)
 
-    flow_obj = ClientInfoSendReplyProto(flow)
+    flow_obj = ClientInfoSendReplyProto(proto_flow=flow)
     flow_obj.SendReplyProto(jobs_pb2.ClientInformation())
     flow_obj.PersistState()
     flow_obj.PersistState()
-    db.WriteFlowObject(mig_flow_objects.ToProtoFlow(flow_obj.rdf_flow))
+    db.WriteFlowObject(flow_obj.proto_flow)
 
     flow_2 = db.ReadFlowObject(client_id, self._FLOW_ID)
     result_metadata = flow_2.result_metadata
@@ -572,18 +572,17 @@ class FlowBaseTest(
     class ClientInfoResultFlow(flow_base.FlowBase):
       proto_result_types = [jobs_pb2.ClientInformation]
 
-    flow = rdf_flow_objects.Flow()
+    flow = flows_pb2.Flow()
     flow.client_id = client_id
     flow.flow_id = self._FLOW_ID
-    proto_flow = mig_flow_objects.ToProtoFlow(flow)
-    db.WriteFlowObject(proto_flow)
+    db.WriteFlowObject(flow)
 
     flow_obj = ClientInfoResultFlow(flow)
     flow_obj.SendReplyProto(jobs_pb2.ClientInformation(client_name="foo"))
     flow_obj.PersistState()
     flow_obj.FlushQueuedMessages()
 
-    db.WriteFlowObject(mig_flow_objects.ToProtoFlow(flow_obj.rdf_flow))
+    db.WriteFlowObject(flow_obj.proto_flow_object)
 
     flow_2 = db.ReadFlowObject(client_id, self._FLOW_ID)
     self.assertEqual(flow_2.num_replies_sent, 1)
@@ -601,17 +600,17 @@ class FlowBaseTest(
     class ClientInfoResultFlow1(flow_base.FlowBase):
       proto_result_types = [jobs_pb2.ClientInformation]
 
-    flow = rdf_flow_objects.Flow()
+    flow = flows_pb2.Flow()
     flow.client_id = client_id
     flow.flow_id = self._FLOW_ID
-    db.WriteFlowObject(mig_flow_objects.ToProtoFlow(flow))
+    db.WriteFlowObject(flow)
 
     flow_obj = ClientInfoResultFlow1(flow)
 
     with self.assertRaisesRegex(
         TypeError, "SendReplyProto can only send Protobufs"
     ):
-      flow_obj.SendReplyProto(rdf_client.ClientInformation())  # pytype: disable=wrong-arg-types
+      flow_obj.SendReplyProto(rdf_client.ClientInformation())  # pyrefly: ignore[bad-argument-type]
 
   @db_test_lib.WithDatabase
   def testSendReplyProtoRaisesIfWrongType(self, db: abstract_db.Database):
@@ -620,10 +619,10 @@ class FlowBaseTest(
     class ClientInfoResultFlow2(flow_base.FlowBase):
       proto_result_types = [jobs_pb2.ClientInformation]
 
-    flow = rdf_flow_objects.Flow()
+    flow = flows_pb2.Flow()
     flow.client_id = client_id
     flow.flow_id = self._FLOW_ID
-    db.WriteFlowObject(mig_flow_objects.ToProtoFlow(flow))
+    db.WriteFlowObject(flow)
 
     flow_obj = ClientInfoResultFlow2(flow)
 
@@ -633,7 +632,7 @@ class FlowBaseTest(
       flow_obj.SendReplyProto(jobs_pb2.StartupInfo())  # Not ClientInformation
 
   def testRunStateMethodStaticAnyResponse(self):
-    # TODO: Remove once the "default" instance is actually default.
+    # TODO - Remove once the "default" instance is actually default.
     try:
       instance = stats_collector_instance.Get()
       self.addCleanup(lambda: stats_collector_instance.Set(instance))
@@ -650,13 +649,13 @@ class FlowBaseTest(
     expected_response = wrappers_pb2.StringValue(value="Lorem ipsum.")
     handled_response = wrappers_pb2.StringValue()
 
-    # TODO: Ideally, this should be named as `FakeFlow`, but some
+    # TODO - Ideally, this should be named as `FakeFlow`, but some
     # other tests may already used this name and because of the magic of the
     # metaclass registry we cannot reuse class names, we have to be a bit more
     # inventive here.
     class FakeStateMethodFlow(flow_base.FlowBase):
 
-      @flow_base.UseProto2AnyResponses
+      @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
       def FakeState(
           self,
           responses: flow_responses.Responses[any_pb2.Any],
@@ -669,17 +668,17 @@ class FlowBaseTest(
 
         handled_response.ParseFromString(list(responses)[0].value)
 
-    rdf_flow = rdf_flow_objects.Flow()
-    rdf_flow.client_id = client_id
-    rdf_flow.flow_id = flow_id
+    proto_flow = flows_pb2.Flow()
+    proto_flow.client_id = client_id
+    proto_flow.flow_id = flow_id
 
-    flow = FakeStateMethodFlow(rdf_flow)
+    flow = FakeStateMethodFlow(proto_flow=proto_flow)
 
     response = rdf_flow_objects.FlowResponse()
-    response.any_payload = rdf_structs.AnyValue.PackProto2(expected_response)
+    response.any_payload = rdf_structs.AnyValue.PackProto2(expected_response)  # pyrefly: ignore[missing-attribute]
 
     status_response = rdf_flow_objects.FlowStatus()
-    status_response.status = rdf_flow_objects.FlowStatus.Status.OK
+    status_response.status = rdf_flow_objects.FlowStatus.Status.OK  # pyrefly: ignore[missing-attribute]
 
     responses = [
         response,
@@ -689,8 +688,10 @@ class FlowBaseTest(
 
     self.assertEqual(handled_response, expected_response)
 
-  def testRunStateMethodStaticAnyResponseWithoutStatusShouldFail(self):
-    # TODO: Remove once the "default" instance is actually default.
+  def testRunStateMethodStaticAnyResponseWithoutStatusShouldFail(
+      self,
+  ):
+    # TODO - Remove once the "default" instance is actually default.
     try:
       instance = stats_collector_instance.Get()
       self.addCleanup(lambda: stats_collector_instance.Set(instance))
@@ -702,7 +703,7 @@ class FlowBaseTest(
 
     class FakeStateMethodFlowWillFail(flow_base.FlowBase):
 
-      @flow_base.UseProto2AnyResponses
+      @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
       def FakeStateFails(
           self,
           responses: flow_responses.Responses[any_pb2.Any],
@@ -710,14 +711,14 @@ class FlowBaseTest(
         del responses  # Unused
         raise ValueError("We should not get here")
 
-    rdf_flow = rdf_flow_objects.Flow()
-    rdf_flow.client_id = "C.0123456789ABCDEF"
-    rdf_flow.flow_id = "ABCDEFABCDEF"
+    flow = flows_pb2.Flow()
+    flow.client_id = "C.0123456789ABCDEF"
+    flow.flow_id = "ABCDEFABCDEF"
 
-    flow = FakeStateMethodFlowWillFail(rdf_flow)
+    flow = FakeStateMethodFlowWillFail(proto_flow=flow)
 
     response = rdf_flow_objects.FlowResponse()
-    response.any_payload = rdf_structs.AnyValue.PackProto2(
+    response.any_payload = rdf_structs.AnyValue.PackProto2(  # pyrefly: ignore[missing-attribute]
         wrappers_pb2.StringValue(value="Shouldn't matter")
     )
     responses_without_status = [response]
@@ -731,10 +732,10 @@ class FlowBaseTest(
     # `flow_responses.Responses.FromResponsesProto2Any` should raise ValueError
     # in this case. However, `RunStateMethod` catches all exceptions and
     # puts them in the `error_message` field instead.
-    self.assertEqual(flow.rdf_flow.error_message, "Missing status response")
+    self.assertEqual(flow.proto_flow.error_message, "Missing status response")
 
   def testRunStateMethodStaticAnyResponseCallback(self):
-    # TODO: Remove once the "default" instance is actually default.
+    # TODO - Remove once the "default" instance is actually default.
     try:
       instance = stats_collector_instance.Get()
       self.addCleanup(lambda: stats_collector_instance.Set(instance))
@@ -750,7 +751,7 @@ class FlowBaseTest(
 
     class FakeStateCallbackMethodFlow(flow_base.FlowBase):
 
-      @flow_base.UseProto2AnyResponsesCallback
+      @flow_base.UseProto2AnyResponsesCallback  # pyrefly: ignore[bad-argument-type]
       def FakeCallback(
           self,
           responses: flow_responses.Responses[any_pb2.Any],
@@ -763,14 +764,14 @@ class FlowBaseTest(
 
         handled_response.ParseFromString(list(responses)[0].value)
 
-    rdf_flow = rdf_flow_objects.Flow()
-    rdf_flow.client_id = "C.0123456789ABCDEF"
-    rdf_flow.flow_id = "ABCDEFABCDEF"
+    proto_flow = flows_pb2.Flow()
+    proto_flow.client_id = "C.0123456789ABCDEF"
+    proto_flow.flow_id = "ABCDEFABCDEF"
 
-    flow = FakeStateCallbackMethodFlow(rdf_flow)
+    flow = FakeStateCallbackMethodFlow(proto_flow=proto_flow)
 
     response = rdf_flow_objects.FlowResponse()
-    response.any_payload = rdf_structs.AnyValue.PackProto2(expected_response)
+    response.any_payload = rdf_structs.AnyValue.PackProto2(expected_response)  # pyrefly: ignore[missing-attribute]
     responses_without_status = [response]
     # Responses without status shouldn't fail for
     # `UseProto2AnyResponsesCallback`
@@ -787,7 +788,7 @@ class FlowBaseTest(
     client_id = db_test_utils.InitializeClient(db)
     flow_id = db_test_utils.InitializeFlow(db, client_id)
 
-    rdf_flow = rdf_flow_objects.Flow()
+    rdf_flow = flows_pb2.Flow()
     rdf_flow.client_id = client_id
     rdf_flow.flow_id = flow_id
 
@@ -801,7 +802,7 @@ class FlowBaseTest(
     client_id = db_test_utils.InitializeRRGClient(db)
     flow_id = db_test_utils.InitializeFlow(db, client_id)
 
-    rdf_flow = rdf_flow_objects.Flow()
+    rdf_flow = flows_pb2.Flow()
     rdf_flow.client_id = client_id
     rdf_flow.flow_id = flow_id
 
@@ -818,7 +819,7 @@ class FlowBaseTest(
     client_id = db_test_utils.InitializeRRGClient(db)
     flow_id = db_test_utils.InitializeFlow(db, client_id)
 
-    rdf_flow = rdf_flow_objects.Flow()
+    rdf_flow = flows_pb2.Flow()
     rdf_flow.client_id = client_id
     rdf_flow.flow_id = flow_id
 
@@ -841,7 +842,7 @@ class FlowBaseTest(
     client_id = db_test_utils.InitializeRRGClient(db)
     flow_id = db_test_utils.InitializeFlow(db, client_id)
 
-    rdf_flow = rdf_flow_objects.Flow()
+    rdf_flow = flows_pb2.Flow()
     rdf_flow.client_id = client_id
     rdf_flow.flow_id = flow_id
 
@@ -854,14 +855,14 @@ class FlowBaseTest(
     flow = FlowBaseTest.Flow(rdf_flow)
     flow.CallRRG(rrg_pb2.GET_SYSTEM_METADATA, args, context={"foo": "bar"})
 
-  def setupFlow(self, db: abstract_db.Database) -> flow_base.FlowBase:
+  def setupProtoFlow(self, db: abstract_db.Database) -> flow_base.FlowBase:
     client_id = db_test_utils.InitializeClient(db)
 
-    rdf_flow = rdf_flow_objects.Flow()
-    rdf_flow.client_id = client_id
-    rdf_flow.flow_id = self._FLOW_ID
+    proto_flow = flows_pb2.Flow()
+    proto_flow.client_id = client_id
+    proto_flow.flow_id = self._FLOW_ID
 
-    flow = FlowBaseTest.Flow(rdf_flow)
+    flow = FlowBaseTest.Flow(proto_flow=proto_flow)
     return flow
 
   def setupFakeCounter(self) -> metrics.Counter:
@@ -875,16 +876,17 @@ class FlowBaseTest(
       # This counter is used in an unrelated part of the code, but needs to be
       # initialized within this context too to avoid a failure that the counter
       # is not initialized. It's a counter used in the logging code.
-      # TODO: Update test setup to allow overriding particular
+      # TODO - Update test setup to allow overriding particular
       # counters without interfering with other counters.
       metrics.Counter("log_calls", fields=[("level", str)])
     return fake_counter
 
   @db_test_lib.WithDatabase
   def testErrorIncrementsMetricsWithExceptionName_OnlyErrorMessage(
-      self, db: abstract_db.Database
+      self,
+      db: abstract_db.Database,
   ):
-    flow = self.setupFlow(db)
+    flow = self.setupProtoFlow(db)
     fake_counter = self.setupFakeCounter()
     with mock.patch.object(flow_base, "FLOW_ERRORS", fake_counter):
       # Make sure counter is set to zero
@@ -903,9 +905,10 @@ class FlowBaseTest(
 
   @db_test_lib.WithDatabase
   def testErrorIncrementsMetricsWithExceptionName_OnlyBacktrace(
-      self, db: abstract_db.Database
+      self,
+      db: abstract_db.Database,
   ):
-    flow = self.setupFlow(db)
+    flow = self.setupProtoFlow(db)
     fake_counter = self.setupFakeCounter()
     with mock.patch.object(flow_base, "FLOW_ERRORS", fake_counter):
       # Make sure counter is set to zero
@@ -924,9 +927,10 @@ class FlowBaseTest(
 
   @db_test_lib.WithDatabase
   def testErrorIncrementsMetricsWithExceptionName_BothFields(
-      self, db: abstract_db.Database
+      self,
+      db: abstract_db.Database,
   ):
-    flow = self.setupFlow(db)
+    flow = self.setupProtoFlow(db)
     fake_counter = self.setupFakeCounter()
     with mock.patch.object(flow_base, "FLOW_ERRORS", fake_counter):
       # Make sure counter is set to zero
@@ -953,9 +957,10 @@ class FlowBaseTest(
 
   @db_test_lib.WithDatabase
   def testErrorIncrementsMetricsWithExceptionName_MultipleMatches(
-      self, db: abstract_db.Database
+      self,
+      db: abstract_db.Database,
   ):
-    flow = self.setupFlow(db)
+    flow = self.setupProtoFlow(db)
     fake_counter = self.setupFakeCounter()
     with mock.patch.object(flow_base, "FLOW_ERRORS", fake_counter):
       # Make sure counter is set to zero
@@ -988,11 +993,11 @@ class FlowBaseTest(
   def testErrorIncrementsMetricsNoMatch(self, db: abstract_db.Database):
     client_id = db_test_utils.InitializeClient(db)
 
-    rdf_flow = rdf_flow_objects.Flow()
-    rdf_flow.client_id = client_id
-    rdf_flow.flow_id = self._FLOW_ID
+    proto_flow = flows_pb2.Flow()
+    proto_flow.client_id = client_id
+    proto_flow.flow_id = self._FLOW_ID
 
-    flow = FlowBaseTest.Flow(rdf_flow)
+    flow = FlowBaseTest.Flow(proto_flow=proto_flow)
 
     with self.SetUpStatsCollector(
         default_stats_collector.DefaultStatsCollector()
@@ -1019,11 +1024,11 @@ class FlowBaseTest(
   def testErrorIncrementsMetricsNoName(self, db: abstract_db.Database):
     client_id = db_test_utils.InitializeClient(db)
 
-    rdf_flow = rdf_flow_objects.Flow()
-    rdf_flow.client_id = client_id
-    rdf_flow.flow_id = self._FLOW_ID
+    proto_flow = flows_pb2.Flow()
+    proto_flow.client_id = client_id
+    proto_flow.flow_id = self._FLOW_ID
 
-    flow = FlowBaseTest.Flow(rdf_flow)
+    flow = FlowBaseTest.Flow(proto_flow=proto_flow)
 
     with self.SetUpStatsCollector(
         default_stats_collector.DefaultStatsCollector()
@@ -1050,12 +1055,12 @@ class FlowBaseTest(
   def testErrorIncrementsMetricsChild(self, db: abstract_db.Database):
     client_id = db_test_utils.InitializeClient(db)
 
-    rdf_flow = rdf_flow_objects.Flow()
-    rdf_flow.client_id = client_id
-    rdf_flow.flow_id = self._FLOW_ID
-    rdf_flow.parent_flow_id = "NOT EMPTY"
+    proto_flow = flows_pb2.Flow()
+    proto_flow.client_id = client_id
+    proto_flow.flow_id = self._FLOW_ID
+    proto_flow.parent_flow_id = "NOT EMPTY"
 
-    flow = FlowBaseTest.Flow(rdf_flow)
+    flow = FlowBaseTest.Flow(proto_flow=proto_flow)
 
     with self.SetUpStatsCollector(
         default_stats_collector.DefaultStatsCollector()
@@ -1087,7 +1092,7 @@ class FlowBaseTest(
         db,
         client_id,
         next_request_to_process=1,
-        flow_state=rdf_flow_objects.Flow.FlowState.RUNNING,
+        flow_state=rdf_flow_objects.Flow.FlowState.RUNNING,  # pyrefly: ignore[missing-attribute]
     )
 
     requests = []
@@ -1112,8 +1117,8 @@ class FlowBaseTest(
     ]
     db.WriteFlowResponses(responses)
 
-    rdf_flow = mig_flow_objects.ToRDFFlow(db.ReadFlowObject(client_id, flow_id))
-    flow = FlowBaseTest.Flow(rdf_flow)
+    proto_flow = db.ReadFlowObject(client_id, flow_id)
+    flow = FlowBaseTest.Flow(proto_flow=proto_flow)
 
     with mock.patch.object(flow, "RunStateMethod") as mock_run_state_method:
       num_processed, num_incremental = flow.ProcessAllReadyRequests()
@@ -1146,7 +1151,7 @@ class FlowBaseTest(
         db,
         client_id,
         next_request_to_process=1,
-        flow_state=rdf_flow_objects.Flow.FlowState.RUNNING,
+        flow_state=rdf_flow_objects.Flow.FlowState.RUNNING,  # pyrefly: ignore[missing-attribute]
     )
 
     requests = []
@@ -1172,8 +1177,8 @@ class FlowBaseTest(
     ]
     db.WriteFlowResponses(responses)
 
-    rdf_flow = mig_flow_objects.ToRDFFlow(db.ReadFlowObject(client_id, flow_id))
-    flow = FlowBaseTest.Flow(rdf_flow)
+    proto_flow = db.ReadFlowObject(client_id, flow_id)
+    flow = FlowBaseTest.Flow(proto_flow=proto_flow)
 
     with mock.patch.object(flow, "RunStateMethod") as mock_run_state_method:
       num_processed, num_incremental = flow.ProcessAllReadyRequests()
@@ -1198,7 +1203,7 @@ class FlowBaseTest(
         db,
         client_id,
         next_request_to_process=1,
-        flow_state=rdf_flow_objects.Flow.FlowState.RUNNING,
+        flow_state=rdf_flow_objects.Flow.FlowState.RUNNING,  # pyrefly: ignore[missing-attribute]
     )
 
     requests = [
@@ -1248,8 +1253,8 @@ class FlowBaseTest(
         )
     db.WriteFlowResponses(responses)
 
-    rdf_flow = mig_flow_objects.ToRDFFlow(db.ReadFlowObject(client_id, flow_id))
-    flow = FlowBaseTest.Flow(rdf_flow)
+    proto_flow = db.ReadFlowObject(client_id, flow_id)
+    flow = FlowBaseTest.Flow(proto_flow=proto_flow)
 
     with mock.patch.object(flow, "RunStateMethod") as mock_run_state_method:
       num_processed, num_incremental = flow.ProcessAllReadyRequests()
@@ -1293,7 +1298,7 @@ class FlowBaseTest(
         db,
         client_id,
         next_request_to_process=1,
-        flow_state=rdf_flow_objects.Flow.FlowState.RUNNING,
+        flow_state=rdf_flow_objects.Flow.FlowState.RUNNING,  # pyrefly: ignore[missing-attribute]
     )
 
     requests = [
@@ -1326,8 +1331,8 @@ class FlowBaseTest(
     ]
     db.WriteFlowResponses(responses_2)
 
-    rdf_flow = mig_flow_objects.ToRDFFlow(db.ReadFlowObject(client_id, flow_id))
-    flow = FlowBaseTest.Flow(rdf_flow)
+    proto_flow = db.ReadFlowObject(client_id, flow_id)
+    flow = FlowBaseTest.Flow(proto_flow=proto_flow)
 
     with mock.patch.object(flow, "RunStateMethod") as mock_run_state_method:
       num_processed, num_incremental = flow.ProcessAllReadyRequests()
@@ -1351,7 +1356,7 @@ class FlowBaseTest(
         db,
         client_id,
         next_request_to_process=1,
-        flow_state=rdf_flow_objects.Flow.FlowState.RUNNING,
+        flow_state=rdf_flow_objects.Flow.FlowState.RUNNING,  # pyrefly: ignore[missing-attribute]
     )
     # Not complte request; incremental responses.
     request = flows_pb2.FlowRequest(
@@ -1372,8 +1377,8 @@ class FlowBaseTest(
     )
     db.WriteFlowResponses([response])
 
-    rdf_flow = mig_flow_objects.ToRDFFlow(db.ReadFlowObject(client_id, flow_id))
-    flow = FlowBaseTest.Flow(rdf_flow)
+    proto_flow = db.ReadFlowObject(client_id, flow_id)
+    flow = FlowBaseTest.Flow(proto_flow=proto_flow)
 
     with mock.patch.object(flow, "RunStateMethod") as mock_run_state_method:
       _, num_incremental = flow.ProcessAllReadyRequests()
@@ -1413,10 +1418,10 @@ class FlowBaseTest(
         db,
         client_id,
         next_request_to_process=1,
-        flow_state=rdf_flow_objects.Flow.FlowState.RUNNING,
+        flow_state=rdf_flow_objects.Flow.FlowState.RUNNING,  # pyrefly: ignore[missing-attribute]
     )
-    rdf_flow = mig_flow_objects.ToRDFFlow(db.ReadFlowObject(client_id, flow_id))
-    flow = FlowBaseTest.Flow(rdf_flow)
+    proto_flow = db.ReadFlowObject(client_id, flow_id)
+    flow = FlowBaseTest.Flow(proto_flow=proto_flow)
 
     self.assertEqual(flow.store, flows_pb2.DefaultFlowStore())
 
@@ -1443,35 +1448,6 @@ class FlowBaseImplementationTest(flow_test_lib.FlowTestsBaseclass):
     )
 
     return db.ReadFlowObject(client_id, flow_id)
-
-  def testStorePersists_CallState(self):
-
-    class StoreCallStateFlow(
-        flow_base.FlowBase[
-            flows_pb2.EmptyFlowArgs,
-            tests_pb2.DummyFlowStore,
-            flows_pb2.DefaultFlowProgress,
-        ]
-    ):
-      """Dummy flow that uses store."""
-
-      proto_store_type = tests_pb2.DummyFlowStore
-
-      def Start(self) -> None:
-        self.store.msg = "Hello from Start!"
-        self.CallState(next_state="AfterCallState")
-
-      def AfterCallState(self, responses=None):
-        del responses
-        assert self.store.msg == "Hello from Start!"
-        self.store.msg = "Hello from AfterCallState!"
-
-    flow = self.setupAndRun(StoreCallStateFlow)
-
-    self.assertTrue(flow.HasField("store"))
-    store = tests_pb2.DummyFlowStore()
-    flow.store.Unpack(store)
-    self.assertEqual(store.msg, "Hello from AfterCallState!")
 
   def testStorePersists_CallStateProto(self):
 
@@ -1502,35 +1478,6 @@ class FlowBaseImplementationTest(flow_test_lib.FlowTestsBaseclass):
     flow.store.Unpack(store)
     self.assertEqual(store.msg, "Hello from AfterCallStateProto!")
 
-  def testStorePersists_CallStateInline(self):
-
-    class StoreCallStateInlineFlow(
-        flow_base.FlowBase[
-            flows_pb2.EmptyFlowArgs,
-            tests_pb2.DummyFlowStore,
-            flows_pb2.DefaultFlowProgress,
-        ]
-    ):
-      """Dummy flow that uses store."""
-
-      proto_store_type = tests_pb2.DummyFlowStore
-
-      def Start(self) -> None:
-        self.store.msg = "Hello from Start!"
-        self.CallStateInline(next_state="AfterCallStateInline")
-
-      def AfterCallStateInline(self, responses=None):
-        del responses
-        assert self.store.msg == "Hello from Start!"
-        self.store.msg = "Hello from AfterCallStateInline!"
-
-    flow = self.setupAndRun(StoreCallStateInlineFlow)
-
-    self.assertTrue(flow.HasField("store"))
-    store = tests_pb2.DummyFlowStore()
-    flow.store.Unpack(store)
-    self.assertEqual(store.msg, "Hello from AfterCallStateInline!")
-
   def testStorePersists_CallStateInlineProto(self):
 
     class StoreCallStateInlineProtoFlow(
@@ -1548,7 +1495,7 @@ class FlowBaseImplementationTest(flow_test_lib.FlowTestsBaseclass):
         self.store.msg = "Hello from Start!"
         self.CallStateInlineProto(next_state="AfterCallStateInlineProto")
 
-      @flow_base.UseProto2AnyResponses
+      @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
       def AfterCallStateInlineProto(self, responses=None):
         del responses
         assert self.store.msg == "Hello from Start!"
@@ -1580,7 +1527,7 @@ class FlowBaseImplementationTest(flow_test_lib.FlowTestsBaseclass):
             next_state="AfterCallStateInlineProtoWithResponses"
         )
 
-      @flow_base.UseProto2AnyResponses
+      @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
       def AfterCallStateInlineProtoWithResponses(self, responses=None):
         del responses
         assert self.store.msg == "Hello from Start!"
@@ -1594,38 +1541,6 @@ class FlowBaseImplementationTest(flow_test_lib.FlowTestsBaseclass):
     self.assertEqual(
         store.msg, "Hello from AfterCallStateInlineProtoWithResponses!"
     )
-
-  def testStorePersists_CallFlow(self):
-
-    class StoreCallFlowFlow(
-        flow_base.FlowBase[
-            flows_pb2.EmptyFlowArgs,
-            tests_pb2.DummyFlowStore,
-            flows_pb2.DefaultFlowProgress,
-        ]
-    ):
-      """Dummy flow that uses store."""
-
-      proto_store_type = tests_pb2.DummyFlowStore
-
-      def Start(self) -> None:
-        self.store.msg = "Hello from Start!"
-        self.CallFlow(
-            flow_test_lib.DummyFlowWithSingleReply.__name__,
-            next_state="AfterCallFlow",
-        )
-
-      def AfterCallFlow(self, responses=None):
-        del responses
-        assert self.store.msg == "Hello from Start!"
-        self.store.msg = "Hello from AfterCallFlow!"
-
-    flow = self.setupAndRun(StoreCallFlowFlow)
-
-    self.assertTrue(flow.HasField("store"))
-    store = tests_pb2.DummyFlowStore()
-    flow.store.Unpack(store)
-    self.assertEqual(store.msg, "Hello from AfterCallFlow!")
 
   def testStorePersists_CallFlowProto(self):
 
@@ -1658,39 +1573,6 @@ class FlowBaseImplementationTest(flow_test_lib.FlowTestsBaseclass):
     store = tests_pb2.DummyFlowStore()
     flow.store.Unpack(store)
     self.assertEqual(store.msg, "Hello from AfterCallFlowProto!")
-
-  def testStorePersists_CallClient(self):
-
-    class StoreCallClientFlow(
-        flow_base.FlowBase[
-            flows_pb2.EmptyFlowArgs,
-            tests_pb2.DummyFlowStore,
-            flows_pb2.DefaultFlowProgress,
-        ]
-    ):
-      """Dummy flow that uses store."""
-
-      proto_store_type = tests_pb2.DummyFlowStore
-
-      def Start(self) -> None:
-        self.store.msg = "Hello from Start!"
-        self.CallClient(
-            action_registry.ACTION_STUB_BY_ID["Store"],
-            request=rdf_protodict.DataBlob(string="Hey!"),
-            next_state="AfterCallClient",
-        )
-
-      def AfterCallClient(self, responses=None):
-        del responses
-        assert self.store.msg == "Hello from Start!"
-        self.store.msg = "Hello from AfterCallClient!"
-
-    flow = self.setupAndRun(StoreCallClientFlow)
-
-    self.assertTrue(flow.HasField("store"))
-    store = tests_pb2.DummyFlowStore()
-    flow.store.Unpack(store)
-    self.assertEqual(store.msg, "Hello from AfterCallClient!")
 
   def testStorePersists_CallClientProto(self):
 
@@ -1725,37 +1607,6 @@ class FlowBaseImplementationTest(flow_test_lib.FlowTestsBaseclass):
     flow.store.Unpack(store)
     self.assertEqual(store.msg, "Hello from AfterCallClientProto!")
 
-  def testProgressIntegration_CallState(self):
-
-    class ProgressCallStateFlow(
-        flow_base.FlowBase[
-            flows_pb2.EmptyFlowArgs,
-            flows_pb2.DefaultFlowStore,
-            tests_pb2.DummyFlowProgress,
-        ]
-    ):
-      proto_progress_type = tests_pb2.DummyFlowProgress
-      progress: tests_pb2.DummyFlowProgress
-
-      def GetProgressProto(self) -> tests_pb2.DummyFlowProgress:
-        return self.progress
-
-      def Start(self) -> None:
-        self.progress.status = "Hello from Start!"
-        self.CallState(next_state="AfterCallState")
-
-      def AfterCallState(self, responses=None):
-        del responses
-        assert self.GetProgressProto().status == "Hello from Start!"
-        self.progress.status = "Hello from AfterCallState!"
-
-    flow = self.setupAndRun(ProgressCallStateFlow)
-
-    self.assertTrue(flow.HasField("progress"))
-    progress = tests_pb2.DummyFlowProgress()
-    flow.progress.Unpack(progress)
-    self.assertEqual(progress.status, "Hello from AfterCallState!")
-
   def testProgressIntegration_CallStateProto(self):
 
     class ProgressCallStateProtoFlow(
@@ -1786,71 +1637,6 @@ class FlowBaseImplementationTest(flow_test_lib.FlowTestsBaseclass):
     progress = tests_pb2.DummyFlowProgress()
     flow.progress.Unpack(progress)
     self.assertEqual(progress.status, "Hello from AfterCallStateProto!")
-
-  def testProgressIntegration_CallStateInline(self):
-
-    class ProgressCallStateInlineFlow(
-        flow_base.FlowBase[
-            flows_pb2.EmptyFlowArgs,
-            flows_pb2.DefaultFlowStore,
-            tests_pb2.DummyFlowProgress,
-        ]
-    ):
-      proto_progress_type = tests_pb2.DummyFlowProgress
-      progress: tests_pb2.DummyFlowProgress
-
-      def GetProgressProto(self) -> tests_pb2.DummyFlowProgress:
-        return self.progress
-
-      def Start(self) -> None:
-        self.progress.status = "Hello from Start!"
-        self.CallStateInline(next_state="AfterCallStateInline")
-
-      def AfterCallStateInline(self, responses=None):
-        del responses
-        assert self.GetProgressProto().status == "Hello from Start!"
-        self.progress.status = "Hello from AfterCallStateInline!"
-
-    flow = self.setupAndRun(ProgressCallStateInlineFlow)
-
-    self.assertTrue(flow.HasField("progress"))
-    progress = tests_pb2.DummyFlowProgress()
-    flow.progress.Unpack(progress)
-    self.assertEqual(progress.status, "Hello from AfterCallStateInline!")
-
-  def testProgressIntegration_CallFlow(self):
-
-    class ProgressCallFlowFlow(
-        flow_base.FlowBase[
-            flows_pb2.EmptyFlowArgs,
-            flows_pb2.DefaultFlowStore,
-            tests_pb2.DummyFlowProgress,
-        ]
-    ):
-      proto_progress_type = tests_pb2.DummyFlowProgress
-      progress: tests_pb2.DummyFlowProgress
-
-      def GetProgressProto(self) -> tests_pb2.DummyFlowProgress:
-        return self.progress
-
-      def Start(self) -> None:
-        self.progress.status = "Hello from Start!"
-        self.CallFlow(
-            flow_test_lib.DummyFlowWithSingleReply.__name__,
-            next_state="AfterCallFlow",
-        )
-
-      def AfterCallFlow(self, responses=None):
-        del responses
-        assert self.GetProgressProto().status == "Hello from Start!"
-        self.progress.status = "Hello from AfterCallFlow!"
-
-    flow = self.setupAndRun(ProgressCallFlowFlow)
-
-    self.assertTrue(flow.HasField("progress"))
-    progress = tests_pb2.DummyFlowProgress()
-    flow.progress.Unpack(progress)
-    self.assertEqual(progress.status, "Hello from AfterCallFlow!")
 
   def testProgressIntegration_CallFlowProto(self):
 
@@ -1885,41 +1671,6 @@ class FlowBaseImplementationTest(flow_test_lib.FlowTestsBaseclass):
     progress = tests_pb2.DummyFlowProgress()
     flow.progress.Unpack(progress)
     self.assertEqual(progress.status, "Hello from AfterCallFlowProto!")
-
-  def testProgressIntegration_CallClient(self):
-
-    class ProgressCallClientFlow(
-        flow_base.FlowBase[
-            flows_pb2.EmptyFlowArgs,
-            flows_pb2.DefaultFlowStore,
-            tests_pb2.DummyFlowProgress,
-        ]
-    ):
-      proto_progress_type = tests_pb2.DummyFlowProgress
-      progress: tests_pb2.DummyFlowProgress
-
-      def GetProgressProto(self) -> tests_pb2.DummyFlowProgress:
-        return self.progress
-
-      def Start(self) -> None:
-        self.progress.status = "Hello from Start!"
-        self.CallClient(
-            action_registry.ACTION_STUB_BY_ID["Store"],
-            request=rdf_protodict.DataBlob(string="Hey!"),
-            next_state="AfterCallClient",
-        )
-
-      def AfterCallClient(self, responses=None):
-        del responses
-        assert self.GetProgressProto().status == "Hello from Start!"
-        self.progress.status = "Hello from AfterCallClient!"
-
-    flow = self.setupAndRun(ProgressCallClientFlow)
-
-    self.assertTrue(flow.HasField("progress"))
-    progress = tests_pb2.DummyFlowProgress()
-    flow.progress.Unpack(progress)
-    self.assertEqual(progress.status, "Hello from AfterCallClient!")
 
   def testProgressIntegration_CallClientProto(self):
 
@@ -1973,7 +1724,7 @@ class FlowBaseImplementationTest(flow_test_lib.FlowTestsBaseclass):
             ),
         )
 
-      @flow_base.UseProto2AnyResponses
+      @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
       def ReceiveInlineResponses(self, responses):
         assert responses.success
         assert len(responses) == 3
@@ -1994,7 +1745,7 @@ class FlowBaseImplementationTest(flow_test_lib.FlowTestsBaseclass):
         response_list[2].Unpack(unpacked)
         assert unpacked.arg == "res3"
 
-        assert responses.request_data["hello"] == "world"
+        assert responses.request_data["hello"] == "world"  # pyrefly: ignore[unsupported-operation]
 
     assert data_store.REL_DB is not None
     db = data_store.REL_DB
@@ -2023,7 +1774,7 @@ class FlowBaseImplementationTest(flow_test_lib.FlowTestsBaseclass):
             ),
         )
 
-      @flow_base.UseProto2AnyResponses
+      @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
       def UnpackedResponsesShouldFail(self, responses):
         raise NotImplementedError  # should not get here
 
@@ -2057,7 +1808,7 @@ class FlowBaseImplementationTest(flow_test_lib.FlowTestsBaseclass):
             messages=[r1, r2, r3],
         )
 
-      @flow_base.UseProto2AnyResponses
+      @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
       def AnyShouldFail(self, responses):
         raise NotImplementedError  # should not get here
 
@@ -2091,7 +1842,7 @@ class FlowBaseImplementationTest(flow_test_lib.FlowTestsBaseclass):
             request_data={"hello": "world"},
         )
 
-      @flow_base.UseProto2AnyResponses
+      @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
       def ReceiveInlineResponses(self, responses):
         assert responses.success
         assert len(responses) == 3
@@ -2112,7 +1863,7 @@ class FlowBaseImplementationTest(flow_test_lib.FlowTestsBaseclass):
         response_list[2].Unpack(unpacked)
         assert unpacked.arg == "res3"
 
-        assert responses.request_data["hello"] == "world"
+        assert responses.request_data["hello"] == "world"  # pyrefly: ignore[unsupported-operation]
 
     assert data_store.REL_DB is not None
     db = data_store.REL_DB
@@ -2194,20 +1945,20 @@ class FlowBaseImplementationTest(flow_test_lib.FlowTestsBaseclass):
             },
         )
 
-      @flow_base.UseProto2AnyResponses
+      @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
       def AfterCallStateProto(
           self,
           responses: flow_responses.Responses[any_pb2.Any],
       ) -> None:
-        assert responses.request_data["foo"] == "bar"
-        assert responses.request_data["baz"] == 42
+        assert responses.request_data["foo"] == "bar"  # pyrefly: ignore[unsupported-operation]
+        assert responses.request_data["baz"] == 42  # pyrefly: ignore[unsupported-operation]
 
     client_id = db_test_utils.InitializeRRGClient(data_store.REL_DB)
 
     flow_id = rrg_test_lib.ExecuteFlow(
         client_id=client_id,
         flow_cls=CallStateProtoWithRequestDataFlow,
-        flow_args=rdf_flows.EmptyFlowArgs(),
+        flow_args=flows_pb2.EmptyFlowArgs(),
         handlers={},
     )
 
@@ -2225,32 +1976,16 @@ class FlowBaseImplementationTest(flow_test_lib.FlowTestsBaseclass):
             flows_pb2.DefaultFlowProgress,
         ]
     ):
-      args_type = rdf_client.LogMessage
       proto_args_type = jobs_pb2.LogMessage
 
       def Start(self):
-        assert self.args.data == "foo"
         assert self.proto_args.data == "foo"
 
-        # NOT replicated (field changed, not args itself)
-        self.args.data = "bar"
-        assert self.args.data == "bar"
-        assert self.proto_args.data == "foo"
+        self.proto_args.data = "bar"
+        assert self.proto_args.data == "bar"
 
-        # NOT replicated (field changed, not args itself)
-        self.proto_args.data = "baz"
-        assert self.proto_args.data == "baz"
-        assert self.args.data == "bar"
-
-        # Resets the pointer, should be replicated
-        self.args = rdf_client.LogMessage(data="qux")
-        assert self.args.data == "qux"
-        assert self.proto_args.data == "qux"
-
-        # Resets the pointer, should be replicated
         self.proto_args = jobs_pb2.LogMessage(data="norf")
         assert self.proto_args.data == "norf"
-        assert self.args.data == "norf"
 
     assert data_store.REL_DB is not None
     db = data_store.REL_DB
@@ -2261,13 +1996,101 @@ class FlowBaseImplementationTest(flow_test_lib.FlowTestsBaseclass):
         FlowArgumentsUpdate,
         client_id=client_id,
         creator=test_username,
-        flow_args=rdf_client.LogMessage(data="foo"),
+        flow_args=jobs_pb2.LogMessage(data="foo"),
     )
 
     persisted_flow = db.ReadFlowObject(client_id, flow_id)
     args = jobs_pb2.LogMessage()
     persisted_flow.args.Unpack(args)
     self.assertEqual(args.data, "norf")
+
+  def testRuntimeLimitUsUpdate(self):
+    class FlowRuntimeLimitUsUpdate(flow_base.FlowBase):
+
+      def Start(self):
+        assert self.runtime_limit_us == 0
+        self.runtime_limit_us = 11111
+        assert self.runtime_limit_us == 11111
+
+    assert data_store.REL_DB is not None
+    db = data_store.REL_DB
+    client_id = db_test_utils.InitializeClient(db)
+    test_username = db_test_utils.InitializeUser(db, "test_username")
+
+    flow_id = flow_test_lib.StartAndRunFlow(
+        FlowRuntimeLimitUsUpdate,
+        client_id=client_id,
+        creator=test_username,
+    )
+
+    persisted_flow = db.ReadFlowObject(client_id, flow_id)
+    self.assertEqual(persisted_flow.runtime_limit_us, 11111)
+
+  def testNetworkBytesSentUpdate(self):
+    class FlowNetworkBytesSentUpdate(flow_base.FlowBase):
+
+      def Start(self):
+        assert self.network_bytes_sent == 0
+        self.network_bytes_sent = 1234
+        assert self.network_bytes_sent == 1234
+
+    assert data_store.REL_DB is not None
+    db = data_store.REL_DB
+    client_id = db_test_utils.InitializeClient(db)
+    test_username = db_test_utils.InitializeUser(db, "test_username")
+
+    flow_id = flow_test_lib.StartAndRunFlow(
+        FlowNetworkBytesSentUpdate,
+        client_id=client_id,
+        creator=test_username,
+    )
+
+    persisted_flow = db.ReadFlowObject(client_id, flow_id)
+    self.assertEqual(persisted_flow.network_bytes_sent, 1234)
+
+  def testUsedSystemCpuTimeUpdate(self):
+    class FlowUsedSystemCpuTimeUpdate(flow_base.FlowBase):
+
+      def Start(self):
+        assert self.used_system_cpu_time == 0
+        self.used_system_cpu_time = 5678
+        assert self.used_system_cpu_time == 5678
+
+    assert data_store.REL_DB is not None
+    db = data_store.REL_DB
+    client_id = db_test_utils.InitializeClient(db)
+    test_username = db_test_utils.InitializeUser(db, "test_username")
+
+    flow_id = flow_test_lib.StartAndRunFlow(
+        FlowUsedSystemCpuTimeUpdate,
+        client_id=client_id,
+        creator=test_username,
+    )
+
+    persisted_flow = db.ReadFlowObject(client_id, flow_id)
+    self.assertEqual(persisted_flow.cpu_time_used.system_cpu_time, 5678)
+
+  def testUsedUserCpuTimeUpdate(self):
+    class FlowUsedUserCpuTimeUpdate(flow_base.FlowBase):
+
+      def Start(self):
+        assert self.used_user_cpu_time == 0
+        self.used_user_cpu_time = 9012
+        assert self.used_user_cpu_time == 9012
+
+    assert data_store.REL_DB is not None
+    db = data_store.REL_DB
+    client_id = db_test_utils.InitializeClient(db)
+    test_username = db_test_utils.InitializeUser(db, "test_username")
+
+    flow_id = flow_test_lib.StartAndRunFlow(
+        FlowUsedUserCpuTimeUpdate,
+        client_id=client_id,
+        creator=test_username,
+    )
+
+    persisted_flow = db.ReadFlowObject(client_id, flow_id)
+    self.assertEqual(persisted_flow.cpu_time_used.user_cpu_time, 9012)
 
 
 class FindFlowRequestsToProcessTest(absltest.TestCase):
@@ -2351,7 +2174,7 @@ class FindFlowRequestsToProcessTest(absltest.TestCase):
         request_4.request_id: (request_4, responses_4),
     }
     incremental_requests = flow_base.FindIncrementalRequestsToProcess(
-        request_dict=flow_requests, next_needed_request_id=2
+        request_dict=flow_requests, next_needed_request_id=2  # pyrefly: ignore[bad-argument-type]
     )
 
     # Only requests 1, 2 and 4 are incremental, 1 is already processed,
@@ -2419,7 +2242,7 @@ class FindFlowRequestsToProcessTest(absltest.TestCase):
         request_3.request_id: (request_3, responses_3),
     }
     completed_requests = flow_base.FindCompletedRequestsToProcess(
-        request_dict=flow_requests, next_needed_request_id=1
+        request_dict=flow_requests, next_needed_request_id=1  # pyrefly: ignore[bad-argument-type]
     )
 
     # Requests 1, and 3 are completed, 2 is not yet complete so 3 cannot be
@@ -2509,7 +2332,7 @@ class FindFlowRequestsToProcessTest(absltest.TestCase):
         request_5.request_id: (request_5, responses_5),
     }
     completed_requests = flow_base.FindCompletedRequestsToProcess(
-        request_dict=flow_requests, next_needed_request_id=2
+        request_dict=flow_requests, next_needed_request_id=2  # pyrefly: ignore[bad-argument-type]
     )
 
     # Requests 1, 2, 3, and 5 are completed but 1 was already processed,

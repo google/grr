@@ -13,13 +13,13 @@ import {HashMultipleFilesFormHarness} from './hash_multiple_files_form_harness';
 import {InterrogateFormHarness} from './interrogate_form_harness';
 import {KillGrrFormHarness} from './kill_grr_form_harness';
 import {LaunchBinaryFormHarness} from './launch_binary_form_harness';
+import {ListContainersFormHarness} from './list_containers_form_harness';
 import {ListDirectoryFormHarness} from './list_directory_form_harness';
 import {ListNamedPipesFormHarness} from './list_named_pipes_form_harness';
 import {ListProcessesFormHarness} from './list_processes_form_harness';
 import {NetstatFormHarness} from './netstat_form_harness';
 import {OnlineNotificationFormHarness} from './online_notification_form_harness';
 import {OsqueryFormHarness} from './osquery_form_harness';
-import {ReadLowLevelFormHarness} from './read_low_level_form_harness';
 import {StatMultipleFilesFormHarness} from './stat_multiple_files_form_harness';
 import {TimelineFormHarness} from './timeline_form_harness';
 import {YaraProcessScanFormHarness} from './yara_process_scan_form_harness';
@@ -118,6 +118,11 @@ export class FlowArgsFormHarness extends ComponentHarness {
   readonly launchBinaryForm = this.locatorFor(LaunchBinaryFormHarness);
 
   /**
+   * Harness for the ListContainersForm component.
+   */
+  readonly listContainersForm = this.locatorFor(ListContainersFormHarness);
+
+  /**
    * Harness for the ListDirectoryForm component.
    */
   readonly listDirectoryForm = this.locatorFor(ListDirectoryFormHarness);
@@ -150,11 +155,6 @@ export class FlowArgsFormHarness extends ComponentHarness {
   readonly osqueryForm = this.locatorFor(OsqueryFormHarness);
 
   /**
-   * Harness for the ReadLowLevelForm component.
-   */
-  readonly readLowLevelForm = this.locatorFor(ReadLowLevelFormHarness);
-
-  /**
    * Harness for the StatMultipleFilesForm component.
    */
   readonly statMultipleFilesForm = this.locatorFor(
@@ -162,7 +162,7 @@ export class FlowArgsFormHarness extends ComponentHarness {
   );
 
   /**
-   * Harness for the ReadLowLevelForm component.
+   * Harness for the TimelineForm component.
    */
   readonly timelineForm = this.locatorFor(TimelineFormHarness);
 

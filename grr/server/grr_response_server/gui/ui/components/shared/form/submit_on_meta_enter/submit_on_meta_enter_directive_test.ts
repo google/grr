@@ -1,4 +1,10 @@
-import {Component, ElementRef, input, ViewChild} from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  ElementRef,
+  input,
+  ViewChild,
+} from '@angular/core';
 import {ComponentFixture, TestBed, waitForAsync} from '@angular/core/testing';
 import {FormsModule} from '@angular/forms';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
@@ -9,6 +15,7 @@ import {SubmitOnMetaEnterDirective} from './submit_on_meta_enter_directive';
 initTestEnvironment();
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.Eager,
   template: `
     <form #form (submit)="onSubmit($event)" [appSubmitOnMetaEnter]="appSubmitOnMetaEnter()" [appSubmitOnEnter]="appSubmitOnEnter()">
       <input #input id="input">

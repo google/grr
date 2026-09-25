@@ -72,7 +72,7 @@ def LoadLibrary(libname: str) -> ctypes.CDLL:
     # `ctypes.cdll.LoadLibrary(None)` as fallback. This returns shared objects
     # loaded at program startup per DLOPEN(3). Ultimately, this fixes loading
     # libc on Big Sur. See: https://stackoverflow.com/questions/49878901/.
-    paths.append(None)
+    paths.append(None)  # pyrefly: ignore[bad-argument-type]
   else:
     # If the library is not found by find_library and likely not loaded already,
     # try to load the raw library name by letting ctypes.cdll.LoadLibrary
@@ -162,16 +162,16 @@ class Foundation(object):
     self._LoadLibrary('Foundation', self.cftable)
 
   def CFStringToPystring(self, value) -> str:
-    length = (self.dll.CFStringGetLength(value) * 4) + 1
+    length = (self.dll.CFStringGetLength(value) * 4) + 1  # pyrefly: ignore[missing-attribute]
     buff = ctypes.create_string_buffer(length)
-    self.dll.CFStringGetCString(value, buff, length * 4, UTF8)
+    self.dll.CFStringGetCString(value, buff, length * 4, UTF8)  # pyrefly: ignore[missing-attribute]
     return buff.value.decode('utf-8')
 
   def IntToCFNumber(self, num):
     if not isinstance(num, int):
       raise TypeError('CFNumber can only be created from int')
     c_num = ctypes.c_int64(num)
-    cf_number = self.dll.CFNumberCreate(
+    cf_number = self.dll.CFNumberCreate(  # pyrefly: ignore[missing-attribute]
         CF_DEFAULT_ALLOCATOR, INT64, ctypes.byref(c_num)
     )
     return cf_number
@@ -179,21 +179,21 @@ class Foundation(object):
   def CFNumToInt32(self, num):
     tmp = ctypes.c_int32(0)
     result_ptr = ctypes.pointer(tmp)
-    self.dll.CFNumberGetValue(num, INT32, result_ptr)
+    self.dll.CFNumberGetValue(num, INT32, result_ptr)  # pyrefly: ignore[missing-attribute]
     return result_ptr[0]
 
   def CFNumToInt64(self, num):
     tmp = ctypes.c_int64(0)
     result_ptr = ctypes.pointer(tmp)
-    self.dll.CFNumberGetValue(num, INT64, result_ptr)
+    self.dll.CFNumberGetValue(num, INT64, result_ptr)  # pyrefly: ignore[missing-attribute]
     return result_ptr[0]
 
   def CFDictRetrieve(self, dictionary, key):
-    ptr = ctypes.c_void_p.in_dll(self.dll, key)
-    return self.dll.CFDictionaryGetValue(dictionary, ptr)
+    ptr = ctypes.c_void_p.in_dll(self.dll, key)  # pyrefly: ignore[bad-argument-type]
+    return self.dll.CFDictionaryGetValue(dictionary, ptr)  # pyrefly: ignore[missing-attribute]
 
   def PyStringToCFString(self, pystring):
-    return self.dll.CFStringCreateWithCString(
+    return self.dll.CFStringCreateWithCString(  # pyrefly: ignore[missing-attribute]
         CF_DEFAULT_ALLOCATOR, pystring.encode('utf8'), UTF8
     )
 
@@ -208,16 +208,16 @@ class Foundation(object):
     Raises:
       TypeError: If the type is not supported.
     """
-    obj_type = self.dll.CFGetTypeID(obj)
-    if obj_type == self.dll.CFBooleanGetTypeID():
+    obj_type = self.dll.CFGetTypeID(obj)  # pyrefly: ignore[missing-attribute]
+    if obj_type == self.dll.CFBooleanGetTypeID():  # pyrefly: ignore[missing-attribute]
       return CFBoolean(obj)
-    elif obj_type == self.dll.CFNumberGetTypeID():
+    elif obj_type == self.dll.CFNumberGetTypeID():  # pyrefly: ignore[missing-attribute]
       return CFNumber(obj)
-    elif obj_type == self.dll.CFStringGetTypeID():
+    elif obj_type == self.dll.CFStringGetTypeID():  # pyrefly: ignore[missing-attribute]
       return CFString(obj)
-    elif obj_type == self.dll.CFDictionaryGetTypeID():
+    elif obj_type == self.dll.CFDictionaryGetTypeID():  # pyrefly: ignore[missing-attribute]
       return CFDictionary(obj)
-    elif obj_type == self.dll.CFArrayGetTypeID():
+    elif obj_type == self.dll.CFArrayGetTypeID():  # pyrefly: ignore[missing-attribute]
       return CFArray(obj)
     else:
       raise TypeError('Unknown type for object: {0}'.format(obj))
@@ -265,8 +265,8 @@ class ServiceManagement(Foundation):
     Returns:
       A marshalled python list of dicts containing the job dictionaries.
     """
-    cfstring_launchd = ctypes.c_void_p.in_dll(self.dll, domain)
-    return CFArray(self.dll.SMCopyAllJobDictionaries(cfstring_launchd))
+    cfstring_launchd = ctypes.c_void_p.in_dll(self.dll, domain)  # pyrefly: ignore[bad-argument-type]
+    return CFArray(self.dll.SMCopyAllJobDictionaries(cfstring_launchd))  # pyrefly: ignore[missing-attribute]
 
 
 class CFType(Foundation):
@@ -278,7 +278,7 @@ class CFType(Foundation):
 
   def __del__(self):
     # Now it can be deleted, as we don't use it any more
-    self.dll.CFRelease(self.ref)
+    self.dll.CFRelease(self.ref)  # pyrefly: ignore[missing-attribute]
 
   def __repr__(self):
     return '{0}:{1}'.format(self.__class__.__name__, self.ref)
@@ -301,7 +301,7 @@ class CFBoolean(CFType):
 
   @property
   def value(self):
-    bool_const = self.dll.CFBooleanGetValue(self)
+    bool_const = self.dll.CFBooleanGetValue(self)  # pyrefly: ignore[missing-attribute]
     if bool_const == 0:
       return False
     else:
@@ -320,7 +320,7 @@ class CFNumber(CFType):
   def __init__(self, obj=0):
     if isinstance(obj, ctypes.c_void_p):
       super().__init__(obj)
-      self.dll.CFRetain(obj)
+      self.dll.CFRetain(obj)  # pyrefly: ignore[missing-attribute]
     elif isinstance(obj, int):
       super().__init__(None)
       self.ref = ctypes.c_void_p(self.IntToCFNumber(obj))
@@ -347,7 +347,7 @@ class CFString(CFType):
     """Can initialize CFString with python or objc strings."""
     if isinstance(obj, (ctypes.c_void_p, int)):
       super().__init__(obj)
-      self.dll.CFRetain(obj)
+      self.dll.CFRetain(obj)  # pyrefly: ignore[missing-attribute]
     elif isinstance(obj, str):
       super().__init__(None)
       self.ref = self.PyStringToCFString(obj)
@@ -359,7 +359,7 @@ class CFString(CFType):
     return self.CFStringToPystring(self)
 
   def __len__(self):
-    return self.dll.CFArrayGetCount(self.ref)
+    return self.dll.CFArrayGetCount(self.ref)  # pyrefly: ignore[missing-attribute]
 
   def __str__(self) -> str:
     return self.value
@@ -373,10 +373,10 @@ class CFArray(CFType):
 
   def __init__(self, ptr):
     super().__init__(ptr)
-    self.dll.CFRetain(ptr)
+    self.dll.CFRetain(ptr)  # pyrefly: ignore[missing-attribute]
 
   def __len__(self):
-    return self.dll.CFArrayGetCount(self.ref)
+    return self.dll.CFArrayGetCount(self.ref)  # pyrefly: ignore[missing-attribute]
 
   def __getitem__(self, index):
     if not isinstance(index, int):
@@ -385,11 +385,11 @@ class CFArray(CFType):
       raise IndexError(
           'index must be between {0} and {1}'.format(0, len(self) - 1)
       )
-    obj = self.dll.CFArrayGetValueAtIndex(self.ref, index)
+    obj = self.dll.CFArrayGetValueAtIndex(self.ref, index)  # pyrefly: ignore[missing-attribute]
     return self.WrapCFTypeInPython(obj)
 
   def __repr__(self):
-    return str(list(self))
+    return str(list(self))  # pyrefly: ignore[bad-argument-type]
 
 
 class CFDictionary(CFType):
@@ -397,14 +397,14 @@ class CFDictionary(CFType):
 
   def __init__(self, ptr):
     super().__init__(ptr)
-    self.dll.CFRetain(ptr)
+    self.dll.CFRetain(ptr)  # pyrefly: ignore[missing-attribute]
 
   def __contains__(self, key):
     value = self.__getitem__(key)
     return value is not None
 
   def __len__(self):
-    return self.dll.CFArrayGetCount(self)
+    return self.dll.CFArrayGetCount(self)  # pyrefly: ignore[missing-attribute]
 
   def __getitem__(self, key):
     if isinstance(key, CFType):
@@ -419,7 +419,7 @@ class CFDictionary(CFType):
       raise TypeError(
           'CFDictionary wrapper only supports string, int and objc values'
       )
-    obj = ctypes.c_void_p(self.dll.CFDictionaryGetValue(self, cftype_key))
+    obj = ctypes.c_void_p(self.dll.CFDictionaryGetValue(self, cftype_key))  # pyrefly: ignore[missing-attribute]
 
     # Detect null pointers and avoid crashing WrapCFTypeInPython
     if not obj:
@@ -455,7 +455,7 @@ class CFDictionary(CFType):
     size = len(self)
     keys = (ctypes.c_void_p * size)()
     values = (ctypes.c_void_p * size)()
-    self.dll.CFDictionaryGetKeysAndValues(self.ref, keys, values)
+    self.dll.CFDictionaryGetKeysAndValues(self.ref, keys, values)  # pyrefly: ignore[missing-attribute]
     for index in range(size):
       key = self.WrapCFTypeInPython(keys[index])
       value = self.WrapCFTypeInPython(values[index])

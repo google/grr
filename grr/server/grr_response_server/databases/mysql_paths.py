@@ -222,9 +222,9 @@ class MySQLDBPathMixin(object):
       if hash_entry_bytes is not None:
         path_info.hash_entry.ParseFromString(hash_entry_bytes)
 
-      path_infos[tuple(components)] = path_info
+      path_infos[tuple(components)] = path_info  # pyrefly: ignore[unsupported-operation]
 
-    return path_infos
+    return path_infos  # pyrefly: ignore[bad-return]
 
   @db_utils.CallLogged
   @db_utils.CallAccounted
@@ -550,7 +550,7 @@ class MySQLDBPathMixin(object):
     path_infos = {tuple(components): [] for components in components_list}
 
     path_id_components: dict[rdf_objects.PathID, tuple[str, ...]] = {}
-    for components in components_list:
+    for components in components_list:  # pyrefly: ignore[bad-assignment]
       path_id = rdf_objects.PathID.FromComponents(components)
       path_id_components[path_id] = tuple(components)
 
@@ -644,7 +644,7 @@ class MySQLDBPathMixin(object):
     for comps in components_list:
       path_infos[tuple(comps)].sort(key=lambda path_info: path_info.timestamp)
 
-    return path_infos
+    return path_infos  # pyrefly: ignore[bad-return]
 
   @db_utils.CallLogged
   @db_utils.CallAccounted
@@ -731,6 +731,6 @@ class MySQLDBPathMixin(object):
       if hash_entry_bytes is not None:
         path_info.hash_entry.ParseFromString(hash_entry_bytes)
 
-      path_infos[client_path] = path_info
+      path_infos[client_path] = path_info  # pyrefly: ignore[unsupported-operation]
 
-    return path_infos
+    return path_infos  # pyrefly: ignore[bad-return]

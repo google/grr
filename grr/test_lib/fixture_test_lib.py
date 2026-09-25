@@ -61,8 +61,7 @@ class ClientFixture(object):
 
     data_store.REL_DB.WriteClientSnapshot(snapshot)
 
-    rdf_snapshot = mig_objects.ToRDFClientSnapshot(snapshot)
-    client_index.ClientIndex().AddClient(rdf_snapshot)
+    client_index.ClientIndex().AddClient(snapshot)
 
     for path, (typ, attributes) in vfs_fixture:
       path %= self.args
@@ -101,7 +100,7 @@ class ClientFixture(object):
       if content:
         blob_id = models_blobs.BlobID.Of(content)
         data_store.BLOBS.WriteBlobs({blob_id: content})
-        blob_ref = rdf_objects.BlobReference(
+        blob_ref = objects_pb2.BlobReference(
             offset=0, size=len(content), blob_id=bytes(blob_id)
         )
         hash_id = file_store.AddFileWithUnknownHash(

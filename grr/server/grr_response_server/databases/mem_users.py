@@ -89,7 +89,7 @@ class InMemoryDBUsersMixin(object):
       for approval in approvals.values():
         grants = [g for g in approval.grants if g.grantor_username != username]
         if len(grants) != len(approval.grants):
-          # TODO: Replace with `clear()` once upgraded.
+          # TODO - Replace with `clear()` once upgraded.
           del approval.grants[:]
           for g in grants:
             approval.grants.add().CopyFrom(g)
@@ -102,7 +102,7 @@ class InMemoryDBUsersMixin(object):
     for sf in list(self.scheduled_flows.values()):
       if sf.creator == username:
         # DeleteScheduledFlow is implemented in the db.Database class.
-        self.DeleteScheduledFlow(sf.client_id, username, sf.scheduled_flow_id)  # pytype: disable=attribute-error
+        self.DeleteScheduledFlow(sf.client_id, username, sf.scheduled_flow_id)  # pyrefly: ignore[missing-attribute]
 
     try:
       del self.users[username]
@@ -218,7 +218,7 @@ class InMemoryDBUsersMixin(object):
   ) -> Sequence[objects_pb2.UserNotification]:
     """Reads notifications scheduled for a user within a given timerange."""
     # ReadUserNotifications is implemented in the db.Database class.
-    from_time, to_time = self._ParseTimeRange(timerange)  # pytype: disable=attribute-error
+    from_time, to_time = self._ParseTimeRange(timerange)  # pyrefly: ignore[missing-attribute]
 
     result = []
     from_time_micros = from_time.AsMicrosecondsSinceEpoch()
@@ -248,4 +248,4 @@ class InMemoryDBUsersMixin(object):
 
     for n in self.notifications_by_username.get(username, []):
       if n.timestamp in proto_timestamps:
-        n.state = state
+        n.state = state  # pyrefly: ignore[bad-assignment]

@@ -47,28 +47,6 @@ def ToRDFHuntArgumentsVariable(
   )
 
 
-def ToProtoHuntArguments(
-    rdf: rdf_hunt_objects.HuntArguments,
-) -> hunts_pb2.HuntArguments:
-  return rdf.AsPrimitiveProto()
-
-
-def ToRDFHuntArguments(
-    proto: hunts_pb2.HuntArguments,
-) -> rdf_hunt_objects.HuntArguments:
-  return rdf_hunt_objects.HuntArguments.FromSerializedBytes(
-      proto.SerializeToString()
-  )
-
-
-def ToProtoHunt(rdf: rdf_hunt_objects.Hunt) -> hunts_pb2.Hunt:
-  return rdf.AsPrimitiveProto()
-
-
-def ToRDFHunt(proto: hunts_pb2.Hunt) -> rdf_hunt_objects.Hunt:
-  return rdf_hunt_objects.Hunt.FromSerializedBytes(proto.SerializeToString())
-
-
 def ToProtoHuntMetadata(
     rdf: rdf_hunt_objects.HuntMetadata,
 ) -> hunts_pb2.HuntMetadata:

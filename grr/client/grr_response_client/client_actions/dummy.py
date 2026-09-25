@@ -14,7 +14,7 @@ class Dummy(actions.ActionPlugin):
   def Run(self, args: rdf_dummy.DummyRequest) -> None:
     """Returns received input back to the server."""
 
-    if not args.action_input:
+    if not args.action_input:  # pyrefly: ignore[missing-attribute]
       raise RuntimeError("args.action_input is empty, cannot proceed!")
 
     self.SendReply(

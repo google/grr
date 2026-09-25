@@ -9,6 +9,7 @@ server parts.
 from typing import Optional, Type
 
 from google.protobuf import message as pb_message
+
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import client_action as rdf_client_action
@@ -121,12 +122,6 @@ class Echo(ClientActionStub):
   in_rdfvalue = rdf_client_action.EchoRequest
   in_proto = jobs_pb2.EchoRequest
   out_rdfvalues = [rdf_client_action.EchoRequest]
-
-
-class GetHostname(ClientActionStub):
-  """Retrieves the host name of the client."""
-
-  out_rdfvalues = [rdf_protodict.DataBlob]
 
 
 class GetPlatformInfo(ClientActionStub):

@@ -2,7 +2,6 @@
 """This file contains utility classes related to maintenance used by GRR."""
 
 import logging
-import sys
 
 from grr_api_client import api
 from grr_response_core import config
@@ -20,7 +19,14 @@ _GRR_API_PAGE_SIZE = 1000
 
 
 def InitGRRRootAPI():
-  """Initializes the GRR root API."""
+  """Initializes the GRR root API.
+
+  This function should be used only in code that has initialized the entire
+  server stack, especially the database modules.
+
+  Returns:
+    An API object that can invoke root methods.
+  """
 
   return api.GrrApi(
       connector=api_shell_raw_access_lib.RawConnector(
@@ -28,10 +34,6 @@ def InitGRRRootAPI():
           page_size=_GRR_API_PAGE_SIZE,
       )
   ).root
-
-
-def EPrint(message):
-  sys.stderr.write("%s\n" % message)
 
 
 def UploadSignedConfigBlob(content, aff4_path, client_context=None, limit=None):

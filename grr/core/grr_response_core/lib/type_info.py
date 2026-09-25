@@ -121,7 +121,7 @@ class RDFValueType(TypeInfoObject):
       **kwargs: Passthrough to base class.
     """
     super().__init__(**kwargs)
-    self._type = self.rdfclass = rdfclass
+    self._type = self.rdfclass = rdfclass  # pyrefly: ignore[bad-assignment]
 
   def Validate(self, value):
     """Validate an RDFValue instance.
@@ -144,7 +144,7 @@ class RDFValueType(TypeInfoObject):
     if not isinstance(value, self.rdfclass):
       # Try to coerce the type to the correct rdf_class.
       try:
-        return self.rdfclass(value)
+        return self.rdfclass(value)  # pyrefly: ignore[bad-argument-count, bad-instantiation]
       except rdfvalue.InitializeError as e:
         raise TypeValueError(
             "Value for arg %s should be an %s"
@@ -192,7 +192,7 @@ class RDFStructDictType(TypeInfoObject):
       **kwargs: Passthrough to base class.
     """
     super().__init__(**kwargs)
-    self._type = self.rdfclass = rdfclass
+    self._type = self.rdfclass = rdfclass  # pyrefly: ignore[bad-assignment]
 
   def Validate(self, value):
     """Validate the value.
@@ -214,8 +214,8 @@ class RDFStructDictType(TypeInfoObject):
     if not isinstance(value, self.rdfclass):
       # Try to coerce the type to the correct rdf_class.
       try:
-        r = self.rdfclass()
-        r.FromDict(value)
+        r = self.rdfclass()  # pyrefly: ignore[bad-instantiation]
+        r.FromDict(value)  # pyrefly: ignore[missing-attribute]
         return r
       except (AttributeError, TypeError, rdfvalue.InitializeError) as e:
         # AttributeError is raised if value contains items that don't
@@ -377,19 +377,19 @@ class List(TypeInfoObject):
       raise TypeValueError("%r not a valid List" % value)
 
     # Validate each value in the list validates against our type.
-    return [self.validator.Validate(val) for val in value]
+    return [self.validator.Validate(val) for val in value]  # pyrefly: ignore[missing-attribute]
 
   def FromString(self, string):
     result = []
     if string:
       for x in string.split(","):
         x = x.strip()
-        result.append(self.validator.FromString(x))
+        result.append(self.validator.FromString(x))  # pyrefly: ignore[missing-attribute]
 
     return result
 
   def ToString(self, value):
-    return ",".join([self.validator.ToString(x) for x in value])
+    return ",".join([self.validator.ToString(x) for x in value])  # pyrefly: ignore[missing-attribute]
 
 
 class String(TypeInfoObject):
@@ -492,7 +492,7 @@ class Choice(TypeInfoObject):
   def Validate(self, value):
     self.validator.Validate(value)
 
-    if value not in self.choices:
+    if value not in self.choices:  # pyrefly: ignore[not-iterable]
       raise TypeValueError("%s not a valid instance string." % value)
 
     return value
@@ -515,7 +515,7 @@ class MultiChoice(TypeInfoObject):
     self.validator = List(validator=subvalidator)
 
     # Check the choices match the validator
-    for choice in self.choices:
+    for choice in self.choices:  # pyrefly: ignore[not-iterable]
       subvalidator.Validate(choice)
     super().__init__(**kwargs)
 
@@ -523,7 +523,7 @@ class MultiChoice(TypeInfoObject):
     self.validator.Validate(values)
 
     for value in values:
-      if value not in self.choices:
+      if value not in self.choices:  # pyrefly: ignore[not-iterable]
         raise TypeValueError("%s not a valid instance string." % value)
     if len(values) != len(set(values)):
       raise TypeValueError("Duplicate choice in: %s." % values)

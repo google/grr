@@ -28,7 +28,6 @@ class KeystoreTestMixin(metaclass=abc.ABCMeta):
 
   # This is a mixin class, we have to make Pytype forget about missing assertion
   # methods.
-  # pytype: disable=attribute-error
 
   # Test methods do not require docstrings (but pylint is not aware that these
   # are actually test methods).
@@ -40,10 +39,10 @@ class KeystoreTestMixin(metaclass=abc.ABCMeta):
         mac_key_names=[],
     )
 
-    with self.assertRaises(abstract.UnknownKeyError) as context:
+    with self.assertRaises(abstract.UnknownKeyError) as context:  # pyrefly: ignore[missing-attribute]
       keystore.Crypter("foobar")
 
-    self.assertEqual(context.exception.key_name, "foobar")
+    self.assertEqual(context.exception.key_name, "foobar")  # pyrefly: ignore[missing-attribute]
 
   def testCrypterEncryptsAndDecryptsSingleKey(self):
     keystore = self.CreateKeystore(aead_key_names=["foo"], mac_key_names=[])
@@ -53,10 +52,10 @@ class KeystoreTestMixin(metaclass=abc.ABCMeta):
     data = b"\xBB\xAA\x55"
 
     encrypted_data = crypter.Encrypt(data, b"assoc_data")
-    self.assertNotEqual(data, encrypted_data)
+    self.assertNotEqual(data, encrypted_data)  # pyrefly: ignore[missing-attribute]
 
     decrypted_data = crypter.Decrypt(encrypted_data, b"assoc_data")
-    self.assertEqual(decrypted_data, data)
+    self.assertEqual(decrypted_data, data)  # pyrefly: ignore[missing-attribute]
 
   def testCrypterEncryptsAndDecryptsMultipleKeys(self):
     keystore = self.CreateKeystore(
@@ -70,14 +69,14 @@ class KeystoreTestMixin(metaclass=abc.ABCMeta):
 
     encrypted_data_foo = crypter_foo.Encrypt(data, b"assoc_data")
     encrypted_data_bar = crypter_bar.Encrypt(data, b"assoc_data")
-    self.assertNotEqual(data, encrypted_data_foo)
-    self.assertNotEqual(data, encrypted_data_bar)
-    self.assertNotEqual(encrypted_data_foo, encrypted_data_bar)
+    self.assertNotEqual(data, encrypted_data_foo)  # pyrefly: ignore[missing-attribute]
+    self.assertNotEqual(data, encrypted_data_bar)  # pyrefly: ignore[missing-attribute]
+    self.assertNotEqual(encrypted_data_foo, encrypted_data_bar)  # pyrefly: ignore[missing-attribute]
 
     decrypted_data_foo = crypter_foo.Decrypt(encrypted_data_foo, b"assoc_data")
     decrypted_data_bar = crypter_bar.Decrypt(encrypted_data_bar, b"assoc_data")
-    self.assertEqual(decrypted_data_foo, data)
-    self.assertEqual(decrypted_data_bar, data)
+    self.assertEqual(decrypted_data_foo, data)  # pyrefly: ignore[missing-attribute]
+    self.assertEqual(decrypted_data_bar, data)  # pyrefly: ignore[missing-attribute]
 
   def testCrypterDecryptionError(self):
     crypter = self.CreateKeystore(
@@ -87,16 +86,16 @@ class KeystoreTestMixin(metaclass=abc.ABCMeta):
     data = b"\xBB\xAA\x55"
     encrypted_data = crypter.Encrypt(data, b"assoc_data")
 
-    with self.assertRaises(abstract.DecryptionError):
+    with self.assertRaises(abstract.DecryptionError):  # pyrefly: ignore[missing-attribute]
       crypter.Decrypt(encrypted_data, b"different_assoc_data")
 
   def testMACRaisesOnUnknownKey(self):
     keystore = self.CreateKeystore(aead_key_names=[], mac_key_names=[])
 
-    with self.assertRaises(abstract.UnknownKeyError) as context:
+    with self.assertRaises(abstract.UnknownKeyError) as context:  # pyrefly: ignore[missing-attribute]
       keystore.MAC("foobar")
 
-    self.assertEqual(context.exception.key_name, "foobar")
+    self.assertEqual(context.exception.key_name, "foobar")  # pyrefly: ignore[missing-attribute]
 
   def testMACComputesAndVerifiesSingleKey(self):
     keystore = self.CreateKeystore(aead_key_names=[], mac_key_names=["foo"])
@@ -106,7 +105,7 @@ class KeystoreTestMixin(metaclass=abc.ABCMeta):
     data = b"\xBB\xAA\x55"
 
     mac_data = mac.ComputeMAC(data)
-    self.assertNotEqual(data, mac_data)
+    self.assertNotEqual(data, mac_data)  # pyrefly: ignore[missing-attribute]
 
     mac.VerifyMAC(mac_data, data)
 
@@ -123,9 +122,9 @@ class KeystoreTestMixin(metaclass=abc.ABCMeta):
 
     mac_data_foo = mac_foo.ComputeMAC(data)
     mac_data_bar = mac_bar.ComputeMAC(data)
-    self.assertNotEqual(data, mac_data_foo)
-    self.assertNotEqual(data, mac_data_bar)
-    self.assertNotEqual(mac_data_foo, mac_data_bar)
+    self.assertNotEqual(data, mac_data_foo)  # pyrefly: ignore[missing-attribute]
+    self.assertNotEqual(data, mac_data_bar)  # pyrefly: ignore[missing-attribute]
+    self.assertNotEqual(mac_data_foo, mac_data_bar)  # pyrefly: ignore[missing-attribute]
 
     mac_foo.VerifyMAC(mac_data_foo, data)
     mac_bar.VerifyMAC(mac_data_bar, data)
@@ -138,8 +137,7 @@ class KeystoreTestMixin(metaclass=abc.ABCMeta):
     data = b"\xBB\xAA\x55"
     mac_data = mac.ComputeMAC(data)
 
-    with self.assertRaises(abstract.MACVerificationError):
+    with self.assertRaises(abstract.MACVerificationError):  # pyrefly: ignore[missing-attribute]
       mac.VerifyMAC(mac_data, b"different_data")
 
-  # pytype: enable=attribute-error
   # pylint: enable=missing-function-docstring,invalid-name

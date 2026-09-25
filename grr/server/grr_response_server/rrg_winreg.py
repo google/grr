@@ -69,6 +69,8 @@ class KeyGlob:
     not work well with recursive globs (norit distinguishes between them and
     normal ones) and ignores depth specification.
 
+    The returned regex is case-insensitive as are registry keys.
+
     Returns:
       A regex corresponding to the given registry key glob expression.
     """
@@ -106,7 +108,49 @@ class KeyGlob:
         string=key_pattern,
     )
 
-    return re.compile(f"^{key_pattern}$")
+    return re.compile(f"(?i)^{key_pattern}$")
+
+
+class ValueNameGlob:
+  """Representation of a Window registry value name glob expression."""
+
+  def __init__(self, value_name_glob: str) -> None:
+    """Initializes  the value name glob object.
+
+    Args:
+      value_name_glob: String representation of the value name glob expression.
+    """
+    self._value_name_glob = value_name_glob
+
+  @property
+  def regex(self) -> re.Pattern[str]:
+    r"""Returns regex representation of this value name glob expression.
+
+    This is similar to the standard `fnmatch.translate` except that it yields
+    more "standard" regex that works also in other regular expression engines
+    (specifically works in the Rust one), not only the Python one (e.g. it does
+    not yield `\Z` anchor which `fnmatch.translate` seems to insert at the end
+    of the string).
+
+    The returned regex is case-insensitive as are registry value names.
+
+    Returns:
+      A regex corresponding to the given value name glob expression.
+    """
+    # We want *almost* everything to be matched literally, so we escape the
+    # whole component and then deal with escaped glob patterns separately.
+    value_name_pattern = re.escape(self._value_name_glob)
+
+    # `*` was turned by escaping to `\*` so we simply need to compile that to a
+    # valid regex. Note that unlike `KeyGlob#regex`, here we do not need to deal
+    # with `**` as value name globs cannot be recursive.
+    value_name_pattern = re.sub(
+        pattern=r"\\\*",
+        repl=r".*",
+        string=value_name_pattern,
+    )
+
+    return re.compile(f"(?i)^{value_name_pattern}$")
 
 
 HKEY_STR: dict[rrg_winreg_pb2.PredefinedKey, str] = {
@@ -121,6 +165,12 @@ HKEY_STR: dict[rrg_winreg_pb2.PredefinedKey, str] = {
 
 HKEY_ENUM: dict[str, rrg_winreg_pb2.PredefinedKey] = {
     key_str: key_enum for key_enum, key_str in HKEY_STR.items()
+} | {
+    "HKCC": rrg_winreg_pb2.CURRENT_CONFIG,
+    "HKCR": rrg_winreg_pb2.CLASSES_ROOT,
+    "HKCU": rrg_winreg_pb2.CURRENT_USER,
+    "HKLM": rrg_winreg_pb2.LOCAL_MACHINE,
+    "HKU": rrg_winreg_pb2.USERS,
 }
 
 

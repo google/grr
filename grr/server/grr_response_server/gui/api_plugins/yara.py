@@ -15,7 +15,7 @@ class ApiUploadYaraSignatureHandler(api_call_handler_base.ApiCallHandler):
   proto_args_type = yara_pb2.ApiUploadYaraSignatureArgs
   proto_result_type = yara_pb2.ApiUploadYaraSignatureResult
 
-  def Handle(  # pytype: disable=signature-mismatch  # overriding-parameter-count-checks
+  def Handle(  # pyrefly: ignore[bad-override]
       self,
       args: yara_pb2.ApiUploadYaraSignatureArgs,
       context: Optional[api_call_context.ApiCallContext],

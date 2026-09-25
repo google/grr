@@ -40,10 +40,6 @@ message TestOutputPluginArgs {
   optional string test_message = 1;
 }
 
-message RecursiveTestFlowArgs {
-  optional uint64 depth = 1;
-}
-
 message MultiGetFileTestFlowArgs {
   optional uint64 file_limit = 1 [
     (sem_type) = {

@@ -12,10 +12,11 @@ message Args {
   // Absolute path to the file to get the SHA-256 hash of.
   rrg.fs.Path path = 1;
 
-  // Byte offset from which the content should be hashed.
+  // Byte offsets from which the content should be hashed.
   //
-  // If unset, hashes from the beginning of the file.
-  uint64 offset = 2;
+  // If none are provided, hashes from the beginning of the file (returning only
+  // one result).
+  repeated uint64 offsets = 2;
 
   // Number of bytes to hash (from the start offset).
   //

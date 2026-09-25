@@ -110,7 +110,7 @@ class InMemoryDB(
         rdf_objects.SHA256HashID, list[objects_pb2.BlobReference]
     ] = {}
     self.users: dict[str, objects_pb2.GRRUser] = {}
-    self.handler_thread: threading.Thread = None
+    self.handler_thread: threading.Thread = None  # pyrefly: ignore[bad-assignment]
     self.handler_stop = True
     # Maps (client_id, flow_id) to flow objects.
     self.flows: dict[tuple[str, str], flows_pb2.Flow] = {}
@@ -122,10 +122,18 @@ class InMemoryDB(
     self.flow_responses: dict[tuple[str, str], list[flows_pb2.FlowResponse]] = (
         {}
     )
-    # Maps (client_id, flow_id, request_id) to FlowProcessingRequest rdfvalues.
+    # Maps (client_id, flow_id) to request creation time.
     self.flow_processing_requests: dict[
-        tuple[str, str, str], flows_pb2.FlowProcessingRequest
+        tuple[str, str],
+        rdfvalue.RDFDatetime,
     ] = {}
+    # Maps (client_id, flow_id) to request delivery time.
+    self.flow_processing_requests_delivery_time: dict[
+        tuple[str, str],
+        rdfvalue.RDFDatetime,
+    ] = {}
+    # Set of flow processing requests that were processed inline.
+    self.flow_processing_requests_done: set[tuple[str, str]] = set()
     # Maps (client_id, flow_id) to [FlowResult].
     self.flow_results: dict[tuple[str, str], list[flows_pb2.FlowResult]] = {}
     # Maps (client_id, flow_id) to [FlowError].
@@ -137,10 +145,8 @@ class InMemoryDB(
     self.flow_output_plugin_log_entries: dict[
         tuple[str, str], list[flows_pb2.FlowOutputPluginLogEntry]
     ] = {}
-    self.flow_handler_target: Callable[
-        [flows_pb2.FlowProcessingRequest], None
-    ] = None
-    self.flow_handler_thread: threading.Thread = None
+    self.flow_handler_target: Callable[[db.FlowProcessingRequest], None] = None  # pyrefly: ignore[bad-assignment]
+    self.flow_handler_thread: threading.Thread = None  # pyrefly: ignore[bad-assignment]
     self.flow_handler_stop = True
     self.flow_handler_num_being_processed = 0
     self.api_audit_entries: list[objects_pb2.APIAuditEntry] = []

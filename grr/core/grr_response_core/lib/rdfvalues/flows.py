@@ -44,7 +44,7 @@ class GrrMessage(rdf_structs.RDFProtoStruct):
     """The payload property automatically decodes the encapsulated data."""
     if self.args_rdf_name:
       # Now try to create the correct RDFValue.
-      result_cls = self.classes.get(self.args_rdf_name, rdfvalue.RDFString)
+      result_cls = self.classes.get(self.args_rdf_name, rdfvalue.RDFString)  # pyrefly: ignore[missing-attribute]
 
       return result_cls.FromSerializedBytes(self.Get("args"))
 
@@ -60,10 +60,6 @@ class GrrMessage(rdf_structs.RDFProtoStruct):
 
   #   /grr/server/grr_response_server/models/clients.py)
 
-  def ClearPayload(self):
-    self.args_rdf_name = None
-    self.Set("args", None)
-
 
 class GrrStatus(rdf_structs.RDFProtoStruct):
   """The client status message.
@@ -78,13 +74,6 @@ class GrrStatus(rdf_structs.RDFProtoStruct):
       rdf_client_stats.CpuSeconds,
       rdfvalue.SessionID,
       rdfvalue.Duration,
-  ]
-
-
-class FlowProcessingRequest(rdf_structs.RDFProtoStruct):
-  protobuf = flows_pb2.FlowProcessingRequest
-  rdf_deps = [
-      rdfvalue.RDFDatetime,
   ]
 
 
@@ -134,7 +123,7 @@ class MessageList(rdf_structs.RDFProtoStruct):
   ]
 
   def __len__(self):
-    return len(self.job)
+    return len(self.job)  # pyrefly: ignore[missing-attribute]
 
 
 class CipherProperties(rdf_structs.RDFProtoStruct):
@@ -148,20 +137,20 @@ class CipherProperties(rdf_structs.RDFProtoStruct):
   @classmethod
   def GetInializedKeys(cls):
     result = cls()
-    result.name = "AES128CBC"
-    result.key = rdf_crypto.EncryptionKey().GenerateKey()
-    result.metadata_iv = rdf_crypto.EncryptionKey().GenerateKey()
-    result.hmac_key = rdf_crypto.EncryptionKey().GenerateKey()
-    result.hmac_type = "FULL_HMAC"
+    result.name = "AES128CBC"  # pyrefly: ignore[missing-attribute]
+    result.key = rdf_crypto.EncryptionKey().GenerateKey()  # pyrefly: ignore[missing-attribute]
+    result.metadata_iv = rdf_crypto.EncryptionKey().GenerateKey()  # pyrefly: ignore[missing-attribute]
+    result.hmac_key = rdf_crypto.EncryptionKey().GenerateKey()  # pyrefly: ignore[missing-attribute]
+    result.hmac_type = "FULL_HMAC"  # pyrefly: ignore[missing-attribute]
 
     return result
 
   def GetHMAC(self):
-    return rdf_crypto.HMAC(self.hmac_key.RawBytes())
+    return rdf_crypto.HMAC(self.hmac_key.RawBytes())  # pyrefly: ignore[missing-attribute]
 
   def GetCipher(self):
-    if self.name == "AES128CBC":
-      return rdf_crypto.AES128CBCCipher(self.key, self.metadata_iv)
+    if self.name == "AES128CBC":  # pyrefly: ignore[missing-attribute]
+      return rdf_crypto.AES128CBCCipher(self.key, self.metadata_iv)  # pyrefly: ignore[missing-attribute]
 
 
 class CipherMetadata(rdf_structs.RDFProtoStruct):

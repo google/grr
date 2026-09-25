@@ -1,0 +1,40 @@
+// Copyright 2026 Google LLC
+//
+// Use of this source code is governed by an MIT-style license that can be found
+// in the LICENSE file or at https://opensource.org/licenses/MIT.
+syntax = "proto3";
+
+package rrg.abort;
+
+import "google/protobuf/timestamp.proto";
+
+// Subset of the request information used for abort reporting.
+//
+// This information is persisted in a file before request processing is started.
+// The file is deleted when the processing finishes.
+//
+// When the file is present during the agent startup, it means that the request
+// processing must have been aborted (either by the crash, RRG or Fleetspeak
+// restart, system restart etc.).
+message Request {
+  // An identifier of the flow issuing the request.
+  uint64 flow_id = 1;
+
+  // A server-issued identifier of the request (unique within the flow).
+  uint64 request_id = 2;
+}
+
+// Information about the agent abort sent to the `ABORT` sink.
+message Abort {
+  // An identifier of the flow issuing the request.
+  uint64 flow_id = 1;
+
+  // A server-issued identifier of the request (unique within the flow).
+  uint64 request_id = 2;
+
+  // Time at which the request was received.
+  google.protobuf.Timestamp request_time = 3;
+
+  // Time at which the agent started and noticed the abortion.
+  google.protobuf.Timestamp startup_time = 4;
+}

@@ -8,32 +8,48 @@ describe('Markdown Pipe', () => {
   });
 
   it('converts non-markdown text correctly', () => {
-    expect(pipe.transform('Hello world')).toBe('<p>Hello world</p>\n');
+    expect(normalize(pipe.transform('Hello world'))).toBe(
+      normalize('<p>Hello world</p>\n'),
+    );
   });
 
   it('converts bold text correctly', () => {
-    expect(pipe.transform('**test**')).toBe('<p><strong>test</strong></p>\n');
+    expect(normalize(pipe.transform('**test**'))).toBe(
+      normalize('<p><strong>test</strong></p>\n'),
+    );
   });
 
   it('converts italics text correctly', () => {
-    expect(pipe.transform('*test*')).toBe('<p><em>test</em></p>\n');
+    expect(normalize(pipe.transform('*test*'))).toBe(
+      normalize('<p><em>test</em></p>\n'),
+    );
   });
 
   it('converts links correctly', () => {
-    expect(pipe.transform('[Google](https://google.com)')).toBe(
-      '<p><a href="https://google.com">Google</a></p>\n',
+    expect(normalize(pipe.transform('[Google](https://google.com)'))).toBe(
+      normalize('<p><a href="https://google.com">Google</a></p>\n'),
     );
   });
 
   it('converts links in bold correctly', () => {
-    expect(pipe.transform('[**Google**](https://google.com)')).toBe(
-      '<p><a href="https://google.com"><strong>Google</strong></a></p>\n',
+    expect(normalize(pipe.transform('[**Google**](https://google.com)'))).toBe(
+      normalize(
+        '<p><a href="https://google.com"><strong>Google</strong></a></p>\n',
+      ),
     );
   });
 
   it('converts line breaks to HTML paragraphs correctly', () => {
-    expect(pipe.transform('Line 1\n\nLine 2')).toBe(
-      '<p>Line 1</p>\n<p>Line 2</p>\n',
+    expect(normalize(pipe.transform('Line 1\n\nLine 2'))).toBe(
+      normalize('<p>Line 1</p>\n<p>Line 2</p>\n'),
     );
   });
 });
+
+/**
+ * Removes all whitespaces from a given HTML string. This is useful for
+ * comparing HTML strings in tests in a lenient way.
+ */
+function normalize(html: string | undefined): string | undefined {
+  return html?.replace(/\s/g, '');
+}

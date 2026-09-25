@@ -14,7 +14,7 @@ class Dummy(actions.ActionPlugin):
   def Run(self, args: rdf_dummy.DummyRequest) -> None:
     """Returns received input back to the server, but in Windows."""
 
-    if not args.action_input:
+    if not args.action_input:  # pyrefly: ignore[missing-attribute]
       raise RuntimeError("WIN args.action_input is empty, cannot proceed!")
 
     self.SendReply(

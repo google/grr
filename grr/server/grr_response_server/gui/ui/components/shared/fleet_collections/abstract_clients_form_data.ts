@@ -25,7 +25,7 @@ export declare type ControlValues<
   [K in keyof T]: T[K] extends AbstractControl
     ? // For basic {key: FormControl<X>()} mappings, the type is {key: X}.
       T[K]['value']
-    : T[K] extends undefined | infer C extends AbstractControl
+    : T[K] extends undefined | (infer C extends AbstractControl)
       ? // For optional {key?: FormControl<X>()} mappings, the type is
         // {key: X|undefined}.
         C['value'] | undefined

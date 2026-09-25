@@ -4,14 +4,15 @@ import time
 from absl.testing import absltest
 
 from grr_response_core.lib import rdfvalue
-from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_core.stats import default_stats_collector
 from grr_response_core.stats import stats_collector_instance
+from grr_response_proto import flows_pb2
 from grr_response_server import hunt
 from grr_response_server import worker_lib
 from grr_response_server.databases import db as abstract_db
 from grr_response_server.databases import db_test_utils
 from grr_response_server.flows.general import memsize
+from grr_response_server.models import hunts as models_hunts
 from grr_response_server.sinks import ping as ping_sink
 from grr.test_lib import db_test_lib
 from grr_response_proto import rrg_pb2
@@ -24,7 +25,7 @@ class PingSinkTest(absltest.TestCase):
   def setUpClass(cls):
     super().setUpClass()
 
-    # TODO: Remove once the "default" instance is actually
+    # TODO - Remove once the "default" instance is actually
     # default.
     stats_collector_instance.Set(
         default_stats_collector.DefaultStatsCollector()
@@ -41,11 +42,12 @@ class PingSinkTest(absltest.TestCase):
     )
     self.addCleanup(db.UnregisterMessageHandler)
 
-    hunt_id = hunt.CreateAndStartHunt(
+    hunt_obj = models_hunts.CreateDefaultHuntForFlow(
         flow_name=memsize.GetMemorySize.__name__,
-        flow_args=rdf_flows.EmptyFlowArgs(),
+        flow_args=flows_pb2.EmptyFlowArgs(),
         creator=username,
     )
+    hunt_id = hunt.CreateAndStartHunt(hunt_obj)
 
     ping = rrg_ping_pb2.Ping()
     ping.send_time.GetCurrentTime()

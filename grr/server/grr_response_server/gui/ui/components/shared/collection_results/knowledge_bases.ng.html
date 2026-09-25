@@ -1,8 +1,3 @@
-@for (collectionResult of collectionResults(); track collectionResult) {
-  @if (isHuntResult(collectionResult)) {
-    <p class="client-id">Client ID: <copy-button>{{ collectionResult.clientId }}</copy-button></p>
-  }
-
-  @let knowledgeBase = knowledgeBaseFromCollectionResult(collectionResult);
+@for (knowledgeBase of collectionResults(); track knowledgeBase) {
   <knowledge-base-details [knowledgeBase]="knowledgeBase" />
 }

@@ -10,11 +10,11 @@ from absl import app
 from grr_response_core.stats import default_stats_collector
 from grr_response_core.stats import metrics
 from grr_response_proto import jobs_pb2
+from grr_response_proto import objects_pb2
 from grr_response_server import server_logging
 from grr_response_server.gui import api_call_context
 from grr_response_server.gui import http_request
 from grr_response_server.gui import http_response
-from grr.test_lib import acl_test_lib
 from grr.test_lib import stats_test_lib
 from grr.test_lib import test_lib
 
@@ -61,8 +61,12 @@ class ApplicationLoggerTests(test_lib.GRRBaseTest):
         headers={"X-API-Method": "TestMethod"},
         context=api_call_context.ApiCallContext(
             username=request.user,
-            approval=acl_test_lib.BuildClientApprovalRequest(
-                reason="foo/test1234", requestor_username=request.user
+            approval=objects_pb2.ApprovalRequest(
+                approval_type=objects_pb2.ApprovalRequest.ApprovalType.APPROVAL_TYPE_CLIENT,
+                subject_id="C.1234",
+                requestor_username=request.user,
+                reason="foo/test1234",
+                expiration_time=1234567890,
             ),
         ),
     )

@@ -20,4 +20,9 @@ message SignedCommand {
 
   // Path to the file the command was defined in.
   optional string source_path = 6;
+
+  // Path to the server-side executable file associated with the command.
+  //
+  // This is used only if `path_on_server` option for the command was used.
+  optional string server_executable_path = 7;
 }

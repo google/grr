@@ -68,7 +68,6 @@ describe('Collection Results Component', () => {
     expect(await harness.networkConnections()).toBeFalsy();
     expect(await harness.osqueryResults()).toBeFalsy();
     expect(await harness.processes()).toBeFalsy();
-    expect(await harness.readLowLevelFlowResults()).toBeFalsy();
     expect(await harness.softwarePackagez()).toBeFalsy();
     expect(await harness.statEntryResults()).toBeFalsy();
     expect(await harness.users()).toBeFalsy();
@@ -419,23 +418,6 @@ describe('Collection Results Component', () => {
 
     expect(await harness.processes()).toBeTruthy();
   }));
-
-  it('shows read low level flow results', async () => {
-    const {harness} = await createComponent(
-      new Map([
-        [
-          PayloadType.READ_LOW_LEVEL_FLOW_RESULT,
-          [
-            newFlowResult({
-              payloadType: PayloadType.READ_LOW_LEVEL_FLOW_RESULT,
-            }),
-          ],
-        ],
-      ]),
-    );
-
-    expect(await harness.readLowLevelFlowResults()).toBeTruthy();
-  });
 
   it('shows software packagez', async () => {
     const {harness} = await createComponent(

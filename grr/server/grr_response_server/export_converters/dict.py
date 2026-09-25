@@ -15,7 +15,7 @@ class DictToExportedDictItemsConverterProto(
   """Export converter that converts Dict to ExportedDictItems."""
 
   input_proto_type = jobs_pb2.Dict
-  output_proto_types = (export_pb2.ExportedDictItem,)
+  output_proto_types = (export_pb2.ExportedDictItem,)  # pyrefly: ignore[bad-assignment]
 
   def _IterateDict(self, d: Any, key: str = "") -> Iterator[tuple[str, Any]]:
     """Performs a deeply-nested iteration of a given dictionary."""

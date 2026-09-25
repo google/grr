@@ -5,9 +5,9 @@ import io
 import logging
 from typing import Any, Iterable, Optional, Text, Type
 
+from google.protobuf import json_format
 import yaml
 
-from google.protobuf import json_format
 from grr_response_core import config
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.util import precondition

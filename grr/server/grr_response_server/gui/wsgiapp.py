@@ -1,13 +1,13 @@
 #!/usr/bin/env python
 """GRR HTTP server implementation."""
 
+import base64
 import ipaddress
 import logging
 import os
 import socket
 import socketserver
 import ssl
-import string
 from wsgiref import simple_server
 
 import jinja2
@@ -18,14 +18,13 @@ from werkzeug import wsgi as werkzeug_wsgi
 from grr_response_core import config
 from grr_response_core.config import contexts
 from grr_response_server import server_logging
-from grr_response_server.gui import admin_ui_metrics
-from grr_response_server.gui import csp
 from grr_response_server.gui import csrf
 from grr_response_server.gui import csrf_registry
 from grr_response_server.gui import http_api
 from grr_response_server.gui import http_request
 from grr_response_server.gui import http_response
 from grr_response_server.gui import webauth
+
 
 # pylint: disable=g-import-not-at-top
 try:
@@ -39,7 +38,7 @@ except ImportError:
 # pylint: enable=g-import-not-at-top
 
 GOOGLEFONT_OVERRIDE_STATIC_SERVING_PATH = (
-    "/dist/v2/googlefonts/googlefonts_override.css"
+    "/dist/googlefonts/googlefonts_override.css"
 )
 
 
@@ -65,6 +64,12 @@ def LogAccessWrapper(func):
   return Wrapper
 
 
+def _GenerateCSPNonce() -> str:
+  """Returns a random nonce."""
+  nonce_length = 16
+  return base64.b64encode(os.urandom(nonce_length)).decode("utf8")
+
+
 def EndpointWrapper(func):
   return webauth.SecurityCheck(LogAccessWrapper(func))
 
@@ -72,16 +77,9 @@ def EndpointWrapper(func):
 class AdminUIApp(object):
   """Base class for WSGI GRR app."""
 
-  def __init__(self):
+  def __init__(self, csp_header="X-CSP-NONCE"):
+    self.csp_header = csp_header
     self.routing_map = werkzeug_routing.Map()
-
-    self.routing_map.add(
-        werkzeug_routing.Rule(
-            "/",
-            methods=["HEAD", "GET"],
-            endpoint=EndpointWrapper(self._HandleDefaultHomepage),
-        )
-    )
 
     self.routing_map.add(
         werkzeug_routing.Rule(
@@ -90,20 +88,13 @@ class AdminUIApp(object):
             endpoint=EndpointWrapper(self._HandleApi),
         )
     )
-    self.routing_map.add(
-        werkzeug_routing.Rule(
-            "/help/<path:path>",
-            methods=["HEAD", "GET"],
-            endpoint=EndpointWrapper(self._HandleHelp),
-        )
-    )
 
-    for v2_route in ["/v2", "/v2/", "/v2/<path:path>"]:
+    for route in ["/", "/<path:path>"]:
       self.routing_map.add(
           werkzeug_routing.Rule(
-              v2_route,
+              route,
               methods=["HEAD", "GET"],
-              endpoint=EndpointWrapper(self._HandleV2Homepage),
+              endpoint=EndpointWrapper(self._HandleHomepage),
           )
       )
 
@@ -112,25 +103,20 @@ class AdminUIApp(object):
   def _BuildRequest(self, environ):
     return http_request.HttpRequest(environ)
 
-  def _HandleDefaultHomepage(self, request):
-    admin_ui_metrics.WSGI_ROUTE.Increment(fields=["default"])
-    return self._HandleHomepageV2(request)
-
-  def _HandleV2Homepage(self, request):
-    admin_ui_metrics.WSGI_ROUTE.Increment(fields=["v2"])
-    return self._HandleHomepageV2(request)
-
-  def _HandleHomepageV2(self, request):
-    """Renders GRR home page for the next-get UI (v2)."""
+  def _HandleHomepage(self, request):
+    """Renders GRR home page for UI."""
 
     is_development = contexts.DEBUG_CONTEXT in config.CONFIG.context
 
+    csp_nonce = _GenerateCSPNonce()
+    # Store it in the environment so that it can be set by the CSP middleware.
+    request.environ["grr.csp_nonce"] = csp_nonce
     context = {
         "use_debug_bundle": (
             is_development or request.args.get("use_debug_bundle", False)
         ),
-        "is_test": contexts.TEST_CONTEXT in config.CONFIG.context,
         "analytics_id": config.CONFIG["AdminUI.analytics_id"],
+        "csp_nonce": csp_nonce,
     }
 
     if config.CONFIG["AdminUI.css_font_override"]:
@@ -142,9 +128,11 @@ class AdminUIApp(object):
         loader=jinja2.FileSystemLoader(config.CONFIG["AdminUI.template_root"]),
         autoescape=True,
     )
-    template = env.get_template("base-v2.html")
+    template = env.get_template("base.html")
     response = http_response.HttpResponse(
-        template.render(context), mimetype="text/html"
+        template.render(context),
+        mimetype="text/html",
+        headers=[(self.csp_header, csp_nonce)],
     )
 
     try:
@@ -173,37 +161,6 @@ class AdminUIApp(object):
 
     return response
 
-  def _RedirectToRemoteHelp(self, path):
-    """Redirect to GitHub-hosted documentation."""
-    allowed_chars = set(string.ascii_letters + string.digits + "._-/")
-    if not set(path) <= allowed_chars:
-      raise RuntimeError(
-          "Unusual chars in path %r - possible exploit attempt." % path
-      )
-
-    target_path = os.path.join(config.CONFIG["AdminUI.docs_location"], path)
-
-    # We have to redirect via JavaScript to have access to and to preserve the
-    # URL hash. We don't know the hash part of the url on the server.
-    return http_response.HttpResponse(
-        """
-<script>
-var friendly_hash = window.location.hash;
-window.location = '%s' + friendly_hash;
-</script>
-""" % target_path,
-        mimetype="text/html",
-    )
-
-  def _HandleHelp(self, request):
-    """Handles help requests."""
-    help_path = request.path.split("/", 2)[-1]
-    if not help_path:
-      raise werkzeug_exceptions.Forbidden("Error: Invalid help path.")
-
-    # Proxy remote documentation.
-    return self._RedirectToRemoteHelp(help_path)
-
   @werkzeug_wsgi.responder
   def __call__(self, environ, start_response):
     """Dispatches a request."""
@@ -225,7 +182,7 @@ window.location = '%s' + friendly_hash;
   def WSGIHandler(self):
     """Returns GRR's WSGI handler."""
     sdm_dict = {
-        "/": config.CONFIG["AdminUI.document_root"],
+        "/": os.path.join(config.CONFIG["AdminUI.document_root"], "static"),
     }
 
     if config.CONFIG["AdminUI.css_font_override"]:
@@ -237,6 +194,16 @@ window.location = '%s' + friendly_hash;
         self,
         sdm_dict,
     )
+
+    sw_sdm = SharedDataMiddleware(
+        self,
+        {
+            "/service_worker.js": os.path.join(
+                config.CONFIG["AdminUI.document_root"], "service_worker.js"
+            )
+        },
+    )
+
     # Use DispatcherMiddleware to make sure that SharedDataMiddleware is not
     # used at all if the URL path doesn't start with "/static". This is a
     # workaround for cases when unicode URLs are used on systems with
@@ -245,13 +212,12 @@ window.location = '%s' + friendly_hash;
     # URL into the file path and not dispatch the call further to our own
     # WSGI handler.
     dm = DispatcherMiddleware(
-        self,
+        sw_sdm,
         {
             "/static": sdm,
         },
     )
-    # Add Content Security Policy headers to the Admin UI pages.
-    return csp.CspMiddleware(dm)
+    return dm
 
 
 class SingleThreadedServerInet6(simple_server.WSGIServer):

@@ -22,8 +22,6 @@ from grr_response_server import flow
 from grr_response_server.databases import db
 from grr_response_server.databases import db_test_utils
 from grr_response_server.flows import file
-from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
-from grr_response_server.rdfvalues import mig_flow_objects
 from grr.test_lib import test_lib
 from grr_response_proto import rrg_pb2
 
@@ -286,19 +284,16 @@ class DatabaseTestFlowMixin(object):
     self.db.WriteClientMetadata(client_id_2)
 
     # Write a flow and a child flow for client 1.
-    flow1 = rdf_flow_objects.Flow(client_id=client_id_1, flow_id="000A0001")
-    proto_flow = mig_flow_objects.ToProtoFlow(flow1)
-    self.db.WriteFlowObject(proto_flow)
-    flow2 = rdf_flow_objects.Flow(
+    flow1 = flows_pb2.Flow(client_id=client_id_1, flow_id="000A0001")
+    self.db.WriteFlowObject(flow1)
+    flow2 = flows_pb2.Flow(
         client_id=client_id_1, flow_id="000A0002", parent_flow_id="000A0001"
     )
-    proto_flow = mig_flow_objects.ToProtoFlow(flow2)
-    self.db.WriteFlowObject(proto_flow)
+    self.db.WriteFlowObject(flow2)
 
     # Same flow id for client 2.
-    flow3 = rdf_flow_objects.Flow(client_id=client_id_2, flow_id="000A0001")
-    proto_flow = mig_flow_objects.ToProtoFlow(flow3)
-    self.db.WriteFlowObject(proto_flow)
+    flow3 = flows_pb2.Flow(client_id=client_id_2, flow_id="000A0001")
+    self.db.WriteFlowObject(flow3)
 
     flows = self.db.ReadAllFlowObjects()
     self.assertCountEqual(
@@ -358,31 +353,21 @@ class DatabaseTestFlowMixin(object):
   def testReadAllFlowObjectsWitParentFlowID(self):
     client_id = db_test_utils.InitializeClient(self.db)
 
-    parent_flow = rdf_flow_objects.Flow()
-    parent_flow.client_id = client_id
-    parent_flow.flow_id = "AAAAAAAA"
-    proto_flow = mig_flow_objects.ToProtoFlow(parent_flow)
-    self.db.WriteFlowObject(proto_flow)
+    parent_flow = flows_pb2.Flow(client_id=client_id, flow_id="AAAAAAAA")
+    self.db.WriteFlowObject(parent_flow)
 
-    child_flow_1 = rdf_flow_objects.Flow()
-    child_flow_1.client_id = client_id
-    child_flow_1.flow_id = "CCCC1111"
-    child_flow_1.parent_flow_id = "AAAAAAAA"
-    proto_flow = mig_flow_objects.ToProtoFlow(child_flow_1)
-    self.db.WriteFlowObject(proto_flow)
+    child_flow_1 = flows_pb2.Flow(
+        client_id=client_id, flow_id="CCCC1111", parent_flow_id="AAAAAAAA"
+    )
+    self.db.WriteFlowObject(child_flow_1)
 
-    child_flow_2 = rdf_flow_objects.Flow()
-    child_flow_2.client_id = client_id
-    child_flow_2.flow_id = "CCCC2222"
-    child_flow_2.parent_flow_id = "AAAAAAAA"
-    proto_flow = mig_flow_objects.ToProtoFlow(child_flow_2)
-    self.db.WriteFlowObject(proto_flow)
+    child_flow_2 = flows_pb2.Flow(
+        client_id=client_id, flow_id="CCCC2222", parent_flow_id="AAAAAAAA"
+    )
+    self.db.WriteFlowObject(child_flow_2)
 
-    not_child_flow = rdf_flow_objects.Flow()
-    not_child_flow.client_id = client_id
-    not_child_flow.flow_id = "FFFFFFFF"
-    proto_flow = mig_flow_objects.ToProtoFlow(not_child_flow)
-    self.db.WriteFlowObject(proto_flow)
+    not_child_flow = flows_pb2.Flow(client_id=client_id, flow_id="FFFFFFFF")
+    self.db.WriteFlowObject(not_child_flow)
 
     result = self.db.ReadAllFlowObjects(
         client_id=client_id, parent_flow_id="AAAAAAAA", include_child_flows=True
@@ -397,11 +382,8 @@ class DatabaseTestFlowMixin(object):
   def testReadAllFlowObjectsWithParentFlowIDWithoutChildren(self):
     client_id = db_test_utils.InitializeClient(self.db)
 
-    parent_flow = rdf_flow_objects.Flow()
-    parent_flow.client_id = client_id
-    parent_flow.flow_id = "AAAAAAAA"
-    proto_flow = mig_flow_objects.ToProtoFlow(parent_flow)
-    self.db.WriteFlowObject(proto_flow)
+    parent_flow = flows_pb2.Flow(client_id=client_id, flow_id="AAAAAAAA")
+    self.db.WriteFlowObject(parent_flow)
 
     with self.assertRaises(ValueError):
       self.db.ReadAllFlowObjects(
@@ -1091,15 +1073,9 @@ class DatabaseTestFlowMixin(object):
         )
         for i in range(3)
     ]
-    # Also store an Iterator, why not.
-    responses.append(
-        flows_pb2.FlowIterator(
-            client_id=client_id, flow_id=flow_id, request_id=1, response_id=3
-        )
-    )
     responses.append(
         flows_pb2.FlowStatus(
-            client_id=client_id, flow_id=flow_id, request_id=1, response_id=4
+            client_id=client_id, flow_id=flow_id, request_id=1, response_id=3
         )
     )
     self.db.WriteFlowResponses(responses)
@@ -1108,11 +1084,10 @@ class DatabaseTestFlowMixin(object):
     self.assertLen(all_requests, 1)
 
     _, read_responses = all_requests[0]
-    self.assertEqual(list(read_responses), [0, 1, 2, 3, 4])
+    self.assertEqual(list(read_responses), [0, 1, 2, 3])
     for i in range(3):
       self.assertIsInstance(read_responses[i], flows_pb2.FlowResponse)
-    self.assertIsInstance(read_responses[3], flows_pb2.FlowIterator)
-    self.assertIsInstance(read_responses[4], flows_pb2.FlowStatus)
+    self.assertIsInstance(read_responses[3], flows_pb2.FlowStatus)
 
   def _ReadRequest(self, client_id, flow_id, request_id):
     all_requests = self.db.ReadAllFlowRequestsAndResponses(client_id, flow_id)
@@ -1335,14 +1310,14 @@ class DatabaseTestFlowMixin(object):
             flow_id=flow_id,
             request_id=2,
             response_id=2,
-            status=rdf_flow_objects.FlowStatus.Status.OK,
+            status=flows_pb2.FlowStatus.Status.OK,
         )
     )
 
     request_queue = queue.Queue()
 
-    def Callback(request: flows_pb2.FlowProcessingRequest):
-      self.db.AckFlowProcessingRequests([request])
+    def Callback(request: db.FlowProcessingRequest):
+      self.db.AckFlowProcessingRequest(request)
       request_queue.put(request)
 
     self.db.RegisterFlowProcessingHandler(Callback)
@@ -2006,8 +1981,8 @@ class DatabaseTestFlowMixin(object):
 
     request_queue = queue.Queue()
 
-    def Callback(request: flows_pb2.FlowProcessingRequest):
-      self.db.AckFlowProcessingRequests([request])
+    def Callback(request: db.FlowProcessingRequest):
+      self.db.AckFlowProcessingRequest(request)
       request_queue.put(request)
 
     self.db.RegisterFlowProcessingHandler(Callback)
@@ -2015,12 +1990,18 @@ class DatabaseTestFlowMixin(object):
 
     requests = []
     for flow_id in flow_ids:
-      requests.append(
-          flows_pb2.FlowProcessingRequest(client_id=client_id, flow_id=flow_id)
-      )
+      flow_obj = self.db.ReadFlowObject(client_id, flow_id)
+
+      request = flows_pb2.FlowRequest()
+      request.client_id = client_id
+      request.flow_id = flow_id
+      request.request_id = flow_obj.next_request_to_process
+      request.needs_processing = True
+
+      requests.append(request)
 
     pre_creation_time = self.db.Now()
-    self.db.WriteFlowProcessingRequests(requests)
+    self.db.WriteFlowRequests(requests)
     post_creation_time = self.db.Now()
 
     got = []
@@ -2054,8 +2035,8 @@ class DatabaseTestFlowMixin(object):
 
     request_queue = queue.Queue()
 
-    def Callback(request: flows_pb2.FlowProcessingRequest):
-      self.db.AckFlowProcessingRequests([request])
+    def Callback(request: db.FlowProcessingRequest):
+      self.db.AckFlowProcessingRequest(request)
       request_queue.put(request)
 
     self.db.RegisterFlowProcessingHandler(Callback)
@@ -2067,16 +2048,19 @@ class DatabaseTestFlowMixin(object):
     )
     requests = []
     for flow_id in flow_ids:
-      requests.append(
-          flows_pb2.FlowProcessingRequest(
-              client_id=client_id,
-              flow_id=flow_id,
-              delivery_time=int(delivery_time),
-          )
-      )
+      flow_obj = self.db.ReadFlowObject(client_id, flow_id)
+
+      request = flows_pb2.FlowRequest()
+      request.client_id = client_id
+      request.flow_id = flow_id
+      request.request_id = flow_obj.next_request_to_process
+      request.needs_processing = True
+      request.start_time = int(delivery_time)
+
+      requests.append(request)
 
     pre_creation_time = self.db.Now()
-    self.db.WriteFlowProcessingRequests(requests)
+    self.db.WriteFlowRequests(requests)
     post_creation_time = self.db.Now()
 
     got = []
@@ -2088,7 +2072,6 @@ class DatabaseTestFlowMixin(object):
         self.fail(
             "Timed out waiting for messages, expected 5, got %d" % len(got)
         )
-      self.assertGreater(rdfvalue.RDFDatetime.Now(), l.delivery_time)
 
     self.assertCountEqual(
         [r.client_id for r in requests], [g.client_id for g in got]
@@ -2108,8 +2091,8 @@ class DatabaseTestFlowMixin(object):
 
     request_queue = queue.Queue()
 
-    def Callback(request: flows_pb2.FlowProcessingRequest):
-      self.db.AckFlowProcessingRequests([request])
+    def Callback(request: db.FlowProcessingRequest):
+      self.db.AckFlowProcessingRequest(request)
       request_queue.put(request)
 
     self.db.RegisterFlowProcessingHandler(Callback)
@@ -2139,23 +2122,21 @@ class DatabaseTestFlowMixin(object):
         request_id=request.request_id,
         response_id=0,
         # For the purpose of the test, the payload can be arbitrary,
-        # using rdf_flow_objects.FlowRequest as a sample struct.
+        # using flows_pb2.FlowRequest as a sample struct.
         payload=payload_any,
     )
     self.db.WriteFlowResponses([response])
 
     try:
-      l = request_queue.get(True, timeout=3)
+      request_queue.get(True, timeout=3)
       self.fail("Expected to get no messages within 3 seconds, got 1")
     except queue.Empty:
       pass
 
     try:
-      l = request_queue.get(True, timeout=10)
+      request_queue.get(True, timeout=10)
     except queue.Empty:
       self.fail("Timed out waiting for messages")
-
-    self.assertGreater(rdfvalue.RDFDatetime.Now(), l.delivery_time)
 
   def testFlowProcessingRequestIsAlwaysWrittenIfStartTimeIsSpecified(self):
     client_id = db_test_utils.InitializeClient(self.db)
@@ -2223,15 +2204,18 @@ class DatabaseTestFlowMixin(object):
     delivery_time = now + rdfvalue.Duration.From(10, rdfvalue.MINUTES)
     requests = []
     for flow_id in flow_ids:
-      requests.append(
-          flows_pb2.FlowProcessingRequest(
-              client_id=client_id,
-              flow_id=flow_id,
-              delivery_time=int(delivery_time),
-          )
-      )
+      flow_obj = self.db.ReadFlowObject(client_id, flow_id)
 
-    self.db.WriteFlowProcessingRequests(requests)
+      request = flows_pb2.FlowRequest()
+      request.client_id = client_id
+      request.flow_id = flow_id
+      request.request_id = flow_obj.next_request_to_process
+      request.needs_processing = True
+      request.start_time = int(delivery_time)
+
+      requests.append(request)
+
+    self.db.WriteFlowRequests(requests)
 
     # We stored 5 FlowProcessingRequests, read them back and check they are all
     # there.
@@ -2241,7 +2225,8 @@ class DatabaseTestFlowMixin(object):
     self.assertCountEqual([r.flow_id for r in stored_requests], flow_ids)
 
     # Now we ack requests 1 and 2. There should be three remaining in the db.
-    self.db.AckFlowProcessingRequests(stored_requests[1:3])
+    self.db.AckFlowProcessingRequest(stored_requests[1])
+    self.db.AckFlowProcessingRequest(stored_requests[2])
     stored_requests = self.db.ReadFlowProcessingRequests()
     self.assertLen(stored_requests, 3)
     self.assertCountEqual(
@@ -2254,6 +2239,48 @@ class DatabaseTestFlowMixin(object):
     self.assertEmpty(self.db.ReadFlowProcessingRequests())
 
     self.db.UnregisterFlowProcessingHandler()
+
+  def testAckFlowProcessingRequest_Duplicate(self):
+    client_id = db_test_utils.InitializeClient(self.db)
+    flow_id = db_test_utils.InitializeFlow(self.db, client_id=client_id)
+
+    flow_obj = self.db.ReadFlowObject(client_id, flow_id)
+
+    request = flows_pb2.FlowRequest()
+    request.client_id = client_id
+    request.flow_id = flow_id
+    request.request_id = flow_obj.next_request_to_process
+    request.needs_processing = True
+    self.db.WriteFlowRequests([request])
+
+    # We need to read it from the database in order to have creation time
+    # properly filled-in.
+    [request] = self.db.ReadFlowProcessingRequests()
+
+    process_count = 0
+    process_event = threading.Event()
+
+    def FlowProcessingHandler(request: db.FlowProcessingRequest) -> None:
+      self.assertEqual(request.client_id, client_id)
+      self.assertEqual(request.flow_id, flow_id)
+      self.assertTrue(self.db.AckFlowProcessingRequest(request))
+
+      nonlocal process_count
+      process_count += 1
+
+      nonlocal process_event
+      process_event.set()
+
+    self.db.RegisterFlowProcessingHandler(FlowProcessingHandler)
+    self.addCleanup(self.db.UnregisterFlowProcessingHandler)
+
+    process_event.wait()
+    self.assertEqual(process_count, 1)
+
+    self.assertFalse(self.db.AckFlowProcessingRequest(request))
+    self.assertFalse(self.db.AckFlowProcessingRequest(request))
+
+    self.assertEqual(process_count, 1)
 
   def _SampleResults(
       self, client_id: str, flow_id: str, hunt_id: Optional[str] = None

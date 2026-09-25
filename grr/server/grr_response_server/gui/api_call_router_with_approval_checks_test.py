@@ -174,7 +174,6 @@ class ApiCallRouterWithApprovalChecksTest(
       "KillFleetspeak",
       "RestartFleetspeakGrrService",
       "DeleteFleetspeakPendingMessages",
-      "GetFleetspeakPendingMessages",
       "GetFleetspeakPendingMessageCount",
   ])
 

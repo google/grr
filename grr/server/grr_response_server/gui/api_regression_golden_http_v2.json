@@ -180,7 +180,6 @@
           "args": {
             "actionType": "HUNT_CRON_ACTION",
             "huntCronAction": {
-              "flowArgs": "",
               "flowName": "Interrogate",
               "huntRunnerArgs": {
                 "avgCpuSecondsPerClientLimit": "60",
@@ -192,7 +191,6 @@
             }
           },
           "cronJobId": "CronJob_123456",
-          "description": "",
           "enabled": true,
           "frequency": "86400",
           "isFailing": false
@@ -1457,30 +1455,15 @@
       "method": "GET",
       "response": {
         "isInvalid": false,
-        "name": "Server.fleetspeak_last_ping_threshold",
+        "name": "Cron.interrogate_duration",
         "type": "Int64Value",
         "value": {
           "@type": "type.googleapis.com/grr.Int64Value",
-          "value": "3600000000"
+          "value": "86400000000"
         }
       },
       "test_class": "ApiGetConfigOptionHandlerRegressionTest_http_v2",
-      "url": "/api/v2/config/Server.fleetspeak_last_ping_threshold"
-    },
-    {
-      "api_method": "GetConfigOption",
-      "method": "GET",
-      "response": {
-        "isInvalid": false,
-        "name": "Server.raw_filesystem_access_pathtype",
-        "type": "StringValue",
-        "value": {
-          "@type": "type.googleapis.com/grr.StringValue",
-          "value": "TSK"
-        }
-      },
-      "test_class": "ApiGetConfigOptionHandlerRegressionTest_http_v2",
-      "url": "/api/v2/config/Server.raw_filesystem_access_pathtype"
+      "url": "/api/v2/config/Cron.interrogate_duration"
     },
     {
       "api_method": "GetConfigOption",
@@ -1555,7 +1538,6 @@
           "args": {
             "actionType": "HUNT_CRON_ACTION",
             "huntCronAction": {
-              "flowArgs": "",
               "flowName": "Interrogate",
               "huntRunnerArgs": {
                 "avgCpuSecondsPerClientLimit": "60",
@@ -1567,7 +1549,6 @@
             }
           },
           "cronJobId": "CronJob_123456",
-          "description": "",
           "enabled": true,
           "frequency": "86400",
           "isFailing": false
@@ -1597,7 +1578,6 @@
           "args": {
             "actionType": "HUNT_CRON_ACTION",
             "huntCronAction": {
-              "flowArgs": "",
               "flowName": "Interrogate",
               "huntRunnerArgs": {
                 "avgCpuSecondsPerClientLimit": "60",
@@ -1609,7 +1589,6 @@
             }
           },
           "cronJobId": "CronJob_567890",
-          "description": "",
           "enabled": true,
           "frequency": "86400",
           "isFailing": false
@@ -1702,12 +1681,6 @@
         },
         "clientId": "C.1000000000000000",
         "context": {
-          "clientResources": {
-            "cpuUsage": {
-              "systemCpuTime": 0.0,
-              "userCpuTime": 0.0
-            }
-          },
           "createTime": "42000000",
           "creator": "api_test_user",
           "currentState": "Start",
@@ -1735,9 +1708,14 @@
         },
         "startedAt": "42000000",
         "state": "RUNNING",
-        "stateData": {},
         "store": {
-          "@type": "type.googleapis.com/grr.InterrogateStore"
+          "@type": "type.googleapis.com/grr.InterrogateStore",
+          "clientSnapshot": {
+            "clientId": "C.1000000000000000",
+            "metadata": {
+              "sourceFlowId": "F:ABCDEF12"
+            }
+          }
         },
         "urn": "aff4:/C.1000000000000000/flows/F:ABCDEF12"
       },
@@ -1753,12 +1731,6 @@
         },
         "clientId": "C.1000000000000000",
         "context": {
-          "clientResources": {
-            "cpuUsage": {
-              "systemCpuTime": 0.0,
-              "userCpuTime": 0.0
-            }
-          },
           "createTime": "42000000",
           "creator": "api_test_user",
           "currentState": "Start",
@@ -1788,9 +1760,14 @@
         },
         "startedAt": "42000000",
         "state": "ERROR",
-        "stateData": {},
         "store": {
-          "@type": "type.googleapis.com/grr.InterrogateStore"
+          "@type": "type.googleapis.com/grr.InterrogateStore",
+          "clientSnapshot": {
+            "clientId": "C.1000000000000000",
+            "metadata": {
+              "sourceFlowId": "F:ABCDEF13"
+            }
+          }
         },
         "urn": "aff4:/C.1000000000000000/flows/F:ABCDEF13"
       },
@@ -2248,7 +2225,13 @@
           "startedAt": "42000000",
           "state": "RUNNING",
           "store": {
-            "@type": "type.googleapis.com/grr.InterrogateStore"
+            "@type": "type.googleapis.com/grr.InterrogateStore",
+            "clientSnapshot": {
+              "clientId": "C.1000000000000000",
+              "metadata": {
+                "sourceFlowId": "F:112233"
+              }
+            }
           },
           "urn": "aff4:/C.1000000000000000/flows/F:112233"
         },
@@ -5296,19 +5279,6 @@
       "url": "/api/v2/hunts/H:123456/stats"
     }
   ],
-  "ApiGetLastClientIPAddressHandler": [
-    {
-      "api_method": "GetLastClientIPAddress",
-      "method": "GET",
-      "response": {
-        "info": "No ip information.",
-        "ip": "",
-        "status": "UNKNOWN"
-      },
-      "test_class": "ApiGetLastClientIPAddressHandlerRegressionTest_http_v2",
-      "url": "/api/v2/clients/C.1000000000000000/last-ip"
-    }
-  ],
   "ApiGetOwnGrrUserHandler": [
     {
       "api_method": "GetGrrUser",
@@ -5429,10 +5399,28 @@
       "api_method": "GetVfsFileContentUpdateState",
       "method": "GET",
       "response": {
+        "state": "RUNNING"
+      },
+      "test_class": "ApiGetVfsFileContentUpdateStateHandlerRegressionTest_http_v2",
+      "url": "/api/v2/clients/C.1000000000000000/vfs-update/FEDCBA"
+    },
+    {
+      "api_method": "GetVfsFileContentUpdateState",
+      "method": "GET",
+      "response": {
         "state": "FINISHED"
       },
       "test_class": "ApiGetVfsFileContentUpdateStateHandlerRegressionTest_http_v2",
       "url": "/api/v2/clients/C.1000000000000000/vfs-update/ABCDEF"
+    },
+    {
+      "api_method": "GetVfsFileContentUpdateState",
+      "method": "GET",
+      "response": {
+        "state": "FINISHED"
+      },
+      "test_class": "ApiGetVfsFileContentUpdateStateHandlerRegressionTest_http_v2",
+      "url": "/api/v2/clients/C.1000000000000000/vfs-update/FEDCBA"
     },
     {
       "api_method": "GetVfsFileContentUpdateState",
@@ -5634,7 +5622,6 @@
           "args": {
             "actionType": "HUNT_CRON_ACTION",
             "huntCronAction": {
-              "flowArgs": "",
               "flowName": "Interrogate",
               "huntRunnerArgs": {
                 "avgCpuSecondsPerClientLimit": "60",
@@ -5646,7 +5633,6 @@
             }
           },
           "cronJobId": "CronJob_123456",
-          "description": "",
           "enabled": true,
           "frequency": "86400",
           "isFailing": false
@@ -6281,7 +6267,6 @@
             "args": {
               "actionType": "HUNT_CRON_ACTION",
               "huntCronAction": {
-                "flowArgs": "",
                 "flowName": "ClientFileFinder",
                 "huntRunnerArgs": {
                   "avgCpuSecondsPerClientLimit": "60",
@@ -6304,7 +6289,6 @@
             "args": {
               "actionType": "HUNT_CRON_ACTION",
               "huntCronAction": {
-                "flowArgs": "",
                 "flowName": "FileFinder",
                 "huntRunnerArgs": {
                   "avgCpuSecondsPerClientLimit": "60",
@@ -6327,7 +6311,6 @@
             "args": {
               "actionType": "HUNT_CRON_ACTION",
               "huntCronAction": {
-                "flowArgs": "",
                 "flowName": "ListDirectory",
                 "huntRunnerArgs": {
                   "avgCpuSecondsPerClientLimit": "60",
@@ -6416,31 +6399,21 @@
         "items": [
           {
             "argsType": "FileFinderArgs",
-            "behaviours": [
-              "ADVANCED",
-              "BASIC"
-            ],
             "blockHuntCreation": false,
             "category": "Filesystem",
             "defaultArgs": {
               "@type": "type.googleapis.com/grr.FileFinderArgs"
             },
-            "doc": "An alias for ClientFileFinder.\n\n  Call Spec:\n    flow.StartFlow(client_id=client_id, flow_cls=file_finder.FileFinder, paths=paths, pathtype=pathtype, conditions=conditions, action=action, process_non_regular_files=process_non_regular_files, follow_links=follow_links, xdev=xdev, implementation_type=implementation_type)\n\n  Args:\n    action\n      description: \n      type: FileFinderAction\n      default: None\n\n    conditions\n      description: These conditions will be applied to all files that match the path arguments.\n      type: \n      default: None\n\n    follow_links\n      description: Should symbolic links be followed in recursive directory listings.\n      type: bool\n      default: False\n\n    implementation_type\n      description: Force use of an implementation.\n      type: EnumNamedValue\n      default: 0\n\n    paths\n      description: A path to glob that can contain %% expansions.\n      type: \n      default: None\n\n    pathtype\n      description: Path type to glob in.\n      type: EnumNamedValue\n      default: OS\n\n    process_non_regular_files\n      description: Look both into regular files and non-regular files (devices, named pipes, sockets). NOTE: This is very dangerous and should be used with care.\n      type: bool\n      default: 0\n\n    xdev\n      description: Behavior when ecountering device boundaries while doing recursive searches.\n      type: EnumNamedValue\n      default: LOCAL\n",
             "friendlyName": "File Finder",
             "name": "FileFinder"
           },
           {
             "argsType": "ListProcessesArgs",
-            "behaviours": [
-              "ADVANCED",
-              "BASIC"
-            ],
             "blockHuntCreation": false,
             "category": "Processes",
             "defaultArgs": {
               "@type": "type.googleapis.com/grr.ListProcessesArgs"
             },
-            "doc": "List running processes on a system.\n\n  Call Spec:\n    flow.StartFlow(client_id=client_id, flow_cls=processes.ListProcesses, filename_regex=filename_regex, fetch_binaries=fetch_binaries, connection_states=connection_states, pids=pids)\n\n  Args:\n    connection_states\n      description: Network connection states to match. If a process has any network connections in any status listed here, it will be considered a match\n      type: \n      default: None\n\n    fetch_binaries\n      description: \n      type: bool\n      default: False\n\n    filename_regex\n      description: Regex used to filter the list of processes. The regex is applied to the full path and not only to the filename.\n      type: RegularExpression\n      default: .\n\n    pids\n      description: \n      type: \n      default: None\n",
             "name": "ListProcesses"
           }
         ]
@@ -6504,6 +6477,15 @@
       "url": "/api/v2/clients/C.1000000000000000/flows/W:ABCDEF/log?count=1&offset=1"
     }
   ],
+  "ApiListFlowOutputPluginsHandler": [
+    {
+      "api_method": "ListFlowOutputPlugins",
+      "method": "GET",
+      "response": {},
+      "test_class": "ApiListFlowOutputPluginsHandlerRegressionTest_http_v2",
+      "url": "/api/v2/clients/C.1000000000000000/flows/W:ABCDEF/output-plugins"
+    }
+  ],
   "ApiListFlowRequestsHandler": [
     {
       "api_method": "ListFlowRequests",
@@ -6511,29 +6493,44 @@
       "response": {
         "items": [
           {
+            "flowResponses": [
+              {
+                "anyPayload": {
+                  "@type": "type.googleapis.com/grr.Process",
+                  "name": "test_process"
+                },
+                "clientId": "C.1000000000000000",
+                "flowId": "W:ABCDEF",
+                "payload": {
+                  "@type": "type.googleapis.com/grr.Process",
+                  "name": "test_process"
+                },
+                "requestId": "1",
+                "responseId": "1",
+                "timestamp": "42000000"
+              }
+            ],
+            "flowStatuses": [
+              {
+                "backtrace": "",
+                "clientId": "C.1000000000000000",
+                "cpuTimeUsed": {},
+                "errorMessage": "",
+                "flowId": "W:ABCDEF",
+                "networkBytesSent": "0",
+                "requestId": "1",
+                "responseId": "2",
+                "status": "OK",
+                "timestamp": "42000000"
+              }
+            ],
             "requestId": "1",
             "requestState": {
               "clientId": "aff4:/C.1000000000000000",
               "id": 1,
               "nextState": "IterateProcesses",
               "sessionId": "aff4:/C.1000000000000000/flows/W:ABCDEF"
-            },
-            "responses": [
-              {
-                "requestId": "1",
-                "responseId": "1",
-                "sessionId": "aff4:/C.1000000000000000/flows/W:ABCDEF",
-                "timestamp": "42000000",
-                "type": "MESSAGE"
-              },
-              {
-                "requestId": "1",
-                "responseId": "2",
-                "sessionId": "aff4:/C.1000000000000000/flows/W:ABCDEF",
-                "timestamp": "42000000",
-                "type": "STATUS"
-              }
-            ]
+            }
           }
         ]
       },
@@ -6620,6 +6617,7 @@
                     "isRobot": false,
                     "lastActiveAt": "45000000",
                     "name": "DummyFlow",
+                    "parentHuntId": "",
                     "progress": {
                       "@type": "type.googleapis.com/grr.DefaultFlowProgress"
                     },
@@ -6635,6 +6633,7 @@
                     "urn": "aff4:/C.1000000000000000/flows/F:ABCDEF12/F:ABCDEF13/F:ABCDEF14"
                   }
                 ],
+                "parentHuntId": "",
                 "progress": {
                   "@type": "type.googleapis.com/grr.DefaultFlowProgress"
                 },
@@ -6709,6 +6708,7 @@
                 "isRobot": false,
                 "lastActiveAt": "43000000",
                 "name": "GetMemorySize",
+                "parentHuntId": "",
                 "progress": {
                   "@type": "type.googleapis.com/grr.DefaultFlowProgress"
                 },
@@ -6737,7 +6737,13 @@
             "startedAt": "43000000",
             "state": "RUNNING",
             "store": {
-              "@type": "type.googleapis.com/grr.InterrogateStore"
+              "@type": "type.googleapis.com/grr.InterrogateStore",
+              "clientSnapshot": {
+                "clientId": "C.1000000000000000",
+                "metadata": {
+                  "sourceFlowId": "F:ABCDEF10"
+                }
+              }
             },
             "urn": "aff4:/C.1000000000000000/flows/F:ABCDEF10"
           }
@@ -6745,186 +6751,6 @@
       },
       "test_class": "ApiListFlowsHandlerRegressionTest_http_v2",
       "url": "/api/v2/clients/C.1000000000000000/flows"
-    },
-    {
-      "api_method": "ListFlows",
-      "method": "GET",
-      "response": {
-        "items": [
-          {
-            "args": {
-              "@type": "type.googleapis.com/grr.EmptyFlowArgs"
-            },
-            "clientId": "C.1000000000000000",
-            "creator": "api_test_user",
-            "flowId": "F:ABCDEF12",
-            "isRobot": false,
-            "lastActiveAt": "45000000",
-            "name": "FlowWithTwoLevelsOfNestedFlows",
-            "progress": {
-              "@type": "type.googleapis.com/grr.DefaultFlowProgress"
-            },
-            "resultMetadata": {
-              "isMetadataSet": true
-            },
-            "runnerArgs": {
-              "clientId": "aff4:/C.1000000000000000",
-              "flowName": "FlowWithTwoLevelsOfNestedFlows"
-            },
-            "startedAt": "45000000",
-            "state": "RUNNING",
-            "urn": "aff4:/C.1000000000000000/flows/F:ABCDEF12"
-          },
-          {
-            "args": {
-              "@type": "type.googleapis.com/grr.ListProcessesArgs"
-            },
-            "clientId": "C.1000000000000000",
-            "creator": "GRRWorker",
-            "flowId": "F:ABCDEF11",
-            "isRobot": true,
-            "lastActiveAt": "44000000",
-            "name": "ListProcesses",
-            "progress": {
-              "@type": "type.googleapis.com/grr.DefaultFlowProgress"
-            },
-            "resultMetadata": {
-              "isMetadataSet": true
-            },
-            "runnerArgs": {
-              "clientId": "aff4:/C.1000000000000000",
-              "flowName": "ListProcesses"
-            },
-            "startedAt": "44000000",
-            "state": "RUNNING",
-            "urn": "aff4:/C.1000000000000000/flows/F:ABCDEF11"
-          },
-          {
-            "args": {
-              "@type": "type.googleapis.com/grr.InterrogateArgs"
-            },
-            "clientId": "C.1000000000000000",
-            "creator": "api_test_user",
-            "flowId": "F:ABCDEF10",
-            "isRobot": false,
-            "lastActiveAt": "43000000",
-            "name": "Interrogate",
-            "progress": {
-              "@type": "type.googleapis.com/grr.DefaultFlowProgress"
-            },
-            "resultMetadata": {
-              "isMetadataSet": true
-            },
-            "runnerArgs": {
-              "clientId": "aff4:/C.1000000000000000",
-              "flowName": "Interrogate"
-            },
-            "startedAt": "43000000",
-            "state": "RUNNING",
-            "store": {
-              "@type": "type.googleapis.com/grr.InterrogateStore"
-            },
-            "urn": "aff4:/C.1000000000000000/flows/F:ABCDEF10"
-          }
-        ]
-      },
-      "test_class": "ApiListFlowsHandlerRegressionTest_http_v2",
-      "url": "/api/v2/clients/C.1000000000000000/flows?top_flows_only=1"
-    },
-    {
-      "api_method": "ListFlows",
-      "method": "GET",
-      "response": {
-        "items": [
-          {
-            "args": {
-              "@type": "type.googleapis.com/grr.EmptyFlowArgs"
-            },
-            "clientId": "C.1000000000000000",
-            "creator": "api_test_user",
-            "flowId": "F:ABCDEF12",
-            "isRobot": false,
-            "lastActiveAt": "45000000",
-            "name": "FlowWithTwoLevelsOfNestedFlows",
-            "progress": {
-              "@type": "type.googleapis.com/grr.DefaultFlowProgress"
-            },
-            "resultMetadata": {
-              "isMetadataSet": true
-            },
-            "runnerArgs": {
-              "clientId": "aff4:/C.1000000000000000",
-              "flowName": "FlowWithTwoLevelsOfNestedFlows"
-            },
-            "startedAt": "45000000",
-            "state": "RUNNING",
-            "urn": "aff4:/C.1000000000000000/flows/F:ABCDEF12"
-          },
-          {
-            "args": {
-              "@type": "type.googleapis.com/grr.ListProcessesArgs"
-            },
-            "clientId": "C.1000000000000000",
-            "creator": "GRRWorker",
-            "flowId": "F:ABCDEF11",
-            "isRobot": true,
-            "lastActiveAt": "44000000",
-            "name": "ListProcesses",
-            "progress": {
-              "@type": "type.googleapis.com/grr.DefaultFlowProgress"
-            },
-            "resultMetadata": {
-              "isMetadataSet": true
-            },
-            "runnerArgs": {
-              "clientId": "aff4:/C.1000000000000000",
-              "flowName": "ListProcesses"
-            },
-            "startedAt": "44000000",
-            "state": "RUNNING",
-            "urn": "aff4:/C.1000000000000000/flows/F:ABCDEF11"
-          }
-        ]
-      },
-      "test_class": "ApiListFlowsHandlerRegressionTest_http_v2",
-      "url": "/api/v2/clients/C.1000000000000000/flows?min_started_at=44000000&top_flows_only=1"
-    },
-    {
-      "api_method": "ListFlows",
-      "method": "GET",
-      "response": {
-        "items": [
-          {
-            "args": {
-              "@type": "type.googleapis.com/grr.InterrogateArgs"
-            },
-            "clientId": "C.1000000000000000",
-            "creator": "api_test_user",
-            "flowId": "F:ABCDEF10",
-            "isRobot": false,
-            "lastActiveAt": "43000000",
-            "name": "Interrogate",
-            "progress": {
-              "@type": "type.googleapis.com/grr.DefaultFlowProgress"
-            },
-            "resultMetadata": {
-              "isMetadataSet": true
-            },
-            "runnerArgs": {
-              "clientId": "aff4:/C.1000000000000000",
-              "flowName": "Interrogate"
-            },
-            "startedAt": "43000000",
-            "state": "RUNNING",
-            "store": {
-              "@type": "type.googleapis.com/grr.InterrogateStore"
-            },
-            "urn": "aff4:/C.1000000000000000/flows/F:ABCDEF10"
-          }
-        ]
-      },
-      "test_class": "ApiListFlowsHandlerRegressionTest_http_v2",
-      "url": "/api/v2/clients/C.1000000000000000/flows?max_started_at=43000000&top_flows_only=1"
     },
     {
       "api_method": "ListFlows",
@@ -6963,6 +6789,7 @@
                     "isRobot": false,
                     "lastActiveAt": "45000000",
                     "name": "DummyFlow",
+                    "parentHuntId": "",
                     "progress": {
                       "@type": "type.googleapis.com/grr.DefaultFlowProgress"
                     },
@@ -6978,6 +6805,189 @@
                     "urn": "aff4:/C.1000000000000000/flows/F:ABCDEF12/F:ABCDEF13/F:ABCDEF14"
                   }
                 ],
+                "parentHuntId": "",
+                "progress": {
+                  "@type": "type.googleapis.com/grr.DefaultFlowProgress"
+                },
+                "resultMetadata": {
+                  "isMetadataSet": true
+                },
+                "runnerArgs": {
+                  "clientId": "aff4:/C.1000000000000000",
+                  "flowName": "FlowWithOneNestedFlow"
+                },
+                "startedAt": "45000000",
+                "state": "RUNNING",
+                "urn": "aff4:/C.1000000000000000/flows/F:ABCDEF12/F:ABCDEF13"
+              }
+            ],
+            "progress": {
+              "@type": "type.googleapis.com/grr.DefaultFlowProgress"
+            },
+            "resultMetadata": {
+              "isMetadataSet": true
+            },
+            "runnerArgs": {
+              "clientId": "aff4:/C.1000000000000000",
+              "flowName": "FlowWithTwoLevelsOfNestedFlows"
+            },
+            "startedAt": "45000000",
+            "state": "RUNNING",
+            "urn": "aff4:/C.1000000000000000/flows/F:ABCDEF12"
+          },
+          {
+            "args": {
+              "@type": "type.googleapis.com/grr.ListProcessesArgs"
+            },
+            "clientId": "C.1000000000000000",
+            "creator": "GRRWorker",
+            "flowId": "F:ABCDEF11",
+            "isRobot": true,
+            "lastActiveAt": "44000000",
+            "name": "ListProcesses",
+            "progress": {
+              "@type": "type.googleapis.com/grr.DefaultFlowProgress"
+            },
+            "resultMetadata": {
+              "isMetadataSet": true
+            },
+            "runnerArgs": {
+              "clientId": "aff4:/C.1000000000000000",
+              "flowName": "ListProcesses"
+            },
+            "startedAt": "44000000",
+            "state": "RUNNING",
+            "urn": "aff4:/C.1000000000000000/flows/F:ABCDEF11"
+          }
+        ]
+      },
+      "test_class": "ApiListFlowsHandlerRegressionTest_http_v2",
+      "url": "/api/v2/clients/C.1000000000000000/flows?min_started_at=44000000"
+    },
+    {
+      "api_method": "ListFlows",
+      "method": "GET",
+      "response": {
+        "items": [
+          {
+            "args": {
+              "@type": "type.googleapis.com/grr.InterrogateArgs"
+            },
+            "clientId": "C.1000000000000000",
+            "creator": "api_test_user",
+            "flowId": "F:ABCDEF10",
+            "isRobot": false,
+            "lastActiveAt": "43000000",
+            "name": "Interrogate",
+            "nestedFlows": [
+              {
+                "args": {
+                  "@type": "type.googleapis.com/grr.EmptyFlowArgs"
+                },
+                "clientId": "C.1000000000000000",
+                "creator": "api_test_user",
+                "flowId": "F:FFFFFF00",
+                "isRobot": false,
+                "lastActiveAt": "43000000",
+                "name": "GetMemorySize",
+                "parentHuntId": "",
+                "progress": {
+                  "@type": "type.googleapis.com/grr.DefaultFlowProgress"
+                },
+                "resultMetadata": {
+                  "isMetadataSet": true
+                },
+                "runnerArgs": {
+                  "clientId": "aff4:/C.1000000000000000",
+                  "flowName": "GetMemorySize"
+                },
+                "startedAt": "43000000",
+                "state": "RUNNING",
+                "urn": "aff4:/C.1000000000000000/flows/F:ABCDEF10/F:FFFFFF00"
+              }
+            ],
+            "progress": {
+              "@type": "type.googleapis.com/grr.DefaultFlowProgress"
+            },
+            "resultMetadata": {
+              "isMetadataSet": true
+            },
+            "runnerArgs": {
+              "clientId": "aff4:/C.1000000000000000",
+              "flowName": "Interrogate"
+            },
+            "startedAt": "43000000",
+            "state": "RUNNING",
+            "store": {
+              "@type": "type.googleapis.com/grr.InterrogateStore",
+              "clientSnapshot": {
+                "clientId": "C.1000000000000000",
+                "metadata": {
+                  "sourceFlowId": "F:ABCDEF10"
+                }
+              }
+            },
+            "urn": "aff4:/C.1000000000000000/flows/F:ABCDEF10"
+          }
+        ]
+      },
+      "test_class": "ApiListFlowsHandlerRegressionTest_http_v2",
+      "url": "/api/v2/clients/C.1000000000000000/flows?max_started_at=43000000"
+    },
+    {
+      "api_method": "ListFlows",
+      "method": "GET",
+      "response": {
+        "items": [
+          {
+            "args": {
+              "@type": "type.googleapis.com/grr.EmptyFlowArgs"
+            },
+            "clientId": "C.1000000000000000",
+            "creator": "api_test_user",
+            "flowId": "F:ABCDEF12",
+            "isRobot": false,
+            "lastActiveAt": "45000000",
+            "name": "FlowWithTwoLevelsOfNestedFlows",
+            "nestedFlows": [
+              {
+                "args": {
+                  "@type": "type.googleapis.com/grr.EmptyFlowArgs"
+                },
+                "clientId": "C.1000000000000000",
+                "creator": "api_test_user",
+                "flowId": "F:ABCDEF13",
+                "isRobot": false,
+                "lastActiveAt": "45000000",
+                "name": "FlowWithOneNestedFlow",
+                "nestedFlows": [
+                  {
+                    "args": {
+                      "@type": "type.googleapis.com/grr.EmptyFlowArgs"
+                    },
+                    "clientId": "C.1000000000000000",
+                    "creator": "api_test_user",
+                    "flowId": "F:ABCDEF14",
+                    "isRobot": false,
+                    "lastActiveAt": "45000000",
+                    "name": "DummyFlow",
+                    "parentHuntId": "",
+                    "progress": {
+                      "@type": "type.googleapis.com/grr.DefaultFlowProgress"
+                    },
+                    "resultMetadata": {
+                      "isMetadataSet": true
+                    },
+                    "runnerArgs": {
+                      "clientId": "aff4:/C.1000000000000000",
+                      "flowName": "DummyFlow"
+                    },
+                    "startedAt": "45000000",
+                    "state": "TERMINATED",
+                    "urn": "aff4:/C.1000000000000000/flows/F:ABCDEF12/F:ABCDEF13/F:ABCDEF14"
+                  }
+                ],
+                "parentHuntId": "",
                 "progress": {
                   "@type": "type.googleapis.com/grr.DefaultFlowProgress"
                 },
@@ -7028,6 +7038,7 @@
                 "isRobot": false,
                 "lastActiveAt": "43000000",
                 "name": "GetMemorySize",
+                "parentHuntId": "",
                 "progress": {
                   "@type": "type.googleapis.com/grr.DefaultFlowProgress"
                 },
@@ -7056,7 +7067,13 @@
             "startedAt": "43000000",
             "state": "RUNNING",
             "store": {
-              "@type": "type.googleapis.com/grr.InterrogateStore"
+              "@type": "type.googleapis.com/grr.InterrogateStore",
+              "clientSnapshot": {
+                "clientId": "C.1000000000000000",
+                "metadata": {
+                  "sourceFlowId": "F:ABCDEF10"
+                }
+              }
             },
             "urn": "aff4:/C.1000000000000000/flows/F:ABCDEF10"
           }
@@ -7447,6 +7464,56 @@
       "url": "/api/v2/hunts/H:123456/log?count=1&offset=1"
     }
   ],
+  "ApiListHuntOutputPluginErrorsHandler": [
+    {
+      "api_method": "ListHuntOutputPluginErrors",
+      "method": "GET",
+      "response": {
+        "items": [
+          {
+            "batchIndex": "0",
+            "batchSize": "0",
+            "status": "ERROR",
+            "summary": "Error while processing 1 replies: Oh no!"
+          },
+          {
+            "batchIndex": "0",
+            "batchSize": "0",
+            "status": "ERROR",
+            "summary": "Error while processing 1 replies: Oh no!"
+          }
+        ],
+        "totalCount": "2"
+      },
+      "test_class": "ApiListHuntOutputPluginErrorsHandlerRegressionTest_http_v2",
+      "url": "/api/v2/hunts/H:123456/output-plugins/FailingDummyHuntOutputPlugin_0/errors"
+    }
+  ],
+  "ApiListHuntOutputPluginLogsHandler": [
+    {
+      "api_method": "ListHuntOutputPluginLogs",
+      "method": "GET",
+      "response": {
+        "items": [
+          {
+            "batchIndex": "0",
+            "batchSize": "0",
+            "status": "SUCCESS",
+            "summary": "Processed 1 replies."
+          },
+          {
+            "batchIndex": "0",
+            "batchSize": "0",
+            "status": "SUCCESS",
+            "summary": "Processed 1 replies."
+          }
+        ],
+        "totalCount": "2"
+      },
+      "test_class": "ApiListHuntOutputPluginLogsHandlerRegressionTest_http_v2",
+      "url": "/api/v2/hunts/H:123456/output-plugins/DummyHuntTestOutputPlugin_0/logs"
+    }
+  ],
   "ApiListHuntResultsHandler": [
     {
       "api_method": "ListHuntResults",
@@ -7563,7 +7630,8 @@
             "state": "PAUSED",
             "urn": "aff4:/hunts/H:000000"
           }
-        ]
+        ],
+        "totalCount": "2"
       },
       "test_class": "ApiListHuntsHandlerRegressionTest_http_v2",
       "url": "/api/v2/hunts"
@@ -7585,7 +7653,8 @@
             "state": "STOPPED",
             "urn": "aff4:/hunts/H:000001"
           }
-        ]
+        ],
+        "totalCount": "2"
       },
       "test_class": "ApiListHuntsHandlerRegressionTest_http_v2",
       "url": "/api/v2/hunts?count=1"
@@ -7607,7 +7676,8 @@
             "state": "PAUSED",
             "urn": "aff4:/hunts/H:000000"
           }
-        ]
+        ],
+        "totalCount": "2"
       },
       "test_class": "ApiListHuntsHandlerRegressionTest_http_v2",
       "url": "/api/v2/hunts?count=1&offset=1"
@@ -7629,7 +7699,8 @@
             "state": "STOPPED",
             "urn": "aff4:/hunts/H:000001"
           }
-        ]
+        ],
+        "totalCount": "1"
       },
       "test_class": "ApiListHuntsHandlerRegressionTest_http_v2",
       "url": "/api/v2/hunts?count=2&offset=0&robot_filter=NO_ROBOTS"
@@ -7651,7 +7722,8 @@
             "state": "PAUSED",
             "urn": "aff4:/hunts/H:000000"
           }
-        ]
+        ],
+        "totalCount": "1"
       },
       "test_class": "ApiListHuntsHandlerRegressionTest_http_v2",
       "url": "/api/v2/hunts?count=2&offset=0&robot_filter=ONLY_ROBOTS"
@@ -7685,7 +7757,8 @@
             "state": "PAUSED",
             "urn": "aff4:/hunts/H:000000"
           }
-        ]
+        ],
+        "totalCount": "2"
       },
       "test_class": "ApiListHuntsHandlerRegressionTest_http_v2",
       "url": "/api/v2/hunts?count=2&offset=0&robot_filter=UNKNOWN"
@@ -7707,7 +7780,8 @@
             "state": "PAUSED",
             "urn": "aff4:/hunts/H:000000"
           }
-        ]
+        ],
+        "totalCount": "1"
       },
       "test_class": "ApiListHuntsHandlerRegressionTest_http_v2",
       "url": "/api/v2/hunts?count=2&offset=0&with_state=PAUSED"
@@ -7715,7 +7789,9 @@
     {
       "api_method": "ListHunts",
       "method": "GET",
-      "response": {},
+      "response": {
+        "totalCount": "0"
+      },
       "test_class": "ApiListHuntsHandlerRegressionTest_http_v2",
       "url": "/api/v2/hunts?count=2&offset=0&with_state=STARTED"
     }
@@ -7877,7 +7953,6 @@
         "args": {
           "actionType": "HUNT_CRON_ACTION",
           "huntCronAction": {
-            "flowArgs": "",
             "flowName": "FileFinder",
             "huntRunnerArgs": {
               "avgCpuSecondsPerClientLimit": "60",
@@ -7909,7 +7984,6 @@
         "args": {
           "actionType": "HUNT_CRON_ACTION",
           "huntCronAction": {
-            "flowArgs": "",
             "flowName": "ClientFileFinder",
             "huntRunnerArgs": {
               "avgCpuSecondsPerClientLimit": "60",

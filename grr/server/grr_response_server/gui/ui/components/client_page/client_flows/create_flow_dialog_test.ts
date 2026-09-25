@@ -8,7 +8,7 @@ import {
   MatTestDialogOpenerModule,
 } from '@angular/material/dialog/testing';
 
-import {Browser} from '../../../lib/api/api_interfaces';
+import {Browser, FlowRunnerArgsRrgMode} from '../../../lib/api/api_interfaces';
 import {HttpApiWithTranslationService} from '../../../lib/api/http_api_with_translation_service';
 import {mockHttpApiWithTranslationService} from '../../../lib/api/http_api_with_translation_test_util';
 import {
@@ -165,7 +165,7 @@ describe('Create Flow Dialog', () => {
     expect(await disableRrgSupportCheckbox.isChecked()).toBeFalse();
   });
 
-  it('sets disableRrgSupport to false when the checkbox is not checked', async () => {
+  it('sets default RRG mode when the checkbox is not checked', async () => {
     const {dialogHarness} = await createDialog({
       onSubmit: onSubmitSpy,
       flowType: FlowType.INTERROGATE,
@@ -180,11 +180,11 @@ describe('Create Flow Dialog', () => {
     expect(onSubmitSpy).toHaveBeenCalledWith(
       'Interrogate',
       jasmine.anything(),
-      false,
+      FlowRunnerArgsRrgMode.DEFAULT,
     );
   });
 
-  it('sets disableRrgSupport to true when the checkbox is checked', async () => {
+  it('sets disabled RRG mode when the checkbox is checked', async () => {
     const {dialogHarness} = await createDialog({
       onSubmit: onSubmitSpy,
       flowType: FlowType.INTERROGATE,
@@ -201,7 +201,7 @@ describe('Create Flow Dialog', () => {
     expect(onSubmitSpy).toHaveBeenCalledWith(
       'Interrogate',
       jasmine.anything(),
-      true,
+      FlowRunnerArgsRrgMode.DISABLED,
     );
   });
 
@@ -349,6 +349,64 @@ describe('Create Flow Dialog', () => {
     const hasKnowledgebaseFlowButton =
       await dialogHarness.hasFlowButton(/.*Knowledgebase/);
     expect(hasKnowledgebaseFlowButton).toBeFalse();
+  });
+
+  it('shows ListContainers flow in the autocomplete search', fakeAsync(async () => {
+    const {dialogHarness} = await createDialog({
+      onSubmit: onSubmitSpy,
+    });
+    expect(
+      FLOW_DETAILS_BY_TYPE.get(FlowType.LIST_CONTAINERS)!.hidden,
+    ).toBeFalse();
+
+    const autocompleteSearchHarness = await dialogHarness.autocompleteHarness();
+    await autocompleteSearchHarness?.enterText('list containers');
+    tick();
+
+    const flowOptions = await autocompleteSearchHarness?.getOptions();
+    expect(flowOptions!.length).toBe(1);
+    expect(await flowOptions![0].isDisabled()).toBeFalse();
+  }));
+
+  it('shows ListContainers flow button in its category', async () => {
+    const {dialogHarness} = await createDialog({
+      onSubmit: onSubmitSpy,
+    });
+    expect(
+      FLOW_DETAILS_BY_TYPE.get(FlowType.LIST_CONTAINERS)!.hidden,
+    ).toBeFalse();
+
+    await dialogHarness.openFlowCategory('Processes');
+
+    const hasListContainersFlowButton =
+      await dialogHarness.hasFlowButton(/.*List containers/);
+    expect(hasListContainersFlowButton).toBeTrue();
+  });
+
+  it('immediately shows ListContainers flow args form when flow type is passed', async () => {
+    const {dialogHarness} = await createDialog({
+      onSubmit: onSubmitSpy,
+      flowType: FlowType.LIST_CONTAINERS,
+    });
+    expect(await dialogHarness.showsFlowArgsForm()).toBeTrue();
+    const flowArgsForm = await dialogHarness.getFlowArgsForm();
+    expect(await flowArgsForm.listContainersForm()).toBeDefined();
+  });
+
+  it('passes flow args to the ListContainers flow args form', async () => {
+    const {dialogHarness} = await createDialog({
+      onSubmit: onSubmitSpy,
+      flowType: FlowType.LIST_CONTAINERS,
+      flowArgs: {
+        inspectHostroot: true,
+      },
+    });
+    const flowArgsForm = await dialogHarness.getFlowArgsForm();
+    expect(await flowArgsForm.listContainersForm()).toBeDefined();
+    const listContainersForm = await flowArgsForm.listContainersForm();
+    expect(
+      await (await listContainersForm!.inspectHostrootCheckbox()).isChecked(),
+    ).toBeTrue();
   });
 
   it('disables restricted flows in the autocomplete for non-admin users', async () => {

@@ -3,9 +3,9 @@
 
 from absl import app
 from absl.testing import absltest
+from google.protobuf import json_format
 import yaml
 
-from google.protobuf import json_format
 from grr_response_proto import tests_pb2
 from grr_response_server.authorization import groups
 from grr_response_server.gui import api_auth_manager

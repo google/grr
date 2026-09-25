@@ -8,8 +8,8 @@
     "downlevelIteration": true,
     "experimentalDecorators": true,
     "importHelpers": true,
-    "module": "esnext",
-    "moduleResolution": "node",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
     "noFallthroughCasesInSwitch": true,
     "noImplicitAny": true,
     "noImplicitReturns": true,
@@ -18,18 +18,19 @@
     "strictFunctionTypes": true,
     "strictNullChecks": true,
     "strictPropertyInitialization": true,
-    "target": "es2015",
-    "typeRoots": [
-      "node_modules/@types"
-    ],
+    "target": "ES2022",
     "lib": [
-      "es2019",
+      "ES2022",
       "dom",
-      "esnext.bigint"
+      "esnext.bigint",
+      "webworker"
     ],
     "paths": {
-      "@app/*": ["./*"]
-    }
+      "@app/*": [
+        "./*"
+      ]
+    },
+    "skipLibCheck": true
   },
   "angularCompilerOptions": {
     "strictInjectionParameters": true

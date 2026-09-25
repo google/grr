@@ -4,6 +4,7 @@ from absl import app
 from google.protobuf import any_pb2
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
+from grr_response_core.lib.rdfvalues import mig_file_finder
 from grr_response_proto import flows_pb2
 from grr_response_server import throttle
 from grr_response_server.flows.general import file_finder
@@ -161,7 +162,7 @@ class ThrottleTest(test_lib.GRRBaseTest):
           flow_cls=file_finder.FileFinder,
           client_id=self.client_id,
           creator=self.test_username,
-          flow_args=new_args,
+          flow_args=mig_file_finder.ToProtoFileFinderArgs(new_args),
       )
 
       with self.assertRaises(throttle.DuplicateFlowError):

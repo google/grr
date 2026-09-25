@@ -20,8 +20,8 @@ type OnTouchedFn = () => void;
 @Directive({
   selector: '[durationInput]',
   host: {
-    '(change)': 'onChange($event.target.value)',
-    '(input)': 'onChange($event.target.value)',
+    '(change)': 'onChange($event)',
+    '(input)': 'onChange($event)',
     '(blur)': 'onTouched()',
   },
   providers: [DURATION_VALUE_ACCESSOR],
@@ -47,7 +47,8 @@ export class DurationValueAccessor implements ControlValueAccessor {
     this.renderer.setProperty(this.el.nativeElement, 'value', durationString);
   }
 
-  onChange(value: string) {
+  onChange(event: Event) {
+    const value = (event.target as HTMLInputElement).value;
     this.onChangeListener(robustParseDurationString(value));
   }
 

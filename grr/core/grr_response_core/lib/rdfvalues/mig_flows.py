@@ -22,20 +22,6 @@ def ToRDFGrrStatus(proto: jobs_pb2.GrrStatus) -> rdf_flows.GrrStatus:
   return rdf_flows.GrrStatus.FromSerializedBytes(proto.SerializeToString())
 
 
-def ToProtoFlowProcessingRequest(
-    rdf: rdf_flows.FlowProcessingRequest,
-) -> flows_pb2.FlowProcessingRequest:
-  return rdf.AsPrimitiveProto()
-
-
-def ToRDFFlowProcessingRequest(
-    proto: flows_pb2.FlowProcessingRequest,
-) -> rdf_flows.FlowProcessingRequest:
-  return rdf_flows.FlowProcessingRequest.FromSerializedBytes(
-      proto.SerializeToString()
-  )
-
-
 def ToProtoNotification(rdf: rdf_flows.Notification) -> jobs_pb2.Notification:
   return rdf.AsPrimitiveProto()
 

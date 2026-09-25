@@ -13,7 +13,7 @@ from grr_response_core.config import contexts
 from grr_response_core.lib import config_lib
 from grr_response_core.lib import utils
 # pylint: disable=unused-import
-# TODO: Remove once old clients are fully deprecated.
+# TODO - Remove once old clients are fully deprecated.
 from grr_response_core.lib.rdfvalues import deprecated as rdf_deprecated
 # pylint: enable=unused-import
 from grr_response_core.stats import stats_collector_instance
@@ -21,7 +21,6 @@ from grr_response_server import artifact
 from grr_response_server import cronjobs
 from grr_response_server import data_store
 from grr_response_server import email_alerts
-from grr_response_server import ip_resolver
 from grr_response_server import prometheus_stats_collector
 from grr_response_server import server_logging
 from grr_response_server import server_plugins  # pylint: disable=unused-import
@@ -103,7 +102,6 @@ def Init():
   cronjobs.InitializeCronWorkerOnce()
   email_alerts.InitializeEmailAlerterOnce()
   http_api.InitializeHttpRequestHandlerOnce()
-  ip_resolver.IPResolverInitOnce()
   stats_server.InitializeStatsServerOnce()
   webauth.InitializeWebAuthOnce()
 

@@ -1,9 +1,25 @@
-<h4>Creator</h4>
-@if (flow()?.isRobot) {
-  <p><mat-icon matListItemIcon>smart_toy</mat-icon> Robot</p>
-} @else {
-  <p><user matListItemIcon [username]="flow()?.creator" [withName]="true" /></p>
-}
+<table>
+  <tr>
+    <td>Creator:</td>
+    <td>
+      @if (flow()?.isRobot) {
+        <mat-icon matListItemIcon>smart_toy</mat-icon> Robot
+      } @else {
+        <user matListItemIcon [username]="flow()?.creator" [withName]="true" />
+      }
+    </td>
+  </tr>
+  @if (flow()?.parentHuntId) {
+    <tr>
+      <td>Flow created by Fleet Collection:</td>
+      <td>
+        <a mat-button [routerLink]="['/fleet-collections', flow()?.parentHuntId]">
+          {{ flow()?.parentHuntId }}
+        </a>
+      </td>
+    </tr>
+  }
+</table>
 
 <h4>Flow Arguments</h4>
 

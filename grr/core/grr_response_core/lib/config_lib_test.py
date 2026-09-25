@@ -2,7 +2,6 @@
 """Tests for config_lib classes."""
 
 import io
-import ntpath
 import os
 import stat
 from unittest import mock
@@ -20,8 +19,6 @@ from grr_response_core.lib import type_info
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import crypto as rdf_crypto
 from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
-from grr_response_core.lib.rdfvalues import paths as rdf_paths
-from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_core.lib.util import temp
 from grr.test_lib import test_lib
 
@@ -281,52 +278,6 @@ Section1.foobar:
     self.assertIsInstance(values, rdf_file_finder.FileFinderArgs)
     self.assertEqual(values.paths, ["a/b", "b/c"])
     self.assertEqual(values.pathtype, "TSK")
-
-  def testSemanticEnum(self):
-    conf = config_lib.GrrConfigManager()
-
-    conf.DEFINE_semantic_enum(
-        enum_container=rdf_paths.PathSpec.PathType,
-        name="Foo.Bar",
-        default=rdf_paths.PathSpec.PathType.TSK,
-    )
-    conf.Initialize(
-        parser=config_parser.YamlConfigFileParser, data="Foo.Bar: NTFS"
-    )
-
-    value = conf.Get("Foo.Bar")
-    self.assertIsInstance(value, rdf_structs.EnumNamedValue)
-    self.assertEqual(value, "NTFS")
-    self.assertEqual(value.id, 5)
-
-  def testSemanticEnum_defaultValue(self):
-    conf = config_lib.GrrConfigManager()
-
-    conf.DEFINE_semantic_enum(
-        enum_container=rdf_paths.PathSpec.PathType,
-        name="Foo.Bar",
-        default=rdf_paths.PathSpec.PathType.TSK,
-    )
-    conf.Initialize(parser=config_parser.YamlConfigFileParser, data="")
-
-    value = conf.Get("Foo.Bar")
-    self.assertIsInstance(value, rdf_structs.EnumNamedValue)
-    self.assertEqual(value, "TSK")
-
-  def testSemanticEnum_invalidValue(self):
-    conf = config_lib.GrrConfigManager()
-
-    conf.DEFINE_semantic_enum(
-        enum_container=rdf_paths.PathSpec.PathType,
-        name="Foo.Bar",
-        default=rdf_paths.PathSpec.PathType.TSK,
-    )
-    conf.Initialize(
-        parser=config_parser.YamlConfigFileParser, data="Foo.Bar: Invalid"
-    )
-
-    with self.assertRaises(ValueError):
-      conf.Get("Foo.Bar")
 
 
 class ConfigLibTest(test_lib.GRRBaseTest):
@@ -1047,48 +998,6 @@ Section1.int: 2
           parser=config_parser.YamlConfigFileParser, filename=configtwo
       )
       self.assertEqual(conf["Section1.int"], 1)
-
-  def testConfigFileInclusionWindowsPaths(self):
-    one = r"""
-Config.includes:
-  - 2.yaml
-
-Section1.int: 1
-"""
-    two = r"""
-Section1.int: 2
-SecondaryFileIncluded: true
-"""
-    config_path = "C:\\Windows\\System32\\GRR"
-
-    def MockedWindowsOpen(filename, _=None):
-      basename = ntpath.basename(filename)
-      dirname = ntpath.dirname(filename)
-
-      # Make sure we only try to open files from this directory.
-      if dirname != config_path:
-        raise IOError("Tried to open wrong file %s" % filename)
-
-      if basename == "1.yaml":
-        return io.BytesIO(one.encode("utf-8"))
-
-      if basename == "2.yaml":
-        return io.BytesIO(two.encode("utf-8"))
-
-      raise IOError("File not found %s" % filename)
-
-    # TODO(user): this kind of mocking is a questionable practice at best.
-    # We have Windows-specific tests and should use them for this kind of
-    # testing.
-    #
-    # We need to also use the nt path manipulation modules.
-    with utils.MultiStubber(
-        (io, "open", MockedWindowsOpen), (os, "path", ntpath)
-    ):
-      conf = self._GetNewConf()
-      conf.Initialize(filename=ntpath.join(config_path, "1.yaml"))
-      self.assertEqual(conf["Section1.int"], 2)
-      self.assertEqual(conf["SecondaryFileIncluded"], True)
 
   def testConfigFileInclusionWithContext(self):
     one = r"""

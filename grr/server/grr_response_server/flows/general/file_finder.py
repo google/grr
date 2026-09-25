@@ -2,6 +2,7 @@
 """Search for certain files, filter them by given criteria and do something."""
 
 from collections.abc import Sequence
+import hashlib
 import itertools
 import math
 import re
@@ -12,9 +13,7 @@ from google.protobuf import any_pb2
 from google.protobuf import timestamp_pb2
 from grr_response_core.lib import artifact_utils
 from grr_response_core.lib import rdfvalue
-from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
 from grr_response_core.lib.rdfvalues import mig_client_fs
-from grr_response_core.lib.rdfvalues import mig_file_finder
 from grr_response_core.lib.rdfvalues import mig_paths
 from grr_response_proto import flows_pb2
 from grr_response_proto import jobs_pb2
@@ -32,10 +31,12 @@ from grr_response_server import server_stubs
 from grr_response_server.databases import db
 from grr_response_server.flows.general import filesystem
 from grr_response_server.models import blobs as models_blobs
+from grr_response_server.models import paths as models_paths
 from grr_response_server.rdfvalues import mig_objects
 from grr_response_server.rdfvalues import objects as rdf_objects
 from grr_response_proto.rrg import fs_pb2 as rrg_fs_pb2
 from grr_response_proto.rrg import os_pb2 as rrg_os_pb2
+from grr_response_proto.rrg.action import get_file_contents_kmx_pb2 as rrg_get_file_contents_kmx_pb2
 from grr_response_proto.rrg.action import get_file_contents_pb2 as rrg_get_file_contents_pb2
 from grr_response_proto.rrg.action import get_file_metadata_pb2 as rrg_get_file_metadata_pb2
 
@@ -85,6 +86,18 @@ def _GetPendingBlobIDs(
   ]
 
 
+def _ValidateCondition(
+    condition: flows_pb2.FileFinderCondition,
+) -> None:
+  """Validates the flow condition. Should raise if it is not valid."""
+  if (
+      condition.condition_type
+      == flows_pb2.FileFinderCondition.CONTENTS_LITERAL_MATCH
+  ):
+    if not condition.contents_literal_match.literal:
+      raise ValueError("Contents literal match condition requires literal")
+
+
 class ClientFileFinder(
     flow_base.FlowBase[
         flows_pb2.FileFinderArgs,
@@ -96,8 +109,6 @@ class ClientFileFinder(
 
   friendly_name = "Client Side File Finder"
   category = "/Filesystem/"
-  args_type = rdf_file_finder.FileFinderArgs
-  result_types = (rdf_file_finder.FileFinderResult,)
   behaviours = flow_base.BEHAVIOUR_BASIC
 
   BLOB_CHECK_DELAY = rdfvalue.Duration("60s")
@@ -108,7 +119,11 @@ class ClientFileFinder(
   proto_progress_type = flows_pb2.FileFinderProgress
   proto_result_types = (flows_pb2.FileFinderResult,)
 
-  only_protos_allowed = True
+  @classmethod
+  def ValidateArgs(cls, args: flows_pb2.FileFinderArgs) -> None:
+    """Validates the flow args. Should raise if they are not valid."""
+    for condition in args.conditions:
+      _ValidateCondition(condition)
 
   def Start(self):
     """Issue the find request."""
@@ -132,11 +147,28 @@ class ClientFileFinder(
             != flows_pb2.FileFinderAction.DOWNLOAD
             or self.rrg_version >= (0, 0, 7)
         )
-        and self.proto_args.pathtype
-        in [
-            jobs_pb2.PathSpec.PathType.OS,
-            jobs_pb2.PathSpec.PathType.TMPFILE,
-        ]
+        and (
+            self.proto_args.pathtype
+            in [
+                jobs_pb2.PathSpec.PathType.OS,
+                jobs_pb2.PathSpec.PathType.TMPFILE,
+            ]
+            or (
+                # We support raw filesystem access only for the `DOWNLOAD`
+                # action. For the `STAT` action filesystem locking should not be
+                # an issue and nobody really uses `HASH` so it is not worth the
+                # hassle.
+                self.proto_args.action.action_type
+                == flows_pb2.FileFinderAction.DOWNLOAD
+                and self.proto_args.pathtype == jobs_pb2.PathSpec.PathType.NTFS
+                and
+                # Volume path inference in `get_file_contents_kmx` was added in
+                # RRG 0.0.8.
+                self.rrg_version >= (0, 0, 8)
+                # TODO - Enable by default once Keramics is fixed.
+                and self.rrg_mode == flows_pb2.FlowRunnerArgs.RrgMode.FORCED
+            )
+        )
         and all(
             (
                 _.condition_type
@@ -166,7 +198,7 @@ class ClientFileFinder(
     else:
       stub = server_stubs.VfsFileFinder
 
-    # TODO: Remove this workaround once sandboxing issues are
+    # TODO - Remove this workaround once sandboxing issues are
     # resolved and NTFS paths work it again.
     if (
         self.proto_args.pathtype == jobs_pb2.PathSpec.PathType.NTFS
@@ -180,7 +212,7 @@ class ClientFileFinder(
     if (paths := self._InterpolatePaths(self.proto_args.paths)) is not None:
       interpolated_args = flows_pb2.FileFinderArgs()
       interpolated_args.CopyFrom(self.proto_args)
-      # TODO: Replace with `clear()` once upgraded.
+      # TODO - Replace with `clear()` once upgraded.
       del interpolated_args.paths[:]
       interpolated_args.paths.extend(paths)
       self.CallClientProto(
@@ -219,6 +251,11 @@ class ClientFileFinder(
           # of action execution and thus we could end up excessively digesting
           # unnecessary files.
           and not self.proto_args.conditions
+          # We also do not want to use collect file digests for `NTFS` paths as
+          # that requires reading the file content (and `get_file_metadata` is
+          # not going to use Keramics for that). We hash the file after it is
+          # collected anyway.
+          and self.proto_args.pathtype != jobs_pb2.PathSpec.NTFS
       ):
         action.args.md5 = True
         action.args.sha1 = True
@@ -244,7 +281,7 @@ class ClientFileFinder(
         path_cond.bytes_match = path_regex
 
     for cond in self.proto_args.conditions:
-      # TODO: Simplify condition creation with wrappers.
+      # TODO - Simplify condition creation with wrappers.
       cond_type = cond.condition_type
       if cond_type == flows_pb2.FileFinderCondition.MODIFICATION_TIME:
         if cond.modification_time.HasField("min_last_modified_time"):
@@ -303,6 +340,11 @@ class ClientFileFinder(
           rrg_cond.uint64_less = cond.size.min_file_size
           rrg_cond.negated = True
         if cond.size.HasField("max_file_size"):
+          action.args.max_size = cond.size.max_file_size
+          # `max_size` was introduced in [#208] so not all agents will have it
+          # and we still need to use the filter as a fallback.
+          #
+          # [#208]: https://github.com/google/rrg/pull/208
           rrg_cond = action.AddFilter().conditions.add()
           rrg_cond.field.extend([
               rrg_get_file_metadata_pb2.Result.METADATA_FIELD_NUMBER,
@@ -315,21 +357,26 @@ class ClientFileFinder(
           raise flow_base.FlowError(
               "Multiple content conditions not permitted (try rewriting regex)",
           )
-        action.args.contents_regex = cond.contents_regex_match.regex
+        action.args.contents_regex = cond.contents_regex_match.regex  # pyrefly: ignore[bad-assignment]
       elif cond_type == flows_pb2.FileFinderCondition.CONTENTS_LITERAL_MATCH:
         if action.args.contents_regex:
           raise flow_base.FlowError(
               "Multiple content conditions not permitted (try using regex)",
           )
-        action.args.contents_regex = re.escape(
+        action.args.contents_regex = re.escape(  # pyrefly: ignore[bad-assignment]
             cond.contents_literal_match.literal,
         )
       else:
         raise ValueError(f"Unsupported condition: {cond.condition_type}")
 
-    action.Call(self._ProcessGetFileMetadata)
+    if action.args.contents_regex and not action.args.max_size:
+      raise flow_base.FlowError(
+          "contents condition used with no `max_file_size` specified",
+      )
 
-  @flow_base.UseProto2AnyResponses
+    action.Call(self._ProcessGetFileMetadata)  # pyrefly: ignore[bad-argument-type]
+
+  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
   def _ProcessGetFileMetadata(
       self,
       responses: flow_responses.Responses[any_pb2.Any],
@@ -339,7 +386,29 @@ class ClientFileFinder(
           f"Failed to collect file metadata: {responses.status}",
       )
 
-    self.GetProgressProto().files_found += len(responses)
+    # It is possible to receive duplicated entries in case the action invocation
+    # had some overlapping paths (e.g. the same path twice). Thus we accumulate
+    # responses into a dictionary indexed by path to collapse these.
+    responses_by_path = {}
+    for response_any in responses:
+      response = rrg_get_file_metadata_pb2.Result()
+      response.ParseFromString(response_any.value)
+
+      path = rrg_path.PurePath.For(self.rrg_os_type, response.path)
+
+      # In case of duplicate path generally the entries should be the same, but
+      # it is possible that e.g. the file was modified inbetween two stat calls.
+      # We retain the last entry but log that we did discard a different record.
+      if path in responses_by_path and responses_by_path[path] != response:
+        self.Log(
+            "Duplicated metadata for '%s', discarding: %r",
+            path,
+            responses_by_path[path],
+        )
+
+      responses_by_path[path] = response
+
+    self.GetProgressProto().files_found += len(responses_by_path)
 
     action_type = self.proto_args.action.action_type
 
@@ -353,26 +422,26 @@ class ClientFileFinder(
     get_file_contents_paths = set()
 
     path_infos_by_path: dict[rrg_path.PurePath, objects_pb2.PathInfo] = {}
-    for response_any in responses:
-      response = rrg_get_file_metadata_pb2.Result()
-      response.ParseFromString(response_any.value)
+    # We won't get any blobs for empty files and thus we do not need to even
+    # make an additional action call for them. We just prefill their hash and
+    # write them to the filestore right away.
+    path_infos_empty_by_path: dict[rrg_path.PurePath, objects_pb2.PathInfo] = {}
 
-      path = rrg_path.PurePath.For(self.rrg_os_type, response.path)
-      symlink = rrg_path.PurePath.For(self.rrg_os_type, response.symlink)
-
+    for path, response in responses_by_path.items():
       path_info = rrg_fs.PathInfo(response.metadata)
-      path_info.path_type = objects_pb2.PathInfo.PathType.OS
+      path_info.path_type = models_paths.PATH_TYPE_MAP[self.proto_args.pathtype]
       path_info.components.extend(path.components)
 
       path_info.stat_entry.pathspec.pathtype = self.proto_args.pathtype
       path_info.stat_entry.pathspec.path = str(path)
-      # TODO: Fix path separator in stat entries.
+      # TODO - Fix path separator in stat entries.
       if self.rrg_os_type == rrg_os_pb2.WINDOWS:
         path_info.stat_entry.pathspec.path = str(path).replace("\\", "/")
 
       if response.metadata.type == rrg_fs_pb2.FileMetadata.SYMLINK:
+        symlink = rrg_path.PurePath.For(self.rrg_os_type, response.symlink)
         path_info.stat_entry.symlink = str(symlink)
-        # TODO: Add support for resolving symlinks (if required by
+        # TODO - Add support for resolving symlinks (if required by
         # the action arguments).
 
       if response.md5:
@@ -397,8 +466,42 @@ class ClientFileFinder(
           action_type == flows_pb2.FileFinderAction.DOWNLOAD
           and response.metadata.type == rrg_fs_pb2.FileMetadata.FILE
       ):
-        get_file_contents_paths.add(path)
-        self.store.results_pending_content.add().CopyFrom(result)
+        if response.metadata.size == 0:
+          empty_sha256 = hashlib.sha256(b"").digest()
+
+          path_info.hash_entry.sha256 = empty_sha256
+          path_infos_empty_by_path[path] = path_info
+
+          result.hash_entry.sha256 = empty_sha256
+          result_chunk = result.transferred_file.chunks.add()
+          result_chunk.offset = 0
+          result_chunk.length = 0
+          result_chunk.digest = empty_sha256
+          self.SendReplyProto(result)
+        elif (
+            response.metadata.size > self.proto_args.action.download.max_size
+            and self.proto_args.action.download.oversized_file_policy
+            == flows_pb2.FileFinderDownloadActionOptions.SKIP
+        ):
+          self.Log("%r too big to be collected, skipping", path)
+
+          path_infos_by_path[path] = path_info
+          self.SendReplyProto(result)
+        else:
+          get_file_contents_paths.add(path)
+          self.store.results_pending_content.add().CopyFrom(result)
+      elif action_type == flows_pb2.FileFinderAction.DOWNLOAD and (
+          stat.S_ISCHR(response.metadata.unix_mode)
+          or stat.S_ISBLK(response.metadata.unix_mode)
+      ):
+        if not self.proto_args.action.download.max_size:
+          self.Log("%s is special but `max_size` not given, skipping", path)
+
+          path_infos_by_path[path] = path_info
+          self.SendReplyProto(result)
+        else:
+          get_file_contents_paths.add(path)
+          self.store.results_pending_content.add().CopyFrom(result)
       else:
         path_infos_by_path[path] = path_info
         self.SendReplyProto(result)
@@ -406,20 +509,94 @@ class ClientFileFinder(
     assert data_store.REL_DB is not None
     data_store.REL_DB.WritePathInfos(
         client_id=self.client_id,
-        path_infos=list(path_infos_by_path.values()),
+        path_infos=(
+            list(path_infos_by_path.values())
+            + list(path_infos_empty_by_path.values())
+        ),
     )
 
     if get_file_metadata.args.paths:
-      get_file_metadata.Call(self._ProcessGetFileMetadataHash)
+      get_file_metadata.Call(self._ProcessGetFileMetadataHash)  # pyrefly: ignore[bad-argument-type]
     if action_type == flows_pb2.FileFinderAction.DOWNLOAD:
-      get_file_contents = rrg_stubs.GetFileContents()
+      if self.proto_args.pathtype in [
+          jobs_pb2.PathSpec.PathType.OS,
+          jobs_pb2.PathSpec.PathType.TMPFILE,
+      ]:
+        get_file_contents = rrg_stubs.GetFileContents()
 
-      for path in get_file_contents_paths:
-        get_file_contents.args.paths.add().raw_bytes = bytes(path)
+        # Pre-0.0.8 RRG disallows large `length` values so we just skip this
+        # limit enforcement (it does not seem to be used in practice anyway).
+        if self.rrg_version >= (0, 0, 8):
+          get_file_contents.args.length = (
+              self.proto_args.action.download.max_size
+          )
 
-      get_file_contents.Call(self._ProcessGetFileContents)
+        for path in get_file_contents_paths:
+          get_file_contents.args.paths.add().raw_bytes = bytes(path)
 
-  @flow_base.UseProto2AnyResponses
+        get_file_contents.Call(self._ProcessGetFileContents)  # pyrefly: ignore[bad-argument-type]
+      elif self.proto_args.pathtype == jobs_pb2.PathSpec.PathType.NTFS:
+        if self.rrg_os_type != rrg_os_pb2.WINDOWS:
+          raise flow_base.FlowError(
+              f"Unsupported system for NTFS path: {self.rrg_os_type}",
+          )
+
+        get_file_contents_paths_by_anchor = {}
+        for path in get_file_contents_paths:
+          paths = get_file_contents_paths_by_anchor.setdefault(path.anchor, [])
+          paths.append(path)
+
+        for anchor, paths in get_file_contents_paths_by_anchor.items():
+          get_file_contents_kmx = rrg_stubs.GetFileContentsKmx()
+          get_file_contents_kmx.args.volume_mount_path.raw_bytes = (
+              anchor.encode("utf-8")
+          )
+          get_file_contents_kmx.args.length = (
+              self.proto_args.action.download.max_size
+          )
+
+          for path in paths:
+            get_file_contents_kmx.args.paths.add().raw_bytes = bytes(
+                # Path relative to anchor will not have leading `\` that is
+                # needed by Keramics so we prepend that explicitly.
+                # pyformat: disable
+                "\\" / path.relative_to(anchor)
+                # pyformat: enable
+            )
+
+          get_file_contents_kmx.context["anchor"] = anchor
+          get_file_contents_kmx.Call(self._ProcessGetFileContentsKmx)  # pyrefly: ignore[bad-argument-type]
+      else:
+        raise flow_base.FlowError(
+            f"Unexpected path type: {self.proto_args.pathtype}"
+        )
+
+    if path_infos_empty_by_path:
+      empty_blob_id = data_store.BLOBS.WriteBlobWithUnknownHash(b"")
+
+      empty_blob_ref = objects_pb2.BlobReference()
+      empty_blob_ref.offset = 0
+      empty_blob_ref.size = 0
+      empty_blob_ref.blob_id = bytes(empty_blob_id)
+
+      empty_blob_refs_by_client_path = {}
+      for path in path_infos_empty_by_path:
+        client_path = db.ClientPath(
+            self.client_id,
+            models_paths.PATH_TYPE_MAP[self.proto_args.pathtype],
+            path.components,
+        )
+
+        empty_blob_refs_by_client_path[client_path] = [empty_blob_ref]
+
+      file_store.AddFilesWithUnknownHashes(
+          empty_blob_refs_by_client_path,
+          use_external_stores=(
+              self.proto_args.action.download.use_external_stores
+          ),
+      )
+
+  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
   def _ProcessGetFileMetadataHash(
       self,
       responses: flow_responses.Responses[any_pb2.Any],
@@ -439,12 +616,12 @@ class ClientFileFinder(
       path = rrg_path.PurePath.For(self.rrg_os_type, response.path)
 
       path_info = rrg_fs.PathInfo(response.metadata)
-      path_info.path_type = objects_pb2.PathInfo.PathType.OS
+      path_info.path_type = models_paths.PATH_TYPE_MAP[self.proto_args.pathtype]
       path_info.components.extend(path.components)
 
       path_info.stat_entry.pathspec.pathtype = self.proto_args.pathtype
       path_info.stat_entry.pathspec.path = str(path)
-      # TODO: Fix path separator in stat entries.
+      # TODO - Fix path separator in stat entries.
       if self.rrg_os_type == rrg_os_pb2.WINDOWS:
         path_info.stat_entry.pathspec.path = str(path).replace("\\", "/")
 
@@ -465,24 +642,19 @@ class ClientFileFinder(
         path_infos=list(path_infos_by_path.values()),
     )
 
-  @flow_base.UseProto2AnyResponses
+  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
   def _ProcessGetFileContents(
       self,
-      responses: flow_responses.Responses[any_pb2.Any],
+      responses_any: flow_responses.Responses[any_pb2.Any],
   ) -> None:
-    if not responses.success:
+    if not responses_any.success:
       raise flow_base.FlowError(
-          f"Failed to collect file contents: {responses.status}",
+          f"Failed to collect file contents: {responses_any.status}",
       )
 
-    results_by_path: dict[str, flows_pb2.FileFinderResult] = {}
-    for result in self.store.results_pending_content:
-      results_by_path[result.stat_entry.pathspec.path] = result
+    responses: list[rrg_get_file_contents_pb2.Result] = []
 
-    responses_by_path = dict()
-    blob_ids = set()
-
-    for response_any in responses:
+    for response_any in responses_any:
       response = rrg_get_file_contents_pb2.Result()
       response.ParseFromString(response_any.value)
 
@@ -492,7 +664,67 @@ class ClientFileFinder(
             response.path,
             response.error,
         )
+        continue
 
+      responses.append(response)
+
+    self._ProcessGetFileContentsResponses(responses)
+
+  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+  def _ProcessGetFileContentsKmx(
+      self,
+      responses_any: flow_responses.Responses[any_pb2.Any],
+  ) -> None:
+    if not responses_any.success:
+      raise flow_base.FlowError(
+          f"Failed to collect file contents: {responses_any.status}",
+      )
+
+    responses: list[rrg_get_file_contents_pb2.Result] = []
+
+    for response_any in responses_any:
+      response_kmx = rrg_get_file_contents_kmx_pb2.Result()
+      response_kmx.ParseFromString(response_any.value)
+
+      anchor = responses_any.request_data["anchor"]  # pyrefly: ignore[bad-argument-type, unsupported-operation]
+      path = rrg_path.PurePath.For(self.rrg_os_type, response_kmx.path)
+
+      if response_kmx.error:
+        self.Log(
+            "Failed to collect content for '%s': %s",
+            path,
+            response_kmx.error,
+        )
+        continue
+
+      # We convert the Keramics response to a non-Keramics response. For the
+      # being they are the same so we can just re-use the processing logic for
+      # them by doing so.
+      response = rrg_get_file_contents_pb2.Result()
+      # TODO: https://github.com/google/rrg/issues/226 - We need to include the
+      # anchor as it will be stripped in the response. Rest of the flow logic
+      # depends on the paths being consistent as they are used for tracking.
+      response.path.raw_bytes = bytes(anchor / path)
+      response.offset = response_kmx.offset
+      response.length = response_kmx.length
+      response.blob_sha256 = response_kmx.blob_sha256
+
+      responses.append(response)
+
+    self._ProcessGetFileContentsResponses(responses)
+
+  def _ProcessGetFileContentsResponses(
+      self,
+      responses: list[rrg_get_file_contents_pb2.Result],
+  ) -> None:
+    results_by_path: dict[str, flows_pb2.FileFinderResult] = {}
+    for result in self.store.results_pending_content:
+      results_by_path[result.stat_entry.pathspec.path] = result
+
+    responses_by_path = dict()
+    blob_ids = set()
+
+    for response in responses:
       path = rrg_path.PurePath.For(self.rrg_os_type, response.path)
       responses_by_path.setdefault(path, []).append(response)
 
@@ -501,6 +733,7 @@ class ClientFileFinder(
     blob_ids_exist = data_store.BLOBS.CheckBlobsExist(blob_ids)
 
     blob_refs_by_client_path = {}
+    size_by_client_path = {}
 
     responses_pending = list()
 
@@ -509,7 +742,11 @@ class ClientFileFinder(
     # which is not allowed in general. Since we delete an item only after it has
     # "been iterated", this is fine and we can list items upfront.
     for path, responses in list(responses_by_path.items()):
-      client_path = db.ClientPath.OS(self.client_id, path.components)
+      client_path = db.ClientPath(
+          self.client_id,
+          models_paths.PATH_TYPE_MAP[self.proto_args.pathtype],
+          path.components,
+      )
 
       if not all(
           blob_ids_exist[models_blobs.BlobID(response.blob_sha256)]
@@ -520,7 +757,7 @@ class ClientFileFinder(
         continue
 
       path_str = str(path)
-      # TODO: Fix path separator in stat entries.
+      # TODO - Fix path separator in stat entries.
       if self.rrg_os_type == rrg_os_pb2.WINDOWS:
         path_str = str(path).replace("\\", "/")
 
@@ -548,13 +785,15 @@ class ClientFileFinder(
         if response.offset == 0:
           result.transferred_file.chunk_size = response.length
 
-        blob_ref = rdf_objects.BlobReference()
+        blob_ref = objects_pb2.BlobReference()
         blob_ref.offset = response.offset
         blob_ref.size = response.length
         blob_ref.blob_id = response.blob_sha256
         blob_refs_by_client_path.setdefault(client_path, []).append(blob_ref)
 
       self.SendReplyProto(result)
+
+      size_by_client_path[client_path] = sum(_.length for _ in responses)
 
     hash_id_by_client_path = file_store.AddFilesWithUnknownHashes(
         blob_refs_by_client_path,
@@ -564,17 +803,21 @@ class ClientFileFinder(
     path_infos = []
 
     for path in responses_by_path:
-      client_path = db.ClientPath.OS(self.client_id, path.components)
+      client_path = db.ClientPath(
+          self.client_id,
+          models_paths.PATH_TYPE_MAP[self.proto_args.pathtype],
+          path.components,
+      )
 
       path_str = str(path)
-      # TODO: Fix path separator in stat entries.
+      # TODO - Fix path separator in stat entries.
       if self.rrg_os_type == rrg_os_pb2.WINDOWS:
         path_str = str(path).replace("\\", "/")
 
       result = results_by_path[path_str]
 
       path_info = objects_pb2.PathInfo()
-      path_info.path_type = objects_pb2.PathInfo.PathType.OS
+      path_info.path_type = models_paths.PATH_TYPE_MAP[self.proto_args.pathtype]
       path_info.components.extend(path.components)
       path_info.directory = stat.S_ISDIR(result.stat_entry.st_mode)
       path_info.stat_entry.CopyFrom(result.stat_entry)
@@ -582,6 +825,7 @@ class ClientFileFinder(
       path_info.hash_entry.sha256 = hash_id_by_client_path[
           client_path
       ].AsBytes()
+      path_info.hash_entry.num_bytes = size_by_client_path[client_path]
       path_infos.append(path_info)
 
     data_store.REL_DB.WritePathInfos(
@@ -611,11 +855,11 @@ class ClientFileFinder(
           start_time=rdfvalue.RDFDatetime.Now() + self.BLOB_CHECK_DELAY,
       )
     else:
-      # TODO: For the time being we only clear this once all the
+      # TODO - For the time being we only clear this once all the
       # blobs arrived. We could do it more granularly as blobs can arrive part-
       # ially but deleting from a repeated Protocl Buffers field is not trivial
       # so we skip it for now.
-      # TODO: Replace with `clear()` once upgraded.
+      # TODO - Replace with `clear()` once upgraded.
       del self.store.results_pending_content[:]
 
   def _InterpolatePaths(self, globs: Sequence[str]) -> Optional[Sequence[str]]:
@@ -645,7 +889,7 @@ class ClientFileFinder(
 
     return paths
 
-  @flow_base.UseProto2AnyResponses
+  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
   def StoreResultsWithoutBlobs(
       self,
       responses: flow_responses.Responses[any_pb2.Any],
@@ -655,8 +899,8 @@ class ClientFileFinder(
       raise flow_base.FlowError(responses.status)
 
     self.GetProgressProto().files_found = len(responses)
-    transferred_file_responses = []
-    stat_entry_responses = []
+    transferred_file_responses: list[flows_pb2.FileFinderResult] = []
+    stat_entry_responses: list[flows_pb2.FileFinderResult] = []
     # Split the responses into the ones that just contain file stats
     # and the ones actually referencing uploaded chunks.
     for response_any in responses:
@@ -668,10 +912,7 @@ class ClientFileFinder(
       elif response.HasField("stat_entry"):
         stat_entry_responses.append(response)
 
-    rdf_stat_entry_responses = [
-        mig_file_finder.ToRDFFileFinderResult(r) for r in stat_entry_responses
-    ]
-    filesystem.WriteFileFinderResults(rdf_stat_entry_responses, self.client_id)
+    filesystem.WriteFileFinderResults(stat_entry_responses, self.client_id)
     for r in stat_entry_responses:
       self.SendReplyProto(r)
 
@@ -681,7 +922,7 @@ class ClientFileFinder(
           messages=transferred_file_responses,
       )
 
-  @flow_base.UseProto2AnyResponses
+  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
   def StoreResultsWithBlobs(
       self,
       responses: flow_responses.Responses[any_pb2.Any],
@@ -787,7 +1028,7 @@ class ClientFileFinder(
       file_size = 0
       for c in chunks:
         blob_refs.append(
-            rdf_objects.BlobReference(
+            objects_pb2.BlobReference(
                 offset=c.offset, size=c.length, blob_id=c.digest
             )
         )
@@ -798,7 +1039,7 @@ class ClientFileFinder(
       client_path_sizes[client_path] = file_size
 
     if client_path_blob_refs:
-      use_external_stores = self.args.action.download.use_external_stores
+      use_external_stores = self.proto_args.action.download.use_external_stores
       client_path_hash_id = file_store.AddFilesWithUnknownHashes(
           client_path_blob_refs, use_external_stores=use_external_stores
       )
@@ -823,7 +1064,7 @@ class ClientFileFinder(
     return cast(flows_pb2.FileFinderProgress, self.progress)
 
 
-# TODO decide on the FileFinder name and remove the legacy alias.
+# TODO(user) decide on the FileFinder name and remove the legacy alias.
 class FileFinder(ClientFileFinder):
   """An alias for ClientFileFinder."""
 

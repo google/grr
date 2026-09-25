@@ -25,7 +25,7 @@ class VfsFile(io.BufferedIOBase):
   Currently this file is readable only, not seekable and not writable. Read
   operations are buffered.
   """
-  _buffer_pos: int = None
+  _buffer_pos: int = None  # pyrefly: ignore[bad-assignment]
 
   def __init__(self, fetch: Callable[[int], Iterator[bytes]]) -> None:
     super().__init__()
@@ -71,7 +71,7 @@ class VfsFile(io.BufferedIOBase):
   def close(self) -> None:
     self._closed = True
 
-  def fileno(self) -> None:
+  def fileno(self) -> None:  # pyrefly: ignore[bad-override]
     raise io.UnsupportedOperation()
 
   def flush(self) -> None:
@@ -111,7 +111,7 @@ class VfsFile(io.BufferedIOBase):
     self._ensure_not_closed()
     return self._pos
 
-  def truncate(self, size: Optional[int] = None) -> None:
+  def truncate(self, size: Optional[int] = None) -> None:  # pyrefly: ignore[bad-override]
     raise io.UnsupportedOperation()
 
   def writable(self) -> bool:
@@ -120,16 +120,16 @@ class VfsFile(io.BufferedIOBase):
   def write(self, b):
     raise io.UnsupportedOperation()
 
-  def writelines(self, lines: list[str]) -> None:
+  def writelines(self, lines: list[str]) -> None:  # pyrefly: ignore[bad-override]
     raise io.UnsupportedOperation()
 
-  def detach(self) -> None:  # pytype: disable=signature-mismatch  # overriding-return-type-checks
+  def detach(self) -> None:  # pyrefly: ignore[bad-override]
     raise io.UnsupportedOperation()
 
   def readable(self) -> bool:
     return True
 
-  def read(self, size: int = -1) -> bytes:  # pytype: disable=signature-mismatch
+  def read(self, size: int = -1) -> bytes:  # pyrefly: ignore[bad-override]
     self._ensure_not_closed()
     size = size or -1
 
@@ -152,7 +152,7 @@ class VfsFile(io.BufferedIOBase):
       data += self._read_from_buffer(size=size - len(data))
     return bytes(data)
 
-  def readinto1(self, b: bytearray) -> int:
+  def readinto1(self, b: bytearray) -> int:  # pyrefly: ignore[bad-override]
     self._ensure_not_closed()
     data = self.read1(size=len(b))
     b[:len(data)] = data

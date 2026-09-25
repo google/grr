@@ -10,42 +10,6 @@ class TestClientInterrogate(test_base.EndToEndTest):
 
   platforms = test_base.EndToEndTest.Platform.ALL
 
-  # Intentionally excluded:
-  # userdomain: too slow to collect, not in lightweight interrogate
-  user_win_kb_attributes = [
-      "sid",
-      "userprofile",
-      "appdata",
-      "localappdata",
-      "internet_cache",
-      "cookies",
-      "recent",
-      "personal",
-      "startup",
-      "localappdata_low",
-  ]
-
-  def _IsCompleteWindowsUser(self, u):
-    return all(
-        getattr(u, attribute)
-        for attribute in self.__class__.user_win_kb_attributes
-    )
-
-  def _CheckUser(self, u):
-    if self.platform == test_base.EndToEndTest.Platform.WINDOWS:
-      # The amount of information collected per user can vary wildly on
-      # Windows depending on the type of user, whether they have logged in,
-      # whether they are local/domain etc.  We expect to find at least one
-      # user with all of these fields filled out.
-      return self._IsCompleteWindowsUser(u)
-    elif self.platform == test_base.EndToEndTest.Platform.LINUX:
-      return u.HasField("uid")
-    elif self.platform == test_base.EndToEndTest.Platform.DARWIN:
-      # No uid collection on Darwin.
-      return True
-    else:
-      raise ValueError("Unknown client platform: %s" % self.platform)
-
   def runTest(self):
     f = self.RunFlowAndWait("Interrogate")
 
@@ -53,12 +17,17 @@ class TestClientInterrogate(test_base.EndToEndTest):
     self.assertLen(results, 1)
 
     snapshot: objects_pb2.ClientSnapshot = results[0].payload
-    for u in snapshot.knowledge_base.users:
-      self.assertTrue(u.username, "username is empty for user: %s" % u)
 
-    self.assertTrue(
-        any(self._CheckUser(u) for u in snapshot.knowledge_base.users),
-        "No users with complete user attributes: {!r}".format(
-            snapshot.knowledge_base.users
-        ),
-    )
+    self.assertNotEmpty(snapshot.knowledge_base.users)
+    for u in snapshot.knowledge_base.users:
+      self.assertNotEmpty(u.username)
+
+      if self.platform == test_base.EndToEndTest.Platform.LINUX:
+        self.assertTrue(u.uid)
+      elif self.platform == test_base.EndToEndTest.Platform.WINDOWS:
+        self.assertNotEmpty(u.sid)
+        self.assertNotEmpty(u.userprofile)
+      elif self.platform == test_base.EndToEndTest.Platform.DARWIN:
+        self.assertNotEmpty(u.username)
+      else:
+        raise ValueError(f"Unknown client platform: {self.platform}")

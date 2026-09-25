@@ -3,21 +3,27 @@
 
 from collections.abc import Mapping
 import contextlib
+import dataclasses
+import enum
 import hashlib
+import io
+import itertools
+import json
 import logging
+import os
 import pathlib
 import re
 import stat
 import traceback
-from typing import Any, Callable, Sequence, Union
+from typing import Any, Callable, Optional, Sequence, TypeVar, Union
 from unittest import mock
+
+from google.protobuf import descriptor as descriptor_pb2
+from google.protobuf import message as message_pb2
 
 from google.protobuf import any_pb2
 from google.protobuf import timestamp_pb2
-from google.protobuf import descriptor as descriptor_pb2
-from google.protobuf import message as message_pb2
 from grr_response_core.lib import rdfvalue
-from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import flows_pb2
 from grr_response_server import data_store
 from grr_response_server import fleetspeak_connector
@@ -28,17 +34,23 @@ from grr_response_server import worker_lib
 from grr_response_server.databases import db
 from grr_response_server.databases import db_utils
 from grr_response_server.databases import mem as db_mem
+from grr.test_lib import rrg_wmi_test_lib
 from fleetspeak.src.common.proto.fleetspeak import common_pb2
 from grr_response_proto import rrg_pb2
 from grr_response_proto.rrg import blob_pb2 as rrg_blob_pb2
 from grr_response_proto.rrg import fs_pb2 as rrg_fs_pb2
 from grr_response_proto.rrg import winreg_pb2 as rrg_winreg_pb2
+from grr_response_proto.rrg.action import execute_signed_command_pb2 as rrg_execute_signed_command_pb2
+from grr_response_proto.rrg.action import get_file_contents_kmx_pb2 as rrg_get_file_contents_kmx_pb2
 from grr_response_proto.rrg.action import get_file_contents_pb2 as rrg_get_file_contents_pb2
 from grr_response_proto.rrg.action import get_file_metadata_pb2 as rrg_get_file_metadata_pb2
+from grr_response_proto.rrg.action import get_file_sha256_kmx_pb2 as rrg_get_file_sha256_kmx_pb2
 from grr_response_proto.rrg.action import get_file_sha256_pb2 as rrg_get_file_sha256_pb2
 from grr_response_proto.rrg.action import get_winreg_value_pb2 as rrg_get_winreg_value_pb2
 from grr_response_proto.rrg.action import list_winreg_keys_pb2 as rrg_list_winreg_keys_pb2
 from grr_response_proto.rrg.action import list_winreg_values_pb2 as rrg_list_winreg_values_pb2
+from grr_response_proto.rrg.action import query_wmi_pb2 as rrg_query_wmi_pb2
+from grr_response_proto.rrg.action import store_filestore_part_pb2 as rrg_store_filestore_part_pb2
 
 
 class Session:
@@ -74,11 +86,78 @@ class Session:
     self.parcels.setdefault(sink, []).append(item_copy)
 
 
+@dataclasses.dataclass(frozen=True)
+class FilestorePart:
+  offset: int
+  content: bytes
+  file_size: int
+
+
+class FilestoreStatus(enum.Enum):
+  PENDING = enum.auto()
+  COMPLETE = enum.auto()
+
+  @property
+  def proto(self) -> rrg_store_filestore_part_pb2.Status:
+    if self == self.PENDING:
+      return rrg_store_filestore_part_pb2.Status.PENDING
+    if self == self.COMPLETE:
+      return rrg_store_filestore_part_pb2.Status.COMPLETE
+    raise ValueError(self)
+
+
+class Filestore:
+  """Fake Python-only in-memory filestore emulating the RRG one."""
+
+  def __init__(self):
+    self._parts_by_file_sha256: dict[bytes, list[FilestorePart]] = {}
+    self._files_by_file_sha256: dict[bytes, bytes] = {}
+
+  def Store(self, file_sha256: bytes, part: FilestorePart) -> FilestoreStatus:
+    """Stores a part of the specified file in the fake filestore."""
+    parts = self._parts_by_file_sha256.setdefault(file_sha256, [])
+    parts.append(part)
+    parts.sort(key=lambda part: part.offset)
+
+    if not all(_.file_size == part.file_size for _ in parts):
+      raise ValueError(f"Inconsistent file length: {part.file_size}")
+
+    for part_prev, part_next in itertools.pairwise(parts):
+      if part_prev.offset + len(part_prev.content) < part_next.offset:
+        return FilestoreStatus.PENDING
+      if part_prev.offset + len(part_prev.content) > part_next.offset:
+        raise ValueError(f"Overlapping parts: {part_prev} and {part_next}")
+
+    if parts[0].offset > 0:
+      return FilestoreStatus.PENDING
+    if parts[-1].offset + len(parts[-1].content) < part.file_size:
+      return FilestoreStatus.PENDING
+    if parts[-1].offset + len(parts[-1].content) > part.file_size:
+      raise ValueError(f"Part out of bounds: {parts[-1]}")
+
+    file_content = b"".join(_.content for _ in parts)
+    if hashlib.sha256(file_content).digest() != file_sha256:
+      raise ValueError(f"Invalid SHA-256 digest for {file_sha256}")
+
+    self._files_by_file_sha256[file_sha256] = file_content
+    del self._parts_by_file_sha256[file_sha256]
+
+    return FilestoreStatus.COMPLETE
+
+  def Content(self, file_sha256: bytes) -> bytes:
+    """Returns content of the specified file from the fake filestore."""
+    return self._files_by_file_sha256[file_sha256]
+
+
+_ProtoArgsT = TypeVar("_ProtoArgsT", bound=message_pb2.Message)
+
+
 def ExecuteFlow(
     client_id: str,
-    flow_cls: type[flow_base.FlowBase],
-    flow_args: rdf_structs.RDFProtoStruct,
+    flow_cls: type[flow_base.FlowBase[_ProtoArgsT, Any, Any]],
+    flow_args: _ProtoArgsT,
     handlers: Mapping["rrg_pb2.Action", Callable[[Session], None]],
+    rrg_mode: Optional["flows_pb2.FlowRunnerArgs.RrgMode"] = None,
 ) -> str:
   """Create and execute flow on the given RRG client.
 
@@ -87,6 +166,7 @@ def ExecuteFlow(
     flow_cls: Flow class to execute.
     flow_args: Argument to execute the flow with.
     handlers: Fake action handlers to use for invoking RRG actions.
+    rrg_mode: RRG mode to use for the flow.
 
   Returns:
     Identifier of the launched flow.
@@ -145,7 +225,8 @@ def ExecuteFlow(
     flow_id = flow.StartFlow(
         client_id=client_id,
         flow_cls=flow_cls,
-        flow_args=flow_args,
+        proto_flow_args=flow_args,
+        rrg_mode=rrg_mode,
     )
 
     # Starting the flow also invokes its `Start` method which may fail for
@@ -256,7 +337,7 @@ def ExecuteFlow(
 
 
 def FakePosixFileHandlers(
-    filesystem: dict[str, Union[bytes, str, dict[None, None]]],
+    filesystem: dict[str, Union[bytes, str, dict[None, None], None]],
 ) -> Mapping["rrg_pb2.Action", Callable[[Session], None]]:
   """Action handlers that emulate given POSIX file hierarchy.
 
@@ -268,11 +349,11 @@ def FakePosixFileHandlers(
   """
   # We need lambda as otherwise pytype sees it as type, not callable.
   path_cls = lambda path: pathlib.PurePosixPath(path)  # pylint: disable=unnecessary-lambda
-  return FakeFileHandlers(path_cls, filesystem)
+  return FakeFileHandlers(path_cls, filesystem)  # pyrefly: ignore[bad-argument-type]
 
 
 def FakeWindowsFileHandlers(
-    filesystem: dict[str, Union[bytes, str, dict[None, None]]],
+    filesystem: dict[str, Union[bytes, str, dict[None, None], None]],
 ) -> Mapping["rrg_pb2.Action", Callable[[Session], None]]:
   """Action handlers that emulate given Windows file hierarchy.
 
@@ -282,14 +363,110 @@ def FakeWindowsFileHandlers(
   Returns:
     A handlers that can be supplied to the `ExecuteFlow` helper.
   """
+
+  def GetFileContentsKmxHandler(session: Session) -> None:
+    args = rrg_get_file_contents_kmx_pb2.Args()
+    if not session.args.Unpack(args):
+      raise RuntimeError(f"Invalid session arguments: {session.args}")
+
+    volume_mount_path_str = args.volume_mount_path.raw_bytes.decode("utf-8")
+
+    if not re.search(r"^[A-Z]\:\\$", volume_mount_path_str):
+      raise RuntimeError(f"Invalid volume mount path: {volume_mount_path_str}")
+
+    for path in args.paths:
+      path_str = path.raw_bytes.decode("utf-8")
+      # Keramics expects paths to have a leading `\` (e.g. to look like
+      # `\Users\foo\bar.txt`).
+      if not path_str.startswith("\\"):
+        raise RuntimeError(f"Invalid path (within volume): {path_str}")
+
+      result = rrg_get_file_contents_kmx_pb2.Result()
+      # TODO: github.com/google/rrg/issues/226 - We strip the prefix due to
+      # inconsistency of the returned paths. We should revisit this once RRG
+      # behaviour is fixed.
+      result.path.raw_bytes = path_str.removeprefix("\\").encode("utf-8")
+
+      path_full_str = volume_mount_path_str + path_str.removeprefix("\\")
+
+      try:
+        content = filesystem[path_full_str]
+        assert isinstance(content, bytes)
+      except KeyError:
+        result.error = "open failed"
+        session.Reply(result)
+        return
+
+      for offset in args.offsets or [0]:
+        if args.length:
+          content_trimmed = content[offset : offset + args.length]
+        else:
+          content_trimmed = content[offset:]
+
+        content_buf = io.BytesIO(content_trimmed)
+
+        while True:
+          result.offset = offset + content_buf.tell()
+
+          blob = rrg_blob_pb2.Blob()
+          blob.data = content_buf.read(_MAX_BLOB_LEN)
+          if not blob.data:
+            break
+
+          result.length = len(blob.data)
+          result.blob_sha256 = hashlib.sha256(blob.data).digest()
+
+          session.Send(rrg_pb2.Sink.BLOB, blob)
+          session.Reply(result)
+
+  def GetFileSha256KmxHandler(session: Session) -> None:
+    args = rrg_get_file_sha256_kmx_pb2.Args()
+    if not session.args.Unpack(args):
+      raise RuntimeError(f"Invalid session arguments: {session.args}")
+
+    volume_mount_path_str = args.volume_mount_path.raw_bytes.decode("utf-8")
+    if not re.search(r"^[A-Z]\:\\$", volume_mount_path_str):
+      raise RuntimeError(f"Invalid volume mount path: {volume_mount_path_str}")
+
+    path_str = args.path.raw_bytes.decode("utf-8")
+    # Keramics expects paths to have a leading `\` (e.g. to look like
+    # `\Users\foo\bar.txt`).
+    if not path_str.startswith("\\"):
+      raise RuntimeError(f"Invalid path (within volume): {path_str}")
+
+    result = rrg_get_file_sha256_kmx_pb2.Result()
+    # TODO: github.com/google/rrg/issues/226 - We strip the prefix due to
+    # inconsistency of the returned paths. We should revisit this once RRG
+    # behaviour is fixed.
+    result.path.raw_bytes = path_str.removeprefix("\\").encode("utf-8")
+
+    path_full_str = volume_mount_path_str + path_str.removeprefix("\\")
+
+    content = filesystem[path_full_str]
+    assert isinstance(content, bytes)
+
+    for offset in args.offsets or [0]:
+      if args.length:
+        content_trimmed = content[offset : offset + args.length]  # pyrefly: ignore[bad-index, unsupported-operation]
+      else:
+        content_trimmed = content[offset:]  # pyrefly: ignore[bad-index, unsupported-operation]
+
+      result.offset = offset
+      result.length = len(content_trimmed)  # pyrefly: ignore[bad-argument-type]
+      result.sha256 = hashlib.sha256(content_trimmed).digest()  # pyrefly: ignore[bad-argument-type]
+      session.Reply(result)
+
   # We need lambda as otherwise pytype sees it as type, not callable.
   path_cls = lambda path: pathlib.PureWindowsPath(path)  # pylint: disable=unnecessary-lambda
-  return FakeFileHandlers(path_cls, filesystem)
+  return dict(FakeFileHandlers(path_cls, filesystem)) | {  # pyrefly: ignore[bad-argument-type]
+      rrg_pb2.Action.GET_FILE_CONTENTS_KMX: GetFileContentsKmxHandler,
+      rrg_pb2.Action.GET_FILE_SHA256_KMX: GetFileSha256KmxHandler,
+  }
 
 
 def FakeFileHandlers(
     path_cls: Callable[[str], pathlib.Path],
-    filesystem: dict[str, Union[bytes, str, dict[None, None]]],
+    filesystem: dict[str, Union[bytes, str, dict[None, None], None]],
 ) -> Mapping["rrg_pb2.Action", Callable[[Session], None]]:
   """Action handlers that emulate given file hierarchy.
 
@@ -337,6 +514,9 @@ def FakeFileHandlers(
         return
 
       if isinstance(trie_node, bytes):
+        if args.max_size and len(trie_node) > args.max_size:
+          return
+
         result.metadata.type = rrg_fs_pb2.FileMetadata.FILE
         result.metadata.size = len(trie_node)
         result.metadata.unix_mode |= stat.S_IFREG
@@ -360,6 +540,11 @@ def FakeFileHandlers(
 
         for part in trie_node:
           Walk(trie_node=trie_node[part], path=path / part, depth=depth + 1)
+
+      elif path == pathlib.PurePosixPath("/dev/random"):
+        result.metadata.size = 0
+        result.metadata.unix_mode = 0o20666
+        result.metadata.unix_ino = 8
 
       else:
         # We verified content type above.
@@ -401,34 +586,52 @@ def FakeFileHandlers(
 
       try:
         content = filesystem[path.raw_bytes.decode("utf-8")]
-        if isinstance(content, str):
+
+        visited = set()
+        while isinstance(content, str):
+          if content in visited:
+            raise RuntimeError(f"Circular symlink: {path}")
+          visited.add(content)
           content = filesystem[content]
-          # TODO: Add support for non-absolute symlinks.
-          # TODO: Add support for recursive symlinks.
-          assert isinstance(content, bytes)
+          # TODO - Add support for non-absolute symlinks.
+        if content is None and path.raw_bytes.decode("utf-8") == "/dev/random":
+          # Length must be specified (otherwise we read entrie infinite file).
+          assert args.length > 0
+          # We do `+ max(args.offsets)` to account for offsetting below.
+          content = os.urandom(args.length + max(args.offsets or [0]))
+        assert isinstance(content, bytes)
       except KeyError:
         result.error = "open failed"
         session.Reply(result)
         return
 
-      offset = args.offset
-      if args.length:
-        content = content[offset : offset + args.length]
-      else:
-        content = content[offset:]
+      for offset in args.offsets or [0]:
+        if args.length:
+          content_left = content[offset : offset + args.length]  # pyrefly: ignore[bad-index, unsupported-operation]
+        else:
+          content_left = content[offset:]  # pyrefly: ignore[bad-index, unsupported-operation]
 
-      while content:
-        blob = rrg_blob_pb2.Blob()
-        blob.data = content[:_MAX_BLOB_LEN]
-        session.Send(rrg_pb2.Sink.BLOB, blob)
+        while content_left:
+          blob_contents = content_left[:_MAX_BLOB_LEN]
 
-        result.offset = offset
-        result.length = len(blob.data)
-        result.blob_sha256 = hashlib.sha256(blob.data).digest()
-        session.Reply(result)
+          result.offset = offset
+          result.length = len(blob_contents)
 
-        offset += _MAX_BLOB_LEN
-        content = content[_MAX_BLOB_LEN:]
+          if args.mode == rrg_get_file_contents_pb2.Mode.SINK:
+            blob = rrg_blob_pb2.Blob()
+            blob.data = blob_contents
+            session.Send(rrg_pb2.Sink.BLOB, blob)
+
+            result.blob_sha256 = hashlib.sha256(blob.data).digest()
+          elif args.mode == rrg_get_file_contents_pb2.Mode.INLINE:
+            result.blob_contents = blob_contents
+          else:
+            raise RuntimeError(f"Unsupported mode: {args.mode}")
+
+          session.Reply(result)
+
+          offset += _MAX_BLOB_LEN
+          content_left = content_left[_MAX_BLOB_LEN:]
 
   def GetFileSha256Handler(session: Session) -> None:
     args = rrg_get_file_sha256_pb2.Args()
@@ -438,26 +641,123 @@ def FakeFileHandlers(
     content = filesystem[args.path.raw_bytes.decode("utf-8")]
     if isinstance(content, str):
       content = filesystem[content]
-      # TODO: Add support for non-absolute symlinks.
-      # TODO: Add support for recursive symlinks.
+      # TODO - Add support for non-absolute symlinks.
+      # TODO - Add support for recursive symlinks.
       assert isinstance(content, bytes)
 
-    if args.length:
-      content = content[args.offset : args.offset + args.length]
-    else:
-      content = content[args.offset :]
+    for offset in args.offsets or [0]:
+      if args.length:
+        content_trimmed = content[offset : offset + args.length]  # pyrefly: ignore[bad-index, unsupported-operation]
+      else:
+        content_trimmed = content[offset:]  # pyrefly: ignore[bad-index, unsupported-operation]
 
-    result = rrg_get_file_sha256_pb2.Result()
-    result.path.CopyFrom(args.path)
-    result.offset = args.offset
-    result.length = len(content)
-    result.sha256 = hashlib.sha256(content).digest()
-    session.Reply(result)
+      result = rrg_get_file_sha256_pb2.Result()
+      result.path.CopyFrom(args.path)
+      result.offset = offset
+      result.length = len(content_trimmed)  # pyrefly: ignore[bad-argument-type]
+      result.sha256 = hashlib.sha256(content_trimmed).digest()  # pyrefly: ignore[bad-argument-type]
+      session.Reply(result)
 
   return {
       rrg_pb2.Action.GET_FILE_METADATA: GetFileMetadataHandler,
       rrg_pb2.Action.GET_FILE_CONTENTS: GetFileContentsHandler,
       rrg_pb2.Action.GET_FILE_SHA256: GetFileSha256Handler,
+  }
+
+
+def FakeOsqueryHandlers(
+    queries: dict[str, str],
+    filestore: Optional[Filestore] = None,
+) -> Mapping["rrg_pb2.Action", Callable[[Session], None]]:
+  """Action handlers that emulate given osquery output.
+
+  Args:
+    queries: A mapping from query to its osquery output (in JSON format).
+    filestore: Filestore object to use for configuration storage (if needed).
+
+  Returns:
+    Handlers that can be supplied to the `ExecuteFlow` helper.
+  """
+
+  def ExecuteSignedCommandHandler(session: Session) -> None:
+    args = rrg_execute_signed_command_pb2.Args()
+    args.ParseFromString(session.args.value)
+
+    command = rrg_execute_signed_command_pb2.Command()
+    command.ParseFromString(args.command)
+    if command.path.raw_bytes.decode("utf-8") != "/usr/bin/osqueryd":
+      raise RuntimeError(f"Unexpected command path: {command.path}")
+    if not command.unsigned_stdin_allowed:
+      raise RuntimeError("Unsigned stdin not allowed")
+
+    for i, _ in enumerate(command.args):
+      if command.args[i].signed == "--config-path":
+        if not command.args[i + 1].unsigned_filestore_file_sha256_allowed:
+          raise RuntimeError("Filestore file SHA-256 not allowed")
+        if filestore is None:
+          raise RuntimeError("Filestore is not available")
+        # TODO - For now we just assert that there is only a single
+        # SHA-256 given. We should have a fake signed command execution handler
+        # that emulates RRG's argument resolution instead.
+        assert len(args.unsigned_filestore_file_sha256s) == 1
+
+        # We just ensure the configuration is a valid JSON, we don't really want
+        # to emulate individual osquery options...
+        json.loads(filestore.Content(args.unsigned_filestore_file_sha256s[0]))
+
+    query = args.unsigned_stdin.decode("utf-8").strip()
+    try:
+      output = queries[query]
+    except KeyError:
+      raise RuntimeError(f"Unexpected query: {query}")  # pylint: disable=raise-missing-from
+
+    result = rrg_execute_signed_command_pb2.Result()
+    result.exit_code = 0
+    result.stdout = output.encode("utf-8")
+
+    session.Reply(result)
+
+  handlers = {
+      rrg_pb2.EXECUTE_SIGNED_COMMAND: ExecuteSignedCommandHandler,
+  }
+  if filestore is not None:
+    handlers |= FakeFilestoreHandlers(filestore)  # pyrefly: ignore[unsupported-operation]
+  return handlers
+
+
+def FakeFilestoreHandlers(
+    filestore: Filestore,
+) -> Mapping["rrg_pb2.Action", Callable[[Session], None]]:
+  """Action handlers that emulate filestore operations.
+
+  Args:
+    filestore: Filestore object to use for storage.
+
+  Returns:
+    Handlers that can be supplied to the `ExecuteFlow` helper.
+  """
+
+  def StoreFilestorePartHandler(session: Session) -> None:
+    args = rrg_store_filestore_part_pb2.Args()
+    args.ParseFromString(session.args.value)
+
+    status = filestore.Store(
+        args.file_sha256,
+        FilestorePart(
+            offset=args.part_offset,
+            content=args.part_content,
+            file_size=args.file_size,
+        ),
+    )
+
+    result = rrg_store_filestore_part_pb2.Result()
+    result.file_sha256 = args.file_sha256
+    result.status = status.proto
+
+    session.Reply(result)
+
+  return {
+      rrg_pb2.STORE_FILESTORE_PART: StoreFilestorePartHandler,
   }
 
 
@@ -583,6 +883,56 @@ def FakeWinregHandlers(
   }
 
 
+def FakeWmiHandlers(
+    # pyformat: disable
+    tables: dict[str, list[dict[str, Union[
+        bool,
+        rrg_wmi_test_lib.Type,
+        str,
+    ]]]],
+    # pyformat: enable
+) -> Mapping["rrg_pb2.Action", Callable[[Session], None]]:
+  """Action handlers that emulate given WMI query result rows.
+
+  Args:
+    tables: Mapping from table names to lists of rows where each rows maps a
+      column name to its value.
+
+  Returns:
+    Handlers that can be supplied to the `ExecuteFlow` helper.
+  """
+
+  def QueryWmiHandler(session: Session) -> None:
+    args = rrg_query_wmi_pb2.Args()
+    assert session.args.Unpack(args)
+
+    if re.search(r"^\s*SELECT\b", args.query, re.MULTILINE) is None:
+      raise RuntimeError(f"Non-`SELECT` WMI query: {args.query!r}")
+
+    match = re.search(r"\bFROM\b\s*(?P<table>\w+)", args.query, re.MULTILINE)
+    if match is None:
+      raise RuntimeError(f"No `FROM` clause in WMI query: {args.query!r}")
+
+    for row in tables[match["table"]]:
+      result = rrg_query_wmi_pb2.Result()
+
+      for column, value in row.items():
+        if isinstance(value, bool):
+          result.row[column].bool = value
+        elif isinstance(value, rrg_wmi_test_lib.Type):
+          result.row[column].CopyFrom(value.value)
+        elif isinstance(value, str):
+          result.row[column].string = value
+        else:
+          raise ValueError(f"Unsupported value type: {type(value)}")
+
+      session.Reply(result)
+
+  return {
+      rrg_pb2.Action.QUERY_WMI: QueryWmiHandler,
+  }
+
+
 def _EvalFilter(
     item_filter: rrg_pb2.Filter,
     item: message_pb2.Message,
@@ -613,48 +963,49 @@ def _EvalCondition(
   result: bool
 
   if item_cond.HasField("bool_equal"):
-    assert field_desc.type == descriptor_pb2.FieldDescriptor.TYPE_BOOL
+    assert field_desc.type == descriptor_pb2.FieldDescriptor.TYPE_BOOL  # pyrefly: ignore[unbound-name]
     assert isinstance(field_value, bool)
     result = field_value == item_cond.bool_equal
   elif item_cond.HasField("string_equal"):
-    assert field_desc.type == descriptor_pb2.FieldDescriptor.TYPE_STRING
+    assert field_desc.type == descriptor_pb2.FieldDescriptor.TYPE_STRING  # pyrefly: ignore[unbound-name]
     assert isinstance(field_value, str)
     result = field_value == item_cond.string_equal
   elif item_cond.HasField("string_match"):
     assert isinstance(field_value, str)
-    assert field_desc.type == descriptor_pb2.FieldDescriptor.TYPE_STRING
+    assert field_desc.type == descriptor_pb2.FieldDescriptor.TYPE_STRING  # pyrefly: ignore[unbound-name]
     result = re.match(item_cond.string_match, field_value) is not None
   elif item_cond.HasField("bytes_equal"):
-    assert field_desc.type == descriptor_pb2.FieldDescriptor.TYPE_BYTES
+    assert field_desc.type == descriptor_pb2.FieldDescriptor.TYPE_BYTES  # pyrefly: ignore[unbound-name]
     assert isinstance(field_value, bytes)
     result = field_value == item_cond.bytes_equal
   elif item_cond.HasField("bytes_match"):
-    assert field_desc.type == descriptor_pb2.FieldDescriptor.TYPE_BYTES
+    assert field_desc.type == descriptor_pb2.FieldDescriptor.TYPE_BYTES  # pyrefly: ignore[unbound-name]
     assert isinstance(field_value, bytes)
     result = re.match(item_cond.bytes_match.encode(), field_value) is not None
   elif item_cond.HasField("uint64_equal"):
-    assert field_desc.type in [
+    assert field_desc.type in [  # pyrefly: ignore[unbound-name]
         descriptor_pb2.FieldDescriptor.TYPE_UINT32,
         descriptor_pb2.FieldDescriptor.TYPE_UINT64,
     ]
     assert isinstance(field_value, int)
     result = field_value == item_cond.uint64_equal
   elif item_cond.HasField("uint64_less"):
-    assert field_desc.type in [
+    assert field_desc.type in [  # pyrefly: ignore[unbound-name]
         descriptor_pb2.FieldDescriptor.TYPE_UINT32,
         descriptor_pb2.FieldDescriptor.TYPE_UINT64,
     ]
     assert isinstance(field_value, int)
     result = field_value < item_cond.uint64_less
   elif item_cond.HasField("int64_equal"):
-    assert field_desc.type in [
+    assert field_desc.type in [  # pyrefly: ignore[unbound-name]
         descriptor_pb2.FieldDescriptor.TYPE_INT32,
         descriptor_pb2.FieldDescriptor.TYPE_INT64,
+        descriptor_pb2.FieldDescriptor.TYPE_ENUM,
     ]
     assert isinstance(field_value, int)
     result = field_value == item_cond.int64_equal
   elif item_cond.HasField("int64_less"):
-    assert field_desc.type in [
+    assert field_desc.type in [  # pyrefly: ignore[unbound-name]
         descriptor_pb2.FieldDescriptor.TYPE_INT32,
         descriptor_pb2.FieldDescriptor.TYPE_INT64,
     ]

@@ -2,7 +2,6 @@
 """Provides conversion functions to be used during RDFProtoStruct migration."""
 
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
-from grr_response_proto import flows_pb2
 from grr_response_proto import jobs_pb2
 from grr_response_proto import sysinfo_pb2
 
@@ -75,20 +74,6 @@ def ToProtoFindSpec(rdf: rdf_client_fs.FindSpec) -> jobs_pb2.FindSpec:
 
 def ToRDFFindSpec(proto: jobs_pb2.FindSpec) -> rdf_client_fs.FindSpec:
   return rdf_client_fs.FindSpec.FromSerializedBytes(proto.SerializeToString())
-
-
-def ToProtoBareGrepSpec(
-    rdf: rdf_client_fs.BareGrepSpec,
-) -> flows_pb2.BareGrepSpec:
-  return rdf.AsPrimitiveProto()
-
-
-def ToRDFBareGrepSpec(
-    proto: flows_pb2.BareGrepSpec,
-) -> rdf_client_fs.BareGrepSpec:
-  return rdf_client_fs.BareGrepSpec.FromSerializedBytes(
-      proto.SerializeToString()
-  )
 
 
 def ToProtoGrepSpec(rdf: rdf_client_fs.GrepSpec) -> jobs_pb2.GrepSpec:

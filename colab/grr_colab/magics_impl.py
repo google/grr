@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 """GRR Colab magics implementation as usual functions."""
-import binascii
 import ipaddress
 import os
 from typing import Optional
@@ -107,7 +106,7 @@ def grr_search_clients_impl(
     List of clients.
   """
   clients = grr_colab.Client.search(
-      ip=ip, mac=mac, host=host, user=user, version=version, labels=labels)
+      ip=ip, mac=mac, host=host, user=user, version=version, labels=labels)  # pyrefly: ignore[bad-argument-type]
   clients_data = [_._client.data for _ in clients]  # pylint: disable=protected-access
 
   df = convert.from_sequence(clients_data)
@@ -331,77 +330,6 @@ def grr_head_impl(
   with filesystem.open(path) as f:
     f.seek(offset)
     return f.read(bytes)
-
-
-def grr_grep_impl(
-    pattern: str,
-    path: str,
-    fixed_strings: bool = False,
-    path_type: str = OS,
-    hex_string: bool = False,
-) -> pd.DataFrame:
-  """Greps for a given content of a specified file.
-
-  Args:
-    pattern: Pattern to search for.
-    path: File path to grep.
-    fixed_strings: If true, interpret pattern as a fixed string (literal).
-    path_type: Path type to use (one of os, tsk, ntfs, registry).
-    hex_string: If true, interpret pattern as a hex-encoded byte string.
-
-  Returns:
-    A list of buffer references to the matched content.
-
-  Raises:
-    NoClientSelectedError: Client is not selected to perform this operation.
-  """
-  if _state.client is None:
-    raise NoClientSelectedError()
-
-  if hex_string:
-    byte_pattern = binascii.unhexlify(pattern)
-  else:
-    byte_pattern = pattern.encode('utf-8')
-
-  path = _build_absolute_path(path)
-  filesystem = _get_filesystem(path_type)
-
-  if fixed_strings:
-    return convert.from_sequence(filesystem.fgrep(path, byte_pattern))
-  return convert.from_sequence(filesystem.grep(path, byte_pattern))
-
-
-def grr_fgrep_impl(
-    literal: str, path: str, path_type: str = OS, hex_string: bool = False
-) -> pd.DataFrame:
-  """Greps for a given literal content of a specified file.
-
-  Is the same as running: %grr_grep -F
-
-  Args:
-    literal: Literal to search for.
-    path: File path to grep.
-    path_type: Path type to use (one of os, tsk, ntfs, registry).
-    hex_string: If true, interpret pattern as a hex-encoded byte string.
-
-  Returns:
-    A list of buffer references to the matched content.
-
-  Raises:
-    NoClientSelectedError: Client is not selected to perform this operation.
-  """
-  if _state.client is None:
-    raise NoClientSelectedError()
-
-  if hex_string:
-    byte_literal = binascii.unhexlify(literal)
-  else:
-    byte_literal = literal.encode('utf-8')
-
-  path = _build_absolute_path(path)
-  filesystem = _get_filesystem(path_type)
-
-  return convert.from_sequence(filesystem.fgrep(path, byte_literal))
 
 
 def grr_interrogate_impl() -> pd.DataFrame:
@@ -685,7 +613,7 @@ def _add_pretty_mac_column(df: pd.DataFrame, col_name: str) -> pd.DataFrame:
 
   def convert_to_pretty_str(packed: bytes) -> str:
     if pd.isna(packed):
-      return np.nan
+      return np.nan  # pyrefly: ignore[bad-return]
     return client_textify.mac(packed)
 
   pretty_values = [convert_to_pretty_str(packed) for packed in df[col_name]]

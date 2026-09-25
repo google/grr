@@ -33,43 +33,43 @@ class TimelineEntry(rdf_structs.RDFProtoStruct):
   @classmethod
   def FromStat(cls, path: bytes, stat: os.stat_result) -> "TimelineEntry":
     entry = cls()
-    entry.path = path
+    entry.path = path  # pyrefly: ignore[missing-attribute]
 
-    entry.mode = stat.st_mode
-    entry.size = stat.st_size
+    entry.mode = stat.st_mode  # pyrefly: ignore[missing-attribute]
+    entry.size = stat.st_size  # pyrefly: ignore[missing-attribute]
 
-    entry.dev = stat.st_dev
-    entry.ino = stat.st_ino
+    entry.dev = stat.st_dev  # pyrefly: ignore[missing-attribute]
+    entry.ino = stat.st_ino  # pyrefly: ignore[missing-attribute]
 
-    entry.uid = stat.st_uid
-    entry.gid = stat.st_gid
+    entry.uid = stat.st_uid  # pyrefly: ignore[missing-attribute]
+    entry.gid = stat.st_gid  # pyrefly: ignore[missing-attribute]
 
-    entry.atime_ns = stat.st_atime_ns
-    entry.mtime_ns = stat.st_mtime_ns
-    entry.ctime_ns = stat.st_ctime_ns
+    entry.atime_ns = stat.st_atime_ns  # pyrefly: ignore[missing-attribute]
+    entry.mtime_ns = stat.st_mtime_ns  # pyrefly: ignore[missing-attribute]
+    entry.ctime_ns = stat.st_ctime_ns  # pyrefly: ignore[missing-attribute]
 
     return entry
 
   @classmethod
   def FromStatx(cls, path: bytes, stat: statx.Result) -> "TimelineEntry":
     entry = cls()
-    entry.path = path
+    entry.path = path  # pyrefly: ignore[missing-attribute]
 
-    entry.mode = stat.mode
-    entry.size = stat.size
+    entry.mode = stat.mode  # pyrefly: ignore[missing-attribute]
+    entry.size = stat.size  # pyrefly: ignore[missing-attribute]
 
-    entry.dev = stat.dev
-    entry.ino = stat.ino
+    entry.dev = stat.dev  # pyrefly: ignore[missing-attribute]
+    entry.ino = stat.ino  # pyrefly: ignore[missing-attribute]
 
-    entry.uid = stat.uid
-    entry.gid = stat.gid
+    entry.uid = stat.uid  # pyrefly: ignore[missing-attribute]
+    entry.gid = stat.gid  # pyrefly: ignore[missing-attribute]
 
-    entry.attributes = stat.attributes
+    entry.attributes = stat.attributes  # pyrefly: ignore[missing-attribute]
 
-    entry.atime_ns = stat.atime_ns
-    entry.btime_ns = stat.btime_ns
-    entry.mtime_ns = stat.mtime_ns
-    entry.ctime_ns = stat.ctime_ns
+    entry.atime_ns = stat.atime_ns  # pyrefly: ignore[missing-attribute]
+    entry.btime_ns = stat.btime_ns  # pyrefly: ignore[missing-attribute]
+    entry.mtime_ns = stat.mtime_ns  # pyrefly: ignore[missing-attribute]
+    entry.ctime_ns = stat.ctime_ns  # pyrefly: ignore[missing-attribute]
 
     return entry
 
@@ -87,10 +87,3 @@ def DeserializeTimelineEntryStream(
     parsed_entry = timeline_pb2.TimelineEntry()
     parsed_entry.ParseFromString(entry)
     yield parsed_entry
-
-
-class TimelineProgress(rdf_structs.RDFProtoStruct):
-  """An RDF wrapper class for the timeline progress message."""
-
-  protobuf = timeline_pb2.TimelineProgress
-  rdf_deps = []

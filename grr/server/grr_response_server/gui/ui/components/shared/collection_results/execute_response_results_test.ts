@@ -3,10 +3,7 @@ import {TestBed, waitForAsync} from '@angular/core/testing';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 
 import {ExecuteResponse as ApiExecuteResponse} from '../../../lib/api/api_interfaces';
-import {
-  newFlowResult,
-  newHuntResult,
-} from '../../../lib/models/model_test_util';
+import {newFlowResult} from '../../../lib/models/model_test_util';
 import {CollectionResult, PayloadType} from '../../../lib/models/result';
 import {initTestEnvironment} from '../../../testing';
 import {ExecuteResponseResults} from './execute_response_results';
@@ -123,34 +120,5 @@ describe('Execute Response Results Component', () => {
     expect(await stdout.text()).toBe('stdout');
     const stderr = await harness.getStderr(0);
     expect(stderr).toBeNull();
-  });
-
-  it('shows client id for hunt results', async () => {
-    const {harness} = await createComponent([
-      newHuntResult({
-        clientId: 'C.1234',
-        payload: {
-          request: 'hello_world',
-        },
-      }),
-    ]);
-
-    const clientIds = await harness.clientIds();
-    expect(clientIds).toHaveSize(1);
-    expect(await clientIds[0].text()).toContain('Client ID: C.1234');
-  });
-
-  it('does not show client id for flow results', async () => {
-    const {harness} = await createComponent([
-      newFlowResult({
-        clientId: 'C.1234',
-        payload: {
-          request: 'hello_world',
-        },
-      }),
-    ]);
-
-    const clientIds = await harness.clientIds();
-    expect(clientIds).toHaveSize(0);
   });
 });

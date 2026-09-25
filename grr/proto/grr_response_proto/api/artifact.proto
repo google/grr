@@ -27,7 +27,7 @@ message ApiUploadArtifactArgs {
       [(sem_type) = { description: "Artifact YAML definition." }];
 }
 
-message ApiDeleteArtifactsArgs {
-  repeated string names = 1
-      [(sem_type) = { description: "Names of the artifacts to be deleted." }];
+message ApiDeleteArtifactArgs {
+  optional string name = 1
+      [(sem_type) = { description: "Name of the artifact to be deleted." }];
 }

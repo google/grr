@@ -7,10 +7,10 @@ import sqlite3
 from typing import Any, Callable, Iterator
 import zipfile
 
-import yaml
-
 from google.protobuf import descriptor
 from google.protobuf import message
+import yaml
+
 from grr_response_core.lib import utils
 from grr_response_core.lib.util import collection
 from grr_response_server import instant_output_plugin

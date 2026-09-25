@@ -1,4 +1,7 @@
 import {GrrRoute} from '../../lib/routing';
+import {AdministrationPage} from '../administration_page/administration_page';
+import {Artifact} from '../administration_page/artifact';
+import {ArtifactsAdministration} from '../administration_page/artifacts_administration';
 import {ApprovalRequestLoader} from '../client_page/client_approvals/approval_request_loader';
 import {ClientApprovals} from '../client_page/client_approvals/client_approvals';
 import {ClientFlows} from '../client_page/client_flows/client_flows';
@@ -22,6 +25,7 @@ import {FleetCollectionResults} from '../fleet_collections_page/fleet_collection
 import {FleetCollectionsPage} from '../fleet_collections_page/fleet_collections_page';
 import {NewFleetCollection} from '../new_fleet_collection_page/new_fleet_collection';
 import {NotFoundPage} from '../not_found_page/not_found_page';
+import {V2Redirect} from './v2_redirect';
 
 const REDACTED_CLIENT_ID = 'client_id';
 const REDACTED_FLOW_ID = 'flow_id';
@@ -34,6 +38,7 @@ export const CLIENT_ROUTES: GrrRoute[] = [
   {
     path: 'clients',
     component: ClientSearch,
+    title: 'GRR | Client Search',
     data: {
       'pageViewTracking': {
         pagePath: 'client_search',
@@ -59,6 +64,7 @@ export const CLIENT_ROUTES: GrrRoute[] = [
       {
         path: 'flows',
         component: ClientFlows,
+        title: 'GRR | Client > Flows',
         data: {
           'pageViewTracking': {
             pagePath: `clients/${REDACTED_CLIENT_ID}/flows`,
@@ -69,6 +75,7 @@ export const CLIENT_ROUTES: GrrRoute[] = [
           {
             path: 'scheduled-flow',
             component: ScheduledFlow,
+            title: 'GRR | Client > Scheduled Flow',
             data: {
               'pageViewTracking': {
                 path: `clients/${REDACTED_CLIENT_ID}/scheduled-flow`,
@@ -84,6 +91,7 @@ export const CLIENT_ROUTES: GrrRoute[] = [
                 path: '',
                 redirectTo: 'results',
                 pathMatch: 'full',
+                title: 'GRR | Client > Flow > Results',
                 data: {
                   'pageViewTracking': {
                     pagePath: `clients/${REDACTED_CLIENT_ID}/flows/${REDACTED_FLOW_ID}/results`,
@@ -94,6 +102,7 @@ export const CLIENT_ROUTES: GrrRoute[] = [
               {
                 path: 'results',
                 component: FlowResults,
+                title: 'GRR | Client > Flow > Results',
                 data: {
                   'pageViewTracking': {
                     pagePath: `clients/${REDACTED_CLIENT_ID}/flows/${REDACTED_FLOW_ID}/results`,
@@ -104,6 +113,7 @@ export const CLIENT_ROUTES: GrrRoute[] = [
               {
                 path: 'configuration',
                 component: FlowConfiguration,
+                title: 'GRR | Client > Flow > Configuration',
                 data: {
                   'pageViewTracking': {
                     pagePath: `clients/${REDACTED_CLIENT_ID}/flows/${REDACTED_FLOW_ID}/configuration`,
@@ -114,6 +124,7 @@ export const CLIENT_ROUTES: GrrRoute[] = [
               {
                 path: 'debug',
                 component: FlowDebugging,
+                title: 'GRR | Client > Flow > Debug',
                 data: {
                   'pageViewTracking': {
                     pagePath: `clients/${REDACTED_CLIENT_ID}/flows/${REDACTED_FLOW_ID}/debug`,
@@ -128,6 +139,7 @@ export const CLIENT_ROUTES: GrrRoute[] = [
       {
         path: 'history',
         component: ClientHistory,
+        title: 'GRR | Client > History',
         children: [
           {
             path: ':historyTimestamp',
@@ -144,10 +156,12 @@ export const CLIENT_ROUTES: GrrRoute[] = [
       {
         path: 'approvals',
         component: ClientApprovals,
+        title: 'GRR | Client > Approvals',
         children: [
           {
             path: ':approvalId/users/:requestor',
             component: ApprovalRequestLoader,
+            title: 'GRR | Client > Approvals > Review',
             data: {
               'pageViewTracking': {
                 pagePath: `clients/${REDACTED_CLIENT_ID}/approvals/${REDACTED_APPROVAL_ID}/users/${REDACTED_USER}`,
@@ -158,7 +172,7 @@ export const CLIENT_ROUTES: GrrRoute[] = [
         ],
         data: {
           'pageViewTracking': {
-            pagePath: `clients/${REDACTED_CLIENT_ID}/approvals${REDACTED_USER}`,
+            pagePath: `clients/${REDACTED_CLIENT_ID}/approvals`,
             pageTitle: 'Client > Approvals',
           },
         },
@@ -166,6 +180,7 @@ export const CLIENT_ROUTES: GrrRoute[] = [
       {
         path: 'files',
         component: FileExplorer,
+        title: 'GRR | Client > File Explorer',
         data: {
           'pageViewTracking': {
             pagePath: `clients/${REDACTED_CLIENT_ID}/files`,
@@ -182,6 +197,7 @@ export const FLEET_COLLECTION_ROUTES: GrrRoute[] = [
   {
     path: 'fleet-collections',
     component: FleetCollectionsPage,
+    title: 'GRR | Fleet Collections',
     data: {
       'pageViewTracking': {
         pagePath: `fleet-collections`,
@@ -192,11 +208,13 @@ export const FLEET_COLLECTION_ROUTES: GrrRoute[] = [
       {
         path: ':fleetCollectionId',
         component: FleetCollectionDetails,
+        title: 'GRR | Fleet Collection',
         children: [
           {path: '', redirectTo: 'results', pathMatch: 'full'},
           {
             path: 'results',
             component: FleetCollectionResults,
+            title: 'GRR | Fleet Collection > Results',
             data: {
               'pageViewTracking': {
                 pagePath: `fleet-collections/${REDACTED_FLEET_COLLECTION_ID}/results`,
@@ -207,6 +225,7 @@ export const FLEET_COLLECTION_ROUTES: GrrRoute[] = [
           {
             path: 'errors',
             component: FleetCollectionErrors,
+            title: 'GRR | Fleet Collection > Errors',
             data: {
               'pageViewTracking': {
                 pagePath: `fleet-collections/${REDACTED_FLEET_COLLECTION_ID}/errors`,
@@ -217,6 +236,7 @@ export const FLEET_COLLECTION_ROUTES: GrrRoute[] = [
           {
             path: 'configuration',
             component: FleetCollectionConfiguration,
+            title: 'GRR | Fleet Collection > Configuration',
             data: {
               'pageViewTracking': {
                 pagePath: `fleet-collections/${REDACTED_FLEET_COLLECTION_ID}/configuration`,
@@ -224,14 +244,26 @@ export const FLEET_COLLECTION_ROUTES: GrrRoute[] = [
               },
             },
           },
-          {path: 'debug', component: FleetCollectionDebugging},
+          {
+            path: 'debug',
+            component: FleetCollectionDebugging,
+            title: 'GRR | Fleet Collection > Debug',
+            data: {
+              'pageViewTracking': {
+                pagePath: `fleet-collections/${REDACTED_FLEET_COLLECTION_ID}/debug`,
+                pageTitle: 'Fleet Collection > Debug',
+              },
+            },
+          },
           {
             path: 'approvals',
             component: FleetCollectionApprovals,
+            title: 'GRR | Fleet Collection > Approvals',
             children: [
               {
                 path: ':approvalId/users/:requestor',
                 component: FleetCollectionApprovalRequestLoader,
+                title: 'GRR | Fleet Collection > Approval > Review',
                 data: {
                   'pageViewTracking': {
                     pagePath: `fleet-collections/${REDACTED_FLEET_COLLECTION_ID}/approvals/${REDACTED_APPROVAL_ID}/users/${REDACTED_USER}`,
@@ -260,12 +292,54 @@ export const FLEET_COLLECTION_ROUTES: GrrRoute[] = [
   {
     path: 'new-fleet-collection',
     component: NewFleetCollection,
+    title: 'GRR | New Fleet Collection',
     data: {
       'pageViewTracking': {
         pagePath: `new-fleet-collection`,
         pageTitle: 'New Fleet Collection',
       },
     },
+  },
+];
+
+/** Routes and subroutes for the administration page */
+export const ADMINISTRATION_ROUTES: GrrRoute[] = [
+  {
+    path: 'administration',
+    component: AdministrationPage,
+    title: 'GRR | Administration',
+    data: {
+      'pageViewTracking': {
+        pagePath: `administration`,
+        pageTitle: 'Administration',
+      },
+    },
+    children: [
+      {
+        path: 'artifacts',
+        component: ArtifactsAdministration,
+        title: 'GRR | Administration > Artifacts',
+        data: {
+          'pageViewTracking': {
+            pagePath: `administration/artifacts`,
+            pageTitle: 'Administration > Artifacts',
+          },
+        },
+        children: [
+          {
+            path: ':artifactName',
+            component: Artifact,
+            title: 'GRR | Administration > Artifacts > Artifact',
+            data: {
+              'pageViewTracking': {
+                pagePath: `administration/artifacts/:artifactName`,
+                pageTitle: 'Administration > Artifacts > Artifact',
+              },
+            },
+          },
+        ],
+      },
+    ],
   },
 ];
 
@@ -285,12 +359,30 @@ export const APP_ROUTES: GrrRoute[] = [
     pathMatch: 'full',
     redirectTo: 'clients',
   },
+  {
+    path: 'v2',
+    pathMatch: 'prefix',
+    children: [
+      {
+        path: '**',
+        component: V2Redirect,
+        data: {
+          'pageViewTracking': {
+            pagePath: `v2`,
+            pageTitle: 'Redirect',
+          },
+        },
+      },
+    ],
+  },
   ...CLIENT_ROUTES,
   ...FLEET_COLLECTION_ROUTES,
+  ...ADMINISTRATION_ROUTES,
   ...APPROVAL_PAGE_ROUTES,
   {
     path: '**',
     component: NotFoundPage,
+    title: 'GRR | Not Found',
     data: {
       'pageViewTracking': {
         pagePath: 'not-found',

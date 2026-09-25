@@ -1,0 +1,33 @@
+// Copyright 2025 Google LLC
+//
+// Use of this source code is governed by an MIT-style license that can be found
+// in the LICENSE file or at https://opensource.org/licenses/MIT.
+syntax = "proto3";
+
+package rrg.action.get_file_metadata_kmx;
+
+import "grr_response_proto/rrg/fs.proto";
+
+message Args {
+  // Root path to the file to get the metadata for.
+  //
+  // Note that if a path points to a symbolic link, the metadata associated
+  // with the link itself will be returned, not the metadata of the file that
+  // the link points to.
+  rrg.fs.Path path = 1; // TODO: Add support for multiple paths.
+
+  // TODO: Add the remaining fields that original `get_file_metadata` supports.
+}
+
+message Result {
+  // Path to the file.
+  //
+  // This is the original root path of the file as specified in the arguments,
+  // possibly with some suffix in case of child files.
+  rrg.fs.Path path = 1;
+
+  // Metadata of the file.
+  rrg.fs.FileMetadata metadata = 2;
+
+  // TODO: Add the remaining fields that original `get_file_metadata` supports.
+}

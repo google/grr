@@ -165,7 +165,7 @@ def DefineFromWireFormat(cls, protobuf):
           )
 
       type_descriptor = classes_dict["ProtoRDFValue"](
-          rdf_type=options.type, **kwargs
+          rdf_type=options.type, **kwargs  # pyrefly: ignore[unexpected-keyword]
       )
 
     # A semantic protobuf is already a semantic value so it is an error to
@@ -181,19 +181,19 @@ def DefineFromWireFormat(cls, protobuf):
 
     # Try to figure out what this field actually is from the descriptor.
     elif field.type == TYPE_DOUBLE:
-      type_descriptor = classes_dict["ProtoDouble"](**kwargs)
+      type_descriptor = classes_dict["ProtoDouble"](**kwargs)  # pyrefly: ignore[unexpected-keyword]
 
     elif field.type == TYPE_FLOAT:
-      type_descriptor = classes_dict["ProtoFloat"](**kwargs)
+      type_descriptor = classes_dict["ProtoFloat"](**kwargs)  # pyrefly: ignore[unexpected-keyword]
 
     elif field.type == TYPE_BOOL:
-      type_descriptor = classes_dict["ProtoBoolean"](**kwargs)
+      type_descriptor = classes_dict["ProtoBoolean"](**kwargs)  # pyrefly: ignore[unexpected-keyword]
 
     elif field.type == TYPE_STRING:
-      type_descriptor = classes_dict["ProtoString"](**kwargs)
+      type_descriptor = classes_dict["ProtoString"](**kwargs)  # pyrefly: ignore[unexpected-keyword]
 
     elif field.type == TYPE_BYTES:
-      type_descriptor = classes_dict["ProtoBinary"](**kwargs)
+      type_descriptor = classes_dict["ProtoBinary"](**kwargs)  # pyrefly: ignore[unexpected-keyword]
       if options.dynamic_type:
         # This may be a dynamic type. In this case the dynamic_type option
         # names a method (which must exist) which should return the class of
@@ -201,7 +201,7 @@ def DefineFromWireFormat(cls, protobuf):
         dynamic_cb = getattr(cls, options.dynamic_type, None)
         if dynamic_cb is not None:
           type_descriptor = classes_dict["ProtoDynamicEmbedded"](
-              dynamic_cb=dynamic_cb, **kwargs
+              dynamic_cb=dynamic_cb, **kwargs  # pyrefly: ignore[unexpected-keyword]
           )
         else:
           logging.warning(
@@ -211,18 +211,18 @@ def DefineFromWireFormat(cls, protobuf):
 
     elif field.type == TYPE_MESSAGE and field.message_type.name == "Any":
       if options.no_dynamic_type_lookup:
-        type_descriptor = classes_dict["ProtoAnyValue"](**kwargs)
+        type_descriptor = classes_dict["ProtoAnyValue"](**kwargs)  # pyrefly: ignore[unexpected-keyword]
       else:
         dynamic_cb = getattr(cls, options.dynamic_type, None)
         type_descriptor = classes_dict["ProtoDynamicAnyValueEmbedded"](
-            dynamic_cb=dynamic_cb, **kwargs
+            dynamic_cb=dynamic_cb, **kwargs  # pyrefly: ignore[unexpected-keyword]
         )
 
     elif field.type == TYPE_INT64 or field.type == TYPE_INT32:
-      type_descriptor = classes_dict["ProtoSignedInteger"](**kwargs)
+      type_descriptor = classes_dict["ProtoSignedInteger"](**kwargs)  # pyrefly: ignore[unexpected-keyword]
 
     elif field.type == TYPE_UINT32 or field.type == TYPE_UINT64:
-      type_descriptor = classes_dict["ProtoUnsignedInteger"](**kwargs)
+      type_descriptor = classes_dict["ProtoUnsignedInteger"](**kwargs)  # pyrefly: ignore[unexpected-keyword]
 
     # An embedded protocol buffer.
     elif field.type == TYPE_MESSAGE and field.message_type:
@@ -231,7 +231,7 @@ def DefineFromWireFormat(cls, protobuf):
       # when it is known. Therefore this can actually also refer to this current
       # protobuf (i.e. nested proto).
       type_descriptor = classes_dict["ProtoEmbedded"](
-          nested=field.message_type.name, **kwargs
+          nested=field.message_type.name, **kwargs  # pyrefly: ignore[unexpected-keyword]
       )
 
       cls.recorded_rdf_deps.add(field.message_type.name)
@@ -258,7 +258,7 @@ def DefineFromWireFormat(cls, protobuf):
           )
 
       # TODO(user): support late binding here.
-      if type_descriptor.type:
+      if type_descriptor.type:  # pyrefly: ignore[missing-attribute]
         # This traps the following problem:
         # class Certificate(rdf_protodict.RDFValueArray):
         #    protobuf = jobs_pb2.BlobArray
@@ -279,7 +279,7 @@ def DefineFromWireFormat(cls, protobuf):
         # primitive library will still use Certificate.
 
         # The name of the primitive protobuf the semantic type implements.
-        semantic_protobuf_primitive = type_descriptor.type.protobuf.__name__
+        semantic_protobuf_primitive = type_descriptor.type.protobuf.__name__  # pyrefly: ignore[missing-attribute]
 
         # This is an error because the primitive library will use the protobuf
         # named in the field, but the semantic library will implement a
@@ -294,7 +294,7 @@ def DefineFromWireFormat(cls, protobuf):
                   cls.__name__,
                   field.name,
                   field.message_type.name,
-                  type_descriptor.type.__name__,
+                  type_descriptor.type.__name__,  # pyrefly: ignore[missing-attribute]
                   semantic_protobuf_primitive,
               )
           )
@@ -326,15 +326,15 @@ def DefineFromWireFormat(cls, protobuf):
         enum_labels[enum_value_name] = labels
 
       type_descriptor = classes_dict["ProtoEnum"](
-          enum_name=enum_desc_name,
-          enum=enum_dict,
-          enum_descriptions=enum_descriptions,
-          enum_labels=enum_labels,
-          **kwargs,
+          enum_name=enum_desc_name,  # pyrefly: ignore[unexpected-keyword]
+          enum=enum_dict,  # pyrefly: ignore[unexpected-keyword]
+          enum_descriptions=enum_descriptions,  # pyrefly: ignore[unexpected-keyword]
+          enum_labels=enum_labels,  # pyrefly: ignore[unexpected-keyword]
+          **kwargs,  # pyrefly: ignore[unexpected-keyword]
       )
 
       # Attach the enum container to the class for easy reference:
-      setattr(cls, enum_desc_name, type_descriptor.enum_container)
+      setattr(cls, enum_desc_name, type_descriptor.enum_container)  # pyrefly: ignore[missing-attribute]
 
     # If we do not recognize the type descriptor we ignore this field.
     if type_descriptor is not None:
@@ -342,7 +342,7 @@ def DefineFromWireFormat(cls, protobuf):
       if field.label == LABEL_REPEATED:
         options = field.GetOptions().Extensions[semantic_pb2.sem_type]
         type_descriptor = classes_dict["ProtoList"](
-            type_descriptor, labels=list(options.label)
+            type_descriptor, labels=list(options.label)  # pyrefly: ignore[unexpected-keyword]
         )
 
       try:

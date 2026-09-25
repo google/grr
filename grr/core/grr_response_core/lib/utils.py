@@ -96,9 +96,7 @@ class InterruptableThread(threading.Thread):
       raise ValueError("Please name your threads.")
 
     # TODO(hanuszczak): Incorrect type specification for the `name` param.
-    # pytype: disable=wrong-arg-count
     super().__init__(name=name, **kw)
-    # pytype: enable=wrong-arg-count
 
     # Do not hold up program exit
     self.daemon = True
@@ -122,7 +120,7 @@ class InterruptableThread(threading.Thread):
         self.Iterate()
 
       # Implement interruptible sleep here.
-      self.last_run = now()
+      self.last_run = now()  # pyrefly: ignore[bad-assignment]
 
       # Exit if the main thread disappears.
       while time and not self.exit and now() < self.last_run + self.sleep_time:
@@ -149,7 +147,6 @@ class Node:
 
 # TODO(user):pytype: self.next and self.prev are assigned to self but then
 # are used in AppendNode in a very different way. Should be redesigned.
-# pytype: disable=attribute-error
 class LinkedList:
   """A simple doubly linked list used for fast caches."""
 
@@ -208,11 +205,8 @@ class LinkedList:
   def Print(self):
     p = self.next
     while p is not self:
-      print("%s: prev %r next %r\n" % (p.data, p.prev, p.next))
+      print("%s: prev %r next %r\n" % (p.data, p.prev, p.next))  # pyrefly: ignore[missing-attribute]
       p = p.next
-
-
-# pytype: enable=attribute-error
 
 
 class FastStore:
@@ -393,7 +387,7 @@ class TimeBasedCache(FastStore):
 
       now = time.time()
 
-      for cache in TimeBasedCache.active_caches:
+      for cache in TimeBasedCache.active_caches:  # pyrefly: ignore[not-iterable]
         # Only expunge while holding the lock on the data store.
         with cache.lock:
           # pylint: disable=protected-access
@@ -415,7 +409,7 @@ class TimeBasedCache(FastStore):
           name="HouseKeeperThread", target=HouseKeeper
       )
       TimeBasedCache.house_keeper_thread.start()
-    TimeBasedCache.active_caches.add(self)
+    TimeBasedCache.active_caches.add(self)  # pyrefly: ignore[missing-attribute]
 
   @Synchronized
   def Get(self, key):
@@ -680,7 +674,7 @@ class HeartbeatQueue(queue.Queue):
     queue.Queue.__init__(self, *args, **kw)
     self.callback = callback or (lambda: None)
 
-  def get(self, poll_interval=5):
+  def get(self, poll_interval=5):  # pyrefly: ignore[bad-override]
     while True:
       try:
         message = queue.Queue.get(self, block=True, timeout=poll_interval)
@@ -713,7 +707,7 @@ class RollingMemoryStream(object):
     return self._offset
 
   def close(self):  # pylint: disable=invalid-name
-    self._stream = None
+    self._stream = None  # pyrefly: ignore[bad-assignment]
 
   def GetValueAndReset(self):
     """Gets stream buffer since the last GetValueAndReset() call."""
@@ -734,7 +728,6 @@ class ArchiveAlreadyClosedError(Error):
 
 
 # TODO(hanuszczak): Typings for `ZipFile` are ill-typed.
-# pytype: disable=attribute-error,wrong-arg-types
 class StreamingZipGenerator(object):
   """A streaming zip generator that can archive file-like objects."""
 
@@ -769,7 +762,7 @@ class StreamingZipGenerator(object):
     if not self._stream:
       raise ArchiveAlreadyClosedError()
 
-    self._zipopen = self._zipfile.open(arcname, mode="w")
+    self._zipopen = self._zipfile.open(arcname, mode="w")  # pyrefly: ignore[bad-argument-type]
     self._zipopen.__enter__()
 
     return self._stream.GetValueAndReset()
@@ -780,7 +773,7 @@ class StreamingZipGenerator(object):
     if not self._stream:
       raise ArchiveAlreadyClosedError()
 
-    self._zipopen.write(chunk)
+    self._zipopen.write(chunk)  # pyrefly: ignore[missing-attribute]
 
     return self._stream.GetValueAndReset()
 
@@ -788,7 +781,7 @@ class StreamingZipGenerator(object):
     if not self._stream:
       raise ArchiveAlreadyClosedError()
 
-    self._zipopen.__exit__(None, None, None)
+    self._zipopen.__exit__(None, None, None)  # pyrefly: ignore[missing-attribute]
     self._zipopen = None
 
     return self._stream.GetValueAndReset()
@@ -826,9 +819,6 @@ class StreamingZipGenerator(object):
   @property
   def output_size(self):
     return self._stream.tell()
-
-
-# pytype: enable=attribute-error,wrong-arg-types
 
 
 class StreamingTarGenerator(object):
@@ -873,7 +863,7 @@ class StreamingTarGenerator(object):
 
     self.cur_info = tarfile.TarInfo()
     self.cur_info.type = tarfile.REGTYPE
-    self.cur_info.name = arcname
+    self.cur_info.name = arcname  # pyrefly: ignore[bad-assignment]
     self.cur_info.size = st.st_size
     self.cur_info.mode = st.st_mode
     self.cur_info.mtime = st.st_mtime or time.time()
@@ -1029,7 +1019,7 @@ def ResolveHostnameToIP(host, port):
   return ip_addrs[0][4][0]
 
 
-# TODO: This module is way too big right now. It should be split
+# TODO - This module is way too big right now. It should be split
 # into several smaller ones (such as `util.paths`, `util.collections` etc.).
 
 
@@ -1073,20 +1063,20 @@ def RunOnce(fn):
   @functools.wraps(fn)
   def _OneTimeFunction(*args, **kwargs):
     """Wrapper function that only passes through the first call."""
-    if not _OneTimeFunction.executed:
-      _OneTimeFunction.executed = True
+    if not _OneTimeFunction.executed:  # pyrefly: ignore[missing-attribute]
+      _OneTimeFunction.executed = True  # pyrefly: ignore[missing-attribute]
       try:
-        _OneTimeFunction.result = fn(*args, **kwargs)
+        _OneTimeFunction.result = fn(*args, **kwargs)  # pyrefly: ignore[missing-attribute]
       except BaseException as e:  # pylint: disable=broad-except
-        _OneTimeFunction.exception = e
+        _OneTimeFunction.exception = e  # pyrefly: ignore[missing-attribute]
         raise  # Preserve original stack trace during first invocation.
 
-    if _OneTimeFunction.exception is None:
-      return _OneTimeFunction.result
+    if _OneTimeFunction.exception is None:  # pyrefly: ignore[missing-attribute]
+      return _OneTimeFunction.result  # pyrefly: ignore[missing-attribute]
     else:
-      raise _OneTimeFunction.exception
+      raise _OneTimeFunction.exception  # pyrefly: ignore[bad-raise]
 
-  _OneTimeFunction.executed = False
-  _OneTimeFunction.exception = None
-  _OneTimeFunction.result = None
+  _OneTimeFunction.executed = False  # pyrefly: ignore[missing-attribute]
+  _OneTimeFunction.exception = None  # pyrefly: ignore[missing-attribute]
+  _OneTimeFunction.result = None  # pyrefly: ignore[missing-attribute]
   return _OneTimeFunction

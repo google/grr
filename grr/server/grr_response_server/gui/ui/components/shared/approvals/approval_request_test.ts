@@ -125,7 +125,9 @@ describe('Approval Request Component', () => {
     expect(await approvalCard!.getText()).toContain('2020-07-01 13:00:00 UTC');
 
     expect(await approvalCard!.getText()).toContain('Status:');
-    expect(await approvalCard!.getText()).toContain('pending');
+    expect(await approvalCard!.getText()).toContain(
+      'pending - Need 1 more approver',
+    );
 
     expect(await approvalCard!.getText()).toContain('Granted by:');
     expect(await approvalCard!.getText()).toContain('approver1');
@@ -172,7 +174,9 @@ describe('Approval Request Component', () => {
     expect(await approvalCard!.getText()).toContain('ABCDEF on C.1234567890');
 
     expect(await approvalCard!.getText()).toContain('Status:');
-    expect(await approvalCard!.getText()).toContain('pending');
+    expect(await approvalCard!.getText()).toContain(
+      'pending - Need 1 more approver',
+    );
 
     expect(await approvalCard!.getText()).toContain('Granted by:');
     expect(await approvalCard!.getText()).toContain('approver1');

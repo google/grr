@@ -38,10 +38,10 @@ def Unchunk(chunks: Iterator[bytes]) -> IO[bytes]:
   """
   # For some reason the linter doesn't understand that `RawIOBase` implements
   # the `IO[bytes]` interface and complains.
-  return io.BufferedReader(_Unchunked(chunks))  # pylint: disable=abstract-class-instantiated
+  return io.BufferedReader(_Unchunked(chunks))  # pylint: disable=abstract-class-instantiated  # pyrefly: ignore[bad-specialization]
 
 
-class _Unchunked(io.RawIOBase, IO[bytes]):  # pytype: disable=signature-mismatch  # overriding-return-type-checks
+class _Unchunked(io.RawIOBase, IO[bytes]):
   """A raw file-like object that reads chunk stream on demand."""
 
   def __init__(self, chunks: Iterator[bytes]) -> None:
@@ -56,7 +56,7 @@ class _Unchunked(io.RawIOBase, IO[bytes]):  # pytype: disable=signature-mismatch
   def readall(self) -> bytes:
     return b"".join(self._chunks)
 
-  def readinto(self, buf: bytearray) -> int:
+  def readinto(self, buf: bytearray) -> int:  # pyrefly: ignore[bad-override]
     if self._buf.tell() == len(self._buf.getbuffer()):
       self._buf.seek(0, io.SEEK_SET)
       self._buf.truncate()

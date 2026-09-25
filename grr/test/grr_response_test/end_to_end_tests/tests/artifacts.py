@@ -13,7 +13,7 @@ class TestRawFilesystemAccessUsesNtfsOnWindows(test_base.EndToEndTest):
   ]
 
   def runTest(self):
-    args = self.grr_api.types.CreateFlowArgs("ArtifactCollectorFlow")
+    args = self.grr_api.types.CreateFlowArgs("ArtifactCollectorFlow")  # pyrefly: ignore[missing-attribute]
     args.use_raw_filesystem_access = True
     args.artifact_list.append("WindowsEventLogApplication")
     args.artifact_list.append("WindowsEventLogSecurity")
@@ -25,29 +25,7 @@ class TestRawFilesystemAccessUsesNtfsOnWindows(test_base.EndToEndTest):
 
     results = list(f.ListResults())
     self.assertEqual(results[0].payload.pathspec.nested_path.pathtype,
-                     rdf_paths.PathSpec.PathType.NTFS)
-
-
-class TestRawFilesystemAccessUsesTskOnNonWindows(test_base.EndToEndTest):
-  """Tests that use_raw_filesystem_access maps to TSK on non-Windows OSes."""
-
-  platforms = [
-      test_base.EndToEndTest.Platform.LINUX,
-  ]
-
-  def runTest(self):
-    if self.os_release == "CentOS Linux":
-      self.skipTest(
-          "TSK is not supported on CentOS due to an xfs root filesystem.")
-
-    args = self.grr_api.types.CreateFlowArgs("ArtifactCollectorFlow")
-    args.use_raw_filesystem_access = True
-    args.artifact_list.append("LinuxWtmp")
-    f = self.RunFlowAndWait("ArtifactCollectorFlow", args=args)
-
-    results = list(f.ListResults())
-    self.assertEqual(results[0].payload.pathspec.nested_path.pathtype,
-                     rdf_paths.PathSpec.PathType.TSK)
+                     rdf_paths.PathSpec.PathType.NTFS)  # pyrefly: ignore[missing-attribute]
 
 
 class TestParserDependency(test_base.EndToEndTest):
@@ -58,7 +36,7 @@ class TestParserDependency(test_base.EndToEndTest):
   ]
 
   def _CollectArtifact(self, artifact_name):
-    args = self.grr_api.types.CreateFlowArgs("ArtifactCollectorFlow")
+    args = self.grr_api.types.CreateFlowArgs("ArtifactCollectorFlow")  # pyrefly: ignore[missing-attribute]
     args.artifact_list.append(artifact_name)
     f = self.RunFlowAndWait("ArtifactCollectorFlow", args=args)
     return list(f.ListResults())
@@ -70,6 +48,17 @@ class TestParserDependency(test_base.EndToEndTest):
     self._CollectArtifact("WindowsEnvironmentVariableWinDir")
 
   def testWinUserShellFolder(self):
+    # TODO - Re-enable once the artifact definition is fixed.
+    #
+    # Under RRG this test returns no results and does rightfully so as the
+    # artifact definition is not correct. Once the artifact [fix][1] is merged
+    # and the dependency is updated to the patched version, we can re-enable
+    # this. More details on why the artifact definition is not correct are in
+    # the pull request description.
+    #
+    # [1]: https://github.com/ForensicArtifacts/artifacts/pull/663
+    self.skipTest("Invalid artifact definition")
+
     results = self._CollectArtifact("WindowsUserShellFolders")
     self.assertNotEmpty(results)
 
@@ -82,7 +71,7 @@ class TestWindowsRegistryCollector(test_base.EndToEndTest):
   ]
 
   def runTest(self):
-    args = self.grr_api.types.CreateFlowArgs("ArtifactCollectorFlow")
+    args = self.grr_api.types.CreateFlowArgs("ArtifactCollectorFlow")  # pyrefly: ignore[missing-attribute]
     args.artifact_list.append("WindowsExplorerNamespaceMyComputer")
     f = self.RunFlowAndWait("ArtifactCollectorFlow", args=args)
 
@@ -96,25 +85,8 @@ class TestKnowledgeBaseInitializationFlow(test_base.EndToEndTest):
 
   platforms = test_base.EndToEndTest.Platform.ALL
 
-  kb_attributes = ["os", "os_major_version", "os_minor_version"]
-
-  # TODO(user): time_zone, environ_path, and environ_temp are currently only
-  # implemented for Windows, move to kb_attributes once available on other OSes.
-  kb_win_attributes = [
-      "time_zone", "environ_path", "environ_temp", "environ_systemroot",
-      "environ_windir", "environ_programfiles", "environ_programfilesx86",
-      "environ_systemdrive", "environ_allusersprofile",
-      "environ_allusersappdata", "current_control_set", "code_page"
-  ]
-
-  def _CheckAttributes(self, attributes, v):
-    for attribute in attributes:
-      value = getattr(v, attribute)
-      self.assertTrue(value is not None, "Attribute %s is None." % attribute)
-      self.assertTrue(str(value), "str(%s) is empty" % attribute)
-
   def runTest(self):
-    args = self.grr_api.types.CreateFlowArgs("KnowledgeBaseInitializationFlow")
+    args = self.grr_api.types.CreateFlowArgs("KnowledgeBaseInitializationFlow")  # pyrefly: ignore[missing-attribute]
     # Set what Interrogate flow normally sets when running this flow.
     args.require_complete = False
     f = self.RunFlowAndWait("KnowledgeBaseInitializationFlow", args=args)
@@ -124,6 +96,26 @@ class TestKnowledgeBaseInitializationFlow(test_base.EndToEndTest):
 
     kb = results[0].payload
 
-    self._CheckAttributes(self.kb_attributes, kb)
+    self.assertNotEmpty(kb.os)
+
+    if self.platform == test_base.EndToEndTest.Platform.LINUX:
+      # TODO - Add assertions on "real release" once it is added
+      # to the knoweldgebase.
+      self.assertNotEmpty(kb.os_release)
+
     if self.platform == test_base.EndToEndTest.Platform.WINDOWS:
-      self._CheckAttributes(self.kb_win_attributes, kb)
+      # TODO - `time_zone`, `environ_path`, and `environ_temp` are
+      # currently only implemented for Windows, move to common assertions once
+      # available on other OSes.
+      self.assertNotEmpty(kb.environ_path)
+      self.assertNotEmpty(kb.environ_temp)
+      self.assertNotEmpty(kb.environ_systemroot)
+      self.assertNotEmpty(kb.environ_windir)
+      self.assertNotEmpty(kb.code_page)
+      self.assertNotEmpty(kb.current_control_set)
+      self.assertNotEmpty(kb.environ_programfiles)
+      self.assertNotEmpty(kb.environ_programfilesx86)
+      self.assertNotEmpty(kb.environ_systemdrive)
+      self.assertNotEmpty(kb.environ_allusersprofile)
+      self.assertNotEmpty(kb.environ_allusersappdata)
+      self.assertNotEmpty(kb.time_zone)

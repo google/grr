@@ -16,6 +16,8 @@ import {MatSnackBar, MatSnackBarModule} from '@angular/material/snack-bar';
 import {ErrorSnackBar} from '../../../lib/error_handler/error_snackbar/error_snackbar';
 import {initTestEnvironment} from '../../../testing';
 import {
+  MissingApprovalError,
+  MissingFileError,
   SHOW_ERROR_BAR,
   SHOW_ERROR_BAR_FOR_403,
   SHOW_ERROR_BAR_FOR_404,
@@ -125,8 +127,7 @@ describe('ShowErrorBarInterceptor', () => {
         fail('Should have failed');
       },
       (error: HttpErrorResponse) => {
-        expect(error.status).toEqual(403);
-        expect(error.error).toContain('access denied');
+        expect(error).toBeInstanceOf(MissingApprovalError);
       },
     );
 
@@ -167,8 +168,7 @@ describe('ShowErrorBarInterceptor', () => {
         fail('Should have failed');
       },
       (error: HttpErrorResponse) => {
-        expect(error.status).toEqual(404);
-        expect(error.error).toContain('file not found');
+        expect(error).toBeInstanceOf(MissingFileError);
       },
     );
 

@@ -1,12 +1,12 @@
 <ng-template #resultTables let-result="result">
   @if (result.fileResults.length > 0) {
     <p>File Results</p>
-    <file-results-table [results]="result.fileResults" [isHuntResult]="isHuntResult()"/>
+    <file-results-table [results]="result.fileResults" />
   }
 
   @if (result.registryResults.length > 0) {
     <p>Registry Results</p>
-    <registry-results-table [results]="result.registryResults" [isHuntResult]="isHuntResult()"/>
+    <registry-results-table [results]="result.registryResults" />
   }
 </ng-template>
 

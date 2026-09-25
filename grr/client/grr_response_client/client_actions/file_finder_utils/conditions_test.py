@@ -382,71 +382,26 @@ class LiteralMatchConditionTest(ConditionTestMixin, absltest.TestCase):
 
     params = rdf_file_finder.FileFinderCondition()
     params.contents_literal_match.literal = b"baz"
-    params.contents_literal_match.mode = "ALL_HITS"
     condition = conditions.LiteralMatchCondition(params)
 
     with io.open(self.temp_filepath, "rb") as fd:
       results = list(condition.Search(fd))
     self.assertFalse(results)
 
-  def testSomeHits(self):
-    with io.open(self.temp_filepath, "wb") as fd:
-      fd.write(b"foo bar foo")
-
-    params = rdf_file_finder.FileFinderCondition()
-    params.contents_literal_match.literal = b"foo"
-    params.contents_literal_match.mode = "ALL_HITS"
-    condition = conditions.LiteralMatchCondition(params)
-
-    with io.open(self.temp_filepath, "rb") as fd:
-      results = list(condition.Search(fd))
-    self.assertLen(results, 2)
-    self.assertEqual(results[0].data, b"foo")
-    self.assertEqual(results[0].offset, 0)
-    self.assertEqual(results[0].length, 3)
-    self.assertEqual(results[1].data, b"foo")
-    self.assertEqual(results[1].offset, 8)
-    self.assertEqual(results[1].length, 3)
-
-  def testFirstHit(self):
+  def testSomeHit(self):
     with io.open(self.temp_filepath, "wb") as fd:
       fd.write(b"bar foo baz foo")
 
     params = rdf_file_finder.FileFinderCondition()
     params.contents_literal_match.literal = b"foo"
-    params.contents_literal_match.mode = "FIRST_HIT"
     condition = conditions.LiteralMatchCondition(params)
 
     with io.open(self.temp_filepath, "rb") as fd:
       results = list(condition.Search(fd))
-    self.assertLen(results, 1)
+    self.assertGreaterEqual(len(results), 1)
     self.assertEqual(results[0].data, b"foo")
     self.assertEqual(results[0].offset, 4)
     self.assertEqual(results[0].length, 3)
-
-  def testContext(self):
-    with io.open(self.temp_filepath, "wb") as fd:
-      fd.write(b"foo foo foo")
-
-    params = rdf_file_finder.FileFinderCondition()
-    params.contents_literal_match.literal = b"foo"
-    params.contents_literal_match.mode = "ALL_HITS"
-    params.contents_literal_match.bytes_before = 3
-    params.contents_literal_match.bytes_after = 2
-    condition = conditions.LiteralMatchCondition(params)
-
-    with io.open(self.temp_filepath, "rb") as fd:
-      results = list(condition.Search(fd))
-    self.assertLen(results, 3)
-    self.assertEqual(results[0].data, b"foo f")
-    self.assertEqual(results[0].offset, 0)
-    self.assertEqual(results[0].length, 5)
-    self.assertEqual(results[1].data, b"oo foo f")
-    self.assertEqual(results[1].offset, 1)
-    self.assertEqual(results[1].length, 8)
-    self.assertEqual(results[2].data, b"oo foo")
-    self.assertEqual(results[2].offset, 5)
-    self.assertEqual(results[2].length, 6)
 
   def testStartOffset(self):
     with io.open(self.temp_filepath, "wb") as fd:
@@ -454,7 +409,6 @@ class LiteralMatchConditionTest(ConditionTestMixin, absltest.TestCase):
 
     params = rdf_file_finder.FileFinderCondition()
     params.contents_literal_match.literal = b"ooo"
-    params.contents_literal_match.mode = "ALL_HITS"
     params.contents_literal_match.start_offset = 2
     condition = conditions.LiteralMatchCondition(params)
 
@@ -477,71 +431,26 @@ class RegexMatchCondition(ConditionTestMixin, absltest.TestCase):
 
     params = rdf_file_finder.FileFinderCondition()
     params.contents_regex_match.regex = b"\\d+"
-    params.contents_regex_match.mode = "FIRST_HIT"
     condition = conditions.RegexMatchCondition(params)
 
     with io.open(self.temp_filepath, "rb") as fd:
       results = list(condition.Search(fd))
     self.assertFalse(results)
 
-  def testSomeHits(self):
-    with io.open(self.temp_filepath, "wb") as fd:
-      fd.write(b"foo 7 bar 49 baz343")
-
-    params = rdf_file_finder.FileFinderCondition()
-    params.contents_regex_match.regex = b"\\d+"
-    params.contents_regex_match.mode = "ALL_HITS"
-    condition = conditions.RegexMatchCondition(params)
-
-    with io.open(self.temp_filepath, "rb") as fd:
-      results = list(condition.Search(fd))
-    self.assertLen(results, 3)
-    self.assertEqual(results[0].data, b"7")
-    self.assertEqual(results[0].offset, 4)
-    self.assertEqual(results[0].length, 1)
-    self.assertEqual(results[1].data, b"49")
-    self.assertEqual(results[1].offset, 10)
-    self.assertEqual(results[1].length, 2)
-    self.assertEqual(results[2].data, b"343")
-    self.assertEqual(results[2].offset, 16)
-    self.assertEqual(results[2].length, 3)
-
-  def testFirstHit(self):
+  def testSomeHit(self):
     with io.open(self.temp_filepath, "wb") as fd:
       fd.write(b"4 8 15 16 23 42 foo 108 bar")
 
     params = rdf_file_finder.FileFinderCondition()
     params.contents_regex_match.regex = b"[a-z]+"
-    params.contents_regex_match.mode = "FIRST_HIT"
     condition = conditions.RegexMatchCondition(params)
 
     with io.open(self.temp_filepath, "rb") as fd:
       results = list(condition.Search(fd))
-    self.assertLen(results, 1)
+    self.assertGreaterEqual(len(results), 1)
     self.assertEqual(results[0].data, b"foo")
     self.assertEqual(results[0].offset, 16)
     self.assertEqual(results[0].length, 3)
-
-  def testContext(self):
-    with io.open(self.temp_filepath, "wb") as fd:
-      fd.write(b"foobarbazbaaarquux")
-
-    params = rdf_file_finder.FileFinderCondition()
-    params.contents_regex_match.regex = b"ba+r"
-    params.contents_regex_match.mode = "ALL_HITS"
-    params.contents_regex_match.bytes_before = 3
-    params.contents_regex_match.bytes_after = 4
-    condition = conditions.RegexMatchCondition(params)
-
-    with io.open(self.temp_filepath, "rb") as fd:
-      results = list(condition.Search(fd))
-    self.assertLen(results, 2)
-    self.assertEqual(results[0].data, b"foobarbazb")
-    self.assertEqual(results[0].offset, 0)
-    self.assertEqual(results[0].length, 10)
-    self.assertEqual(results[1].data, b"bazbaaarquux")
-    self.assertEqual(results[1].offset, 6)
-    self.assertEqual(results[1].length, 12)
 
   def testStartOffset(self):
     with io.open(self.temp_filepath, "wb") as fd:

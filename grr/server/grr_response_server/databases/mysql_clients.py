@@ -266,7 +266,7 @@ class MySQLDBClientMixin(object):
           timestamp
       )
 
-      ret[client_id] = snapshot
+      ret[client_id] = snapshot  # pyrefly: ignore[unsupported-operation]
     return ret
 
   @db_utils.CallLogged
@@ -708,7 +708,7 @@ class MySQLDBClientMixin(object):
 
     cursor.execute(query, query_values + [count])
     last_pings = {}
-    last_client_id = None
+    last_client_id = None  # pyrefly: ignore[bad-assignment]
     for int_client_id, last_ping in cursor.fetchall():
       last_client_id = db_utils.IntToClientID(int_client_id)
       last_pings[last_client_id] = mysql_utils.TimestampToRDFDatetime(last_ping)
@@ -788,7 +788,7 @@ class MySQLDBClientMixin(object):
     args = list(hash_to_kw.keys())
     if start_time:
       query += " AND timestamp >= FROM_UNIXTIME(%s)"
-      args.append(mysql_utils.RDFDatetimeToTimestamp(start_time))
+      args.append(mysql_utils.RDFDatetimeToTimestamp(start_time))  # pyrefly: ignore[bad-argument-type]
     cursor.execute(query, args)
 
     for kw_hash, cid in cursor.fetchall():

@@ -1,5 +1,10 @@
 import {CommonModule} from '@angular/common';
-import {Component, computed, inject} from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  inject,
+} from '@angular/core';
 import {toSignal} from '@angular/core/rxjs-interop';
 import {
   ReactiveFormsModule,
@@ -26,6 +31,7 @@ export interface ClientAddLabelDialogData {
 
 /** Dialog that displays a form to add a label to a client. */
 @Component({
+  changeDetection: ChangeDetectionStrategy.Eager,
   selector: 'client-add-label-dialog',
   templateUrl: './client_add_label_dialog.ng.html',
   imports: [

@@ -33,20 +33,6 @@ def ToRDFFlowResponse(
   )
 
 
-def ToProtoFlowIterator(
-    rdf: rdf_flow_objects.FlowIterator,
-) -> flows_pb2.FlowIterator:
-  return rdf.AsPrimitiveProto()
-
-
-def ToRDFFlowIterator(
-    proto: flows_pb2.FlowIterator,
-) -> rdf_flow_objects.FlowIterator:
-  return rdf_flow_objects.FlowIterator.FromSerializedBytes(
-      proto.SerializeToString()
-  )
-
-
 def ToProtoFlowStatus(rdf: rdf_flow_objects.FlowStatus) -> flows_pb2.FlowStatus:
   return rdf.AsPrimitiveProto()
 
@@ -151,19 +137,5 @@ def ToRDFFlowResultMetadata(
     proto: flows_pb2.FlowResultMetadata,
 ) -> rdf_flow_objects.FlowResultMetadata:
   return rdf_flow_objects.FlowResultMetadata.FromSerializedBytes(
-      proto.SerializeToString()
-  )
-
-
-def ToProtoDefaultFlowProgress(
-    rdf: rdf_flow_objects.DefaultFlowProgress,
-) -> flows_pb2.DefaultFlowProgress:
-  return rdf.AsPrimitiveProto()
-
-
-def ToRDFDefaultFlowProgress(
-    proto: flows_pb2.DefaultFlowProgress,
-) -> rdf_flow_objects.DefaultFlowProgress:
-  return rdf_flow_objects.DefaultFlowProgress.FromSerializedBytes(
       proto.SerializeToString()
   )

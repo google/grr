@@ -28,6 +28,20 @@
       [client]="dialogData.client"
       />
   } @else {
+    <div class="popular-flows-container">
+      @for (flowDetails of FLOW_DETAILS_BY_TYPE.values(); track flowDetails.type) {
+        @if (!flowDetails.hidden && flowDetails.favorite) {
+          <button mat-stroked-button
+              type="button"
+              matTooltipPosition="right"
+              [matTooltip]="flowDetails.description"
+              (click)="selectFlowType(flowDetails.type)"
+          >
+            {{ flowDetails.friendlyName }}
+          </button>
+        }
+      }
+    </div>
     <mat-form-field appearance="outline" class="search-flow-type">
       <mat-icon matPrefix>search</mat-icon>
       <mat-label>Search for a Flow Type or select one below</mat-label>
@@ -36,6 +50,7 @@
         [formControl]="searchFlowType"
         [matAutocomplete]="auto"
         placeholder="Search for flows by name or category"
+        cdkFocusInitial
       />
       @if (searchFlowType.value) {
         <button
@@ -69,21 +84,6 @@
         }
       </mat-autocomplete>
     </mat-form-field>
-
-    <div class="popular-flows-container">
-      @for (flowDetails of FLOW_DETAILS_BY_TYPE.values(); track flowDetails.type) {
-        @if (!flowDetails.hidden && flowDetails.favorite) {
-          <button mat-stroked-button
-              type="button"
-              matTooltipPosition="right"
-              [matTooltip]="flowDetails.description"
-              (click)="selectFlowType(flowDetails.type)"
-          >
-            {{ flowDetails.friendlyName }}
-          </button>
-        }
-      }
-    </div>
 
     @for (category of flowCategories; track category) {
       <collapsible-container [state]="CollapsibleState.COLLAPSED">

@@ -3,6 +3,7 @@ import {fakeAsync, TestBed, tick} from '@angular/core/testing';
 import {patchState} from '@ngrx/signals';
 import {unprotected} from '@ngrx/signals/testing';
 
+import {FlowRunnerArgsRrgMode} from '../lib/api/api_interfaces';
 import {DEFAULT_POLLING_INTERVAL} from '../lib/api/http_api_service';
 import {HttpApiWithTranslationService} from '../lib/api/http_api_with_translation_service';
 import {
@@ -342,7 +343,6 @@ describe('ClientStore', () => {
       {
         clientId: 'C.1234',
         count: FLOWS_PAGE_SIZE.toString(),
-        topFlowsOnly: false,
       },
       DEFAULT_POLLING_INTERVAL,
     );
@@ -420,7 +420,6 @@ describe('ClientStore', () => {
       {
         clientId: 'C.1234',
         count: expectedFlowCount.toString(),
-        topFlowsOnly: false,
       },
       DEFAULT_POLLING_INTERVAL,
     );
@@ -434,7 +433,6 @@ describe('ClientStore', () => {
       {
         clientId: 'C.1234',
         count: expectedFlowCount.toString(),
-        topFlowsOnly: false,
       },
       DEFAULT_POLLING_INTERVAL,
     );
@@ -478,14 +476,18 @@ describe('ClientStore', () => {
     const flowArgs = {
       'value': '/foo/bar',
     };
-    store.scheduleOrStartFlow(flowDescriptor.name, flowArgs, false);
+    store.scheduleOrStartFlow(
+      flowDescriptor.name,
+      flowArgs,
+      FlowRunnerArgsRrgMode.DEFAULT,
+    );
     httpApiService.mockedObservables.startFlow.next(newFlow());
 
     expect(httpApiService.startFlow).toHaveBeenCalledWith(
       'C.1234',
       flowDescriptor.name,
       flowArgs,
-      false,
+      FlowRunnerArgsRrgMode.DEFAULT,
     );
     expect(store.flowsCount()).toEqual(FLOWS_PAGE_SIZE + 1);
     expect(store.triggerFetchFlows()).toEqual(1);
@@ -506,7 +508,11 @@ describe('ClientStore', () => {
       '@type': 'example.com/grr.Args',
       'value': '/foo/bar',
     };
-    store.scheduleOrStartFlow(flowDescriptor.name, flowArgs, true);
+    store.scheduleOrStartFlow(
+      flowDescriptor.name,
+      flowArgs,
+      FlowRunnerArgsRrgMode.DISABLED,
+    );
     httpApiService.mockedObservables.scheduleFlow.next(newScheduledFlow());
 
     expect(httpApiService.scheduleFlow).toHaveBeenCalledWith(
@@ -547,6 +553,7 @@ describe('ClientStore', () => {
       count: 3,
       withTag: '',
       withType: '',
+      hasAccess: true,
     });
     tick();
     const listFlowResultsResult = newListFlowResultsResult({
@@ -591,6 +598,23 @@ describe('ClientStore', () => {
     );
   }));
 
+  it('does not poll flow results if access is not granted', fakeAsync(() => {
+    const store = TestBed.inject(ClientStore);
+    patchState(unprotected(store), {clientId: 'C.1234'});
+
+    store.pollFlowResults({
+      hasAccess: false,
+      flowId: 'f.ABCD',
+      offset: 0,
+      count: 3,
+      withTag: '',
+      withType: '',
+    });
+    tick();
+
+    expect(httpApiService.listResultsForFlow).not.toHaveBeenCalled();
+  }));
+
   it('correctly groups results by type', fakeAsync(async () => {
     const store = TestBed.inject(ClientStore);
     patchState(unprotected(store), {clientId: 'C.1234'});
@@ -600,6 +624,7 @@ describe('ClientStore', () => {
       count: 3,
       withTag: '',
       withType: '',
+      hasAccess: true,
     });
     tick();
     const listFlowResultsResult = newListFlowResultsResult({
@@ -654,6 +679,7 @@ describe('ClientStore', () => {
       count: 3,
       withTag: '',
       withType: '',
+      hasAccess: true,
     });
     tick();
     const listFlowResultsResult = newListFlowResultsResult({});
@@ -709,6 +735,7 @@ describe('ClientStore', () => {
       count: 3,
       withTag: '',
       withType: '',
+      hasAccess: true,
     });
     tick();
     const listFlowResultsResult = newListFlowResultsResult({});

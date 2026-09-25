@@ -14,7 +14,7 @@ class LogMessageToExportedStringConverter(
   """Converts LogMessage to ExportedString."""
 
   input_proto_type = jobs_pb2.LogMessage
-  output_proto_types = (export_pb2.ExportedString,)
+  output_proto_types = (export_pb2.ExportedString,)  # pyrefly: ignore[bad-assignment]
 
   def Convert(
       self,

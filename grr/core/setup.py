@@ -128,8 +128,8 @@ setup_args = dict(
     },
     install_requires=[
         "cryptography==3.4.8",
-        "distro==1.7.0",
-        "fleetspeak==0.1.12",
+        "distro==1.9.0",
+        "fleetspeak==0.1.18",
         "grr-response-proto==%s" % VERSION.get("Version", "packagedepends"),
         "ipaddr==2.2.0",
         "pexpect==4.8.0",
@@ -139,7 +139,7 @@ setup_args = dict(
         "python-dateutil==2.8.2",
         "pytz==2022.7.1",
         "PyYAML==6.0.1",
-        "requests==2.25.1",
+        "requests==2.33.1",
         "yara-python==4.5.1",
     ],
     # Data files used by GRR. Access these via the config_lib "resource" filter.

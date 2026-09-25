@@ -81,10 +81,10 @@ class DomainEmailAddress(EmailAddress):
     # pylint: disable=protected-access
     domain = config_lib._CONFIG["Logging.domain"]
     # pylint: enable=protected-access
-    if self._value and domain and self._match.group(1) != domain:
+    if self._value and domain and self._match.group(1) != domain:  # pyrefly: ignore[missing-attribute]
       raise ValueError(
           "Email address '%s' does not belong to the configured domain '%s'"
-          % (self._match.group(1), domain)
+          % (self._match.group(1), domain)  # pyrefly: ignore[missing-attribute]
       )
 
 
@@ -138,4 +138,4 @@ class URI(rdf_structs.RDFProtoStruct):
 
   def SerializeToHumanReadable(self) -> str:
     parts = (self.transport, self.host, self.path, self.query, self.fragment)
-    return urlparse.urlunsplit(parts)  # pytype: disable=bad-return-type
+    return urlparse.urlunsplit(parts)

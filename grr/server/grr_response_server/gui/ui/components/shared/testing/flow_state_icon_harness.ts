@@ -10,7 +10,16 @@ export class FlowStateIconHarness extends ComponentHarness {
     MatIconHarness.with({name: 'hourglass_top'}),
   );
   readonly finishedIcon = this.locatorForOptional(
-    MatIconHarness.with({name: 'check_circle'}),
+    MatIconHarness.with({
+      name: 'check_circle',
+      ancestor: '.flow-finished-icon',
+    }),
+  );
+  readonly finishedWithSubflowsFailedIcon = this.locatorForOptional(
+    MatIconHarness.with({
+      name: 'check_circle',
+      ancestor: '.flow-finished-with-subflows-failed-icon',
+    }),
   );
   readonly errorIcon = this.locatorForOptional(
     MatIconHarness.with({name: 'error_outline'}),

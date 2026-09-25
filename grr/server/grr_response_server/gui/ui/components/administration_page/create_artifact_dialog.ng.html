@@ -1,0 +1,33 @@
+<div cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle>
+  <h2 mat-dialog-title>
+    Create a new artifact
+    <a mat-icon-button
+      href="https://artifacts.readthedocs.io/en/latest/sources/Format-specification.html"
+      target="_blank"
+      matTooltip="Click for more details on artifact definitions."
+    >
+      <mat-icon>help_outline</mat-icon>
+    </a>
+  </h2>
+</div>
+<mat-dialog-content>
+  <mat-form-field appearance="outline" class="w100">
+    <mat-label>Artifact definition</mat-label>
+    <textarea matInput
+      class="monospace"
+      cdkTextareaAutosize
+      cdkAutosizeMinRows="15"
+      [formControl]="artifactFormControl">
+    </textarea>
+  </mat-form-field>
+</mat-dialog-content>
+
+<mat-dialog-actions>
+  <button mat-button [matDialogClose]="false">Cancel</button>
+  <button mat-flat-button
+    [disabled]="!artifactFormControl.value"
+    (click)="onCreateClick()"
+  >
+    Create
+  </button>
+</mat-dialog-actions>

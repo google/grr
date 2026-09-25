@@ -2,8 +2,6 @@
 from absl.testing import absltest
 
 from google.protobuf import any_pb2
-from grr_response_core.lib import config_lib
-from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_core.stats import default_stats_collector
 from grr_response_core.stats import stats_collector_instance
 from grr_response_proto import flows_pb2
@@ -25,14 +23,10 @@ class ActionTest(absltest.TestCase):
   def setUpClass(cls):
     super().setUpClass()
 
-    # TODO: Remove once the "default" instance is actually default.
+    # TODO - Remove once the "default" instance is actually default.
     stats_collector_instance.Set(
         default_stats_collector.DefaultStatsCollector()
     )
-
-    # TODO: Remove once `Server.disable_rrg_support` config option
-    # is no longer needed for calling RRG.
-    config_lib.ParseConfigCommandLine()
 
   @db_test_lib.WithDatabase
   def testCall(self, db: abstract_db.Database):
@@ -65,9 +59,9 @@ class ActionTest(absltest.TestCase):
       def Start(self) -> None:
         action = rrg_stubs.GetFileMetadata()
         action.args.paths.add().raw_bytes = "/foo/bar".encode("utf-8")
-        action.Call(self.Process)
+        action.Call(self.Process)  # pyrefly: ignore[bad-argument-type]
 
-      @flow_base.UseProto2AnyResponses
+      @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
       def Process(
           self,
           responses: flow_responses.Responses[any_pb2.Any],
@@ -87,7 +81,7 @@ class ActionTest(absltest.TestCase):
     flow_id = rrg_test_lib.ExecuteFlow(
         client_id=client_id,
         flow_cls=CallGetFileMetadataFlow,
-        flow_args=rdf_flows.EmptyFlowArgs(),
+        flow_args=flows_pb2.EmptyFlowArgs(),
         handlers={
             rrg_pb2.GET_FILE_METADATA: GetFileMetadataHandler,
         },
@@ -120,17 +114,17 @@ class ActionTest(absltest.TestCase):
         action = rrg_stubs.GetSystemMetadata()
         action.context["foo"] = "quux"
         action.context["bar"] = "norf"
-        action.Call(self.Process)
+        action.Call(self.Process)  # pyrefly: ignore[bad-argument-type]
 
-      @flow_base.UseProto2AnyResponses
+      @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
       def Process(
           self,
           responses: flow_responses.Responses[any_pb2.Any],
       ) -> None:
         assert responses.success
 
-        assert responses.request_data["foo"] == "quux"
-        assert responses.request_data["bar"] == "norf"
+        assert responses.request_data["foo"] == "quux"  # pyrefly: ignore[unsupported-operation]
+        assert responses.request_data["bar"] == "norf"  # pyrefly: ignore[unsupported-operation]
 
         nonlocal flow_process_done
         flow_process_done = True
@@ -138,7 +132,7 @@ class ActionTest(absltest.TestCase):
     flow_id = rrg_test_lib.ExecuteFlow(
         client_id=client_id,
         flow_cls=CallGetSystemMetadataFlow,
-        flow_args=rdf_flows.EmptyFlowArgs(),
+        flow_args=flows_pb2.EmptyFlowArgs(),
         handlers={
             rrg_pb2.GET_SYSTEM_METADATA: GetSystemMetadataHandler,
         },
@@ -184,7 +178,7 @@ class ActionTest(absltest.TestCase):
         action = rrg_stubs.GetFileMetadata()
 
         path_cond = action.AddFilter().conditions.add()
-        path_cond.bytes_match = b"^/ba.*$"
+        path_cond.bytes_match = b"^/ba.*$"  # pyrefly: ignore[bad-assignment]
         path_cond.field.append(
             rrg_get_file_metadata_pb2.Result.PATH_FIELD_NUMBER,
         )
@@ -192,9 +186,9 @@ class ActionTest(absltest.TestCase):
             rrg_fs_pb2.Path.RAW_BYTES_FIELD_NUMBER,
         )
 
-        action.Call(self.Process)
+        action.Call(self.Process)  # pyrefly: ignore[bad-argument-type]
 
-      @flow_base.UseProto2AnyResponses
+      @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
       def Process(
           self,
           responses: flow_responses.Responses[any_pb2.Any],
@@ -218,7 +212,7 @@ class ActionTest(absltest.TestCase):
     flow_id = rrg_test_lib.ExecuteFlow(
         client_id=client_id,
         flow_cls=CallGetFileMetadataWithFilterFlow,
-        flow_args=rdf_flows.EmptyFlowArgs(),
+        flow_args=flows_pb2.EmptyFlowArgs(),
         handlers={
             rrg_pb2.GET_FILE_METADATA: GetFileMetadataHandler,
         },

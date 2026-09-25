@@ -22,6 +22,7 @@ send information about its startup.
 
 from collections.abc import Mapping, Sequence
 
+from grr_response_server.sinks import abort
 from grr_response_server.sinks import abstract
 from grr_response_server.sinks import blob
 from grr_response_server.sinks import ping
@@ -33,6 +34,7 @@ Sink = abstract.Sink
 
 # Registry of all known sinks.
 REGISTRY: Mapping["rrg_pb2.Sink", abstract.Sink] = {
+    rrg_pb2.Sink.ABORT: abort.AbortSink(),
     rrg_pb2.Sink.STARTUP: startup.StartupSink(),
     rrg_pb2.Sink.BLOB: blob.BlobSink(),
     rrg_pb2.Sink.PING: ping.PingSink(),

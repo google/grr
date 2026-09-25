@@ -27,7 +27,7 @@ VFSHandler = vfs_base.VFSHandler
 UnsupportedHandlerError = vfs_base.UnsupportedHandlerError
 
 # A registry of all VFSHandler registered
-# TODO: Dictionary keys are of type rdf_paths.PathSpec.PathType,
+# TODO - Dictionary keys are of type rdf_paths.PathSpec.PathType,
 # but this is currently not representable as type information in Python.
 VFS_HANDLERS: dict[Any, type[vfs_base.VFSHandler]] = {}
 VFS_HANDLERS_DIRECT: dict[Any, type[vfs_base.VFSHandler]] = {}
@@ -84,22 +84,22 @@ def Init():
       )
 
     handler_string = handler_string.upper()
-    handler = rdf_paths.PathSpec.PathType.enum_dict.get(handler_string)
+    handler = rdf_paths.PathSpec.PathType.enum_dict.get(handler_string)  # pyrefly: ignore[missing-attribute]
     if handler is None:
       raise ValueError(
           "VFSHandler {} could not be registered, because it was not found in"
           " PathSpec.PathType {}".format(
-              handler_string, rdf_paths.PathSpec.PathType.enum_dict
+              handler_string, rdf_paths.PathSpec.PathType.enum_dict  # pyrefly: ignore[missing-attribute]
           )
       )
 
     # We need some translation here, TSK needs an OS virtual root base. For
     # every other handler we can just keep the type the same.
     if handler in (
-        rdf_paths.PathSpec.PathType.TSK,
-        rdf_paths.PathSpec.PathType.NTFS,
+        rdf_paths.PathSpec.PathType.TSK,  # pyrefly: ignore[missing-attribute]
+        rdf_paths.PathSpec.PathType.NTFS,  # pyrefly: ignore[missing-attribute]
     ):
-      base_type = rdf_paths.PathSpec.PathType.OS
+      base_type = rdf_paths.PathSpec.PathType.OS  # pyrefly: ignore[missing-attribute]
     else:
       base_type = handler
     _VFS_VIRTUALROOTS[handler] = rdf_paths.PathSpec(
@@ -118,13 +118,13 @@ def _GetVfsHandlers(
           "a pathspec."
       )
   if (
-      pathspec.implementation_type
-      == rdf_paths.PathSpec.ImplementationType.DIRECT
+      pathspec.implementation_type  # pyrefly: ignore[missing-attribute]
+      == rdf_paths.PathSpec.ImplementationType.DIRECT  # pyrefly: ignore[missing-attribute]
   ):
     return VFS_HANDLERS_DIRECT
   elif (
       pathspec.implementation_type
-      == rdf_paths.PathSpec.ImplementationType.SANDBOX
+      == rdf_paths.PathSpec.ImplementationType.SANDBOX  # pyrefly: ignore[missing-attribute]
   ):
     return VFS_HANDLERS_SANDBOX
   else:
@@ -223,7 +223,7 @@ def VFSOpen(
   fd = None
 
   # Adjust the pathspec in case we are using a vfs_virtualroot.
-  vroot = _VFS_VIRTUALROOTS.get(pathspec.pathtype)
+  vroot = _VFS_VIRTUALROOTS.get(pathspec.pathtype)  # pyrefly: ignore[missing-attribute]
 
   # If we have a virtual root for this vfs handler, we need to prepend
   # it to the incoming pathspec except if the pathspec is explicitly
@@ -231,7 +231,7 @@ def VFSOpen(
   # the path already contains the virtual root.
   if (
       not vroot
-      or pathspec.is_virtualroot
+      or pathspec.is_virtualroot  # pyrefly: ignore[missing-attribute]
       or pathspec.CollapsePath().startswith(vroot.CollapsePath())
   ):
     # No virtual root but opening changes the pathspec so we always work on a
@@ -274,7 +274,7 @@ def VFSOpen(
         orig_component.HasField("implementation_type")
         and len(working_pathspec) >= len(orig_working_pathspec) + 2
     ):
-      working_pathspec.implementation_type = orig_component.implementation_type
+      working_pathspec.implementation_type = orig_component.implementation_type  # pyrefly: ignore[missing-attribute]
       working_pathspec[1].implementation_type = None
 
   if fd is None:

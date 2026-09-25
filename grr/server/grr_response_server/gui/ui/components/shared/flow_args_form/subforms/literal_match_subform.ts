@@ -10,7 +10,6 @@ import {MatFormFieldModule} from '@angular/material/form-field';
 import {MatInputModule} from '@angular/material/input';
 import {MatSelectModule} from '@angular/material/select';
 
-import {FileFinderContentsLiteralMatchConditionMode} from '../../../../lib/api/api_interfaces';
 import {FormErrors, requiredInput} from '../../form/form_validation';
 
 /** Form that configures a literal match condition. */
@@ -31,9 +30,6 @@ import {FormErrors, requiredInput} from '../../form/form_validation';
 export class LiteralMatchSubform {
   protected readonly controlContainer = inject(ControlContainer);
 
-  readonly FileFinderContentsLiteralMatchConditionMode =
-    FileFinderContentsLiteralMatchConditionMode;
-
   get formGroup() {
     return this.controlContainer.control as ReturnType<
       typeof createLiteralMatchFormGroup
@@ -44,15 +40,11 @@ export class LiteralMatchSubform {
 /** Initializes a form group corresponding to the literal match condition. */
 export function createLiteralMatchFormGroup() {
   return new FormGroup({
-    // TODO: Writing existing values does not work - they need to
+    // TODO - Writing existing values does not work - they need to
     // be base64 decoded?
     literal: new FormControl('', {
       nonNullable: true,
       validators: [requiredInput()],
     }),
-    mode: new FormControl(
-      FileFinderContentsLiteralMatchConditionMode.FIRST_HIT,
-      {nonNullable: true},
-    ),
   });
 }

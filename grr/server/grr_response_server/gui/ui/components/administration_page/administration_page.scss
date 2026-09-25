@@ -1,0 +1,32 @@
+@use '@angular/material' as mat;
+
+:host {
+  display: flex;
+
+  height: 100%;
+  width: 100%;
+  overflow: auto;
+}
+
+a.mat-mdc-list-item {
+  display: flex;
+  border-bottom: 1px solid var(--mat-sys-outline-variant);
+
+  &:hover {
+    cursor: pointer;
+  }
+
+  @include mat.list-overrides(
+    (
+      active-indicator-shape: 0,
+    )
+  );
+}
+
+.selection-panel {
+  height: 100%;
+}
+
+.content-panel {
+  height: 100%;
+}

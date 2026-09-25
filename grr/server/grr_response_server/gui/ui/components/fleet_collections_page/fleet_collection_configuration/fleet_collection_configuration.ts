@@ -5,7 +5,6 @@ import {MatDialog} from '@angular/material/dialog';
 import {MatDividerModule} from '@angular/material/divider';
 import {MatIconModule} from '@angular/material/icon';
 import {MatTooltipModule} from '@angular/material/tooltip';
-import {Title} from '@angular/platform-browser';
 import {RouterModule} from '@angular/router';
 
 import {HuntState} from '../../../lib/models/hunt';
@@ -55,10 +54,6 @@ export class FleetCollectionConfiguration {
   private readonly dialog = inject(MatDialog);
 
   protected readonly HuntState = HuntState;
-
-  constructor() {
-    inject(Title).setTitle('GRR | Fleet Collection > Configuration');
-  }
 
   protected openModifyFleetCollectionDialog() {
     const safetyLimits =

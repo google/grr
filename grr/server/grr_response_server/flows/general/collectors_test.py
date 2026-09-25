@@ -19,11 +19,10 @@ from grr_response_client.client_actions import standard
 from grr_response_core import config
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import artifacts as rdf_artifacts
-from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import client_action as rdf_client_action
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
-from grr_response_core.lib.rdfvalues import mig_artifacts
+from grr_response_core.lib.rdfvalues import mig_protodict
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.util import temp
 from grr_response_proto import artifact_pb2
@@ -39,15 +38,15 @@ from grr_response_server import file_store
 from grr_response_server.databases import db
 from grr_response_server.databases import db_test_utils
 from grr_response_server.flows.general import collectors
+from grr_response_server.flows.general import file_finder
 from grr_response_server.models import blobs as models_blobs
-from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
-from grr_response_server.rdfvalues import mig_flow_objects
 from grr_response_server.rdfvalues import objects as rdf_objects
 from grr.test_lib import action_mocks
 from grr.test_lib import artifact_test_lib
 from grr.test_lib import client_test_lib
 from grr.test_lib import flow_test_lib
 from grr.test_lib import rrg_test_lib
+from grr.test_lib import rrg_wmi_test_lib
 from grr.test_lib import test_lib
 from grr.test_lib import vfs_test_lib
 from grr_response_proto import rrg_pb2
@@ -99,10 +98,13 @@ class TestArtifactCollectors(
     client_id = db_test_utils.InitializeClient(data_store.REL_DB)
     flow_id = db_test_utils.InitializeFlow(data_store.REL_DB, client_id)
 
-    args = rdf_artifacts.ArtifactCollectorFlowArgs()
-    collect_flow = collectors.ArtifactCollectorFlow(
-        rdf_flow_objects.Flow(client_id=client_id, flow_id=flow_id, args=args)
+    args = flows_pb2.ArtifactCollectorFlowArgs()
+    proto_flow = flows_pb2.Flow(
+        client_id=client_id,
+        flow_id=flow_id,
     )
+    proto_flow.args.Pack(args)
+    collect_flow = collectors.ArtifactCollectorFlow(proto_flow=proto_flow)
 
     kb = knowledge_base_pb2.KnowledgeBase()
     kb.users.append(knowledge_base_pb2.User(username="test1"))
@@ -122,7 +124,7 @@ class TestArtifactCollectors(
     self.assertEqual(list_args, ["one"])
 
     # Ignore the failure in users.desktop, report the others.
-    collect_flow.args.ignore_interpolation_errors = True
+    collect_flow.proto_args.ignore_interpolation_errors = True
     list_args = collect_flow._InterpolateList(
         ["%%users.uid%%", r"%%users.username%%\aa"]
     )
@@ -138,9 +140,11 @@ class TestArtifactCollectors(
     """Test we can get a basic artifact."""
     # Dynamically add an ArtifactSource specifying the base path.
     file_path = os.path.join(self.base_path, "win_hello.exe")
-    coll1 = rdf_artifacts.ArtifactSource(
-        type=rdf_artifacts.ArtifactSource.SourceType.FILE,
-        attributes={"paths": [file_path]},
+    coll1 = artifact_pb2.ArtifactSource(
+        type=artifact_pb2.ArtifactSource.SourceType.FILE,
+        attributes=mig_protodict.FromNativeDictToProtoDict(
+            {"paths": [file_path]}
+        ),
     )
     self.fakeartifact.sources.append(coll1)
 
@@ -164,12 +168,10 @@ class TestArtifactCollectors(
           - %s
 """ % file_path
 
-    artifact_obj = artifact_registry.REGISTRY.ArtifactsFromYaml(
-        artifact_source
-    )[0]
+    artifact_obj = artifact_registry.ArtifactsFromYaml(artifact_source)[0]
     artifact_registry.REGISTRY._CheckDirty()
 
-    data_store.REL_DB.WriteArtifact(mig_artifacts.ToProtoArtifact(artifact_obj))
+    data_store.REL_DB.WriteArtifact(artifact_obj)
 
     # Make sure that the artifact is not yet registered and the flow will have
     # to read it from the data store.
@@ -189,7 +191,7 @@ class TestArtifactCollectors(
         client_mock,
         creator=self.test_username,
         client_id=client_id,
-        flow_args=rdf_artifacts.ArtifactCollectorFlowArgs(
+        flow_args=flows_pb2.ArtifactCollectorFlowArgs(
             artifact_list=artifact_list,
             use_raw_filesystem_access=False,
         ),
@@ -222,9 +224,9 @@ class TestArtifactCollectors(
           rdf_paths.PathSpec.PathType.OS, vfs_test_lib.FakeFullVFSHandler
       ):
         client_mock = action_mocks.ActionMock(standard.GetFileStat)
-        coll1 = rdf_artifacts.ArtifactSource(
-            type=rdf_artifacts.ArtifactSource.SourceType.REGISTRY_VALUE,
-            attributes={
+        coll1 = artifact_pb2.ArtifactSource(
+            type=artifact_pb2.ArtifactSource.SourceType.REGISTRY_VALUE,
+            attributes=mig_protodict.FromNativeDictToProtoDict({
                 "key_value_pairs": [{
                     "key": (
                         r"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet"
@@ -232,14 +234,14 @@ class TestArtifactCollectors(
                     ),
                     "value": "BootExecute",
                 }]
-            },
+            }),
         )
         self.fakeartifact.sources.append(coll1)
         artifact_list = ["FakeArtifact"]
         flow_id = flow_test_lib.StartAndRunFlow(
             collectors.ArtifactCollectorFlow,
             client_mock,
-            flow_args=rdf_artifacts.ArtifactCollectorFlowArgs(
+            flow_args=flows_pb2.ArtifactCollectorFlowArgs(
                 artifact_list=artifact_list,
             ),
             creator=self.test_username,
@@ -247,9 +249,13 @@ class TestArtifactCollectors(
         )
 
     # Test the statentry got stored.
-    results = flow_test_lib.GetFlowResults(client_id, flow_id)
-    self.assertIsInstance(results[0], rdf_client_fs.StatEntry)
-    self.assertEndsWith(results[0].pathspec.CollapsePath(), "BootExecute")
+    results = flow_test_lib.GetUnpackedFlowResults(
+        client_id=client_id,
+        flow_id=flow_id,
+        result_type=jobs_pb2.StatEntry,
+    )
+    self.assertLen(results, 1)
+    self.assertEndsWith(results[0].pathspec.path, "BootExecute")
 
   def testRegistryDefaultValueArtifact(self):
     client_id = self.SetupClient(0, system="Linux")
@@ -261,30 +267,34 @@ class TestArtifactCollectors(
           rdf_paths.PathSpec.PathType.OS, vfs_test_lib.FakeFullVFSHandler
       ):
         client_mock = action_mocks.ActionMock(standard.GetFileStat)
-        coll1 = rdf_artifacts.ArtifactSource(
-            type=rdf_artifacts.ArtifactSource.SourceType.REGISTRY_VALUE,
-            attributes={
+        coll1 = artifact_pb2.ArtifactSource(
+            type=artifact_pb2.ArtifactSource.SourceType.REGISTRY_VALUE,
+            attributes=mig_protodict.FromNativeDictToProtoDict({
                 "key_value_pairs": [{
                     "key": r"HKEY_LOCAL_MACHINE/SOFTWARE/ListingTest",
                     "value": "",
                 }]
-            },
+            }),
         )
         self.fakeartifact.sources.append(coll1)
         artifact_list = ["FakeArtifact"]
         flow_id = flow_test_lib.StartAndRunFlow(
             collectors.ArtifactCollectorFlow,
             client_mock,
-            flow_args=rdf_artifacts.ArtifactCollectorFlowArgs(
+            flow_args=flows_pb2.ArtifactCollectorFlowArgs(
                 artifact_list=artifact_list,
             ),
             creator=self.test_username,
             client_id=client_id,
         )
 
-    results = flow_test_lib.GetFlowResults(client_id, flow_id)
-    self.assertIsInstance(results[0], rdf_client_fs.StatEntry)
-    self.assertEqual(results[0].registry_data.GetValue(), "DefaultValue")
+    results = flow_test_lib.GetUnpackedFlowResults(
+        client_id=client_id,
+        flow_id=flow_id,
+        result_type=jobs_pb2.StatEntry,
+    )
+    self.assertLen(results, 1)
+    self.assertEqual(results[0].registry_data.string, "DefaultValue")
 
   def testRegistryKeyArtifact_WithGlob(self):
     client_id = self.SetupClient(0, system="Windows")
@@ -320,27 +330,34 @@ class TestArtifactCollectors(
             )
         )
 
-    registry_key_artifact_source = rdf_artifacts.ArtifactSource(
-        type=rdf_artifacts.ArtifactSource.SourceType.REGISTRY_KEY,
-        attributes={"keys": [r"HKEY_USERS/%%users.sid%%/SomeKey"]},
+    registry_key_artifact_source = artifact_pb2.ArtifactSource(
+        type=artifact_pb2.ArtifactSource.SourceType.REGISTRY_KEY,
+        attributes=mig_protodict.FromNativeDictToProtoDict(
+            {"keys": [r"HKEY_USERS/%%users.sid%%/SomeKey"]}
+        ),
     )
     self.fakeartifact.sources.append(registry_key_artifact_source)
     # This is needed to ensure the artifact is not skipped.
-    self.fakeartifact.supported_os = ["Windows"]
+    self.fakeartifact.ClearField("supported_os")
+    self.fakeartifact.supported_os.append("Windows")
     artifact_list = ["FakeArtifact"]
     flow_id = flow_test_lib.StartAndRunFlow(
         collectors.ArtifactCollectorFlow,
         action_mocks.ActionMock.With({
             "VfsFileFinder": FakeSomeKey,
         }),
-        flow_args=rdf_artifacts.ArtifactCollectorFlowArgs(
+        flow_args=flows_pb2.ArtifactCollectorFlowArgs(
             artifact_list=artifact_list,
         ),
         creator=self.test_username,
         client_id=client_id,
     )
-    results = flow_test_lib.GetFlowResults(client_id, flow_id)
-    self.assertIsInstance(results[0], rdf_client_fs.StatEntry)
+    results = flow_test_lib.GetUnpackedFlowResults(
+        client_id=client_id,
+        flow_id=flow_id,
+        result_type=jobs_pb2.StatEntry,
+    )
+    self.assertLen(results, 1)
     self.assertEqual(results[0].pathspec.path, "some_result")
 
   def testRegistryValueArtifact_WithGlob(self):
@@ -368,32 +385,37 @@ class TestArtifactCollectors(
     # if the glob contains `*`, otherwise `%%` kb interpolations are done
     # directly by `ArtifactCollectorFlow` (not sent to `ClientFileFinder`).
     # This is why we don't need to write a dummy snapshot in this test case.
-    registry_key_artifact_source = rdf_artifacts.ArtifactSource(
-        type=rdf_artifacts.ArtifactSource.SourceType.REGISTRY_VALUE,
-        attributes={
+    registry_key_artifact_source = artifact_pb2.ArtifactSource(
+        type=artifact_pb2.ArtifactSource.SourceType.REGISTRY_VALUE,
+        attributes=mig_protodict.FromNativeDictToProtoDict({
             "key_value_pairs": [{
                 "key": r"HKEY_USERS\*\SomeKey",
                 "value": "SomeValue",
             }]
-        },
+        }),
     )
     self.fakeartifact.sources.append(registry_key_artifact_source)
     # This is needed to ensure the artifact is not skipped.
-    self.fakeartifact.supported_os = ["Windows"]
+    self.fakeartifact.ClearField("supported_os")
+    self.fakeartifact.supported_os.append("Windows")
     artifact_list = ["FakeArtifact"]
     flow_id = flow_test_lib.StartAndRunFlow(
         collectors.ArtifactCollectorFlow,
         action_mocks.ActionMock.With({
             "VfsFileFinder": FakeSomeValue,
         }),
-        flow_args=rdf_artifacts.ArtifactCollectorFlowArgs(
+        flow_args=flows_pb2.ArtifactCollectorFlowArgs(
             artifact_list=artifact_list,
         ),
         creator=self.test_username,
         client_id=client_id,
     )
-    results = flow_test_lib.GetFlowResults(client_id, flow_id)
-    self.assertIsInstance(results[0], rdf_client_fs.StatEntry)
+    results = flow_test_lib.GetUnpackedFlowResults(
+        client_id=client_id,
+        flow_id=flow_id,
+        result_type=jobs_pb2.StatEntry,
+    )
+    self.assertLen(results, 1)
     self.assertEqual(results[0].pathspec.path, "some_result")
 
   def testSupportedOS(self):
@@ -420,9 +442,9 @@ class TestArtifactCollectors(
         "FileFinderOS": FileFinderReturnsFoo,
     })
 
-    coll1 = rdf_artifacts.ArtifactSource(
-        type=rdf_artifacts.ArtifactSource.SourceType.PATH,
-        attributes={"paths": ["/foo"]},
+    coll1 = artifact_pb2.ArtifactSource(
+        type=artifact_pb2.ArtifactSource.SourceType.PATH,
+        attributes=mig_protodict.FromNativeDictToProtoDict({"paths": ["/foo"]}),
         supported_os=["Windows"],
     )
     self.fakeartifact.sources.append(coll1)
@@ -430,24 +452,31 @@ class TestArtifactCollectors(
     results = self._RunPathArtifact(client_id, client_mock, ["FakeArtifact"])
     self.assertEmpty(results)
 
-    coll1.supported_os = ["Linux", "Windows"]
-    self.fakeartifact.sources = []
+    coll1.ClearField("supported_os")
+    coll1.supported_os.extend(["Linux", "Windows"])
+    self.fakeartifact.ClearField("sources")
     self.fakeartifact.sources.append(coll1)
     results = self._RunPathArtifact(client_id, client_mock, ["FakeArtifact"])
     self.assertTrue(results)
 
-    coll1.supported_os = ["NotTrue"]
-    self.fakeartifact.sources = []
+    coll1.ClearField("supported_os")
+    coll1.supported_os.append("NotTrue")
+    self.fakeartifact.ClearField("sources")
     self.fakeartifact.sources.append(coll1)
     results = self._RunPathArtifact(client_id, client_mock, ["FakeArtifact"])
     self.assertEmpty(results)
 
-    coll1.supported_os = ["Linux", "Windows"]
-    self.fakeartifact.supported_os = ["Linux"]
+    coll1.ClearField("supported_os")
+    coll1.supported_os.extend(["Linux", "Windows"])
+    self.fakeartifact.ClearField("sources")
+    self.fakeartifact.sources.append(coll1)
+    self.fakeartifact.ClearField("supported_os")
+    self.fakeartifact.supported_os.append("Linux")
     results = self._RunPathArtifact(client_id, client_mock, ["FakeArtifact"])
     self.assertTrue(results)
 
-    self.fakeartifact.supported_os = ["Windows"]
+    self.fakeartifact.ClearField("supported_os")
+    self.fakeartifact.supported_os.append("Windows")
     results = self._RunPathArtifact(client_id, client_mock, ["FakeArtifact"])
     self.assertEmpty(results)
 
@@ -460,14 +489,18 @@ class TestArtifactCollectors(
         client_mock,
         creator=self.test_username,
         client_id=client_id,
-        flow_args=rdf_artifacts.ArtifactCollectorFlowArgs(
+        flow_args=flows_pb2.ArtifactCollectorFlowArgs(
             artifact_list=artifact_list,
             implementation_type=implementation_type,
             use_raw_filesystem_access=(implementation_type is not None),
         ),
     )
 
-    return flow_test_lib.GetFlowResults(client_id, flow_id)
+    return flow_test_lib.GetUnpackedFlowResults(
+        client_id=client_id,
+        flow_id=flow_id,
+        result_type=jobs_pb2.StatEntry,
+    )
 
   def testFlowProgressHasEntryForArtifactWithoutResults(self):
     client_id = self.SetupClient(0, system="Linux")
@@ -480,9 +513,11 @@ class TestArtifactCollectors(
         pass  # No results.
 
     self.fakeartifact.sources.append(
-        rdf_artifacts.ArtifactSource(
-            type=rdf_artifacts.ArtifactSource.SourceType.PATH,
-            attributes={"paths": ["/test/foo"]},
+        artifact_pb2.ArtifactSource(
+            type=artifact_pb2.ArtifactSource.SourceType.PATH,
+            attributes=mig_protodict.FromNativeDictToProtoDict(
+                {"paths": ["/test/foo"]}
+            ),
         )
     )
 
@@ -492,12 +527,12 @@ class TestArtifactCollectors(
             "FileFinderOS": FakeFileFinderOS,
         }),
         client_id=client_id,
-        flow_args=rdf_artifacts.ArtifactCollectorFlowArgs(
+        flow_args=flows_pb2.ArtifactCollectorFlowArgs(
             artifact_list=["FakeArtifact"],
         ),
     )
 
-    progress = flow_test_lib.GetFlowProgress(client_id, flow_id)
+    progress = flow_test_lib.GetFlowProgressProto(client_id, flow_id)
     self.assertLen(progress.artifacts, 1)
     self.assertEqual(progress.artifacts[0].name, "FakeArtifact")
     self.assertEqual(progress.artifacts[0].num_results, 0)
@@ -532,9 +567,11 @@ class TestArtifactCollectors(
         )
 
     self.fakeartifact.sources.append(
-        rdf_artifacts.ArtifactSource(
-            type=rdf_artifacts.ArtifactSource.SourceType.PATH,
-            attributes={"paths": ["/test/foo*"]},
+        artifact_pb2.ArtifactSource(
+            type=artifact_pb2.ArtifactSource.SourceType.PATH,
+            attributes=mig_protodict.FromNativeDictToProtoDict(
+                {"paths": ["/test/foo*"]}
+            ),
         )
     )
 
@@ -544,12 +581,12 @@ class TestArtifactCollectors(
             "FileFinderOS": FakeFileFinderOS,
         }),
         client_id=client_id,
-        flow_args=rdf_artifacts.ArtifactCollectorFlowArgs(
+        flow_args=flows_pb2.ArtifactCollectorFlowArgs(
             artifact_list=["FakeArtifact"],
         ),
     )
 
-    progress = flow_test_lib.GetFlowProgress(client_id, flow_id)
+    progress = flow_test_lib.GetFlowProgressProto(client_id, flow_id)
     self.assertLen(progress.artifacts, 1)
     self.assertEqual(progress.artifacts[0].name, "FakeArtifact")
     self.assertEqual(progress.artifacts[0].num_results, 2)
@@ -571,16 +608,20 @@ class TestArtifactCollectors(
         raise ValueError()
 
     self.fakeartifact.sources.append(
-        rdf_artifacts.ArtifactSource(
-            type=rdf_artifacts.ArtifactSource.SourceType.ARTIFACT_GROUP,
-            attributes={"names": ["FakeArtifact2"]},
+        artifact_pb2.ArtifactSource(
+            type=artifact_pb2.ArtifactSource.SourceType.ARTIFACT_GROUP,
+            attributes=mig_protodict.FromNativeDictToProtoDict(
+                {"names": ["FakeArtifact2"]}
+            ),
         )
     )
 
     self.fakeartifact2.sources.append(
-        rdf_artifacts.ArtifactSource(
-            type=rdf_artifacts.ArtifactSource.SourceType.COMMAND,
-            attributes={"cmd": "foo", "args": ["bar"]},
+        artifact_pb2.ArtifactSource(
+            type=artifact_pb2.ArtifactSource.SourceType.COMMAND,
+            attributes=mig_protodict.FromNativeDictToProtoDict(
+                {"cmd": "foo", "args": ["bar"]}
+            ),
         )
     )
 
@@ -591,12 +632,16 @@ class TestArtifactCollectors(
         }),
         client_id=client_id,
         check_flow_errors=False,
-        flow_args=rdf_artifacts.ArtifactCollectorFlowArgs(
+        flow_args=flows_pb2.ArtifactCollectorFlowArgs(
             artifact_list=["FakeArtifact"],
         ),
     )
 
-    results = flow_test_lib.GetFlowResults(client_id, flow_id)
+    results = flow_test_lib.GetUnpackedFlowResults(
+        client_id=client_id,
+        flow_id=flow_id,
+        result_type=jobs_pb2.ExecuteResponse,
+    )
     self.assertLen(results, 1)
     self.assertEqual(results[0].stdout, b"finished")
 
@@ -609,25 +654,29 @@ class TestArtifactCollectors(
     data_store.REL_DB.WriteClientSnapshot(client)
 
     artifact_registry.REGISTRY.RegisterArtifact(
-        rdf_artifacts.Artifact(
+        artifact_pb2.Artifact(
             name="Planta",
             doc="Animalito",
             sources=[
-                rdf_artifacts.ArtifactSource(
-                    type=rdf_artifacts.ArtifactSource.SourceType.ARTIFACT_GROUP,
-                    attributes={"names": ["Máquina"]},
+                artifact_pb2.ArtifactSource(
+                    type=artifact_pb2.ArtifactSource.SourceType.ARTIFACT_GROUP,
+                    attributes=mig_protodict.FromNativeDictToProtoDict(
+                        {"names": ["Máquina"]}
+                    ),
                 )
             ],
         )
     )
     artifact_registry.REGISTRY.RegisterArtifact(
-        rdf_artifacts.Artifact(
+        artifact_pb2.Artifact(
             name="Máquina",
             doc="Piedra",
             sources=[
-                rdf_artifacts.ArtifactSource(
-                    type=rdf_artifacts.ArtifactSource.SourceType.PATH,
-                    attributes={"paths": ["planta"]},
+                artifact_pb2.ArtifactSource(
+                    type=artifact_pb2.ArtifactSource.SourceType.PATH,
+                    attributes=mig_protodict.FromNativeDictToProtoDict(
+                        {"paths": ["planta"]}
+                    ),
                 )
             ],
         )
@@ -646,10 +695,10 @@ class TestArtifactCollectors(
             "FileFinderOS": DoesNothingFileFinderOS,
         }),
         client_id=client_id,
-        flow_args=rdf_artifacts.ArtifactCollectorFlowArgs(
+        flow_args=flows_pb2.ArtifactCollectorFlowArgs(
             artifact_list=["Planta"],
             use_raw_filesystem_access=True,
-            implementation_type=rdf_paths.PathSpec.ImplementationType.DIRECT,
+            implementation_type=jobs_pb2.PathSpec.ImplementationType.DIRECT,
             max_file_size=1,
             ignore_interpolation_errors=True,
         ),
@@ -658,11 +707,12 @@ class TestArtifactCollectors(
 
     child_flows = data_store.REL_DB.ReadChildFlowObjects(client_id, flow_id)
     self.assertLen(child_flows, 1)
-    args = mig_flow_objects.ToRDFFlow(child_flows[0]).args
+    args = flows_pb2.ArtifactCollectorFlowArgs()
+    assert child_flows[0].args.Unpack(args)
     self.assertEqual(args.use_raw_filesystem_access, True)
     self.assertEqual(
         args.implementation_type,
-        rdf_paths.PathSpec.ImplementationType.DIRECT,
+        jobs_pb2.PathSpec.ImplementationType.DIRECT,
     )
     self.assertEqual(args.max_file_size, 1)
     self.assertEqual(args.ignore_interpolation_errors, True)
@@ -691,9 +741,7 @@ class TestArtifactCollectors(
     attr_paths.k.string = "paths"
     attr_paths.v.list.content.add().string = "/foo/bar"
 
-    artifact_registry.REGISTRY.RegisterArtifact(
-        mig_artifacts.ToRDFArtifact(artifact)
-    )
+    artifact_registry.REGISTRY.RegisterArtifact(artifact)
 
     args = flows_pb2.ArtifactCollectorFlowArgs()
     args.artifact_list.append("PathExample")
@@ -729,7 +777,7 @@ class TestArtifactCollectors(
     flow_id = rrg_test_lib.ExecuteFlow(
         client_id=client_id,
         flow_cls=collectors.ArtifactCollectorFlow,
-        flow_args=mig_artifacts.ToRDFArtifactCollectorFlowArgs(args),
+        flow_args=args,
         handlers={
             rrg_pb2.Action.GET_FILE_METADATA: GetFileMetadataHandler,
         },
@@ -795,9 +843,7 @@ class TestArtifactCollectors(
     attr_paths.v.list.content.add().string = "/foo/bar"
     attr_paths.v.list.content.add().string = "/foo/baz"
 
-    artifact_registry.REGISTRY.RegisterArtifact(
-        mig_artifacts.ToRDFArtifact(artifact)
-    )
+    artifact_registry.REGISTRY.RegisterArtifact(artifact)
 
     args = flows_pb2.ArtifactCollectorFlowArgs()
     args.artifact_list.append("MultiplePathsExample")
@@ -805,7 +851,7 @@ class TestArtifactCollectors(
     flow_id = rrg_test_lib.ExecuteFlow(
         client_id=client_id,
         flow_cls=collectors.ArtifactCollectorFlow,
-        flow_args=mig_artifacts.ToRDFArtifactCollectorFlowArgs(args),
+        flow_args=args,
         handlers=rrg_test_lib.FakePosixFileHandlers({
             "/foo/bar": os.urandom(42),
             "/foo/baz": "/quux/norf",
@@ -877,9 +923,7 @@ class TestArtifactCollectors(
     attr_paths.k.string = "paths"
     attr_paths.v.list.content.add().string = "/foo/ba*"
 
-    artifact_registry.REGISTRY.RegisterArtifact(
-        mig_artifacts.ToRDFArtifact(artifact)
-    )
+    artifact_registry.REGISTRY.RegisterArtifact(artifact)
 
     args = flows_pb2.ArtifactCollectorFlowArgs()
     args.artifact_list.append("PathWithGlobExample")
@@ -887,7 +931,7 @@ class TestArtifactCollectors(
     flow_id = rrg_test_lib.ExecuteFlow(
         client_id=client_id,
         flow_cls=collectors.ArtifactCollectorFlow,
-        flow_args=mig_artifacts.ToRDFArtifactCollectorFlowArgs(args),
+        flow_args=args,
         handlers=rrg_test_lib.FakePosixFileHandlers({
             "/foo/bar": os.urandom(42),
             "/foo/baz/thud": b"",
@@ -964,9 +1008,7 @@ class TestArtifactCollectors(
     attr_paths.k.string = "paths"
     attr_paths.v.list.content.add().string = "%%users.homedir%%/quux"
 
-    artifact_registry.REGISTRY.RegisterArtifact(
-        mig_artifacts.ToRDFArtifact(artifact)
-    )
+    artifact_registry.REGISTRY.RegisterArtifact(artifact)
 
     args = flows_pb2.ArtifactCollectorFlowArgs()
     args.artifact_list.append("InterpolatedPathExample")
@@ -974,7 +1016,7 @@ class TestArtifactCollectors(
     flow_id = rrg_test_lib.ExecuteFlow(
         client_id=client_id,
         flow_cls=collectors.ArtifactCollectorFlow,
-        flow_args=mig_artifacts.ToRDFArtifactCollectorFlowArgs(args),
+        flow_args=args,
         handlers=rrg_test_lib.FakePosixFileHandlers({
             "/home/foo/quux": os.urandom(42),
             "/home/bar/quux": os.urandom(1337),
@@ -1047,9 +1089,7 @@ class TestArtifactCollectors(
     attr_paths.k.string = "paths"
     attr_paths.v.list.content.add().string = "X:\\Foo Bar\\baz.exe"
 
-    artifact_registry.REGISTRY.RegisterArtifact(
-        mig_artifacts.ToRDFArtifact(artifact)
-    )
+    artifact_registry.REGISTRY.RegisterArtifact(artifact)
 
     args = flows_pb2.ArtifactCollectorFlowArgs()
     args.artifact_list.append("WindowsPathExample")
@@ -1057,7 +1097,7 @@ class TestArtifactCollectors(
     flow_id = rrg_test_lib.ExecuteFlow(
         client_id=client_id,
         flow_cls=collectors.ArtifactCollectorFlow,
-        flow_args=mig_artifacts.ToRDFArtifactCollectorFlowArgs(args),
+        flow_args=args,
         handlers=rrg_test_lib.FakeWindowsFileHandlers({
             "X:\\Foo Bar\\baz.exe": os.urandom(303),
         }),
@@ -1114,9 +1154,7 @@ class TestArtifactCollectors(
     attr_paths.v.list.content.add().string = "/foo/*.bin"
     attr_paths.v.list.content.add().string = "/*/thud.bin"
 
-    artifact_registry.REGISTRY.RegisterArtifact(
-        mig_artifacts.ToRDFArtifact(artifact)
-    )
+    artifact_registry.REGISTRY.RegisterArtifact(artifact)
 
     args = flows_pb2.ArtifactCollectorFlowArgs()
     args.artifact_list.append("PathWithOverlapsExample")
@@ -1124,7 +1162,7 @@ class TestArtifactCollectors(
     flow_id = rrg_test_lib.ExecuteFlow(
         client_id=client_id,
         flow_cls=collectors.ArtifactCollectorFlow,
-        flow_args=mig_artifacts.ToRDFArtifactCollectorFlowArgs(args),
+        flow_args=args,
         handlers=rrg_test_lib.FakePosixFileHandlers({
             "/foo/thud.bin": b"",
             "/foo/thud.txt": b"",
@@ -1180,9 +1218,7 @@ class TestArtifactCollectors(
     attr_paths.v.list.content.add().string = "/foo/thud.bin"
     attr_paths.v.list.content.add().string = "/ba?/*.txt"
 
-    artifact_registry.REGISTRY.RegisterArtifact(
-        mig_artifacts.ToRDFArtifact(artifact)
-    )
+    artifact_registry.REGISTRY.RegisterArtifact(artifact)
 
     args = flows_pb2.ArtifactCollectorFlowArgs()
     args.artifact_list.append("PathWithMixedGlobsExample")
@@ -1190,7 +1226,7 @@ class TestArtifactCollectors(
     flow_id = rrg_test_lib.ExecuteFlow(
         client_id=client_id,
         flow_cls=collectors.ArtifactCollectorFlow,
-        flow_args=mig_artifacts.ToRDFArtifactCollectorFlowArgs(args),
+        flow_args=args,
         handlers=rrg_test_lib.FakePosixFileHandlers({
             "/foo/thud.bin": b"",
             "/bar/quux.txt": b"",
@@ -1248,9 +1284,7 @@ class TestArtifactCollectors(
     attr_paths.k.string = "paths"
     attr_paths.v.list.content.add().string = "/foo/bar"
 
-    artifact_registry.REGISTRY.RegisterArtifact(
-        mig_artifacts.ToRDFArtifact(artifact)
-    )
+    artifact_registry.REGISTRY.RegisterArtifact(artifact)
 
     args = flows_pb2.ArtifactCollectorFlowArgs()
     args.artifact_list.append("FileExample")
@@ -1258,7 +1292,7 @@ class TestArtifactCollectors(
     flow_id = rrg_test_lib.ExecuteFlow(
         client_id=client_id,
         flow_cls=collectors.ArtifactCollectorFlow,
-        flow_args=mig_artifacts.ToRDFArtifactCollectorFlowArgs(args),
+        flow_args=args,
         handlers=rrg_test_lib.FakePosixFileHandlers({
             "/foo/bar": b"\xff" * 42,
         }),
@@ -1336,9 +1370,7 @@ class TestArtifactCollectors(
     attr_paths.k.string = "paths"
     attr_paths.v.list.content.add().string = "/foo/bar"
 
-    artifact_registry.REGISTRY.RegisterArtifact(
-        mig_artifacts.ToRDFArtifact(artifact)
-    )
+    artifact_registry.REGISTRY.RegisterArtifact(artifact)
 
     args = flows_pb2.ArtifactCollectorFlowArgs()
     args.artifact_list.append("EmptyFileExample")
@@ -1346,7 +1378,7 @@ class TestArtifactCollectors(
     flow_id = rrg_test_lib.ExecuteFlow(
         client_id=client_id,
         flow_cls=collectors.ArtifactCollectorFlow,
-        flow_args=mig_artifacts.ToRDFArtifactCollectorFlowArgs(args),
+        flow_args=args,
         handlers=rrg_test_lib.FakePosixFileHandlers({
             "/foo/bar": b"",
         }),
@@ -1427,9 +1459,7 @@ class TestArtifactCollectors(
     attr_paths.v.list.content.add().string = "/empty"
     attr_paths.v.list.content.add().string = "/not-empty"
 
-    artifact_registry.REGISTRY.RegisterArtifact(
-        mig_artifacts.ToRDFArtifact(artifact)
-    )
+    artifact_registry.REGISTRY.RegisterArtifact(artifact)
 
     args = flows_pb2.ArtifactCollectorFlowArgs()
     args.artifact_list.append("EmptyAndNotEmptyFileExample")
@@ -1437,7 +1467,7 @@ class TestArtifactCollectors(
     flow_id = rrg_test_lib.ExecuteFlow(
         client_id=client_id,
         flow_cls=collectors.ArtifactCollectorFlow,
-        flow_args=mig_artifacts.ToRDFArtifactCollectorFlowArgs(args),
+        flow_args=args,
         handlers=rrg_test_lib.FakePosixFileHandlers({
             "/empty": b"",
             "/not-empty": b"Lorem ipsum.",
@@ -1558,9 +1588,7 @@ class TestArtifactCollectors(
     attr_paths.k.string = "paths"
     attr_paths.v.list.content.add().string = "/foo/bar"
 
-    artifact_registry.REGISTRY.RegisterArtifact(
-        mig_artifacts.ToRDFArtifact(artifact)
-    )
+    artifact_registry.REGISTRY.RegisterArtifact(artifact)
 
     args = flows_pb2.ArtifactCollectorFlowArgs()
     args.artifact_list.append("NonExistingFileExample")
@@ -1568,7 +1596,7 @@ class TestArtifactCollectors(
     flow_id = rrg_test_lib.ExecuteFlow(
         client_id=client_id,
         flow_cls=collectors.ArtifactCollectorFlow,
-        flow_args=mig_artifacts.ToRDFArtifactCollectorFlowArgs(args),
+        flow_args=args,
         handlers=rrg_test_lib.FakePosixFileHandlers({}),
     )
 
@@ -1615,9 +1643,7 @@ class TestArtifactCollectors(
     attr_paths.k.string = "paths"
     attr_paths.v.list.content.add().string = "/foo/bar"
 
-    artifact_registry.REGISTRY.RegisterArtifact(
-        mig_artifacts.ToRDFArtifact(artifact)
-    )
+    artifact_registry.REGISTRY.RegisterArtifact(artifact)
 
     args = flows_pb2.ArtifactCollectorFlowArgs()
     args.artifact_list.append("LargeFileExample")
@@ -1625,7 +1651,7 @@ class TestArtifactCollectors(
     flow_id = rrg_test_lib.ExecuteFlow(
         client_id=client_id,
         flow_cls=collectors.ArtifactCollectorFlow,
-        flow_args=mig_artifacts.ToRDFArtifactCollectorFlowArgs(args),
+        flow_args=args,
         handlers=rrg_test_lib.FakePosixFileHandlers({
             "/foo/bar": content,
         }),
@@ -1704,9 +1730,7 @@ class TestArtifactCollectors(
     attr_paths.v.list.content.add().string = "/foo/bar"
     attr_paths.v.list.content.add().string = "/foo/bar"
 
-    artifact_registry.REGISTRY.RegisterArtifact(
-        mig_artifacts.ToRDFArtifact(artifact)
-    )
+    artifact_registry.REGISTRY.RegisterArtifact(artifact)
 
     args = flows_pb2.ArtifactCollectorFlowArgs()
     args.artifact_list.append("FileDuplicateExample")
@@ -1714,7 +1738,7 @@ class TestArtifactCollectors(
     flow_id = rrg_test_lib.ExecuteFlow(
         client_id=client_id,
         flow_cls=collectors.ArtifactCollectorFlow,
-        flow_args=mig_artifacts.ToRDFArtifactCollectorFlowArgs(args),
+        flow_args=args,
         handlers=rrg_test_lib.FakePosixFileHandlers({
             "/foo/bar": b"\xff" * 42,
         }),
@@ -1729,7 +1753,7 @@ class TestArtifactCollectors(
     self.assertTrue(flow_obj.progress.Unpack(flow_progress))
     self.assertLen(flow_progress.artifacts, 1)
     self.assertEqual(flow_progress.artifacts[0].name, "FileDuplicateExample")
-    # TODO: Add assertion on number of results. For the time being
+    # TODO - Add assertion on number of results. For the time being
     # we report the incorrect number of results here because of duplicates.
     self.assertEqual(
         flow_progress.artifacts[0].status,
@@ -1795,9 +1819,7 @@ class TestArtifactCollectors(
     attr_paths.k.string = "paths"
     attr_paths.v.list.content.add().string = "/foo/ba*"
 
-    artifact_registry.REGISTRY.RegisterArtifact(
-        mig_artifacts.ToRDFArtifact(artifact)
-    )
+    artifact_registry.REGISTRY.RegisterArtifact(artifact)
 
     args = flows_pb2.ArtifactCollectorFlowArgs()
     args.artifact_list.append("FileWithGlobExample")
@@ -1805,7 +1827,7 @@ class TestArtifactCollectors(
     flow_id = rrg_test_lib.ExecuteFlow(
         client_id=client_id,
         flow_cls=collectors.ArtifactCollectorFlow,
-        flow_args=mig_artifacts.ToRDFArtifactCollectorFlowArgs(args),
+        flow_args=args,
         handlers=rrg_test_lib.FakePosixFileHandlers({
             "/foo/bar": b"BAR",
             "/foo/baz": b"BAZ",
@@ -1907,9 +1929,7 @@ class TestArtifactCollectors(
     attr_paths.v.list.content.add().string = "/*/bar"
     attr_paths.v.list.content.add().string = "/*/bar-baz"
 
-    artifact_registry.REGISTRY.RegisterArtifact(
-        mig_artifacts.ToRDFArtifact(artifact)
-    )
+    artifact_registry.REGISTRY.RegisterArtifact(artifact)
 
     args = flows_pb2.ArtifactCollectorFlowArgs()
     args.artifact_list.append("FileWithGlobOverlapExample")
@@ -1917,7 +1937,7 @@ class TestArtifactCollectors(
     flow_id = rrg_test_lib.ExecuteFlow(
         client_id=client_id,
         flow_cls=collectors.ArtifactCollectorFlow,
-        flow_args=mig_artifacts.ToRDFArtifactCollectorFlowArgs(args),
+        flow_args=args,
         handlers=rrg_test_lib.FakePosixFileHandlers({
             "/foo/bar": b"BAR",
             "/foo/bar-baz": b"BAZ",
@@ -1932,7 +1952,7 @@ class TestArtifactCollectors(
     flow_progress = flows_pb2.ArtifactCollectorFlowProgress()
     self.assertTrue(flow_obj.progress.Unpack(flow_progress))
     self.assertLen(flow_progress.artifacts, 1)
-    # TODO: Add assertion on number of results. For the time being
+    # TODO - Add assertion on number of results. For the time being
     # we report the incorrect number of results here because of duplicates.
     self.assertEqual(
         flow_progress.artifacts[0].status,
@@ -2020,9 +2040,7 @@ class TestArtifactCollectors(
     attr_paths.k.string = "paths"
     attr_paths.v.list.content.add().string = "/foo/bar"
 
-    artifact_registry.REGISTRY.RegisterArtifact(
-        mig_artifacts.ToRDFArtifact(artifact)
-    )
+    artifact_registry.REGISTRY.RegisterArtifact(artifact)
 
     args = flows_pb2.ArtifactCollectorFlowArgs()
     args.artifact_list.append("FileWithDelayExample")
@@ -2068,8 +2086,8 @@ class TestArtifactCollectors(
     )
     self.enter_context(
         mock.patch.object(
-            collectors.ArtifactCollectorFlow,
-            "_BLOB_WAIT_DELAY",
+            file_finder.ClientFileFinder,
+            "BLOB_CHECK_DELAY",
             rdfvalue.Duration(0),
         )
     )
@@ -2077,7 +2095,7 @@ class TestArtifactCollectors(
     flow_id = rrg_test_lib.ExecuteFlow(
         client_id=client_id,
         flow_cls=collectors.ArtifactCollectorFlow,
-        flow_args=mig_artifacts.ToRDFArtifactCollectorFlowArgs(args),
+        flow_args=args,
         handlers=rrg_test_lib.FakePosixFileHandlers({
             "/foo/bar": b"\xff" * 42,
         }),
@@ -2168,12 +2186,8 @@ class TestArtifactCollectors(
     attr_paths.k.string = "paths"
     attr_paths.v.list.content.add().string = "/foo/baz"
 
-    artifact_registry.REGISTRY.RegisterArtifact(
-        mig_artifacts.ToRDFArtifact(artifact1)
-    )
-    artifact_registry.REGISTRY.RegisterArtifact(
-        mig_artifacts.ToRDFArtifact(artifact2)
-    )
+    artifact_registry.REGISTRY.RegisterArtifact(artifact1)
+    artifact_registry.REGISTRY.RegisterArtifact(artifact2)
 
     args = flows_pb2.ArtifactCollectorFlowArgs()
     args.artifact_list.append("FileExample1")
@@ -2182,7 +2196,7 @@ class TestArtifactCollectors(
     flow_id = rrg_test_lib.ExecuteFlow(
         client_id=client_id,
         flow_cls=collectors.ArtifactCollectorFlow,
-        flow_args=mig_artifacts.ToRDFArtifactCollectorFlowArgs(args),
+        flow_args=args,
         handlers=rrg_test_lib.FakePosixFileHandlers({
             "/foo/bar": b"\xff" * 42,
             "/foo/baz": b"\x00" * 1337,
@@ -2321,12 +2335,8 @@ class TestArtifactCollectors(
     attr_paths.k.string = "paths"
     attr_paths.v.list.content.add().string = "/foo/bar"
 
-    artifact_registry.REGISTRY.RegisterArtifact(
-        mig_artifacts.ToRDFArtifact(artifact1)
-    )
-    artifact_registry.REGISTRY.RegisterArtifact(
-        mig_artifacts.ToRDFArtifact(artifact2)
-    )
+    artifact_registry.REGISTRY.RegisterArtifact(artifact1)
+    artifact_registry.REGISTRY.RegisterArtifact(artifact2)
 
     args = flows_pb2.ArtifactCollectorFlowArgs()
     args.artifact_list.append("FileExample1")
@@ -2335,7 +2345,7 @@ class TestArtifactCollectors(
     flow_id = rrg_test_lib.ExecuteFlow(
         client_id=client_id,
         flow_cls=collectors.ArtifactCollectorFlow,
-        flow_args=mig_artifacts.ToRDFArtifactCollectorFlowArgs(args),
+        flow_args=args,
         handlers=rrg_test_lib.FakePosixFileHandlers({
             "/foo/bar": b"\xff" * 42,
         }),
@@ -2437,9 +2447,7 @@ class TestArtifactCollectors(
     attr_keys.k.string = "keys"
     attr_keys.v.list.content.add().string = r"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Session Manager\SubSystems"  # pylint: disable=line-too-long
 
-    artifact_registry.REGISTRY.RegisterArtifact(
-        mig_artifacts.ToRDFArtifact(artifact)
-    )
+    artifact_registry.REGISTRY.RegisterArtifact(artifact)
 
     args = flows_pb2.ArtifactCollectorFlowArgs()
     args.artifact_list.append("RegistryKeyExample")
@@ -2491,7 +2499,7 @@ class TestArtifactCollectors(
     flow_id = rrg_test_lib.ExecuteFlow(
         client_id=client_id,
         flow_cls=collectors.ArtifactCollectorFlow,
-        flow_args=mig_artifacts.ToRDFArtifactCollectorFlowArgs(args),
+        flow_args=args,
         handlers={
             rrg_pb2.Action.LIST_WINREG_VALUES: ListWinregValuesHandler,
             rrg_pb2.Action.LIST_WINREG_KEYS: ListWinregKeysHandler,
@@ -2574,9 +2582,7 @@ class TestArtifactCollectors(
     attr_keys.k.string = "keys"
     attr_keys.v.list.content.add().string = r"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\*"  # pylint: disable=line-too-long
 
-    artifact_registry.REGISTRY.RegisterArtifact(
-        mig_artifacts.ToRDFArtifact(artifact)
-    )
+    artifact_registry.REGISTRY.RegisterArtifact(artifact)
 
     args = flows_pb2.ArtifactCollectorFlowArgs()
     args.artifact_list.append("RegistryKeyWithGlobExample")
@@ -2672,7 +2678,7 @@ class TestArtifactCollectors(
     flow_id = rrg_test_lib.ExecuteFlow(
         client_id=client_id,
         flow_cls=collectors.ArtifactCollectorFlow,
-        flow_args=mig_artifacts.ToRDFArtifactCollectorFlowArgs(args),
+        flow_args=args,
         handlers={
             rrg_pb2.Action.LIST_WINREG_VALUES: ListWinregValuesHandler,
             rrg_pb2.Action.LIST_WINREG_KEYS: ListWinregKeysHandler,
@@ -2810,9 +2816,7 @@ class TestArtifactCollectors(
     attr_keys.k.string = "keys"
     attr_keys.v.list.content.add().string = r"HKEY_LOCAL_MACHINE\SOFTWARE\**2\App Paths\*"  # pylint: disable=line-too-long
 
-    artifact_registry.REGISTRY.RegisterArtifact(
-        mig_artifacts.ToRDFArtifact(artifact)
-    )
+    artifact_registry.REGISTRY.RegisterArtifact(artifact)
 
     args = flows_pb2.ArtifactCollectorFlowArgs()
     args.artifact_list.append("RegistryKeyWithRecursiveGlobExample")
@@ -2921,7 +2925,7 @@ class TestArtifactCollectors(
     flow_id = rrg_test_lib.ExecuteFlow(
         client_id=client_id,
         flow_cls=collectors.ArtifactCollectorFlow,
-        flow_args=mig_artifacts.ToRDFArtifactCollectorFlowArgs(args),
+        flow_args=args,
         handlers={
             rrg_pb2.Action.LIST_WINREG_VALUES: ListWinregValuesHandler,
             rrg_pb2.Action.LIST_WINREG_KEYS: ListWinregKeysHandler,
@@ -3026,9 +3030,7 @@ class TestArtifactCollectors(
     attr_keys.k.string = "keys"
     attr_keys.v.list.content.add().string = r"HKEY_USERS\%%users.sid%%\Software\Quux"  # pylint: disable=line-too-long
 
-    artifact_registry.REGISTRY.RegisterArtifact(
-        mig_artifacts.ToRDFArtifact(artifact)
-    )
+    artifact_registry.REGISTRY.RegisterArtifact(artifact)
 
     args = flows_pb2.ArtifactCollectorFlowArgs()
     args.artifact_list.append("InterpolatedRegistryKeyExample")
@@ -3072,7 +3074,7 @@ class TestArtifactCollectors(
     flow_id = rrg_test_lib.ExecuteFlow(
         client_id=client_id,
         flow_cls=collectors.ArtifactCollectorFlow,
-        flow_args=mig_artifacts.ToRDFArtifactCollectorFlowArgs(args),
+        flow_args=args,
         handlers={
             rrg_pb2.Action.LIST_WINREG_VALUES: ListWinregValuesHandler,
             rrg_pb2.Action.LIST_WINREG_KEYS: ListWinregKeysHandler,
@@ -3134,9 +3136,7 @@ class TestArtifactCollectors(
     attr_value.k.string = "value"
     attr_value.v.string = "AppCompatCache"
 
-    artifact_registry.REGISTRY.RegisterArtifact(
-        mig_artifacts.ToRDFArtifact(artifact)
-    )
+    artifact_registry.REGISTRY.RegisterArtifact(artifact)
 
     args = flows_pb2.ArtifactCollectorFlowArgs()
     args.artifact_list.append("RegistryValueExample")
@@ -3183,7 +3183,7 @@ class TestArtifactCollectors(
     flow_id = rrg_test_lib.ExecuteFlow(
         client_id=client_id,
         flow_cls=collectors.ArtifactCollectorFlow,
-        flow_args=mig_artifacts.ToRDFArtifactCollectorFlowArgs(args),
+        flow_args=args,
         handlers={
             rrg_pb2.Action.LIST_WINREG_VALUES: ListWinregValuesHandler,
         },
@@ -3237,9 +3237,7 @@ class TestArtifactCollectors(
     attr_value.k.string = "value"
     attr_value.v.string = "Version"
 
-    artifact_registry.REGISTRY.RegisterArtifact(
-        mig_artifacts.ToRDFArtifact(artifact)
-    )
+    artifact_registry.REGISTRY.RegisterArtifact(artifact)
 
     args = flows_pb2.ArtifactCollectorFlowArgs()
     args.artifact_list.append("RegistryValueWithGlobExample")
@@ -3319,7 +3317,7 @@ class TestArtifactCollectors(
     flow_id = rrg_test_lib.ExecuteFlow(
         client_id=client_id,
         flow_cls=collectors.ArtifactCollectorFlow,
-        flow_args=mig_artifacts.ToRDFArtifactCollectorFlowArgs(args),
+        flow_args=args,
         handlers={
             rrg_pb2.Action.LIST_WINREG_VALUES: ListWinregValuesHandler,
         },
@@ -3406,9 +3404,7 @@ class TestArtifactCollectors(
     attr_value.k.string = "value"
     attr_value.v.string = "Path"
 
-    artifact_registry.REGISTRY.RegisterArtifact(
-        mig_artifacts.ToRDFArtifact(artifact)
-    )
+    artifact_registry.REGISTRY.RegisterArtifact(artifact)
 
     args = flows_pb2.ArtifactCollectorFlowArgs()
     args.artifact_list.append("InterpolatedRegistryValueExample")
@@ -3449,7 +3445,7 @@ class TestArtifactCollectors(
     flow_id = rrg_test_lib.ExecuteFlow(
         client_id=client_id,
         flow_cls=collectors.ArtifactCollectorFlow,
-        flow_args=mig_artifacts.ToRDFArtifactCollectorFlowArgs(args),
+        flow_args=args,
         handlers={
             rrg_pb2.Action.LIST_WINREG_VALUES: ListWinregValuesHandler,
         },
@@ -3523,9 +3519,7 @@ class TestArtifactCollectors(
     attr_args.v.list.content.add().string = "--bar"
     attr_args.v.list.content.add().string = "--baz"
 
-    artifact_registry.REGISTRY.RegisterArtifact(
-        mig_artifacts.ToRDFArtifact(artifact)
-    )
+    artifact_registry.REGISTRY.RegisterArtifact(artifact)
 
     args = flows_pb2.ArtifactCollectorFlowArgs()
     args.artifact_list.append("CommandExample")
@@ -3551,7 +3545,7 @@ class TestArtifactCollectors(
     flow_id = rrg_test_lib.ExecuteFlow(
         client_id=client_id,
         flow_cls=collectors.ArtifactCollectorFlow,
-        flow_args=mig_artifacts.ToRDFArtifactCollectorFlowArgs(args),
+        flow_args=args,
         handlers={
             rrg_pb2.Action.EXECUTE_SIGNED_COMMAND: ExecuteSignedCommandHandler,
         },
@@ -3591,36 +3585,27 @@ class TestArtifactCollectors(
     attr_query.k.string = "query"
     attr_query.v.string = "SELECT * FROM Foo"
 
-    artifact_registry.REGISTRY.RegisterArtifact(
-        mig_artifacts.ToRDFArtifact(artifact)
-    )
+    artifact_registry.REGISTRY.RegisterArtifact(artifact)
 
     args = flows_pb2.ArtifactCollectorFlowArgs()
     args.artifact_list.append("WmiExample")
 
-    def QueryWmiHandler(session: rrg_test_lib.Session) -> None:
-      args = rrg_query_wmi_pb2.Args()
-      assert session.args.Unpack(args)
-
-      if not args.query.strip().startswith("SELECT "):
-        raise RuntimeError(f"Non-`SELECT` WMI query: {args.query!r}")
-
-      result = rrg_query_wmi_pb2.Result()
-      result.row["Bool"].bool = True
-      result.row["UnsignedInt"].uint = 1337
-      result.row["SignedInt"].int = -42
-      result.row["Float"].float = 3.14
-      result.row["Double"].double = 2.71
-      result.row["String"].string = "Lorem ipsum"
-      session.Reply(result)
-
     flow_id = rrg_test_lib.ExecuteFlow(
         client_id=client_id,
         flow_cls=collectors.ArtifactCollectorFlow,
-        flow_args=mig_artifacts.ToRDFArtifactCollectorFlowArgs(args),
-        handlers={
-            rrg_pb2.Action.QUERY_WMI: QueryWmiHandler,
-        },
+        flow_args=args,
+        handlers=rrg_test_lib.FakeWmiHandlers({
+            "Foo": [
+                {
+                    "Bool": True,
+                    "UnsignedInt": rrg_wmi_test_lib.UInt32(1337),
+                    "SignedInt": rrg_wmi_test_lib.SInt32(-42),
+                    "Float": rrg_wmi_test_lib.Real32(3.14),
+                    "Double": rrg_wmi_test_lib.Real64(2.71),
+                    "String": "Lorem ipsum",
+                },
+            ],
+        }),
     )
 
     flow_obj = data_store.REL_DB.ReadFlowObject(client_id, flow_id)
@@ -3666,9 +3651,7 @@ class TestArtifactCollectors(
     attr_base_object.k.string = "base_object"
     attr_base_object.v.string = "winmgmts:\\root\\SecurityCenter2"
 
-    artifact_registry.REGISTRY.RegisterArtifact(
-        mig_artifacts.ToRDFArtifact(artifact)
-    )
+    artifact_registry.REGISTRY.RegisterArtifact(artifact)
 
     args = flows_pb2.ArtifactCollectorFlowArgs()
     args.artifact_list.append("WmiExampleWithBaseObject")
@@ -3686,7 +3669,7 @@ class TestArtifactCollectors(
     flow_id = rrg_test_lib.ExecuteFlow(
         client_id=client_id,
         flow_cls=collectors.ArtifactCollectorFlow,
-        flow_args=mig_artifacts.ToRDFArtifactCollectorFlowArgs(args),
+        flow_args=args,
         handlers={
             rrg_pb2.Action.QUERY_WMI: QueryWmiHandler,
         },
@@ -3699,9 +3682,11 @@ class TestArtifactCollectors(
     client_id = self.SetupClient(0, system="Linux")
     client_mock = action_mocks.FileFinderClientMock()
     with temp.AutoTempDirPath() as temp_dir_path:
-      coll1 = rdf_artifacts.ArtifactSource(
-          type=rdf_artifacts.ArtifactSource.SourceType.PATH,
-          attributes={"paths": [temp_dir_path]},
+      coll1 = artifact_pb2.ArtifactSource(
+          type=artifact_pb2.ArtifactSource.SourceType.PATH,
+          attributes=mig_protodict.FromNativeDictToProtoDict(
+              {"paths": [temp_dir_path]}
+          ),
       )
       self.fakeartifact.sources.append(coll1)
       results = self._RunPathArtifact(client_id, client_mock, ["FakeArtifact"])
@@ -3712,9 +3697,11 @@ class TestArtifactCollectors(
     client_id = self.SetupClient(0, system="Linux")
     client_mock = action_mocks.FileFinderClientMock()
     with temp.AutoTempFilePath() as temp_file_path:
-      coll1 = rdf_artifacts.ArtifactSource(
-          type=rdf_artifacts.ArtifactSource.SourceType.FILE,
-          attributes={"paths": [temp_file_path]},
+      coll1 = artifact_pb2.ArtifactSource(
+          type=artifact_pb2.ArtifactSource.SourceType.FILE,
+          attributes=mig_protodict.FromNativeDictToProtoDict(
+              {"paths": [temp_file_path]}
+          ),
       )
       self.fakeartifact.sources.append(coll1)
       results = self._RunPathArtifact(client_id, client_mock, ["FakeArtifact"])
@@ -3746,9 +3733,11 @@ class RelationalTestArtifactCollectors(
             )
         )
 
-    coll1 = rdf_artifacts.ArtifactSource(
-        type=rdf_artifacts.ArtifactSource.SourceType.PATH,
-        attributes={"paths": ["/foo/bar"]},
+    coll1 = artifact_pb2.ArtifactSource(
+        type=artifact_pb2.ArtifactSource.SourceType.PATH,
+        attributes=mig_protodict.FromNativeDictToProtoDict(
+            {"paths": ["/foo/bar"]}
+        ),
     )
     self.fakeartifact.sources.append(coll1)
     self.fakeartifact2.sources.append(coll1)
@@ -3760,15 +3749,15 @@ class RelationalTestArtifactCollectors(
         }),
         creator=self.test_username,
         client_id=client_id,
-        flow_args=rdf_artifacts.ArtifactCollectorFlowArgs(
+        flow_args=flows_pb2.ArtifactCollectorFlowArgs(
             artifact_list=artifact_list,
             split_output_by_artifact=True,
         ),
     )
-    results_by_tag = flow_test_lib.GetFlowResultsByTag(client_id, flow_id)
+    result_tags = flow_test_lib.GetFlowResultTags(client_id, flow_id)
     self.assertCountEqual(
-        results_by_tag.keys(),
-        ["artifact:FakeArtifact", "artifact:FakeArtifact2"],
+        result_tags,
+        {"artifact:FakeArtifact", "artifact:FakeArtifact2"},
     )
 
 
@@ -3778,24 +3767,31 @@ class MeetsConditionsTest(test_lib.GRRBaseTest):
   def testSourceMeetsOSConditions(self):
     """Test we can get a GRR client artifact with conditions."""
 
-    knowledge_base = rdf_client.KnowledgeBase()
-    knowledge_base.os = "Windows"
+    knowledge_base = knowledge_base_pb2.KnowledgeBase(os="Windows")
 
     # Run with unsupported OS.
-    source = rdf_artifacts.ArtifactSource(
-        type=rdf_artifacts.ArtifactSource.SourceType.PATH,
-        attributes={"paths": ["/test/foo"]},
+    source = artifact_pb2.ArtifactSource(
+        type=artifact_pb2.ArtifactSource.SourceType.PATH,
+        attributes=mig_protodict.FromNativeDictToProtoDict(
+            {"paths": ["/test/foo"]}
+        ),
         supported_os=["Linux"],
     )
-    self.assertFalse(collectors.MeetsOSConditions(knowledge_base, source))
+    self.assertFalse(
+        collectors.MeetsOSConditions(knowledge_base, source.supported_os)
+    )
 
     # Run with supported OS.
-    source = rdf_artifacts.ArtifactSource(
-        type=rdf_artifacts.ArtifactSource.SourceType.PATH,
-        attributes={"paths": ["/test/foo"]},
+    source = artifact_pb2.ArtifactSource(
+        type=artifact_pb2.ArtifactSource.SourceType.PATH,
+        attributes=mig_protodict.FromNativeDictToProtoDict(
+            {"paths": ["/test/foo"]}
+        ),
         supported_os=["Linux", "Windows"],
     )
-    self.assertTrue(collectors.MeetsOSConditions(knowledge_base, source))
+    self.assertTrue(
+        collectors.MeetsOSConditions(knowledge_base, source.supported_os)
+    )
 
 
 def InitGRRWithTestArtifacts(self):

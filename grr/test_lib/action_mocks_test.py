@@ -34,7 +34,7 @@ class ActionMockTest(absltest.TestCase):
     })
 
     message = rdf_flows.GrrMessage()
-    message.name = "Echo"
+    message.name = "Echo"  # pyrefly: ignore[missing-attribute]
     message.payload = rdfvalue.RDFString("foobar")
 
     responses = action_mock.HandleMessage(message)
@@ -47,7 +47,7 @@ class ActionMockTest(absltest.TestCase):
     action_mock = action_mocks.ActionMock.WithRegistry()
 
     message = rdf_flows.GrrMessage()
-    message.name = "Echo"
+    message.name = "Echo"  # pyrefly: ignore[missing-attribute]
     message.payload = rdfvalue.RDFString("foobar")
 
     responses = action_mock.HandleMessage(message)
@@ -103,7 +103,7 @@ class ExecuteCommandActionMockTest(absltest.TestCase):
     results = list(action_mock.ExecuteCommand(args))
 
     self.assertLen(results, 1)
-    self.assertEqual(results[0].exit_status, 42)
+    self.assertEqual(results[0].exit_status, 42)  # pyrefly: ignore[missing-attribute]
 
   def testStdout(self):
     action_mock = action_mocks.ExecuteCommandActionMock(
@@ -118,7 +118,7 @@ class ExecuteCommandActionMockTest(absltest.TestCase):
     results = list(action_mock.ExecuteCommand(args))
 
     self.assertLen(results, 1)
-    self.assertEqual(results[0].stdout, b"foo_stdout")
+    self.assertEqual(results[0].stdout, b"foo_stdout")  # pyrefly: ignore[missing-attribute]
 
   def testStderr(self):
     action_mock = action_mocks.ExecuteCommandActionMock(
@@ -133,7 +133,7 @@ class ExecuteCommandActionMockTest(absltest.TestCase):
     results = list(action_mock.ExecuteCommand(args))
 
     self.assertLen(results, 1)
-    self.assertEqual(results[0].stderr, b"foo_stderr")
+    self.assertEqual(results[0].stderr, b"foo_stderr")  # pyrefly: ignore[missing-attribute]
 
 
 if __name__ == "__main__":

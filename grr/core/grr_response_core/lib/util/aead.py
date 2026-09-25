@@ -63,7 +63,7 @@ def Decrypt(stream: IO[bytes], key: bytes) -> IO[bytes]:
   def Generate() -> Iterator[bytes]:
     # Buffered reader should accept `IO[bytes]` but for now it accepts only
     # `RawIOBase` (which is a concrete base class for all I/O implementations).
-    reader = io.BufferedReader(stream)  # pytype: disable=wrong-arg-types
+    reader = io.BufferedReader(stream)  # pyrefly: ignore[bad-specialization]
 
     # We abort early if there is no data in the stream. Otherwise we would try
     # to read nonce and fail.

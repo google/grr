@@ -5,7 +5,6 @@ import plistlib
 import re
 
 from google.protobuf import any_pb2
-from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_proto import jobs_pb2
 from grr_response_proto import signed_commands_pb2
 from grr_response_proto import sysinfo_pb2
@@ -25,10 +24,7 @@ class CollectHardwareInfo(flow_base.FlowBase):
   category = "/Collectors/"
   behaviours = flow_base.BEHAVIOUR_DEBUG
 
-  result_types = [rdf_client.HardwareInfo]
   proto_result_types = [sysinfo_pb2.HardwareInfo]
-
-  only_protos_allowed = True
 
   def Start(self) -> None:
     if self.rrg_support:
@@ -42,14 +38,14 @@ class CollectHardwareInfo(flow_base.FlowBase):
         action.args.command = signed_command.command
         action.args.command_ed25519_signature = signed_command.ed25519_signature
         action.args.timeout.seconds = 10
-        action.Call(self._ProcessRRGDmidecodeResults)
+        action.Call(self._ProcessRRGDmidecodeResults)  # pyrefly: ignore[bad-argument-type]
       elif self.rrg_os_type == rrg_os_pb2.WINDOWS:
         action = rrg_stubs.QueryWmi()
         action.args.query = """
         SELECT *
           FROM Win32_ComputerSystemProduct
         """
-        action.Call(self._ProcessRRGComputerSystemProductResults)
+        action.Call(self._ProcessRRGComputerSystemProductResults)  # pyrefly: ignore[bad-argument-type]
       elif self.rrg_os_type == rrg_os_pb2.MACOS:
         signed_command = data_store.REL_DB.ReadSignedCommand(
             "system_profiler_xml_sphardware",
@@ -60,7 +56,7 @@ class CollectHardwareInfo(flow_base.FlowBase):
         action.args.command = signed_command.command
         action.args.command_ed25519_signature = signed_command.ed25519_signature
         action.args.timeout.seconds = 10
-        action.Call(self._ProcessRRGSystemProfilerResults)
+        action.Call(self._ProcessRRGSystemProfilerResults)  # pyrefly: ignore[bad-argument-type]
       else:
         raise flow_base.FlowError(
             f"Unsupported operating system: {self.rrg_os_type}",
@@ -104,7 +100,7 @@ class CollectHardwareInfo(flow_base.FlowBase):
             f"Unsupported operating system: {self.client_os}",
         )
 
-  @flow_base.UseProto2AnyResponses
+  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
   def _ProcessRRGDmidecodeResults(
       self,
       responses: flow_responses.Responses[any_pb2.Any],
@@ -133,7 +129,7 @@ class CollectHardwareInfo(flow_base.FlowBase):
 
     self.SendReplyProto(_ParseDmidecodeStdout(response.stdout))
 
-  @flow_base.UseProto2AnyResponses
+  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
   def _ProcessDmidecodeResults(
       self,
       responses: flow_responses.Responses[any_pb2.Any],
@@ -155,7 +151,7 @@ class CollectHardwareInfo(flow_base.FlowBase):
       result = _ParseDmidecodeStdout(response.stdout)
       self.SendReplyProto(result)
 
-  @flow_base.UseProto2AnyResponses
+  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
   def _ProcessRRGComputerSystemProductResults(
       self,
       responses: flow_responses.Responses[any_pb2.Any],
@@ -165,14 +161,14 @@ class CollectHardwareInfo(flow_base.FlowBase):
           f"Failed to run WMI query: {responses.status}",
       )
 
-    responses = list(responses)
+    responses = list(responses)  # pyrefly: ignore[bad-assignment]
     if len(responses) != 1:
       raise flow_base.FlowError(
           f"Unexpected number of WMI query results: {len(responses)}",
       )
 
     response = rrg_query_wmi_pb2.Result()
-    response.ParseFromString(responses[0].value)
+    response.ParseFromString(responses[0].value)  # pyrefly: ignore[bad-index]
 
     result = sysinfo_pb2.HardwareInfo()
 
@@ -183,7 +179,7 @@ class CollectHardwareInfo(flow_base.FlowBase):
 
     self.SendReplyProto(result)
 
-  @flow_base.UseProto2AnyResponses
+  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
   def _ProcessWin32ComputerSystemProductResults(
       self,
       responses: flow_responses.Responses[any_pb2.Any],
@@ -193,7 +189,7 @@ class CollectHardwareInfo(flow_base.FlowBase):
           f"Failed to run WMI query: {responses.status}",
       )
 
-    responses = list(responses)
+    responses = list(responses)  # pyrefly: ignore[bad-assignment]
 
     if len(responses) != 1:
       raise flow_base.FlowError(
@@ -201,7 +197,7 @@ class CollectHardwareInfo(flow_base.FlowBase):
       )
 
     response = jobs_pb2.Dict()
-    response.ParseFromString(responses[0].value)
+    response.ParseFromString(responses[0].value)  # pyrefly: ignore[bad-index]
 
     result = sysinfo_pb2.HardwareInfo()
 
@@ -213,7 +209,7 @@ class CollectHardwareInfo(flow_base.FlowBase):
 
     self.SendReplyProto(result)
 
-  @flow_base.UseProto2AnyResponses
+  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
   def _ProcessRRGSystemProfilerResults(
       self,
       responses: flow_responses.Responses[any_pb2.Any],
@@ -236,7 +232,7 @@ class CollectHardwareInfo(flow_base.FlowBase):
 
       self.SendReplyProto(_ParseSystemProfilerStdout(response.stdout))
 
-  @flow_base.UseProto2AnyResponses
+  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
   def _ProcessSystemProfilerResults(
       self,
       responses: flow_responses.Responses[any_pb2.Any],
@@ -260,13 +256,13 @@ class CollectHardwareInfo(flow_base.FlowBase):
       self.SendReplyProto(result)
 
 
-# TODO: Inline back to `_Process*DmidecodeResults` once the non-RRG
+# TODO - Inline back to `_Process*DmidecodeResults` once the non-RRG
 # branch has been removed.
 def _ParseDmidecodeStdout(stdout: bytes) -> sysinfo_pb2.HardwareInfo:
   """Parses standard output of the `/usr/bin/dmidecode` command."""
   result = sysinfo_pb2.HardwareInfo()
 
-  stdout = stdout.decode("utf-8", "backslashreplace")
+  stdout = stdout.decode("utf-8", "backslashreplace")  # pyrefly: ignore[bad-assignment]
   lines = iter(stdout.splitlines())
 
   for line in lines:
@@ -277,19 +273,19 @@ def _ParseDmidecodeStdout(stdout: bytes) -> sysinfo_pb2.HardwareInfo:
         if not line.strip():
           # Blank line ends system information section.
           break
-        elif match := re.fullmatch(r"\s*Serial Number:\s*(.*)", line):
+        elif match := re.fullmatch(r"\s*Serial Number:\s*(.*)", line):  # pyrefly: ignore[no-matching-overload]
           result.serial_number = match[1]
-        elif match := re.fullmatch(r"\s*Manufacturer:\s*(.*)", line):
+        elif match := re.fullmatch(r"\s*Manufacturer:\s*(.*)", line):  # pyrefly: ignore[no-matching-overload]
           result.system_manufacturer = match[1]
-        elif match := re.fullmatch(r"\s*Product Name:\s*(.*)", line):
+        elif match := re.fullmatch(r"\s*Product Name:\s*(.*)", line):  # pyrefly: ignore[no-matching-overload]
           result.system_product_name = match[1]
-        elif match := re.fullmatch(r"\s*UUID:\s*(.*)", line):
+        elif match := re.fullmatch(r"\s*UUID:\s*(.*)", line):  # pyrefly: ignore[no-matching-overload]
           result.system_uuid = match[1]
-        elif match := re.fullmatch(r"\s*SKU Number:\s*(.*)", line):
+        elif match := re.fullmatch(r"\s*SKU Number:\s*(.*)", line):  # pyrefly: ignore[no-matching-overload]
           result.system_sku_number = match[1]
-        elif match := re.fullmatch(r"\s*Family:\s*(.*)", line):
+        elif match := re.fullmatch(r"\s*Family:\s*(.*)", line):  # pyrefly: ignore[no-matching-overload]
           result.system_family = match[1]
-        elif match := re.fullmatch(r"\s*Asset Tag:\s*(.*)", line):
+        elif match := re.fullmatch(r"\s*Asset Tag:\s*(.*)", line):  # pyrefly: ignore[no-matching-overload]
           result.system_assettag = match[1]
 
     elif line == "BIOS Information":
@@ -297,21 +293,21 @@ def _ParseDmidecodeStdout(stdout: bytes) -> sysinfo_pb2.HardwareInfo:
         if not line.strip():
           # Blank link ends BIOS information section.
           break
-        elif match := re.fullmatch(r"^\s*Vendor:\s*(.*)", line):
+        elif match := re.fullmatch(r"^\s*Vendor:\s*(.*)", line):  # pyrefly: ignore[no-matching-overload]
           result.bios_vendor = match[1]
-        elif match := re.fullmatch(r"^\s*Version:\s*(.*)", line):
+        elif match := re.fullmatch(r"^\s*Version:\s*(.*)", line):  # pyrefly: ignore[no-matching-overload]
           result.bios_version = match[1]
-        elif match := re.fullmatch(r"^\s*Release Date:\s*(.*)", line):
+        elif match := re.fullmatch(r"^\s*Release Date:\s*(.*)", line):  # pyrefly: ignore[no-matching-overload]
           result.bios_release_date = match[1]
-        elif match := re.fullmatch(r"^\s*ROM Size:\s*(.*)", line):
+        elif match := re.fullmatch(r"^\s*ROM Size:\s*(.*)", line):  # pyrefly: ignore[no-matching-overload]
           result.bios_rom_size = match[1]
-        elif match := re.fullmatch(r"^\s*BIOS Revision:\s*(.*)", line):
+        elif match := re.fullmatch(r"^\s*BIOS Revision:\s*(.*)", line):  # pyrefly: ignore[no-matching-overload]
           result.bios_revision = match[1]
 
   return result
 
 
-# TODO: Inline back to `_Process*SystemProfilerResults` once the
+# TODO - Inline back to `_Process*SystemProfilerResults` once the
 # non-RRG branch has been removed.
 def _ParseSystemProfilerStdout(stdout: bytes) -> sysinfo_pb2.HardwareInfo:
   """Parses standard output of the `/usr/sbin/system_profiler` command."""

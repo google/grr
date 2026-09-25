@@ -27,9 +27,9 @@ THIS_DIRECTORY = os.path.dirname(os.path.realpath(__file__))
 # package dir.
 os.chdir(THIS_DIRECTORY)
 
-GRPCIO = "grpcio==1.46.3"
-GRPCIO_TOOLS = "grpcio-tools==1.43.0"
-PROTOBUF = "protobuf==3.20.3"
+GRPCIO = "grpcio==1.78.0"
+GRPCIO_TOOLS = "grpcio-tools==1.78.0"
+PROTOBUF = "protobuf==6.33.6"
 
 
 def get_config():
@@ -138,14 +138,14 @@ setup_args = dict(
         "absl-py==1.4.0",
         "grr-response-core==%s" % VERSION.get("Version", "packagedepends"),
         "pytsk3==20230125",
-        "libfsntfs-python==20230606",
+        "libfsntfs-python==20240119",
         "fleetspeak-client-bin==0.1.13",
     ],
     extras_require={
         # The following requirements are needed in Windows.
         ':sys_platform=="win32"': [
             "WMI==1.5.1",
-            "pywin32==303",
+            "pywin32==311",
         ],
     },
 )

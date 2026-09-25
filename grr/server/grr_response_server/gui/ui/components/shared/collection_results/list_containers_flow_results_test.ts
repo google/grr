@@ -3,10 +3,7 @@ import {TestBed, fakeAsync, waitForAsync} from '@angular/core/testing';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 
 import {ListContainersFlowResult as ApiListContainersFlowResult} from '../../../lib/api/api_interfaces';
-import {
-  newFlowResult,
-  newHuntResult,
-} from '../../../lib/models/model_test_util';
+import {newFlowResult} from '../../../lib/models/model_test_util';
 import {CollectionResult, PayloadType} from '../../../lib/models/result';
 import {initTestEnvironment} from '../../../testing';
 import {ListContainersFlowResults} from './list_containers_flow_results';
@@ -123,23 +120,5 @@ describe('List Containers Flow Results Component', () => {
     const table = await harness.table();
     expect(table).toBeDefined();
     expect(await table!.getRows()).toHaveSize(2);
-  }));
-
-  it('shows client id for hunt results', fakeAsync(async () => {
-    const {harness} = await createComponent([
-      newHuntResult({
-        clientId: 'C.1234',
-        payloadType: PayloadType.LIST_CONTAINERS_FLOW_RESULT,
-        payload: {
-          containers: [
-            {
-              containerId: 'container-id',
-            },
-          ],
-        },
-      }),
-    ]);
-
-    expect(await harness.getCellText(0, 'clientId')).toContain('C.1234');
   }));
 });

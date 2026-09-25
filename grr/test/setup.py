@@ -63,7 +63,7 @@ setup_args = dict(
         "flaky==3.7.0",
         "pytest==7.2.1",
         "responses==0.22.0",
-        "selenium==3.141.0",
+        "selenium==4.41.0",
         "google-api-python-client==1.12.11",
         "grr-api-client==%s" % VERSION.get("Version", "packagedepends"),
         "grr-response-client==%s" % VERSION.get("Version", "packagedepends"),

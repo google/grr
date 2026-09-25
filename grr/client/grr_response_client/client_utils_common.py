@@ -354,7 +354,7 @@ class MultiHasher(object):
   def GetHashObject(self):
     """Returns a `Hash` object with appropriate fields filled-in."""
     hash_object = rdf_crypto.Hash()
-    hash_object.num_bytes = self._bytes_read
+    hash_object.num_bytes = self._bytes_read  # pyrefly: ignore[missing-attribute]
     for algorithm in self._hashers:
       setattr(hash_object, algorithm, self._hashers[algorithm].digest())
     return hash_object

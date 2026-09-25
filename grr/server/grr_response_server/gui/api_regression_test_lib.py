@@ -11,9 +11,9 @@ import sys
 from typing import Optional, Union, Callable
 
 from absl import flags
+from google.protobuf import message as pb_message
 import psutil
 
-from google.protobuf import message as pb_message
 from grr_response_core.lib import registry
 from grr_response_core.lib import utils
 from grr_response_server import data_store

@@ -94,7 +94,7 @@ class ApiClientLibHuntTest(
     h = self.api.Hunt(hunt_id).Get()
     self.assertEqual(h.data.state, h.data.STOPPED)
 
-  # TODO: Stop relying on default hunt constants.
+  # TODO - Stop relying on default hunt constants.
   def testListResults(self):
     self.client_ids = self.SetupClients(5)
     with test_lib.FakeTime(42):

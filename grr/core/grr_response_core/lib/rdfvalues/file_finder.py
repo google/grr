@@ -2,7 +2,6 @@
 """The various FileFinder rdfvalues."""
 
 from grr_response_core.lib import rdfvalue
-from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import crypto as rdf_crypto
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
@@ -60,16 +59,6 @@ class FileFinderContentsLiteralMatchCondition(rdf_structs.RDFProtoStruct):
 
   rdf_deps = [rdfvalue.RDFBytes]
 
-  def Validate(self):
-    """Check the literal match condition is well constructed."""
-    super().Validate()
-
-    # The literal must not be empty in the literal match condition.
-    if not self.HasField("literal") or not self.literal:
-      raise ValueError(
-          "No literal provided to FileFinderContentsLiteralMatchCondition."
-      )
-
 
 class FileFinderCondition(rdf_structs.RDFProtoStruct):
   """An RDF value representing file finder conditions."""
@@ -87,63 +76,45 @@ class FileFinderCondition(rdf_structs.RDFProtoStruct):
 
   @classmethod
   def AccessTime(cls, **kwargs):
-    condition_type = cls.Type.ACCESS_TIME
+    condition_type = cls.Type.ACCESS_TIME  # pyrefly: ignore[missing-attribute]
     opts = FileFinderAccessTimeCondition(**kwargs)
     return cls(condition_type=condition_type, access_time=opts)
 
   @classmethod
   def ModificationTime(cls, **kwargs):
-    condition_type = cls.Type.MODIFICATION_TIME
+    condition_type = cls.Type.MODIFICATION_TIME  # pyrefly: ignore[missing-attribute]
     opts = FileFinderModificationTimeCondition(**kwargs)
     return cls(condition_type=condition_type, modification_time=opts)
 
   @classmethod
   def InodeChangeTime(cls, **kwargs):
-    condition_type = cls.Type.INODE_CHANGE_TIME
+    condition_type = cls.Type.INODE_CHANGE_TIME  # pyrefly: ignore[missing-attribute]
     opts = FileFinderInodeChangeTimeCondition(**kwargs)
     return cls(condition_type=condition_type, inode_change_time=opts)
 
   @classmethod
   def Size(cls, **kwargs):
-    condition_type = cls.Type.SIZE
+    condition_type = cls.Type.SIZE  # pyrefly: ignore[missing-attribute]
     opts = FileFinderSizeCondition(**kwargs)
     return cls(condition_type=condition_type, size=opts)
 
   @classmethod
   def ExtFlags(cls, **kwargs):
-    condition_type = cls.Type.EXT_FLAGS
+    condition_type = cls.Type.EXT_FLAGS  # pyrefly: ignore[missing-attribute]
     opts = FileFinderExtFlagsCondition(**kwargs)
     return cls(condition_type=condition_type, ext_flags=opts)
 
   @classmethod
   def ContentsLiteralMatch(cls, **kwargs):
-    condition_type = cls.Type.CONTENTS_LITERAL_MATCH
+    condition_type = cls.Type.CONTENTS_LITERAL_MATCH  # pyrefly: ignore[missing-attribute]
     opts = FileFinderContentsLiteralMatchCondition(**kwargs)
     return cls(condition_type=condition_type, contents_literal_match=opts)
 
   @classmethod
   def ContentsRegexMatch(cls, **kwargs):
-    condition_type = cls.Type.CONTENTS_REGEX_MATCH
+    condition_type = cls.Type.CONTENTS_REGEX_MATCH  # pyrefly: ignore[missing-attribute]
     opts = FileFinderContentsRegexMatchCondition(**kwargs)
     return cls(condition_type=condition_type, contents_regex_match=opts)
-
-  def Validate(self):
-    super().Validate()
-
-    if self.HasField("modification_time"):
-      self.modification_time.Validate()
-    if self.HasField("access_time"):
-      self.access_time.Validate()
-    if self.HasField("inode_change_time"):
-      self.inode_change_time.Validate()
-    if self.HasField("size"):
-      self.size.Validate()
-    if self.HasField("ext_flags"):
-      self.ext_flags.Validate()
-    if self.HasField("contents_regex_match"):
-      self.contents_regex_match.Validate()
-    if self.HasField("contents_literal_match"):
-      self.contents_literal_match.Validate()
 
 
 class FileFinderStatActionOptions(rdf_structs.RDFProtoStruct):
@@ -200,19 +171,19 @@ class FileFinderAction(rdf_structs.RDFProtoStruct):
 
   @classmethod
   def Stat(cls, **kwargs):
-    action_type = cls.Action.STAT
+    action_type = cls.Action.STAT  # pyrefly: ignore[missing-attribute]
     opts = FileFinderStatActionOptions(**kwargs)
     return FileFinderAction(action_type=action_type, stat=opts)
 
   @classmethod
   def Hash(cls, **kwargs):
-    action_type = cls.Action.HASH
+    action_type = cls.Action.HASH  # pyrefly: ignore[missing-attribute]
     opts = FileFinderHashActionOptions(**kwargs)
     return FileFinderAction(action_type=action_type, hash=opts)
 
   @classmethod
   def Download(cls, **kwargs):
-    action_type = cls.Action.DOWNLOAD
+    action_type = cls.Action.DOWNLOAD  # pyrefly: ignore[missing-attribute]
     opts = FileFinderDownloadActionOptions(**kwargs)
     return FileFinderAction(action_type=action_type, download=opts)
 
@@ -227,114 +198,11 @@ class FileFinderArgs(rdf_structs.RDFProtoStruct):
       rdf_paths.GlobExpression,
   ]
 
-  def Validate(self):
-    super().Validate()
-
-    for condition in self.conditions:
-      condition.Validate()
-
 
 class FileFinderResult(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.FileFinderResult
   rdf_deps = [
-      rdf_client.BufferReference,
       rdf_crypto.Hash,
       rdf_client_fs.StatEntry,
       rdf_client_fs.BlobImageDescriptor,
   ]
-
-
-class CollectFilesByKnownPathArgs(rdf_structs.RDFProtoStruct):
-  """Arguments for CollectFilesByKnownPath."""
-
-  protobuf = flows_pb2.CollectFilesByKnownPathArgs
-  rdf_deps = []
-
-
-class CollectFilesByKnownPathResult(rdf_structs.RDFProtoStruct):
-  """Result returned by CollectFilesByKnownPath."""
-
-  protobuf = flows_pb2.CollectFilesByKnownPathResult
-  rdf_deps = [
-      rdf_crypto.Hash,
-      rdf_client_fs.StatEntry,
-  ]
-
-
-class CollectFilesByKnownPathProgress(rdf_structs.RDFProtoStruct):
-  """Progress returned by CollectFilesByKnownPath."""
-
-  protobuf = flows_pb2.CollectFilesByKnownPathProgress
-  rdf_deps = []
-
-
-class CollectMultipleFilesArgs(rdf_structs.RDFProtoStruct):
-  """Arguments for CollectMultipleFiles."""
-
-  protobuf = flows_pb2.CollectMultipleFilesArgs
-  rdf_deps = [
-      rdf_paths.GlobExpression,
-      FileFinderModificationTimeCondition,
-      FileFinderAccessTimeCondition,
-      FileFinderInodeChangeTimeCondition,
-      FileFinderSizeCondition,
-      FileFinderExtFlagsCondition,
-      FileFinderContentsRegexMatchCondition,
-      FileFinderContentsLiteralMatchCondition,
-  ]
-
-
-class CollectMultipleFilesResult(rdf_structs.RDFProtoStruct):
-  """Result returned by CollectMultipleFiles."""
-
-  protobuf = flows_pb2.CollectMultipleFilesResult
-  rdf_deps = [
-      rdf_crypto.Hash,
-      rdf_client_fs.StatEntry,
-  ]
-
-
-class CollectMultipleFilesProgress(rdf_structs.RDFProtoStruct):
-  """Progress returned by CollectMultipleFiles."""
-
-  protobuf = flows_pb2.CollectMultipleFilesProgress
-  rdf_deps = []
-
-
-class StatMultipleFilesArgs(rdf_structs.RDFProtoStruct):
-  """Arguments for StatMultipleFiles."""
-
-  protobuf = flows_pb2.StatMultipleFilesArgs
-  rdf_deps = [
-      rdf_paths.GlobExpression,
-      FileFinderModificationTimeCondition,
-      FileFinderAccessTimeCondition,
-      FileFinderInodeChangeTimeCondition,
-      FileFinderSizeCondition,
-      FileFinderExtFlagsCondition,
-      FileFinderContentsRegexMatchCondition,
-      FileFinderContentsLiteralMatchCondition,
-  ]
-
-
-class HashMultipleFilesArgs(rdf_structs.RDFProtoStruct):
-  """Arguments for HashMultipleFiles."""
-
-  protobuf = flows_pb2.HashMultipleFilesArgs
-  rdf_deps = [
-      rdf_paths.GlobExpression,
-      FileFinderModificationTimeCondition,
-      FileFinderAccessTimeCondition,
-      FileFinderInodeChangeTimeCondition,
-      FileFinderSizeCondition,
-      FileFinderExtFlagsCondition,
-      FileFinderContentsRegexMatchCondition,
-      FileFinderContentsLiteralMatchCondition,
-  ]
-
-
-class HashMultipleFilesProgress(rdf_structs.RDFProtoStruct):
-  """Progress returned by HashMultipleFiles."""
-
-  protobuf = flows_pb2.HashMultipleFilesProgress
-  rdf_deps = []

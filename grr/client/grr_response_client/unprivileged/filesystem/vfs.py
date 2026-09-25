@@ -40,41 +40,41 @@ def _ConvertStatEntry(
 ) -> rdf_client_fs.StatEntry:
   """Converts a stat entry from a filesystem_pb2 protobuf to RDF."""
   st = rdf_client_fs.StatEntry()
-  st.pathspec = pathspec.Copy()
+  st.pathspec = pathspec.Copy()  # pyrefly: ignore[missing-attribute]
 
   if entry.HasField("st_mode"):
-    st.st_mode = entry.st_mode
-  # TODO: Expose st_ino as well.
+    st.st_mode = entry.st_mode  # pyrefly: ignore[missing-attribute]
+  # TODO - Expose st_ino as well.
   # It's not exposed at the moment for compatibility with
   # vfs_handlers/ntfs.py, which doesn't expose it.
   if entry.HasField("st_dev"):
-    st.st_dev = entry.st_dev
+    st.st_dev = entry.st_dev  # pyrefly: ignore[missing-attribute]
   if entry.HasField("st_nlink"):
-    st.st_nlink = entry.st_nlink
+    st.st_nlink = entry.st_nlink  # pyrefly: ignore[missing-attribute]
   if entry.HasField("st_uid"):
-    st.st_uid = entry.st_uid
+    st.st_uid = entry.st_uid  # pyrefly: ignore[missing-attribute]
   if entry.HasField("st_gid"):
-    st.st_gid = entry.st_gid
+    st.st_gid = entry.st_gid  # pyrefly: ignore[missing-attribute]
   if entry.HasField("st_size"):
-    st.st_size = entry.st_size
+    st.st_size = entry.st_size  # pyrefly: ignore[missing-attribute]
 
-  st.st_atime = rdfvalue.RDFDatetimeSeconds(entry.st_atime.seconds)
-  st.st_mtime = rdfvalue.RDFDatetimeSeconds(entry.st_mtime.seconds)
-  st.st_btime = rdfvalue.RDFDatetimeSeconds(entry.st_btime.seconds)
-  st.st_ctime = rdfvalue.RDFDatetimeSeconds(entry.st_ctime.seconds)
+  st.st_atime = rdfvalue.RDFDatetimeSeconds(entry.st_atime.seconds)  # pyrefly: ignore[missing-attribute]
+  st.st_mtime = rdfvalue.RDFDatetimeSeconds(entry.st_mtime.seconds)  # pyrefly: ignore[missing-attribute]
+  st.st_btime = rdfvalue.RDFDatetimeSeconds(entry.st_btime.seconds)  # pyrefly: ignore[missing-attribute]
+  st.st_ctime = rdfvalue.RDFDatetimeSeconds(entry.st_ctime.seconds)  # pyrefly: ignore[missing-attribute]
 
   if entry.HasField("ntfs"):
     if entry.ntfs.is_directory:
-      st.st_mode |= stat.S_IFDIR
+      st.st_mode |= stat.S_IFDIR  # pyrefly: ignore[missing-attribute]
     else:
-      st.st_mode |= stat.S_IFREG
+      st.st_mode |= stat.S_IFREG  # pyrefly: ignore[missing-attribute]
 
     flags = entry.ntfs.flags
-    st.st_mode |= stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH
-    if (flags & stat.FILE_ATTRIBUTE_READONLY) == 0:  # pytype: disable=module-attr
-      st.st_mode |= stat.S_IWUSR | stat.S_IWGRP | stat.S_IWOTH
-    if (flags & stat.FILE_ATTRIBUTE_HIDDEN) == 0:  # pytype: disable=module-attr
-      st.st_mode |= stat.S_IRUSR | stat.S_IRGRP | stat.S_IROTH
+    st.st_mode |= stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH  # pyrefly: ignore[missing-attribute]
+    if (flags & stat.FILE_ATTRIBUTE_READONLY) == 0:
+      st.st_mode |= stat.S_IWUSR | stat.S_IWGRP | stat.S_IWOTH  # pyrefly: ignore[missing-attribute]
+    if (flags & stat.FILE_ATTRIBUTE_HIDDEN) == 0:
+      st.st_mode |= stat.S_IRUSR | stat.S_IRGRP | stat.S_IROTH  # pyrefly: ignore[missing-attribute]
 
   return st
 
@@ -125,13 +125,13 @@ class UnprivilegedFileBase(vfs_base.VFSHandler):
       raise ValueError("UnprivilegedFileBase driver must have a file base.")
     elif isinstance(base_fd, UnprivilegedFileBase) and base_fd.IsDirectory():
       self.client = base_fd.client
-      last_path = utils.JoinPath(self.pathspec.last.path, pathspec.path)
+      last_path = utils.JoinPath(self.pathspec.last.path, pathspec.path)  # pyrefly: ignore[missing-attribute]
       # Replace the last component with this one.
-      self.pathspec.Pop(-1)
-      self.pathspec.Append(pathspec)
-      self.pathspec.last.path = last_path
+      self.pathspec.Pop(-1)  # pyrefly: ignore[missing-attribute]
+      self.pathspec.Append(pathspec)  # pyrefly: ignore[missing-attribute]
+      self.pathspec.last.path = last_path  # pyrefly: ignore[missing-attribute]
     elif not base_fd.IsDirectory():
-      cache_key = base_fd.pathspec.SerializeToBytes() + str(
+      cache_key = base_fd.pathspec.SerializeToBytes() + str(  # pyrefly: ignore[missing-attribute]
           self.implementation_type
       ).encode("utf-8")
       try:
@@ -165,7 +165,7 @@ class UnprivilegedFileBase(vfs_base.VFSHandler):
           )
           # Transfer ownership of resources to MOUNT_CACHE.
           stack.pop_all()
-      self.pathspec.Append(pathspec)
+      self.pathspec.Append(pathspec)  # pyrefly: ignore[missing-attribute]
     elif base_fd.IsDirectory():
       raise IOError("Base must be a file.")
 
@@ -176,7 +176,7 @@ class UnprivilegedFileBase(vfs_base.VFSHandler):
 
     try:
       if pathspec.HasField("stream_name"):
-        if pathspec.path_options == rdf_paths.PathSpec.Options.CASE_LITERAL:
+        if pathspec.path_options == rdf_paths.PathSpec.Options.CASE_LITERAL:  # pyrefly: ignore[missing-attribute]
           # If the stream name is case literal, we just open the stream.
           self.fd = self._OpenPathSpec(pathspec)
         else:
@@ -184,7 +184,7 @@ class UnprivilegedFileBase(vfs_base.VFSHandler):
           # (as it does for case insensitive paths).
           # We have to find the corresponding case literal stream name in this
           # case ourselves.
-          self.fd, self.pathspec.last.stream_name = (
+          self.fd, self.pathspec.last.stream_name = (  # pyrefly: ignore[missing-attribute]
               self._OpenStreamCaseInsensitive(pathspec)
           )
       else:
@@ -195,21 +195,21 @@ class UnprivilegedFileBase(vfs_base.VFSHandler):
     # self.pathspec will be used for future access to this file.
 
     # The name is now literal, so disable case-insensitive lookup (expensive).
-    self.pathspec.last.path_options = rdf_paths.PathSpec.Options.CASE_LITERAL
+    self.pathspec.last.path_options = rdf_paths.PathSpec.Options.CASE_LITERAL  # pyrefly: ignore[missing-attribute]
 
     # Access the file by file_reference, to skip path lookups.
-    self.pathspec.last.inode = self.fd.inode
+    self.pathspec.last.inode = self.fd.inode  # pyrefly: ignore[missing-attribute]
 
-    self._stat_result = _ConvertStatEntry(self.fd.Stat(), self.pathspec)
+    self._stat_result = _ConvertStatEntry(self.fd.Stat(), self.pathspec)  # pyrefly: ignore[bad-argument-type]
 
   def _OpenPathSpec(self, pathspec: rdf_paths.PathSpec) -> client.File:
     if pathspec.HasField("stream_name"):
-      stream_name = pathspec.stream_name
+      stream_name = pathspec.stream_name  # pyrefly: ignore[missing-attribute]
     else:
       stream_name = None
 
     if pathspec.HasField("inode"):
-      return self.client.OpenByInode(pathspec.inode, stream_name)
+      return self.client.OpenByInode(pathspec.inode, stream_name)  # pyrefly: ignore[missing-attribute]
     else:
       path = self._ToClientPath(pathspec.last.path)
       return self.client.Open(path, stream_name)
@@ -239,14 +239,14 @@ class UnprivilegedFileBase(vfs_base.VFSHandler):
     Returns:
       A tuple: the opened file, the case sensitive stream name.
     """
-    stream_name = pathspec.stream_name
+    stream_name = pathspec.stream_name  # pyrefly: ignore[missing-attribute]
     file_pathspec = pathspec.Copy()
-    file_pathspec.stream_name = None
+    file_pathspec.stream_name = None  # pyrefly: ignore[missing-attribute]
     result = pathspec.Copy()
-    result.stream_name = self._GetStreamNameCaseLiteral(
+    result.stream_name = self._GetStreamNameCaseLiteral(  # pyrefly: ignore[missing-attribute]
         file_pathspec, stream_name
     )
-    return self._OpenPathSpec(result), result.stream_name
+    return self._OpenPathSpec(result), result.stream_name  # pyrefly: ignore[missing-attribute]
 
   def _GetStreamNameCaseLiteral(
       self, file_pathspec: rdf_paths.PathSpec, stream_name_case_insensitive: str
@@ -270,8 +270,8 @@ class UnprivilegedFileBase(vfs_base.VFSHandler):
     )
 
   @property
-  def size(self) -> int:
-    return self._stat_result.st_size
+  def size(self) -> int:  # pyrefly: ignore[bad-override]
+    return self._stat_result.st_size  # pyrefly: ignore[missing-attribute]
 
   def Stat(
       self, ext_attrs: bool = False, follow_symlink: bool = True
@@ -286,10 +286,10 @@ class UnprivilegedFileBase(vfs_base.VFSHandler):
     return data
 
   def IsDirectory(self) -> bool:
-    return (self._stat_result.st_mode & stat.S_IFDIR) != 0
+    return (self._stat_result.st_mode & stat.S_IFDIR) != 0  # pyrefly: ignore[missing-attribute]
 
   def ListFiles(
-      self,  # pytype: disable=signature-mismatch  # overriding-return-type-checks
+      self,
       ext_attrs: bool = False,
   ) -> Iterator[rdf_client_fs.StatEntry]:
     del ext_attrs  # Unused.
@@ -298,15 +298,15 @@ class UnprivilegedFileBase(vfs_base.VFSHandler):
     assert self.fd is not None
 
     for entry in self.fd.ListFiles():
-      pathspec = self.pathspec.Copy()
+      pathspec = self.pathspec.Copy()  # pyrefly: ignore[missing-attribute]
       pathspec.last.path = utils.JoinPath(pathspec.last.path, entry.name)
       pathspec.last.inode = entry.st_ino
-      pathspec.last.options = rdf_paths.PathSpec.Options.CASE_LITERAL
+      pathspec.last.options = rdf_paths.PathSpec.Options.CASE_LITERAL  # pyrefly: ignore[missing-attribute]
       if entry.HasField("stream_name"):
         pathspec.last.stream_name = entry.stream_name
       yield _ConvertStatEntry(entry, pathspec)
 
-  def ListNames(self) -> Iterator[str]:  # pytype: disable=signature-mismatch  # overriding-return-type-checks
+  def ListNames(self) -> Iterator[str]:
     self._CheckIsDirectory()
     assert self.fd is not None
     return iter(self.fd.ListNames())
@@ -314,12 +314,12 @@ class UnprivilegedFileBase(vfs_base.VFSHandler):
   def _CheckIsDirectory(self) -> None:
     if not self.IsDirectory():
       raise IOError(
-          "{} is not a directory".format(self.pathspec.CollapsePath())
+          "{} is not a directory".format(self.pathspec.CollapsePath())  # pyrefly: ignore[missing-attribute]
       )
 
   def _CheckIsFile(self) -> None:
     if self.IsDirectory():
-      raise IOError("{} is not a file".format(self.pathspec.CollapsePath()))
+      raise IOError("{} is not a file".format(self.pathspec.CollapsePath()))  # pyrefly: ignore[missing-attribute]
 
   def Close(self) -> None:
     assert self.fd is not None
@@ -336,12 +336,12 @@ class UnprivilegedFileBase(vfs_base.VFSHandler):
     if new_component is not None:
       component = new_component
 
-    if fd.supported_pathtype != self.pathspec.pathtype:
+    if fd.supported_pathtype != self.pathspec.pathtype:  # pyrefly: ignore[missing-attribute]
       new_pathspec = rdf_paths.PathSpec(
           path=component, pathtype=fd.supported_pathtype
       )
     else:
-      new_pathspec = self.pathspec.last.Copy()
+      new_pathspec = self.pathspec.last.Copy()  # pyrefly: ignore[missing-attribute]
       new_pathspec.path = component
 
     return new_pathspec
@@ -359,26 +359,26 @@ class UnprivilegedFileBase(vfs_base.VFSHandler):
     # point at runtime.
     if (
         fd is None
-        and component.pathtype == cls.supported_pathtype
+        and component.pathtype == cls.supported_pathtype  # pyrefly: ignore[missing-attribute]
         and pathspec is not None
     ):
       # We are the top level handler. This means we need to check the system
       # mounts to work out the exact mount point and device we need to
       # open. We then modify the pathspec so we get nested in the raw
       # pathspec.
-      raw_pathspec, corrected_path = client_utils.GetRawDevice(component.path)  # pytype: disable=attribute-error
+      raw_pathspec, corrected_path = client_utils.GetRawDevice(component.path)  # pyrefly: ignore[missing-attribute]
 
       # Insert the raw device before the component in the pathspec and correct
       # the path
-      component.path = corrected_path
+      component.path = corrected_path  # pyrefly: ignore[missing-attribute]
       pathspec.Insert(0, component)
       pathspec.Insert(0, raw_pathspec)
 
       # Allow incoming pathspec to be given in the local system path
       # conventions.
       for component in pathspec:
-        if component.path:
-          component.path = client_utils.LocalPathToCanonicalPath(component.path)
+        if component.path:  # pyrefly: ignore[missing-attribute]
+          component.path = client_utils.LocalPathToCanonicalPath(component.path)  # pyrefly: ignore[missing-attribute]
 
       # We have not actually opened anything in this iteration, but modified the
       # pathspec. Next time we should be able to open it properly.
@@ -399,7 +399,7 @@ class UnprivilegedFileBase(vfs_base.VFSHandler):
 
 
 class UnprivilegedNtfsFile(UnprivilegedFileBase):
-  supported_pathtype = rdf_paths.PathSpec.PathType.NTFS
+  supported_pathtype = rdf_paths.PathSpec.PathType.NTFS  # pyrefly: ignore[missing-attribute]
   implementation_type = filesystem_pb2.NTFS
 
   def _ToClientPath(self, path: str) -> str:
@@ -407,5 +407,5 @@ class UnprivilegedNtfsFile(UnprivilegedFileBase):
 
 
 class UnprivilegedTskFile(UnprivilegedFileBase):
-  supported_pathtype = rdf_paths.PathSpec.PathType.TSK
+  supported_pathtype = rdf_paths.PathSpec.PathType.TSK  # pyrefly: ignore[missing-attribute]
   implementation_type = filesystem_pb2.TSK

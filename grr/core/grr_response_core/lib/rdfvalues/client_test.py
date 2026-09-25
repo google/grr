@@ -26,20 +26,20 @@ class UserTests(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
 
   def GenerateSample(self, number=0):
     result = rdf_client.User(username="user%s" % number)
-    result.desktop = "User Desktop %s" % number
+    result.desktop = "User Desktop %s" % number  # pyrefly: ignore[missing-attribute]
 
     return result
 
   def testKBUserBackwardsCompatibility(self):
     """Check User can be created from deprecated KBUser."""
     kbuser = rdf_client.KnowledgeBaseUser()
-    kbuser.username = "user1"
-    kbuser.desktop = "User Desktop 1"
+    kbuser.username = "user1"  # pyrefly: ignore[missing-attribute]
+    kbuser.desktop = "User Desktop 1"  # pyrefly: ignore[missing-attribute]
 
     user = rdf_client.User(kbuser)
 
-    self.assertEqual(user.username, "user1")
-    self.assertEqual(user.desktop, "User Desktop 1")
+    self.assertEqual(user.username, "user1")  # pyrefly: ignore[missing-attribute]
+    self.assertEqual(user.desktop, "User Desktop 1")  # pyrefly: ignore[missing-attribute]
 
   def testCompatibility(self):
     proto = knowledge_base_pb2.User(username="user1")
@@ -63,9 +63,9 @@ class UserTests(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
 
     # Check that we can coerce an int to an RDFDatetime.
     # TODO(hanuszczak): Yeah, but why would we...?
-    fast_proto.last_logon = datetime.AsMicrosecondsSinceEpoch()
+    fast_proto.last_logon = datetime.AsMicrosecondsSinceEpoch()  # pyrefly: ignore[missing-attribute]
 
-    self.assertEqual(fast_proto.last_logon, datetime)
+    self.assertEqual(fast_proto.last_logon, datetime)  # pyrefly: ignore[missing-attribute]
 
     # Check that this is backwards compatible with the old protobuf library.
     proto = knowledge_base_pb2.User()
@@ -176,7 +176,7 @@ class NetworkAddressTests(
         human_readable_address="192.168.0.1"
     )
     self.assertEqual(
-        sample.address_type, rdf_client_network.NetworkAddress.Family.INET
+        sample.address_type, rdf_client_network.NetworkAddress.Family.INET  # pyrefly: ignore[missing-attribute]
     )
     # Equal to socket.inet_pton(socket.AF_INET, "192.168.0.1"), which is
     # unavailable on Windows.
@@ -197,7 +197,7 @@ class NetworkAddressTests(
     for address, expected in zip(ipv6_addresses, expected_addresses):
       sample = rdf_client_network.NetworkAddress(human_readable_address=address)
       self.assertEqual(
-          sample.address_type, rdf_client_network.NetworkAddress.Family.INET6
+          sample.address_type, rdf_client_network.NetworkAddress.Family.INET6  # pyrefly: ignore[missing-attribute]
       )
       self.assertEqual(sample.packed_bytes, expected)
 

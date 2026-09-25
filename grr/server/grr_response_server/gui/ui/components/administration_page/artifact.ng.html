@@ -1,0 +1,17 @@
+@if (artifact(); as a) {
+  <artifact-details [artifact]="a" />
+  <mat-divider />
+  @if (a.isCustom) {
+    <button mat-stroked-button (click)="openDeleteArtifactDialog(a)">
+      <mat-icon>delete</mat-icon>Delete
+    </button>
+  }
+} @else if (artifactName() === undefined) {
+  <div class="no-artifact-details">
+    No artifact selected
+  </div>
+} @else {
+  <div class="no-artifact-details">
+    Artifact {{artifactName()}} not found
+  </div>
+}

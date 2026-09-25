@@ -131,6 +131,27 @@ class DatabaseTestSignedCommandsMixin:
         },
     )
 
+  def testWriteReadSignedCommands_ExecutablePath(self):
+    command = rrg_execute_signed_command_pb2.Command()
+    command.filestore_file_sha256 = os.urandom(32)
+
+    signed_command = signed_commands_pb2.SignedCommand()
+    signed_command.id = "foobar"
+    signed_command.operating_system = signed_commands_pb2.SignedCommand.LINUX
+
+    signed_command.command = command.SerializeToString()
+    signed_command.ed25519_signature = os.urandom(64)
+    signed_command.server_executable_path = "/usr/bin/foobar"
+
+    self.db.WriteSignedCommands([signed_command])
+
+    signed_command = self.db.ReadSignedCommand(
+        "foobar",
+        operating_system=signed_commands_pb2.SignedCommand.LINUX,
+    )
+    self.assertEqual(signed_command.command, command.SerializeToString())
+    self.assertEqual(signed_command.server_executable_path, "/usr/bin/foobar")
+
   def testWriteSignedCommand_CannotOverwrite(self):
     initial_command = create_signed_command(
         "attemt_overwrite", signed_commands_pb2.SignedCommand.OS.LINUX

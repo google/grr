@@ -408,5 +408,194 @@ class ApiClientFromClientFullInfo(absltest.TestCase):
     self.assertEqual(api_client.rrg_args, ["--foo", "--bar", "--baz"])
 
 
+class GetIpAddressesFromClientSnapshotTest(absltest.TestCase):
+
+  def testEmpty(self):
+    snapshot = objects_pb2.ClientSnapshot()
+    self.assertEmpty(models_clients.GetIpAddressesFromClientSnapshot(snapshot))
+
+  def testFiltering(self):
+    snapshot = objects_pb2.ClientSnapshot()
+    interface = snapshot.interfaces.add()
+
+    addr = interface.addresses.add()
+    addr.packed_bytes = ipaddress.IPv4Address("127.0.0.1").packed
+    addr.address_type = jobs_pb2.NetworkAddress.INET
+
+    addr = interface.addresses.add()
+    addr.packed_bytes = ipaddress.IPv6Address("::1").packed
+    addr.address_type = jobs_pb2.NetworkAddress.INET6
+
+    addr = interface.addresses.add()
+    addr.packed_bytes = ipaddress.IPv6Address("fe80::1").packed
+    addr.address_type = jobs_pb2.NetworkAddress.INET6
+
+    addr = interface.addresses.add()
+    addr.packed_bytes = ipaddress.IPv4Address("1.2.3.4").packed
+    addr.address_type = jobs_pb2.NetworkAddress.INET
+
+    self.assertEqual(
+        models_clients.GetIpAddressesFromClientSnapshot(snapshot), ["1.2.3.4"]
+    )
+
+  def testIpv4AndIpv6(self):
+    snapshot = objects_pb2.ClientSnapshot()
+    interface = snapshot.interfaces.add()
+
+    addr4 = interface.addresses.add()
+    addr4.packed_bytes = ipaddress.IPv4Address("1.1.1.1").packed
+    addr4.address_type = jobs_pb2.NetworkAddress.INET
+
+    addr6 = interface.addresses.add()
+    addr6.packed_bytes = ipaddress.IPv6Address("2001:db8::1").packed
+    addr6.address_type = jobs_pb2.NetworkAddress.INET6
+
+    self.assertEqual(
+        models_clients.GetIpAddressesFromClientSnapshot(snapshot),
+        ["1.1.1.1", "2001:db8::1"],
+    )
+
+  def testSorting(self):
+    snapshot = objects_pb2.ClientSnapshot()
+    interface = snapshot.interfaces.add()
+
+    addr = interface.addresses.add()
+    addr.packed_bytes = ipaddress.IPv4Address("1.2.3.5").packed
+    addr.address_type = jobs_pb2.NetworkAddress.INET
+
+    addr = interface.addresses.add()
+    addr.packed_bytes = ipaddress.IPv4Address("1.2.3.4").packed
+    addr.address_type = jobs_pb2.NetworkAddress.INET
+
+    self.assertEqual(
+        models_clients.GetIpAddressesFromClientSnapshot(snapshot),
+        ["1.2.3.4", "1.2.3.5"],
+    )
+
+
+class HumanReadableMacAddressTest(absltest.TestCase):
+
+  def testHexify(self):
+    self.assertEqual(
+        models_clients.HumanReadableMacAddress(b"\x01\x02\x03\x04\x05\x06"),
+        "010203040506",
+    )
+
+
+class GetMacAddressesFromClientSnapshotTest(absltest.TestCase):
+
+  def testEmpty(self):
+    snapshot = objects_pb2.ClientSnapshot()
+    self.assertEmpty(models_clients.GetMacAddressesFromClientSnapshot(snapshot))
+
+  def testNullAddressFiltered(self):
+    snapshot = objects_pb2.ClientSnapshot()
+    interface = snapshot.interfaces.add()
+    interface.mac_address = b"\x00" * 6
+    self.assertEmpty(models_clients.GetMacAddressesFromClientSnapshot(snapshot))
+
+  def testValidAddresses(self):
+    snapshot = objects_pb2.ClientSnapshot()
+    snapshot.interfaces.add(mac_address=b"\x01\x02\x03\x04\x05\x06")
+    snapshot.interfaces.add(mac_address=b"\xaa\xbb\xcc\xdd\xee\xff")
+    # Duplicate
+    snapshot.interfaces.add(mac_address=b"\x01\x02\x03\x04\x05\x06")
+
+    self.assertEqual(
+        models_clients.GetMacAddressesFromClientSnapshot(snapshot),
+        ["010203040506", "aabbccddeeff"],
+    )
+
+
+class GetSummaryFromClientSnapshotTest(absltest.TestCase):
+
+  def testClientSummary(self):
+    snapshot = _GenerateClientSnapshot()
+    summary = models_clients.GetSummaryFromClientSnapshot(snapshot)
+
+    self.assertEqual(summary.client_id, "C.0000000000000000")
+    self.assertEqual(summary.timestamp, 20240404)
+
+    self.assertEqual(summary.system_info.release, "Windows")
+    self.assertEqual(summary.system_info.version, "14.4")
+    self.assertEqual(summary.system_info.kernel, "4.0.0")
+    self.assertEqual(summary.system_info.machine, "x86_64")
+    self.assertEqual(summary.system_info.fqdn, "test123.examples.com")
+    self.assertEqual(summary.system_info.system, "Linux")
+
+    self.assertEqual(summary.serial_number, "123abc")
+    self.assertEqual(summary.system_manufacturer, "System-Manufacturer-123")
+    self.assertEqual(summary.system_uuid, "a-b-c-1-2-3")
+
+    self.assertEqual(
+        summary.cloud_instance_id, "us-central1-a/myproject/1771384456894610289"
+    )
+    self.assertEqual(summary.cloud_type, jobs_pb2.CloudInstance.GOOGLE)
+
+    self.assertCountEqual([u.username for u in summary.users], ["fred", "joe"])
+    self.assertLen(summary.interfaces, 3)
+    self.assertEqual(summary.interfaces[0].ifname, "if0")
+
+    self.assertEqual(summary.client_info.client_name, "GRR Monitor")
+    self.assertLen(summary.edr_agents, 2)
+    self.assertEqual(summary.edr_agents[0].name, "foo")
+
+  def testClientSummaryTimestamp(self):
+    snapshot = objects_pb2.ClientSnapshot()
+    snapshot.timestamp = 1337
+    summary = models_clients.GetSummaryFromClientSnapshot(snapshot)
+    self.assertEqual(summary.timestamp, 1337)
+
+  def testGetSummaryEdrAgents(self):
+    snapshot = objects_pb2.ClientSnapshot(client_id="C.0123456789012345")
+    snapshot.edr_agents.add(name="foo", agent_id="1337")
+    snapshot.edr_agents.add(name="bar", agent_id="108")
+
+    summary = models_clients.GetSummaryFromClientSnapshot(snapshot)
+    self.assertLen(summary.edr_agents, 2)
+    self.assertEqual(summary.edr_agents[0].name, "foo")
+    self.assertEqual(summary.edr_agents[1].name, "bar")
+    self.assertEqual(summary.edr_agents[0].agent_id, "1337")
+    self.assertEqual(summary.edr_agents[1].agent_id, "108")
+
+  def testGetSummaryOsReleaseSnapshot(self):
+    snapshot = objects_pb2.ClientSnapshot(
+        client_id="C.0123456789012345",
+        os_release="Rocky Linux",
+    )
+    snapshot.knowledge_base.os_release = "RedHat Linux"
+
+    summary = models_clients.GetSummaryFromClientSnapshot(snapshot)
+    self.assertEqual(summary.system_info.release, "Rocky Linux")
+
+  def testGetSummaryOsReleaseKnowledgeBase(self):
+    snapshot = objects_pb2.ClientSnapshot(client_id="C.0123456789012345")
+    snapshot.knowledge_base.os_release = "RedHat Linux"
+
+    summary = models_clients.GetSummaryFromClientSnapshot(snapshot)
+    self.assertEqual(summary.system_info.release, "RedHat Linux")
+
+  def testGetSummaryOsVersionSnapshot(self):
+    snapshot = objects_pb2.ClientSnapshot(
+        client_id="C.0123456789012345",
+        os_version="13.37",
+    )
+    snapshot.knowledge_base.os_release = "RedHat Linux"
+    snapshot.knowledge_base.os_major_version = 4
+    snapshot.knowledge_base.os_minor_version = 2
+
+    summary = models_clients.GetSummaryFromClientSnapshot(snapshot)
+    self.assertEqual(summary.system_info.version, "13.37")
+
+  def testGetSummaryOsVersionKnowledgeBase(self):
+    snapshot = objects_pb2.ClientSnapshot(client_id="C.0123456789012345")
+    snapshot.knowledge_base.os_release = "RedHat Linux"
+    snapshot.knowledge_base.os_major_version = 4
+    snapshot.knowledge_base.os_minor_version = 2
+
+    summary = models_clients.GetSummaryFromClientSnapshot(snapshot)
+    self.assertEqual(summary.system_info.version, "4.2")
+
+
 if __name__ == "__main__":
   absltest.main()

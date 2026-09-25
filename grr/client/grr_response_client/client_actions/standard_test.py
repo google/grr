@@ -232,7 +232,7 @@ sys.TEST_VAL = py_args[43]
 
 class GetFileStatTest(client_test_lib.EmptyActionTest):
 
-  # TODO:
+  # TODO -
   @unittest.skipIf(
       platform.system() == "Windows",
       "Skipping due to temp file locking issues.",
@@ -310,7 +310,7 @@ class GetFileStatTest(client_test_lib.EmptyActionTest):
       self.assertFalse(stat.S_ISLNK(int(results[0].st_mode)))
       self.assertEqual(results[0].st_size, len(data))
 
-      # TODO: Required to clean-up the temp directory.
+      # TODO - Required to clean-up the temp directory.
       files.FlushHandleCache()
 
   def testFollowSymlinkDisable(self):
@@ -334,7 +334,7 @@ class GetFileStatTest(client_test_lib.EmptyActionTest):
       self.assertLess(results[0].st_size, len(data))
       self.assertEqual(results[0].symlink, target_filepath)
 
-      # TODO: Required to clean-up the temp directory.
+      # TODO - Required to clean-up the temp directory.
       files.FlushHandleCache()
 
 

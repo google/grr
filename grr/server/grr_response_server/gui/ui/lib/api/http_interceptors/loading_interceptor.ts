@@ -9,7 +9,7 @@ import {
 } from '@angular/common/http';
 import {Injectable, inject} from '@angular/core';
 import {Observable} from 'rxjs';
-import {tap} from 'rxjs/operators';
+import {finalize, tap} from 'rxjs/operators';
 import {LoadingService} from '../../service/loading_service/loading_service';
 
 /**
@@ -45,6 +45,9 @@ export class LoadingInterceptor implements HttpInterceptor {
           }
           return response;
         },
+      }),
+      finalize(() => {
+        this.loadingService.updateLoadingUrls(req.url, false);
       }),
     );
   }

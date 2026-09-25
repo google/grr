@@ -22,13 +22,13 @@ fi
 md5fingerprint=$(md5sum "${RELEASE_FILE}" | cut -d" " -f1)
 
 # Upload tarball, make public
-gsutil cp "${RELEASE_FILE}" "gs://${BUCKET}/"
-gsutil acl ch -u AllUsers:R "gs://${BUCKET}/${RELEASE_TAR}"
+gcloud storage cp "${RELEASE_FILE}" "gs://${BUCKET}/"
+gcloud storage objects update "gs://${BUCKET}/${RELEASE_TAR}" --add-acl-grant=entity=allUsers,role=READER
 
 sed -i -e "s!</body></html>!<a href=\"${RELEASE_TAR}#md5=${md5fingerprint}\">${RELEASE_NAME}</a><br/>\n</body></html>!" index.html
 
-gsutil cp index.html "gs://${BUCKET}/"
-gsutil acl ch -u AllUsers:R "gs://${BUCKET}/index.html"
+gcloud storage cp index.html "gs://${BUCKET}/"
+gcloud storage objects update "gs://${BUCKET}/index.html" --add-acl-grant=entity=allUsers,role=READER
 
 echo "Test install with:"
 echo "pip install --no-cache-dir -f https://storage.googleapis.com/${BUCKET}/index.html grr-response-templates==${VERSION}"

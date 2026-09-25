@@ -84,7 +84,7 @@ class FingerprintRequest(rdf_structs.RDFProtoStruct):
   ]
 
   def AddRequest(self, *args, **kw):
-    self.tuples.Append(*args, **kw)
+    self.tuples.Append(*args, **kw)  # pyrefly: ignore[missing-attribute]
 
 
 class FingerprintResponse(rdf_structs.RDFProtoStruct):
@@ -99,7 +99,7 @@ class FingerprintResponse(rdf_structs.RDFProtoStruct):
 
   def GetFingerprint(self, name):
     """Gets the first fingerprint type from the protobuf."""
-    for result in self.results:
+    for result in self.results:  # pyrefly: ignore[missing-attribute]
       if result.GetItem("name") == name:
         return result
 

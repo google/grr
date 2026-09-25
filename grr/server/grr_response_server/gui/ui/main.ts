@@ -9,6 +9,8 @@ import {
   withComponentInputBinding,
   withRouterConfig,
 } from '@angular/router';
+import {trustedResourceUrl, unwrapResourceUrl} from 'safevalues';
+import {Workbox} from 'workbox-window';
 
 import {App} from './components/app/app';
 import {APP_ROUTES} from './components/app/routing';
@@ -35,3 +37,9 @@ bootstrapApplication(App, {
     {provide: ErrorHandler, useClass: SnackBarErrorHandler},
   ],
 });
+
+if ('serviceWorker' in navigator) {
+  const workerUrl = unwrapResourceUrl(trustedResourceUrl`/service_worker.js`);
+  const wb = new Workbox(workerUrl as TrustedScriptURL);
+  wb.register();
+}

@@ -105,7 +105,6 @@ def _MakeMsi(input_dir: str, output_path: str) -> None:
       "grr-client.exe",
       "dbg_grr-client.exe",
       "fleetspeak-client.exe",
-      "grr-client.exe.manifest",
   ]
 
   def Run(args: list[str]):

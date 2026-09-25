@@ -46,10 +46,10 @@ class PathOpts(object):
       implementation_type: Optional[rdf_structs.EnumNamedValue] = None,
   ):
     self.follow_links = follow_links
-    self.pathtype = pathtype or rdf_paths.PathSpec.PathType.OS
+    self.pathtype = pathtype or rdf_paths.PathSpec.PathType.OS  # pyrefly: ignore[missing-attribute]
     self.implementation_type = implementation_type
     if xdev is None:
-      self.xdev = rdf_file_finder.FileFinderArgs.XDev.ALWAYS
+      self.xdev = rdf_file_finder.FileFinderArgs.XDev.ALWAYS  # pyrefly: ignore[missing-attribute]
     else:
       self.xdev = xdev
 
@@ -108,7 +108,7 @@ class RecursiveComponent(PathComponent):
 
   def _Recurse(self, path, depth):
     """Recurses to the given path if necessary up to the given depth."""
-    if self.opts.pathtype == rdf_paths.PathSpec.PathType.OS:
+    if self.opts.pathtype == rdf_paths.PathSpec.PathType.OS:  # pyrefly: ignore[missing-attribute]
       try:
         stat_entry = os.stat(path)
       except OSError as e:
@@ -130,9 +130,9 @@ class RecursiveComponent(PathComponent):
       if not self.opts.follow_links and os.path.islink(path):
         return
 
-    elif self.opts.pathtype == rdf_paths.PathSpec.PathType.REGISTRY:
+    elif self.opts.pathtype == rdf_paths.PathSpec.PathType.REGISTRY:  # pyrefly: ignore[missing-attribute]
       pathspec = rdf_paths.PathSpec(
-          path=path, pathtype=rdf_paths.PathSpec.PathType.REGISTRY
+          path=path, pathtype=rdf_paths.PathSpec.PathType.REGISTRY  # pyrefly: ignore[missing-attribute]
       )
       try:
         with vfs.VFSOpen(pathspec) as filedesc:
@@ -211,7 +211,7 @@ class GlobComponent(PathComponent):
 
   def _GenerateLiteralMatch(self, dirpath: str) -> Optional[str]:
     """Generates a literal match."""
-    if self.opts.pathtype == rdf_paths.PathSpec.PathType.OS:
+    if self.opts.pathtype == rdf_paths.PathSpec.PathType.OS:  # pyrefly: ignore[missing-attribute]
       return self._GenerateLiteralMatchOS(dirpath)
 
     new_path = os.path.join(dirpath, self._glob)
@@ -227,7 +227,7 @@ class GlobComponent(PathComponent):
     try:
       with vfs.VFSOpen(pathspec) as filedesc:
         if filedesc.path == "/" and new_path != "/":
-          # TODO: VFSHandler has path = "/" as default. Thus, if we
+          # TODO - VFSHandler has path = "/" as default. Thus, if we
           # encounter "/", it could either mean the path never has been assigned
           # or the path is literally "/". Thus, we return None if the path is
           # "/" because it has never been set, by cross-referencing with the
@@ -239,7 +239,7 @@ class GlobComponent(PathComponent):
       return None  # Indicate "File not found" by returning None.
 
   def Generate(self, dirpath):
-    # TODO: The TSK implementation for VFS currently cannot list
+    # TODO - The TSK implementation for VFS currently cannot list
     # the root path of mounted disks. To make VfsFileFinder work with TSK,
     # we try the literal match to allow VfsFileFinder to traverse into disk
     # images.
@@ -439,7 +439,7 @@ def ExpandGlobs(
   if not _IsAbsolutePath(path, opts):
     raise ValueError("Path '%s' is not absolute" % path)
 
-  if opts is not None and opts.pathtype == rdf_paths.PathSpec.PathType.REGISTRY:
+  if opts is not None and opts.pathtype == rdf_paths.PathSpec.PathType.REGISTRY:  # pyrefly: ignore[missing-attribute]
     # Handle HKLM\Foo and /HKLM/Foo identically.
     root_dir, tail = path.replace("\\", "/").lstrip("/").split("/", 1)
     components = list(ParsePath(tail, opts=opts))
@@ -452,7 +452,7 @@ def ExpandGlobs(
 
 
 def _IsAbsolutePath(path: str, opts: Optional[PathOpts] = None) -> bool:
-  if opts and opts.pathtype == rdf_paths.PathSpec.PathType.REGISTRY:
+  if opts and opts.pathtype == rdf_paths.PathSpec.PathType.REGISTRY:  # pyrefly: ignore[missing-attribute]
     return path.startswith("/HKEY_") or path.startswith("HKEY_")
 
   drive, tail = os.path.splitdrive(path)
@@ -477,8 +477,8 @@ def _ExpandComponents(basepath, components, index=0, heartbeat_cb=_NoOp):
 
 def _ListDir(
     dirpath: str,
-    pathtype: rdf_paths.PathSpec.PathType,
-    implementation_type: rdf_paths.PathSpec.ImplementationType,
+    pathtype: rdf_paths.PathSpec.PathType,  # pyrefly: ignore[missing-attribute]
+    implementation_type: rdf_paths.PathSpec.ImplementationType,  # pyrefly: ignore[missing-attribute]
 ) -> Iterable[str]:
   """Returns children of a given directory.
 
@@ -494,7 +494,7 @@ def _ListDir(
   Raises:
     ValueError: in case of unsupported path types.
   """
-  if pathtype == rdf_paths.PathSpec.PathType.OS:
+  if pathtype == rdf_paths.PathSpec.PathType.OS:  # pyrefly: ignore[missing-attribute]
     try:
       return os.listdir(dirpath)
     except OSError as e:
@@ -512,7 +512,7 @@ def _ListDir(
         # default value in the current key. Otherwise, globbing a key will yield
         # the key itself, because joining the name of the default value u"" with
         # a key name yields the key name again.
-        if pathtype != rdf_paths.PathSpec.PathType.REGISTRY or path:
+        if pathtype != rdf_paths.PathSpec.PathType.REGISTRY or path:  # pyrefly: ignore[missing-attribute]
           childpaths.append(path)
   except IOError:
     pass
@@ -551,15 +551,15 @@ def _GetAllowedDevices(xdev, path):
   Raises:
     ValueError: If `xdev` value is invalid.
   """
-  if xdev == rdf_file_finder.FileFinderArgs.XDev.ALWAYS:
+  if xdev == rdf_file_finder.FileFinderArgs.XDev.ALWAYS:  # pyrefly: ignore[missing-attribute]
     # Never stop at any device boundary.
     return _XDEV_ALL_ALLOWED
 
-  elif xdev == rdf_file_finder.FileFinderArgs.XDev.NEVER:
+  elif xdev == rdf_file_finder.FileFinderArgs.XDev.NEVER:  # pyrefly: ignore[missing-attribute]
     # Never cross device boundaries, stop at all mount points.
     return {os.stat(path).st_dev}
 
-  elif xdev == rdf_file_finder.FileFinderArgs.XDev.LOCAL:
+  elif xdev == rdf_file_finder.FileFinderArgs.XDev.LOCAL:  # pyrefly: ignore[missing-attribute]
     # Descend into file systems on physical devices only.
     mount_points = _GetMountpoints(only_physical=True)
     res = {os.stat(path).st_dev}

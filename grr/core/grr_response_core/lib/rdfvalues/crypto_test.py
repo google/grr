@@ -262,40 +262,6 @@ class CryptoUtilTest(CryptoTestBase):
     self.assertRaises(rdf_crypto.CipherError, cipher.Decrypt, plain_text)
 
 
-class SymmetricCipherTest(
-    rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest
-):
-  rdfvalue_class = rdf_crypto.SymmetricCipher
-
-  sample_cache = {}
-
-  def GenerateSample(self, seed=1):
-    # We need to generate consistent new samples for each seed.
-    result = SymmetricCipherTest.sample_cache.get(seed)
-    if result is None:
-      result = self.rdfvalue_class.Generate("AES128CBC")
-      SymmetricCipherTest.sample_cache[seed] = result
-
-    return result
-
-  def _testEncrypt(self, plain_text):
-    sample = self.GenerateSample()
-    self.assertLen(sample._key.RawBytes(), 16)
-    self.assertLen(sample._iv.RawBytes(), 16)
-    self.assertEqual(sample._key.RawBytes(), sample._key)
-
-    cipher_text = sample.Encrypt(plain_text)
-    self.assertNotEqual(cipher_text, plain_text)
-    self.assertEqual(sample.Decrypt(cipher_text), plain_text)
-
-  def testEncrypt(self):
-    self._testEncrypt(b"hello world!")
-
-  def testLargeEncrypt(self):
-    # Test with a plaintext that is longer than blocksize.
-    self._testEncrypt(b"hello world!" * 100)
-
-
 class RSATest(CryptoTestBase):
 
   def testPassPhraseEncryption(self):

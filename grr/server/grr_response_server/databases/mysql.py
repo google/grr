@@ -395,7 +395,7 @@ def _GetConnectionArgs(
     connection_args["db"] = database
 
   if client_key_path is not None:
-    connection_args["ssl"] = {
+    connection_args["ssl"] = {  # pyrefly: ignore[bad-assignment]
         "key": client_key_path,
         "cert": client_cert_path,
         "ca": ca_cert_path,
@@ -461,7 +461,7 @@ def _SleepWithBackoff(exponent):
   time.sleep(jitter * math.pow(_TXN_RETRY_BACKOFF_BASE, exponent))
 
 
-class MysqlDB(
+class MysqlDB(  # pyrefly: ignore[inconsistent-inheritance]
     mysql_artifacts.MySQLDBArtifactsMixin,
     mysql_blobs.MySQLDBBlobsMixin,  # Implements BlobStore.
     mysql_blob_keys.MySQLDBBlobKeysMixin,
@@ -510,7 +510,7 @@ class MysqlDB(
         ".*Table '.*' already exists",
         # And CREATE INDEX IF NOT EXISTS.
         ".*Duplicate key name.*",
-        # TODO: this is caused by an old version of the MySQLdb
+        # TODO - this is caused by an old version of the MySQLdb
         # library that doesn't wrap bytes SQL arguments with the _binary()
         # type hint. This issue should go away when a new version of the
         # MySQLdb is used with Python 3.
@@ -542,11 +542,11 @@ class MysqlDB(
     self._max_pool_size = config.CONFIG["Mysql.conn_pool_max"]
     self.pool = mysql_pool.Pool(self._Connect, max_size=self._max_pool_size)
 
-    self.handler_thread = None
+    self.handler_thread = None  # pyrefly: ignore[bad-assignment]
     self.handler_stop = True
 
-    self.flow_processing_request_handler_thread = None
-    self.flow_processing_request_handler_stop = None
+    self.flow_processing_request_handler_thread = None  # pyrefly: ignore[bad-assignment]
+    self.flow_processing_request_handler_stop = None  # pyrefly: ignore[bad-assignment]
     self.flow_processing_request_handler_pool = threadpool.ThreadPool.Factory(
         "flow_processing_pool",
         min_threads=config.CONFIG["Mysql.flow_processing_threads_min"],

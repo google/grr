@@ -21,12 +21,12 @@ class DummyTest(client_test_lib.EmptyActionTest):
     self.assertLen(results, 2)
 
     self.assertIsInstance(results[0], rdf_dummy.DummyResult)
-    self.assertIn("banana", results[0].action_output)
-    self.assertIn("WIN", results[0].action_output)
+    self.assertIn("banana", results[0].action_output)  # pyrefly: ignore[missing-attribute]
+    self.assertIn("WIN", results[0].action_output)  # pyrefly: ignore[missing-attribute]
 
     self.assertIsInstance(results[1], rdf_flows.GrrStatus)
-    self.assertEqual(rdf_flows.GrrStatus.ReturnedStatus.OK, results[1].status)
-    self.assertEmpty(results[1].error_message)
+    self.assertEqual(rdf_flows.GrrStatus.ReturnedStatus.OK, results[1].status)  # pyrefly: ignore[missing-attribute]
+    self.assertEmpty(results[1].error_message)  # pyrefly: ignore[missing-attribute]
 
   def testErrorsOnEmptyInput(self):
     action_request = rdf_dummy.DummyRequest()
@@ -39,9 +39,9 @@ class DummyTest(client_test_lib.EmptyActionTest):
 
     self.assertIsInstance(results[0], rdf_flows.GrrStatus)
     self.assertEqual(
-        rdf_flows.GrrStatus.ReturnedStatus.GENERIC_ERROR, results[0].status
+        rdf_flows.GrrStatus.ReturnedStatus.GENERIC_ERROR, results[0].status  # pyrefly: ignore[missing-attribute]
     )
-    self.assertIn("empty", results[0].error_message)
+    self.assertIn("empty", results[0].error_message)  # pyrefly: ignore[missing-attribute]
 
 
 def main(argv):

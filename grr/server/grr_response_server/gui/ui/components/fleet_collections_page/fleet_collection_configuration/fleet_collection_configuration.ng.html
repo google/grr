@@ -17,16 +17,14 @@
     >
       <div
         class="start-fleet-collection-container"
-        [matTooltip]="(
-          fleetCollectionStore.fleetCollection()?.state !== HuntState.NOT_STARTED
-        ) ? 'Can only start a Fleet Collection from paused state.' : ''"
+        [matTooltip]="fleetCollectionStore.canStartFleetCollection()
+          ? ''
+          : 'Can only start a Fleet Collection from paused state.'"
       >
         <button mat-flat-button
           (click)="fleetCollectionStore.startFleetCollection()"
-          [disabled]="
-            !fleetCollectionStore.hasAccess() ||
-            fleetCollectionStore.fleetCollection()?.state !== HuntState.NOT_STARTED
-          "
+          [disabled]="!fleetCollectionStore.hasAccess()
+            || !fleetCollectionStore.canStartFleetCollection()"
         >
           Start Fleet Collection
         </button>

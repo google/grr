@@ -1,924 +1,1145 @@
 #!/usr/bin/env python
-"""Test for the foreman client rule classes."""
+import ipaddress
 
-from absl import app
+from absl.testing import absltest
 
-from grr_response_core.lib import rdfvalue
-from grr_response_core.lib.rdfvalues import test_base as rdf_test_base
-from grr_response_server import data_store
+from grr_response_proto import jobs_pb2
+from grr_response_proto import knowledge_base_pb2
+from grr_response_proto import objects_pb2
 from grr_response_server import foreman_rules
-from grr_response_server.rdfvalues import mig_objects
-from grr.test_lib import test_lib
+from grr_response_server.databases import db as abstract_db
+from grr.test_lib import db_test_lib
 
 
-class ForemanClientRuleSetTest(
-    rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest
-):
-  rdfvalue_class = foreman_rules.ForemanClientRuleSet
+class EvaluateForemanRuleSetTest(absltest.TestCase):
 
-  def CheckRDFValue(self, value, sample):
-    # TODO: Accessing a repeated field changes the structs value.
-    # Until this major deficiency in RDFValues is fixed, access `rules` to
-    # prevent failure due to [] != None. Side effects... (ノಠ益ಠ)ノ彡┻━┻
-    value.rules  # pylint: disable=pointless-statement
-    sample.rules  # pylint: disable=pointless-statement
-    super().CheckRDFValue(value, sample)
-
-  def GenerateSample(self, number=0):
-    ret = foreman_rules.ForemanClientRuleSet()
-
-    # Use the number's least significant bit to assign a match mode
-    if number % 1:
-      ret.match_mode = foreman_rules.ForemanClientRuleSet.MatchMode.MATCH_ALL
-    else:
-      ret.match_mode = foreman_rules.ForemanClientRuleSet.MatchMode.MATCH_ANY
-
-    # Generate a sequence of rules using all other bits
-    ret.rules = [
-        ForemanClientRuleTest.GenerateSample(n) for n in range(number // 2)
-    ]
-
-    return ret
-
-  def testEvaluatesPositiveInMatchAnyModeIfOneRuleMatches(self):
+  @db_test_lib.WithDatabase
+  def testEvaluatesPositiveInMatchAnyModeIfOneRuleMatches(
+      self, db: abstract_db.Database
+  ) -> None:
     # Instantiate a rule set that matches if any of its two
     # operating system rules matches
-    rs = foreman_rules.ForemanClientRuleSet(
-        match_mode=foreman_rules.ForemanClientRuleSet.MatchMode.MATCH_ANY,
+    rs = jobs_pb2.ForemanClientRuleSet(
+        match_mode=jobs_pb2.ForemanClientRuleSet.MatchMode.MATCH_ANY,
         rules=[
-            foreman_rules.ForemanClientRule(
-                rule_type=foreman_rules.ForemanClientRule.Type.OS,
-                os=foreman_rules.ForemanOsClientRule(
+            jobs_pb2.ForemanClientRule(
+                rule_type=jobs_pb2.ForemanClientRule.Type.OS,
+                os=jobs_pb2.ForemanOsClientRule(
                     os_windows=False, os_linux=True, os_darwin=False
                 ),
             ),
-            foreman_rules.ForemanClientRule(
-                rule_type=foreman_rules.ForemanClientRule.Type.OS,
-                os=foreman_rules.ForemanOsClientRule(
+            jobs_pb2.ForemanClientRule(
+                rule_type=jobs_pb2.ForemanClientRule.Type.OS,
+                os=jobs_pb2.ForemanOsClientRule(
                     os_windows=False, os_linux=True, os_darwin=True
                 ),
             ),
         ],
     )
 
-    client_id_dar = self.SetupClient(0, system="Darwin")
+    client_id_dar = "C.1%015x" % 1
+    snapshot = objects_pb2.ClientSnapshot(
+        client_id=client_id_dar,
+        knowledge_base=knowledge_base_pb2.KnowledgeBase(os="Darwin"),
+    )
+    db.WriteClientMetadata(client_id_dar)
+    db.WriteClientSnapshot(snapshot)
     # One of the set's rules has os_darwin=True, so the whole set matches
     # with the match any match mode
     self.assertTrue(
-        rs.Evaluate(
-            mig_objects.ToRDFClientFullInfo(
-                data_store.REL_DB.ReadClientFullInfo(client_id_dar)
-            )
+        foreman_rules.EvaluateForemanRuleSet(
+            rs,
+            db.ReadClientFullInfo(client_id_dar),
         )
     )
 
-  def testEvaluatesNegativeInMatchAnyModeIfNoRuleMatches(self):
+  @db_test_lib.WithDatabase
+  def testEvaluatesNegativeInMatchAnyModeIfNoRuleMatches(
+      self, db: abstract_db.Database
+  ) -> None:
     # Instantiate a rule set that matches if any of its two
     # operating system rules matches
-    rs = foreman_rules.ForemanClientRuleSet(
-        match_mode=foreman_rules.ForemanClientRuleSet.MatchMode.MATCH_ANY,
+    rs = jobs_pb2.ForemanClientRuleSet(
+        match_mode=jobs_pb2.ForemanClientRuleSet.MatchMode.MATCH_ANY,
         rules=[
-            foreman_rules.ForemanClientRule(
-                rule_type=foreman_rules.ForemanClientRule.Type.OS,
-                os=foreman_rules.ForemanOsClientRule(
+            jobs_pb2.ForemanClientRule(
+                rule_type=jobs_pb2.ForemanClientRule.Type.OS,
+                os=jobs_pb2.ForemanOsClientRule(
                     os_windows=False, os_linux=True, os_darwin=False
                 ),
             ),
-            foreman_rules.ForemanClientRule(
-                rule_type=foreman_rules.ForemanClientRule.Type.OS,
-                os=foreman_rules.ForemanOsClientRule(
+            jobs_pb2.ForemanClientRule(
+                rule_type=jobs_pb2.ForemanClientRule.Type.OS,
+                os=jobs_pb2.ForemanOsClientRule(
                     os_windows=False, os_linux=True, os_darwin=True
                 ),
             ),
         ],
     )
 
-    client_id_win = self.SetupClient(0, system="Windows")
+    client_id_win = "C.1%015x" % 2
+    snapshot = objects_pb2.ClientSnapshot(
+        client_id=client_id_win,
+        knowledge_base=knowledge_base_pb2.KnowledgeBase(os="Windows"),
+    )
+    db.WriteClientMetadata(client_id_win)
+    db.WriteClientSnapshot(snapshot)
     # None of the set's rules has os_windows=True, so the whole set doesn't
     # match
     self.assertFalse(
-        rs.Evaluate(
-            mig_objects.ToRDFClientFullInfo(
-                data_store.REL_DB.ReadClientFullInfo(client_id_win)
-            )
+        foreman_rules.EvaluateForemanRuleSet(
+            rs,
+            db.ReadClientFullInfo(client_id_win),
         )
     )
 
-  def testEvaluatesNegativeInMatchAllModeIfOnlyOneRuleMatches(self):
+  @db_test_lib.WithDatabase
+  def testEvaluatesNegativeInMatchAllModeIfOnlyOneRuleMatches(
+      self, db: abstract_db.Database
+  ) -> None:
     # Instantiate a rule set that matches if all of its two
     # operating system rules match
-    rs = foreman_rules.ForemanClientRuleSet(
-        match_mode=foreman_rules.ForemanClientRuleSet.MatchMode.MATCH_ALL,
+    rs = jobs_pb2.ForemanClientRuleSet(
+        match_mode=jobs_pb2.ForemanClientRuleSet.MatchMode.MATCH_ALL,
         rules=[
-            foreman_rules.ForemanClientRule(
-                rule_type=foreman_rules.ForemanClientRule.Type.OS,
-                os=foreman_rules.ForemanOsClientRule(
+            jobs_pb2.ForemanClientRule(
+                rule_type=jobs_pb2.ForemanClientRule.Type.OS,
+                os=jobs_pb2.ForemanOsClientRule(
                     os_windows=False, os_linux=True, os_darwin=False
                 ),
             ),
-            foreman_rules.ForemanClientRule(
-                rule_type=foreman_rules.ForemanClientRule.Type.OS,
-                os=foreman_rules.ForemanOsClientRule(
+            jobs_pb2.ForemanClientRule(
+                rule_type=jobs_pb2.ForemanClientRule.Type.OS,
+                os=jobs_pb2.ForemanOsClientRule(
                     os_windows=False, os_linux=True, os_darwin=True
                 ),
             ),
         ],
     )
 
-    client_id_dar = self.SetupClient(0, system="Darwin")
+    client_id_dar = "C.1%015x" % 3
+    snapshot = objects_pb2.ClientSnapshot(
+        client_id=client_id_dar,
+        knowledge_base=knowledge_base_pb2.KnowledgeBase(os="Darwin"),
+    )
+    db.WriteClientMetadata(client_id_dar)
+    db.WriteClientSnapshot(snapshot)
     # One of the set's rules has os_darwin=False, so the whole set doesn't
     # match with the match all match mode
     self.assertFalse(
-        rs.Evaluate(
-            mig_objects.ToRDFClientFullInfo(
-                data_store.REL_DB.ReadClientFullInfo(client_id_dar)
-            )
+        foreman_rules.EvaluateForemanRuleSet(
+            rs,
+            db.ReadClientFullInfo(client_id_dar),
         )
     )
 
-  def testEvaluatesPositiveInMatchAllModeIfAllRuleMatch(self):
+  @db_test_lib.WithDatabase
+  def testEvaluatesPositiveInMatchAllModeIfAllRuleMatch(
+      self, db: abstract_db.Database
+  ) -> None:
     # Instantiate a rule set that matches if all of its two
     # operating system rules match
-    rs = foreman_rules.ForemanClientRuleSet(
-        match_mode=foreman_rules.ForemanClientRuleSet.MatchMode.MATCH_ALL,
+    rs = jobs_pb2.ForemanClientRuleSet(
+        match_mode=jobs_pb2.ForemanClientRuleSet.MatchMode.MATCH_ALL,
         rules=[
-            foreman_rules.ForemanClientRule(
-                rule_type=foreman_rules.ForemanClientRule.Type.OS,
-                os=foreman_rules.ForemanOsClientRule(
+            jobs_pb2.ForemanClientRule(
+                rule_type=jobs_pb2.ForemanClientRule.Type.OS,
+                os=jobs_pb2.ForemanOsClientRule(
                     os_windows=False, os_linux=True, os_darwin=False
                 ),
             ),
-            foreman_rules.ForemanClientRule(
-                rule_type=foreman_rules.ForemanClientRule.Type.OS,
-                os=foreman_rules.ForemanOsClientRule(
+            jobs_pb2.ForemanClientRule(
+                rule_type=jobs_pb2.ForemanClientRule.Type.OS,
+                os=jobs_pb2.ForemanOsClientRule(
                     os_windows=False, os_linux=True, os_darwin=True
                 ),
             ),
         ],
     )
 
-    client_id_lin = self.SetupClient(0, system="Linux")
-    # All of the set's rules have os_linux=False, so the whole set matches
+    client_id_lin = "C.1%015x" % 4
+    snapshot = objects_pb2.ClientSnapshot(
+        client_id=client_id_lin,
+        knowledge_base=knowledge_base_pb2.KnowledgeBase(os="Linux"),
+    )
+    db.WriteClientMetadata(client_id_lin)
+    db.WriteClientSnapshot(snapshot)
+    # All of the set's rules have os_linux=True, so the whole set matches
     self.assertTrue(
-        rs.Evaluate(
-            mig_objects.ToRDFClientFullInfo(
-                data_store.REL_DB.ReadClientFullInfo(client_id_lin)
-            )
+        foreman_rules.EvaluateForemanRuleSet(
+            rs,
+            db.ReadClientFullInfo(client_id_lin),
         )
     )
 
-  def testEvaluatesNegativeInMatchAnyModeWithNoRules(self):
+  @db_test_lib.WithDatabase
+  def testEvaluatesNegativeInMatchAnyModeWithNoRules(
+      self, db: abstract_db.Database
+  ) -> None:
     # Instantiate an empty rule set that matches if any of its rules matches
-    rs = foreman_rules.ForemanClientRuleSet(
-        match_mode=foreman_rules.ForemanClientRuleSet.MatchMode.MATCH_ANY,
+    rs = jobs_pb2.ForemanClientRuleSet(
+        match_mode=jobs_pb2.ForemanClientRuleSet.MatchMode.MATCH_ANY,
         rules=[],
     )
 
-    client_id_lin = self.SetupClient(0, system="Linux")
-    # None of the set's rules has os_linux=True, so the set doesn't match
+    client_id_lin = "C.1%015x" % 5
+    snapshot = objects_pb2.ClientSnapshot(
+        client_id=client_id_lin,
+        knowledge_base=knowledge_base_pb2.KnowledgeBase(os="Linux"),
+    )
+    db.WriteClientMetadata(client_id_lin)
+    db.WriteClientSnapshot(snapshot)
+    # The set has no rules with MATCH_ANY mode, so the set doesn't match
     self.assertFalse(
-        rs.Evaluate(
-            mig_objects.ToRDFClientFullInfo(
-                data_store.REL_DB.ReadClientFullInfo(client_id_lin)
-            )
+        foreman_rules.EvaluateForemanRuleSet(
+            rs,
+            db.ReadClientFullInfo(client_id_lin),
         )
     )
 
-  def testEvaluatesPositiveInMatchAllModeWithNoRules(self):
+  @db_test_lib.WithDatabase
+  def testEvaluatesPositiveInMatchAllModeWithNoRules(
+      self, db: abstract_db.Database
+  ) -> None:
     # Instantiate an empty rule set that matches if all of its rules match
-    rs = foreman_rules.ForemanClientRuleSet(
-        match_mode=foreman_rules.ForemanClientRuleSet.MatchMode.MATCH_ALL,
+    rs = jobs_pb2.ForemanClientRuleSet(
+        match_mode=jobs_pb2.ForemanClientRuleSet.MatchMode.MATCH_ALL,
         rules=[],
     )
 
-    client_id_lin = self.SetupClient(0, system="Linux")
-    # All of the set's rules have os_linux=True, so the set matches
+    client_id_lin = "C.1%015x" % 6
+    snapshot = objects_pb2.ClientSnapshot(
+        client_id=client_id_lin,
+        knowledge_base=knowledge_base_pb2.KnowledgeBase(os="Linux"),
+    )
+    db.WriteClientMetadata(client_id_lin)
+    db.WriteClientSnapshot(snapshot)
+    # The set has no rules with MATCH_ALL mode, so the set matches
     self.assertTrue(
-        rs.Evaluate(
-            mig_objects.ToRDFClientFullInfo(
-                data_store.REL_DB.ReadClientFullInfo(client_id_lin)
-            )
+        foreman_rules.EvaluateForemanRuleSet(
+            rs,
+            db.ReadClientFullInfo(client_id_lin),
         )
     )
 
-  def testFromDictEmpty(self):
-    dct = {
-        "match_mode": "MATCH_ALL",
-        "rules": [],
-    }
-
-    rdf = foreman_rules.ForemanClientRuleSet()
-    rdf.FromDict(dct)
-
-    self.assertEqual(
-        rdf.match_mode, foreman_rules.ForemanClientRuleSet.MatchMode.MATCH_ALL
-    )
-    self.assertEmpty(rdf.rules)
-
-  def testFromDictMixedRules(self):
-    dct = {
-        "match_mode": "MATCH_ANY",
-        "rules": [
-            {
-                "rule_type": "OS",
-                "os": {
-                    "os_windows": True,
-                    "os_linux": True,
-                },
-            },
-            {
-                "rule_type": "LABEL",
-                "label": {
-                    "label_names": ["foo", "bar"],
-                    "match_mode": "MATCH_ALL",
-                },
-            },
-        ],
-    }
-
-    rdf = foreman_rules.ForemanClientRuleSet()
-    rdf.FromDict(dct)
-
-    self.assertEqual(
-        rdf.match_mode, foreman_rules.ForemanClientRuleSet.MatchMode.MATCH_ANY
-    )
-    self.assertLen(rdf.rules, 2)
-
-    self.assertEqual(
-        rdf.rules[0].rule_type, foreman_rules.ForemanClientRule.Type.OS
-    )
-    self.assertTrue(rdf.rules[0].os.os_windows)
-    self.assertTrue(rdf.rules[0].os.os_linux)
-    self.assertFalse(rdf.rules[0].os.os_darwin)
-
-    self.assertEqual(
-        rdf.rules[1].rule_type, foreman_rules.ForemanClientRule.Type.LABEL
-    )
-    self.assertEqual(rdf.rules[1].label.label_names, ["foo", "bar"])
-    self.assertEqual(
-        rdf.rules[1].label.match_mode,
-        foreman_rules.ForemanLabelClientRule.MatchMode.MATCH_ALL,
-    )
-
-
-class ForemanClientRuleTest(
-    rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest
-):
-  rdfvalue_class = foreman_rules.ForemanClientRule
-
-  @staticmethod
-  def GenerateSample(number=0):
-    # Wrap the operating system rule sample generator
-    return foreman_rules.ForemanClientRule(
-        rule_type=foreman_rules.ForemanClientRule.Type.OS,
-        os=ForemanOsClientRuleTest.GenerateSample(number),
-    )
-
-  def testEvaluatesPositiveIfNestedRuleEvaluatesPositive(self):
-    r = foreman_rules.ForemanClientRule(
-        rule_type=foreman_rules.ForemanClientRule.Type.OS,
-        os=foreman_rules.ForemanOsClientRule(
+  @db_test_lib.WithDatabase
+  def testEvaluatesPositiveIfNestedRuleEvaluatesPositive(
+      self, db: abstract_db.Database
+  ) -> None:
+    r = jobs_pb2.ForemanClientRule(
+        rule_type=jobs_pb2.ForemanClientRule.Type.OS,
+        os=jobs_pb2.ForemanOsClientRule(
             os_windows=True, os_linux=True, os_darwin=False
         ),
     )
 
-    client_id_win = self.SetupClient(0, system="Windows")
+    client_id_win = "C.1%015x" % 7
+    snapshot = objects_pb2.ClientSnapshot(
+        client_id=client_id_win,
+        knowledge_base=knowledge_base_pb2.KnowledgeBase(os="Windows"),
+    )
+    db.WriteClientMetadata(client_id_win)
+    db.WriteClientSnapshot(snapshot)
+
     # The Windows client matches rule r
     self.assertTrue(
-        r.Evaluate(
-            mig_objects.ToRDFClientFullInfo(
-                data_store.REL_DB.ReadClientFullInfo(client_id_win)
-            )
+        foreman_rules.EvaluateForemanRuleSet(
+            jobs_pb2.ForemanClientRuleSet(rules=[r]),
+            db.ReadClientFullInfo(client_id_win),
         )
     )
 
-  def testEvaluatesNegativeIfNestedRuleEvaluatesNegative(self):
-    r = foreman_rules.ForemanClientRule(
-        rule_type=foreman_rules.ForemanClientRule.Type.OS,
-        os=foreman_rules.ForemanOsClientRule(
+  @db_test_lib.WithDatabase
+  def testEvaluatesNegativeIfNestedRuleEvaluatesNegative(
+      self, db: abstract_db.Database
+  ) -> None:
+    r = jobs_pb2.ForemanClientRule(
+        rule_type=jobs_pb2.ForemanClientRule.Type.OS,
+        os=jobs_pb2.ForemanOsClientRule(
             os_windows=False, os_linux=True, os_darwin=False
         ),
     )
 
-    client_id_win = self.SetupClient(0, system="Windows")
+    client_id_win = "C.1%015x" % 8
+    snapshot = objects_pb2.ClientSnapshot(
+        client_id=client_id_win,
+        knowledge_base=knowledge_base_pb2.KnowledgeBase(os="Windows"),
+    )
+    db.WriteClientMetadata(client_id_win)
+    db.WriteClientSnapshot(snapshot)
+
     # The Windows client doesn't match rule r
     self.assertFalse(
-        r.Evaluate(
-            mig_objects.ToRDFClientFullInfo(
-                data_store.REL_DB.ReadClientFullInfo(client_id_win)
-            )
+        foreman_rules.EvaluateForemanRuleSet(
+            jobs_pb2.ForemanClientRuleSet(rules=[r]),
+            db.ReadClientFullInfo(client_id_win),
         )
     )
 
-  def testFromDictOs(self):
-    dct = {
-        "rule_type": "OS",
-        "os": {
-            "os_windows": False,
-            "os_linux": True,
-        },
-    }
 
-    rdf = foreman_rules.ForemanClientRule()
-    rdf.FromDict(dct)
+class EvaluateForemanOsClientRuleTest(absltest.TestCase):
 
-    self.assertEqual(rdf.rule_type, foreman_rules.ForemanClientRule.Type.OS)
-    self.assertFalse(rdf.os.os_windows)
-    self.assertTrue(rdf.os.os_linux)
-
-  def testFromDictLabel(self):
-    dct = {
-        "rule_type": "LABEL",
-        "label": {
-            "label_names": ["quux", "norf", "thud"],
-            "match_mode": "MATCH_ANY",
-        },
-    }
-
-    rdf = foreman_rules.ForemanClientRule()
-    rdf.FromDict(dct)
-
-    self.assertEqual(rdf.rule_type, foreman_rules.ForemanClientRule.Type.LABEL)
-    self.assertEqual(rdf.label.label_names, ["quux", "norf", "thud"])
-    self.assertEqual(
-        rdf.label.match_mode,
-        foreman_rules.ForemanLabelClientRule.MatchMode.MATCH_ANY,
-    )
-
-  def testFromDictRegex(self):
-    dct = {
-        "rule_type": "REGEX",
-        "regex": {
-            "attribute_regex": "[a-z]+[0-9]",
-            "field": "FQDN",
-        },
-    }
-
-    rdf = foreman_rules.ForemanClientRule()
-    rdf.FromDict(dct)
-
-    self.assertEqual(rdf.rule_type, foreman_rules.ForemanClientRule.Type.REGEX)
-    self.assertEqual(rdf.regex.attribute_regex, "[a-z]+[0-9]")
-    self.assertEqual(
-        rdf.regex.field,
-        foreman_rules.ForemanRegexClientRule.ForemanStringField.FQDN,
-    )
-
-  def testFromDictInteger(self):
-    dct = {
-        "rule_type": "INTEGER",
-        "integer": {
-            "operator": "EQUAL",
-            "value": 42,
-            "field": "CLIENT_VERSION",
-        },
-    }
-
-    rdf = foreman_rules.ForemanClientRule()
-    rdf.FromDict(dct)
-
-    self.assertEqual(
-        rdf.rule_type, foreman_rules.ForemanClientRule.Type.INTEGER
-    )
-    self.assertEqual(
-        rdf.integer.operator,
-        foreman_rules.ForemanIntegerClientRule.Operator.EQUAL,
-    )
-    self.assertEqual(rdf.integer.value, 42)
-    self.assertEqual(
-        rdf.integer.field,
-        foreman_rules.ForemanIntegerClientRule.ForemanIntegerField.CLIENT_VERSION,
-    )
-
-
-class ForemanOsClientRuleTest(test_lib.GRRBaseTest):
-
-  @staticmethod
-  def GenerateSample(number=0):
-    # Assert that the argument uses at most the three least significant bits
-    num_combinations = 2**3
-    if number < 0 or number >= num_combinations:
-      raise ValueError(
-          "Only %d distinct instances of %s exist, numbered from 0 to %d."
-          % (
-              num_combinations,
-              foreman_rules.ForemanOsClientRule.__name__,
-              num_combinations - 1,
-          )
-      )
-
-    # Assign the bits to new rule's boolean fields accordingly
-    return foreman_rules.ForemanOsClientRule(
-        os_windows=number & 1, os_linux=number & 2, os_darwin=number & 4
-    )
-
-  def testWindowsClientDoesNotMatchRuleWithNoOsSelected(self):
-    r = foreman_rules.ForemanOsClientRule(
+  @db_test_lib.WithDatabase
+  def testWindowsClientDoesNotMatchRuleWithNoOsSelected(
+      self, db: abstract_db.Database
+  ) -> None:
+    r = jobs_pb2.ForemanOsClientRule(
         os_windows=False, os_linux=False, os_darwin=False
     )
 
-    client_id = self.SetupClient(0, system="Windows")
-    info = data_store.REL_DB.ReadClientFullInfo(client_id)
-    info = mig_objects.ToRDFClientFullInfo(info)
-    self.assertFalse(r.Evaluate(info))
+    client_id = "C.1%015x" % 9
+    snapshot = objects_pb2.ClientSnapshot(
+        client_id=client_id,
+        knowledge_base=knowledge_base_pb2.KnowledgeBase(os="Windows"),
+    )
+    db.WriteClientMetadata(client_id)
+    db.WriteClientSnapshot(snapshot)
 
-  def testLinuxClientMatchesIffOsLinuxIsSelected(self):
-    r0 = foreman_rules.ForemanOsClientRule(
+    self.assertFalse(
+        foreman_rules.EvaluateForemanOsClientRule(
+            r, db.ReadClientFullInfo(client_id)
+        )
+    )
+
+  @db_test_lib.WithDatabase
+  def testLinuxClientMatchesIffOsLinuxIsSelected(
+      self, db: abstract_db.Database
+  ) -> None:
+    r0 = jobs_pb2.ForemanOsClientRule(
         os_windows=False, os_linux=False, os_darwin=False
     )
 
-    r1 = foreman_rules.ForemanOsClientRule(
+    r1 = jobs_pb2.ForemanOsClientRule(
         os_windows=False, os_linux=True, os_darwin=False
     )
 
-    client_id = self.SetupClient(0, system="Linux")
-    info = data_store.REL_DB.ReadClientFullInfo(client_id)
-    info = mig_objects.ToRDFClientFullInfo(info)
-    self.assertFalse(r0.Evaluate(info))
-    self.assertTrue(r1.Evaluate(info))
+    client_id = "C.1%015x" % 10
+    snapshot = objects_pb2.ClientSnapshot(
+        client_id=client_id,
+        knowledge_base=knowledge_base_pb2.KnowledgeBase(os="Linux"),
+    )
+    db.WriteClientMetadata(client_id)
+    db.WriteClientSnapshot(snapshot)
 
-  def testDarwinClientMatchesIffOsDarwinIsSelected(self):
-    r0 = foreman_rules.ForemanOsClientRule(
+    info = db.ReadClientFullInfo(client_id)
+    self.assertFalse(foreman_rules.EvaluateForemanOsClientRule(r0, info))
+    self.assertTrue(foreman_rules.EvaluateForemanOsClientRule(r1, info))
+
+  @db_test_lib.WithDatabase
+  def testDarwinClientMatchesIffOsDarwinIsSelected(
+      self, db: abstract_db.Database
+  ) -> None:
+    r0 = jobs_pb2.ForemanOsClientRule(
         os_windows=False, os_linux=True, os_darwin=False
     )
 
-    r1 = foreman_rules.ForemanOsClientRule(
+    r1 = jobs_pb2.ForemanOsClientRule(
         os_windows=True, os_linux=False, os_darwin=True
     )
 
-    client_id = self.SetupClient(0, system="Darwin")
-    info = data_store.REL_DB.ReadClientFullInfo(client_id)
-    info = mig_objects.ToRDFClientFullInfo(info)
-    self.assertFalse(r0.Evaluate(info))
-    self.assertTrue(r1.Evaluate(info))
+    client_id = "C.1%015x" % 11
+    snapshot = objects_pb2.ClientSnapshot(
+        client_id=client_id,
+        knowledge_base=knowledge_base_pb2.KnowledgeBase(os="Darwin"),
+    )
+    db.WriteClientMetadata(client_id)
+    db.WriteClientSnapshot(snapshot)
+
+    info = db.ReadClientFullInfo(client_id)
+    self.assertFalse(foreman_rules.EvaluateForemanOsClientRule(r0, info))
+    self.assertTrue(foreman_rules.EvaluateForemanOsClientRule(r1, info))
 
 
-class ForemanLabelClientRuleTest(
-    rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest
-):
-  rdfvalue_class = foreman_rules.ForemanLabelClientRule
+class EvaluateForemanLabelClientRuleTest(absltest.TestCase):
 
-  def GenerateSample(self, number=0):
-    # Sample rule matches clients labeled str(number)
-    return foreman_rules.ForemanLabelClientRule(label_names=[str(number)])
+  def _SetupClientWithLabels(
+      self, db: abstract_db.Database, labels: list[str]
+  ) -> objects_pb2.ClientFullInfo:
+    client_id = "C.1%015x" % 12
+    db.WriteClientMetadata(client_id)
+    db.WriteGRRUser("GRR")
+    db.AddClientLabels(client_id, "GRR", labels)
 
-  def _Evaluate(self, rule):
-    client_id = self.SetupClient(0)
+    return db.ReadClientFullInfo(client_id)
 
-    data_store.REL_DB.WriteGRRUser("GRR")
-    data_store.REL_DB.AddClientLabels(client_id, "GRR", ["hello", "world"])
-
-    client_info = data_store.REL_DB.ReadClientFullInfo(client_id)
-    client_info = mig_objects.ToRDFClientFullInfo(client_info)
-    return rule.Evaluate(client_info)
-
-  def testEvaluatesToFalseForClientWithoutTheLabel(self):
-    r = foreman_rules.ForemanLabelClientRule(label_names=["arbitrary text"])
+  @db_test_lib.WithDatabase
+  def testEvaluatesToFalseForClientWithoutTheLabel(
+      self, db: abstract_db.Database
+  ) -> None:
+    client_info = self._SetupClientWithLabels(db, ["hello", "world"])
+    r = jobs_pb2.ForemanLabelClientRule(label_names=["arbitrary text"])
 
     # The client isn't labeled "arbitrary text"
-    self.assertFalse(self._Evaluate(r))
+    self.assertFalse(
+        foreman_rules.EvaluateForemanLabelClientRule(r, client_info)
+    )
 
-  def testEvaluatesToTrueForClientWithTheLabel(self):
-    r = foreman_rules.ForemanLabelClientRule(label_names=["world"])
+  @db_test_lib.WithDatabase
+  def testEvaluatesToTrueForClientWithTheLabel(
+      self, db: abstract_db.Database
+  ) -> None:
+    client_info = self._SetupClientWithLabels(db, ["hello", "world"])
+    r = jobs_pb2.ForemanLabelClientRule(label_names=["world"])
 
     # The client is labeled "world"
-    self.assertTrue(self._Evaluate(r))
+    self.assertTrue(
+        foreman_rules.EvaluateForemanLabelClientRule(r, client_info)
+    )
 
-  def testEvaluatesToTrueInMatchAnyModeIfClientHasOneOfTheLabels(self):
-    r = foreman_rules.ForemanLabelClientRule(
-        match_mode=foreman_rules.ForemanLabelClientRule.MatchMode.MATCH_ANY,
+  @db_test_lib.WithDatabase
+  def testEvaluatesToTrueInMatchAnyModeIfClientHasOneOfTheLabels(
+      self, db: abstract_db.Database
+  ) -> None:
+    client_info = self._SetupClientWithLabels(db, ["hello", "world"])
+    r = jobs_pb2.ForemanLabelClientRule(
+        match_mode=jobs_pb2.ForemanLabelClientRule.MatchMode.MATCH_ANY,
         label_names=["nonexistent", "world"],
     )
 
     # The client is labeled "world"
-    self.assertTrue(self._Evaluate(r))
+    self.assertTrue(
+        foreman_rules.EvaluateForemanLabelClientRule(r, client_info)
+    )
 
-  def testEvaluatesToFalseInMatchAnyModeIfClientHasNoneOfTheLabels(self):
-    r = foreman_rules.ForemanLabelClientRule(
-        match_mode=foreman_rules.ForemanLabelClientRule.MatchMode.MATCH_ANY,
+  @db_test_lib.WithDatabase
+  def testEvaluatesToFalseInMatchAnyModeIfClientHasNoneOfTheLabels(
+      self, db: abstract_db.Database
+  ) -> None:
+    client_info = self._SetupClientWithLabels(db, ["hello", "world"])
+    r = jobs_pb2.ForemanLabelClientRule(
+        match_mode=jobs_pb2.ForemanLabelClientRule.MatchMode.MATCH_ANY,
         label_names=["nonexistent", "arbitrary"],
     )
 
     # The client isn't labeled "nonexistent", nor "arbitrary"
-    self.assertFalse(self._Evaluate(r))
+    self.assertFalse(
+        foreman_rules.EvaluateForemanLabelClientRule(r, client_info)
+    )
 
-  def testEvaluatesToTrueInMatchAllModeIfClientHasAllOfTheLabels(self):
-    r = foreman_rules.ForemanLabelClientRule(
-        match_mode=foreman_rules.ForemanLabelClientRule.MatchMode.MATCH_ALL,
+  @db_test_lib.WithDatabase
+  def testEvaluatesToTrueInMatchAllModeIfClientHasAllOfTheLabels(
+      self, db: abstract_db.Database
+  ) -> None:
+    client_info = self._SetupClientWithLabels(db, ["hello", "world"])
+    r = jobs_pb2.ForemanLabelClientRule(
+        match_mode=jobs_pb2.ForemanLabelClientRule.MatchMode.MATCH_ALL,
         label_names=["world", "hello"],
     )
 
     # The client is labeled both "world" and "hello"
-    self.assertTrue(self._Evaluate(r))
+    self.assertTrue(
+        foreman_rules.EvaluateForemanLabelClientRule(r, client_info)
+    )
 
-  def testEvaluatesToFalseInMatchAllModeIfClientDoesntHaveOneOfTheLabels(self):
-    r = foreman_rules.ForemanLabelClientRule(
-        match_mode=foreman_rules.ForemanLabelClientRule.MatchMode.MATCH_ALL,
+  @db_test_lib.WithDatabase
+  def testEvaluatesToFalseInMatchAllModeIfClientDoesntHaveOneOfTheLabels(
+      self, db: abstract_db.Database
+  ) -> None:
+    client_info = self._SetupClientWithLabels(db, ["hello", "world"])
+    r = jobs_pb2.ForemanLabelClientRule(
+        match_mode=jobs_pb2.ForemanLabelClientRule.MatchMode.MATCH_ALL,
         label_names=["world", "random"],
     )
 
     # The client isn't labeled "random"
-    self.assertFalse(self._Evaluate(r))
+    self.assertFalse(
+        foreman_rules.EvaluateForemanLabelClientRule(r, client_info)
+    )
 
-  def testEvaluatesToFalseInDoesntMatchAnyModeIfClientHasOneOfTheLabels(self):
-    r = foreman_rules.ForemanLabelClientRule(
-        match_mode=foreman_rules.ForemanLabelClientRule.MatchMode.DOES_NOT_MATCH_ANY,
+  @db_test_lib.WithDatabase
+  def testEvaluatesToFalseInDoesntMatchAnyModeIfClientHasOneOfTheLabels(
+      self, db: abstract_db.Database
+  ) -> None:
+    client_info = self._SetupClientWithLabels(db, ["hello", "world"])
+    r = jobs_pb2.ForemanLabelClientRule(
+        match_mode=jobs_pb2.ForemanLabelClientRule.MatchMode.DOES_NOT_MATCH_ANY,
         label_names=["nonexistent", "world"],
     )
 
     # The client is labeled "world"
-    self.assertFalse(self._Evaluate(r))
+    self.assertFalse(
+        foreman_rules.EvaluateForemanLabelClientRule(r, client_info)
+    )
 
-  def testEvaluatesToTrueInDoesntMatchAnyModeIfClientHasNoneOfTheLabels(self):
-    r = foreman_rules.ForemanLabelClientRule(
-        match_mode=foreman_rules.ForemanLabelClientRule.MatchMode.DOES_NOT_MATCH_ANY,
+  @db_test_lib.WithDatabase
+  def testEvaluatesToTrueInDoesntMatchAnyModeIfClientHasNoneOfTheLabels(
+      self, db: abstract_db.Database
+  ) -> None:
+    client_info = self._SetupClientWithLabels(db, ["hello", "world"])
+    r = jobs_pb2.ForemanLabelClientRule(
+        match_mode=jobs_pb2.ForemanLabelClientRule.MatchMode.DOES_NOT_MATCH_ANY,
         label_names=["nonexistent", "arbitrary"],
     )
 
     # The client isn't labeled "nonexistent", nor "arbitrary"
-    self.assertTrue(self._Evaluate(r))
+    self.assertTrue(
+        foreman_rules.EvaluateForemanLabelClientRule(r, client_info)
+    )
 
-  def testEvaluatesToFalseInDoesntMatchAllModeIfClientHasAllOfTheLabels(self):
-    r = foreman_rules.ForemanLabelClientRule(
-        match_mode=foreman_rules.ForemanLabelClientRule.MatchMode.DOES_NOT_MATCH_ALL,
+  @db_test_lib.WithDatabase
+  def testEvaluatesToFalseInDoesntMatchAllModeIfClientHasAllOfTheLabels(
+      self, db: abstract_db.Database
+  ) -> None:
+    client_info = self._SetupClientWithLabels(db, ["hello", "world"])
+    r = jobs_pb2.ForemanLabelClientRule(
+        match_mode=jobs_pb2.ForemanLabelClientRule.MatchMode.DOES_NOT_MATCH_ALL,
         label_names=["world", "hello"],
     )
 
     # The client is labeled both "world" and "hello"
-    self.assertFalse(self._Evaluate(r))
+    self.assertFalse(
+        foreman_rules.EvaluateForemanLabelClientRule(r, client_info)
+    )
 
+  @db_test_lib.WithDatabase
   def testEvaluatesToTrueInDoesntMatchAllModeIfClientDoesntHaveOneOfTheLabels(
-      self,
-  ):
-    r = foreman_rules.ForemanLabelClientRule(
-        match_mode=foreman_rules.ForemanLabelClientRule.MatchMode.DOES_NOT_MATCH_ALL,
+      self, db: abstract_db.Database
+  ) -> None:
+    client_info = self._SetupClientWithLabels(db, ["hello", "world"])
+    r = jobs_pb2.ForemanLabelClientRule(
+        match_mode=jobs_pb2.ForemanLabelClientRule.MatchMode.DOES_NOT_MATCH_ALL,
         label_names=["world", "random"],
     )
 
     # The client isn't labeled "random"
-    self.assertTrue(self._Evaluate(r))
-
-
-class ForemanRegexClientRuleTest(test_lib.GRRBaseTest):
-
-  def testEvaluation(self):
-    now = rdfvalue.RDFDatetime().Now()
-    client_id = self.SetupClient(0, last_boot_time=now)
-    info = data_store.REL_DB.ReadClientFullInfo(client_id)
-    info = mig_objects.ToRDFClientFullInfo(info)
-
-    for f in foreman_rules.ForemanRegexClientRule.ForemanStringField.enum_dict:
-      if f == "UNSET":
-        continue
-
-      r = foreman_rules.ForemanRegexClientRule(field=f, attribute_regex=".")
-      r.Evaluate(info)
-
-  def testEvaluatesTheWholeAttributeToTrue(self):
-    r = foreman_rules.ForemanRegexClientRule(
-        field="SYSTEM", attribute_regex="^Linux$"
+    self.assertTrue(
+        foreman_rules.EvaluateForemanLabelClientRule(r, client_info)
     )
 
-    client_id = self.SetupClient(0, system="Linux")
-    info = data_store.REL_DB.ReadClientFullInfo(client_id)
-    info = mig_objects.ToRDFClientFullInfo(info)
-    self.assertTrue(r.Evaluate(info))
 
-  def testEvaluatesAttributesSubstringToTrue(self):
-    r = foreman_rules.ForemanRegexClientRule(
-        field="SYSTEM", attribute_regex="inu"
+class EvaluateForemanRegexClientRuleTest(absltest.TestCase):
+
+  @db_test_lib.WithDatabase
+  def testEvaluatesTheWholeAttributeToTrue(
+      self, db: abstract_db.Database
+  ) -> None:
+    r = jobs_pb2.ForemanRegexClientRule(
+        field=jobs_pb2.ForemanRegexClientRule.ForemanStringField.SYSTEM,
+        attribute_regex="^Linux$",
     )
 
-    client_id = self.SetupClient(0, system="Linux")
-    info = data_store.REL_DB.ReadClientFullInfo(client_id)
-    info = mig_objects.ToRDFClientFullInfo(info)
+    client_id = "C.1%015x" % 14
+    snapshot = objects_pb2.ClientSnapshot(
+        client_id=client_id,
+        knowledge_base=knowledge_base_pb2.KnowledgeBase(os="Linux"),
+    )
+    db.WriteClientMetadata(client_id)
+    db.WriteClientSnapshot(snapshot)
+
+    self.assertTrue(
+        foreman_rules.EvaluateForemanRegexClientRule(
+            r, db.ReadClientFullInfo(client_id)
+        )
+    )
+
+  @db_test_lib.WithDatabase
+  def testEvaluatesAttributesSubstringToTrue(
+      self, db: abstract_db.Database
+  ) -> None:
+    r = jobs_pb2.ForemanRegexClientRule(
+        field=jobs_pb2.ForemanRegexClientRule.ForemanStringField.SYSTEM,
+        attribute_regex="inu",
+    )
+
+    client_id = "C.1%015x" % 15
+    snapshot = objects_pb2.ClientSnapshot(
+        client_id=client_id,
+        knowledge_base=knowledge_base_pb2.KnowledgeBase(os="Linux"),
+    )
+    db.WriteClientMetadata(client_id)
+    db.WriteClientSnapshot(snapshot)
 
     # The system contains the substring inu
-    self.assertTrue(r.Evaluate(info))
-
-  def testEvaluatesNonSubstringToFalse(self):
-    r = foreman_rules.ForemanRegexClientRule(
-        field="SYSTEM", attribute_regex="foo"
+    self.assertTrue(
+        foreman_rules.EvaluateForemanRegexClientRule(
+            r, db.ReadClientFullInfo(client_id)
+        )
     )
 
-    client_id = self.SetupClient(0, system="Linux")
-    info = data_store.REL_DB.ReadClientFullInfo(client_id)
-    info = mig_objects.ToRDFClientFullInfo(info)
+  @db_test_lib.WithDatabase
+  def testEvaluatesNonSubstringToFalse(self, db: abstract_db.Database) -> None:
+    r = jobs_pb2.ForemanRegexClientRule(
+        field=jobs_pb2.ForemanRegexClientRule.ForemanStringField.SYSTEM,
+        attribute_regex="foo",
+    )
+
+    client_id = "C.1%015x" % 16
+    snapshot = objects_pb2.ClientSnapshot(
+        client_id=client_id,
+        knowledge_base=knowledge_base_pb2.KnowledgeBase(os="Linux"),
+    )
+    db.WriteClientMetadata(client_id)
+    db.WriteClientSnapshot(snapshot)
 
     # The system doesn't contain foo
-    self.assertFalse(r.Evaluate(info))
+    self.assertFalse(
+        foreman_rules.EvaluateForemanRegexClientRule(
+            r, db.ReadClientFullInfo(client_id)
+        )
+    )
 
-  def testUnsetFieldRaises(self):
-    client_id = self.SetupClient(0, system="Linux")
-    info = data_store.REL_DB.ReadClientFullInfo(client_id)
-    info = mig_objects.ToRDFClientFullInfo(info)
+  @db_test_lib.WithDatabase
+  def testUnsetFieldRaises(self, db: abstract_db.Database) -> None:
+    client_id = "C.1%015x" % 17
+    snapshot = objects_pb2.ClientSnapshot(
+        client_id=client_id,
+        knowledge_base=knowledge_base_pb2.KnowledgeBase(os="Linux"),
+    )
+    db.WriteClientMetadata(client_id)
+    db.WriteClientSnapshot(snapshot)
 
-    r = foreman_rules.ForemanRegexClientRule(attribute_regex="foo")
+    r = jobs_pb2.ForemanRegexClientRule(attribute_regex="foo")
     with self.assertRaises(ValueError):
-      r.Evaluate(info)
+      foreman_rules.EvaluateForemanRegexClientRule(
+          r, db.ReadClientFullInfo(client_id)
+      )
 
-  def testUsernames(self):
-    client_id = self.SetupClient(0)
-    info = data_store.REL_DB.ReadClientFullInfo(client_id)
-    info = mig_objects.ToRDFClientFullInfo(info)
+  @db_test_lib.WithDatabase
+  def testUsernames(self, db: abstract_db.Database) -> None:
+    client_id = "C.1%015x" % 18
+    snapshot = objects_pb2.ClientSnapshot(
+        client_id=client_id,
+        knowledge_base=knowledge_base_pb2.KnowledgeBase(
+            users=[knowledge_base_pb2.User(username="user1")]
+        ),
+    )
+    db.WriteClientMetadata(client_id)
+    db.WriteClientSnapshot(snapshot)
+    info = db.ReadClientFullInfo(client_id)
 
     # Match identifier
-    r = foreman_rules.ForemanRegexClientRule(
-        field="USERNAMES", attribute_regex=r"user1"
+    r = jobs_pb2.ForemanRegexClientRule(
+        field=jobs_pb2.ForemanRegexClientRule.ForemanStringField.USERNAMES,
+        attribute_regex=r"user1",
     )
-    self.assertTrue(r.Evaluate(info))
+    self.assertTrue(foreman_rules.EvaluateForemanRegexClientRule(r, info))
 
     # Non-match
-    r = foreman_rules.ForemanRegexClientRule(
-        field="USERNAMES", attribute_regex=r"root"
+    r = jobs_pb2.ForemanRegexClientRule(
+        field=jobs_pb2.ForemanRegexClientRule.ForemanStringField.USERNAMES,
+        attribute_regex=r"root",
     )
-    self.assertFalse(r.Evaluate(info))
+    self.assertFalse(foreman_rules.EvaluateForemanRegexClientRule(r, info))
 
-  def testFqdn(self):
-    client_id = self.SetupClient(0, fqdn="foo.bar.example.com")
-    info = data_store.REL_DB.ReadClientFullInfo(client_id)
-    info = mig_objects.ToRDFClientFullInfo(info)
+  @db_test_lib.WithDatabase
+  def testFqdn(self, db: abstract_db.Database) -> None:
+    client_id = "C.1%015x" % 19
+    snapshot = objects_pb2.ClientSnapshot(
+        client_id=client_id,
+        knowledge_base=knowledge_base_pb2.KnowledgeBase(
+            fqdn="foo.bar.example.com"
+        ),
+    )
+    db.WriteClientMetadata(client_id)
+    db.WriteClientSnapshot(snapshot)
+    info = db.ReadClientFullInfo(client_id)
 
     # Match identifier
-    r = foreman_rules.ForemanRegexClientRule(
-        field="FQDN", attribute_regex=r"foo.*\.example\.com"
+    r = jobs_pb2.ForemanRegexClientRule(
+        field=jobs_pb2.ForemanRegexClientRule.ForemanStringField.FQDN,
+        attribute_regex=r"foo.*\.example\.com",
     )
-    self.assertTrue(r.Evaluate(info))
+    self.assertTrue(foreman_rules.EvaluateForemanRegexClientRule(r, info))
 
     # Non-match
-    r = foreman_rules.ForemanRegexClientRule(
-        field="FQDN", attribute_regex=r"localhost"
+    r = jobs_pb2.ForemanRegexClientRule(
+        field=jobs_pb2.ForemanRegexClientRule.ForemanStringField.FQDN,
+        attribute_regex=r"localhost",
     )
-    self.assertFalse(r.Evaluate(info))
+    self.assertFalse(foreman_rules.EvaluateForemanRegexClientRule(r, info))
 
-  def testHostIps(self):
-    client_id = self.SetupClient(0)
-    info = data_store.REL_DB.ReadClientFullInfo(client_id)
-    info = mig_objects.ToRDFClientFullInfo(info)
+  @db_test_lib.WithDatabase
+  def testHostIps(self, db: abstract_db.Database) -> None:
+    client_id = "C.1%015x" % 20
+    snapshot = objects_pb2.ClientSnapshot(
+        client_id=client_id,
+        interfaces=[
+            jobs_pb2.Interface(
+                addresses=[
+                    jobs_pb2.NetworkAddress(
+                        address_type=jobs_pb2.NetworkAddress.Family.INET,
+                        packed_bytes=ipaddress.IPv4Address(
+                            "192.168.0.1"
+                        ).packed,
+                    ),
+                    jobs_pb2.NetworkAddress(
+                        address_type=jobs_pb2.NetworkAddress.Family.INET6,
+                        packed_bytes=ipaddress.IPv6Address(
+                            "2001:abcd::1"
+                        ).packed,
+                    ),
+                ]
+            )
+        ],
+    )
+    db.WriteClientMetadata(client_id)
+    db.WriteClientSnapshot(snapshot)
+    info = db.ReadClientFullInfo(client_id)
 
     # Match first address
-    r = foreman_rules.ForemanRegexClientRule(
-        field="HOST_IPS", attribute_regex=r"\b192\.168\.0\.\d+\b"
+    r = jobs_pb2.ForemanRegexClientRule(
+        field=jobs_pb2.ForemanRegexClientRule.ForemanStringField.HOST_IPS,
+        attribute_regex=r"\b192\.168\.0\.\d+\b",
     )
-    self.assertTrue(r.Evaluate(info))
+    self.assertTrue(foreman_rules.EvaluateForemanRegexClientRule(r, info))
 
     # Match second address
-    r = foreman_rules.ForemanRegexClientRule(
-        field="HOST_IPS", attribute_regex=r"\b2001:abcd::"
+    r = jobs_pb2.ForemanRegexClientRule(
+        field=jobs_pb2.ForemanRegexClientRule.ForemanStringField.HOST_IPS,
+        attribute_regex=r"\b2001:abcd::",
     )
-    self.assertTrue(r.Evaluate(info))
+    self.assertTrue(foreman_rules.EvaluateForemanRegexClientRule(r, info))
 
     # Non-match
-    r = foreman_rules.ForemanRegexClientRule(
-        field="HOST_IPS", attribute_regex=r"10"
+    r = jobs_pb2.ForemanRegexClientRule(
+        field=jobs_pb2.ForemanRegexClientRule.ForemanStringField.HOST_IPS,
+        attribute_regex=r"10",
     )
-    self.assertFalse(r.Evaluate(info))
+    self.assertFalse(foreman_rules.EvaluateForemanRegexClientRule(r, info))
 
-  def testClientName(self):
-    client_id = self.SetupClient(0)
-    info = data_store.REL_DB.ReadClientFullInfo(client_id)
-    info = mig_objects.ToRDFClientFullInfo(info)
+  @db_test_lib.WithDatabase
+  def testClientName(self, db: abstract_db.Database) -> None:
+    client_id = "C.1%015x" % 21
+    db.WriteClientMetadata(client_id)
+    snapshot = objects_pb2.ClientSnapshot(
+        client_id=client_id,
+        startup_info=jobs_pb2.StartupInfo(
+            client_info=jobs_pb2.ClientInformation(
+                client_name="Monitor",
+            )
+        ),
+    )
+    db.WriteClientSnapshot(snapshot)
+    info = db.ReadClientFullInfo(client_id)
 
     # Match identifier
-    r = foreman_rules.ForemanRegexClientRule(
-        field="CLIENT_NAME", attribute_regex=r"Monitor"
+    r = jobs_pb2.ForemanRegexClientRule(
+        field=jobs_pb2.ForemanRegexClientRule.ForemanStringField.CLIENT_NAME,
+        attribute_regex=r"Monitor",
     )
-    self.assertTrue(r.Evaluate(info))
+    self.assertTrue(foreman_rules.EvaluateForemanRegexClientRule(r, info))
 
     # Non-match
-    r = foreman_rules.ForemanRegexClientRule(
-        field="CLIENT_NAME", attribute_regex=r"GRRMonitor"
+    r = jobs_pb2.ForemanRegexClientRule(
+        field=jobs_pb2.ForemanRegexClientRule.ForemanStringField.CLIENT_NAME,
+        attribute_regex=r"GRRMonitor",
     )
-    self.assertFalse(r.Evaluate(info))
+    self.assertFalse(foreman_rules.EvaluateForemanRegexClientRule(r, info))
 
-  def testClientDescription(self):
-    client_id = self.SetupClient(0, description="GRR Description Text")
-    info = data_store.REL_DB.ReadClientFullInfo(client_id)
-    info = mig_objects.ToRDFClientFullInfo(info)
+  @db_test_lib.WithDatabase
+  def testClientDescription(self, db: abstract_db.Database) -> None:
+    client_id = "C.1%015x" % 22
+    db.WriteClientMetadata(client_id)
+    snapshot = objects_pb2.ClientSnapshot(
+        client_id=client_id,
+        startup_info=jobs_pb2.StartupInfo(
+            client_info=jobs_pb2.ClientInformation(
+                client_description="GRR Description Text",
+            )
+        ),
+    )
+    db.WriteClientSnapshot(snapshot)
+    info = db.ReadClientFullInfo(client_id)
 
     # Match identifier
-    r = foreman_rules.ForemanRegexClientRule(
-        field="CLIENT_DESCRIPTION", attribute_regex=r"description text"
+    r = jobs_pb2.ForemanRegexClientRule(
+        field=jobs_pb2.ForemanRegexClientRule.ForemanStringField.CLIENT_DESCRIPTION,
+        attribute_regex=r"description text",
     )
-    self.assertTrue(r.Evaluate(info))
+    self.assertTrue(foreman_rules.EvaluateForemanRegexClientRule(r, info))
 
     # Non-match
-    r = foreman_rules.ForemanRegexClientRule(
-        field="CLIENT_DESCRIPTION", attribute_regex=r"GRRDescription"
+    r = jobs_pb2.ForemanRegexClientRule(
+        field=jobs_pb2.ForemanRegexClientRule.ForemanStringField.CLIENT_DESCRIPTION,
+        attribute_regex=r"GRRDescription",
     )
-    self.assertFalse(r.Evaluate(info))
+    self.assertFalse(foreman_rules.EvaluateForemanRegexClientRule(r, info))
 
-  def testSystem(self):
-    client_id = self.SetupClient(0, system="Windows")
-    info = data_store.REL_DB.ReadClientFullInfo(client_id)
-    info = mig_objects.ToRDFClientFullInfo(info)
+  @db_test_lib.WithDatabase
+  def testSystem(self, db: abstract_db.Database) -> None:
+    client_id = "C.1%015x" % 23
+    snapshot = objects_pb2.ClientSnapshot(
+        client_id=client_id,
+        knowledge_base=knowledge_base_pb2.KnowledgeBase(os="Windows"),
+    )
+    db.WriteClientMetadata(client_id)
+    db.WriteClientSnapshot(snapshot)
+    info = db.ReadClientFullInfo(client_id)
 
     # Match identifier
-    r = foreman_rules.ForemanRegexClientRule(
-        field="SYSTEM", attribute_regex=r"Win"
+    r = jobs_pb2.ForemanRegexClientRule(
+        field=jobs_pb2.ForemanRegexClientRule.ForemanStringField.SYSTEM,
+        attribute_regex=r"Win",
     )
-    self.assertTrue(r.Evaluate(info))
+    self.assertTrue(foreman_rules.EvaluateForemanRegexClientRule(r, info))
 
     # Non-match
-    r = foreman_rules.ForemanRegexClientRule(
-        field="SYSTEM", attribute_regex=r"Linux"
+    r = jobs_pb2.ForemanRegexClientRule(
+        field=jobs_pb2.ForemanRegexClientRule.ForemanStringField.SYSTEM,
+        attribute_regex=r"Linux",
     )
-    self.assertFalse(r.Evaluate(info))
+    self.assertFalse(foreman_rules.EvaluateForemanRegexClientRule(r, info))
 
-  def testMacAddresses(self):
-    client_id = self.SetupClient(0)
-    info = data_store.REL_DB.ReadClientFullInfo(client_id)
-    info = mig_objects.ToRDFClientFullInfo(info)
+  @db_test_lib.WithDatabase
+  def testMacAddresses(self, db: abstract_db.Database) -> None:
+    client_id = "C.1%015x" % 24
+    snapshot = objects_pb2.ClientSnapshot(
+        client_id=client_id,
+        interfaces=[
+            jobs_pb2.Interface(mac_address=b"\xaa\xbb\xcc\xdd\xee\x00"),
+            jobs_pb2.Interface(mac_address=b"\xbb\xcc\xdd\xee\xff\x00"),
+        ],
+    )
+    db.WriteClientMetadata(client_id)
+    db.WriteClientSnapshot(snapshot)
+    info = db.ReadClientFullInfo(client_id)
 
     # Match first address
-    r = foreman_rules.ForemanRegexClientRule(
-        field="MAC_ADDRESSES", attribute_regex=r"\bAABBCCDDEE\d+\b"
+    r = jobs_pb2.ForemanRegexClientRule(
+        field=jobs_pb2.ForemanRegexClientRule.ForemanStringField.MAC_ADDRESSES,
+        attribute_regex=r"\bAABBCCDDEE\d+\b",
     )
-    self.assertTrue(r.Evaluate(info))
+    self.assertTrue(foreman_rules.EvaluateForemanRegexClientRule(r, info))
 
     # Match second address
-    r = foreman_rules.ForemanRegexClientRule(
-        field="MAC_ADDRESSES", attribute_regex=r"\bBBCCDDEEFF\d+\b"
+    r = jobs_pb2.ForemanRegexClientRule(
+        field=jobs_pb2.ForemanRegexClientRule.ForemanStringField.MAC_ADDRESSES,
+        attribute_regex=r"\bBBCCDDEEFF\d+\b",
     )
-    self.assertTrue(r.Evaluate(info))
+    self.assertTrue(foreman_rules.EvaluateForemanRegexClientRule(r, info))
 
     # Non-match
-    r = foreman_rules.ForemanRegexClientRule(
-        field="MAC_ADDRESSES", attribute_regex=r"\b000000"
+    r = jobs_pb2.ForemanRegexClientRule(
+        field=jobs_pb2.ForemanRegexClientRule.ForemanStringField.MAC_ADDRESSES,
+        attribute_regex=r"\b000000",
     )
-    self.assertFalse(r.Evaluate(info))
+    self.assertFalse(foreman_rules.EvaluateForemanRegexClientRule(r, info))
 
-  def testKernelVersion(self):
-    client_id = self.SetupClient(0, kernel="5.15.0-1042-gcp")
-    info = data_store.REL_DB.ReadClientFullInfo(client_id)
-    info = mig_objects.ToRDFClientFullInfo(info)
+  @db_test_lib.WithDatabase
+  def testKernelVersion(self, db: abstract_db.Database) -> None:
+    client_id = "C.1%015x" % 25
+    snapshot = objects_pb2.ClientSnapshot(
+        client_id=client_id, kernel="5.15.0-1042-gcp"
+    )
+    db.WriteClientMetadata(client_id)
+    db.WriteClientSnapshot(snapshot)
+    info = db.ReadClientFullInfo(client_id)
 
     # Match identifier
-    r = foreman_rules.ForemanRegexClientRule(
-        field="KERNEL_VERSION", attribute_regex=r"^5\..*-gcp$"
+    r = jobs_pb2.ForemanRegexClientRule(
+        field=jobs_pb2.ForemanRegexClientRule.ForemanStringField.KERNEL_VERSION,
+        attribute_regex=r"^5\..*-gcp$",
     )
-    self.assertTrue(r.Evaluate(info))
+    self.assertTrue(foreman_rules.EvaluateForemanRegexClientRule(r, info))
 
     # Non-match
-    r = foreman_rules.ForemanRegexClientRule(
-        field="KERNEL_VERSION", attribute_regex=r"^4"
+    r = jobs_pb2.ForemanRegexClientRule(
+        field=jobs_pb2.ForemanRegexClientRule.ForemanStringField.KERNEL_VERSION,
+        attribute_regex=r"^4",
     )
-    self.assertFalse(r.Evaluate(info))
+    self.assertFalse(foreman_rules.EvaluateForemanRegexClientRule(r, info))
 
-  def testOsVersion(self):
-    client_id = self.SetupClient(0, os_version="10.0.22621")
-    info = data_store.REL_DB.ReadClientFullInfo(client_id)
-    info = mig_objects.ToRDFClientFullInfo(info)
+  @db_test_lib.WithDatabase
+  def testOsVersion(self, db: abstract_db.Database) -> None:
+    client_id = "C.1%015x" % 26
+    snapshot = objects_pb2.ClientSnapshot(
+        client_id=client_id, os_version="10.0.22621"
+    )
+    db.WriteClientMetadata(client_id)
+    db.WriteClientSnapshot(snapshot)
+    info = db.ReadClientFullInfo(client_id)
 
     # Match identifier
-    r = foreman_rules.ForemanRegexClientRule(
-        field="OS_VERSION", attribute_regex=r"^10\..*"
+    r = jobs_pb2.ForemanRegexClientRule(
+        field=jobs_pb2.ForemanRegexClientRule.ForemanStringField.OS_VERSION,
+        attribute_regex=r"^10\..*",
     )
-    self.assertTrue(r.Evaluate(info))
+    self.assertTrue(foreman_rules.EvaluateForemanRegexClientRule(r, info))
 
     # Non-match
-    r = foreman_rules.ForemanRegexClientRule(
-        field="OS_VERSION", attribute_regex=r"22.04"
+    r = jobs_pb2.ForemanRegexClientRule(
+        field=jobs_pb2.ForemanRegexClientRule.ForemanStringField.OS_VERSION,
+        attribute_regex=r"22.04",
     )
-    self.assertFalse(r.Evaluate(info))
+    self.assertFalse(foreman_rules.EvaluateForemanRegexClientRule(r, info))
 
-  def testOsRelease(self):
-    client_id = self.SetupClient(0, os_release="Debian")
-    info = data_store.REL_DB.ReadClientFullInfo(client_id)
-    info = mig_objects.ToRDFClientFullInfo(info)
+  @db_test_lib.WithDatabase
+  def testOsRelease(self, db: abstract_db.Database) -> None:
+    client_id = "C.1%015x" % 27
+    snapshot = objects_pb2.ClientSnapshot(
+        client_id=client_id, os_release="Debian"
+    )
+    db.WriteClientMetadata(client_id)
+    db.WriteClientSnapshot(snapshot)
+    info = db.ReadClientFullInfo(client_id)
 
     # Match identifier
-    r = foreman_rules.ForemanRegexClientRule(
-        field="OS_RELEASE", attribute_regex=r"\bDebian\b"
+    r = jobs_pb2.ForemanRegexClientRule(
+        field=jobs_pb2.ForemanRegexClientRule.ForemanStringField.OS_RELEASE,
+        attribute_regex=r"\bDebian\b",
     )
-    self.assertTrue(r.Evaluate(info))
+    self.assertTrue(foreman_rules.EvaluateForemanRegexClientRule(r, info))
 
     # Non-match
-    r = foreman_rules.ForemanRegexClientRule(
-        field="OS_RELEASE", attribute_regex=r"\bVista\b"
+    r = jobs_pb2.ForemanRegexClientRule(
+        field=jobs_pb2.ForemanRegexClientRule.ForemanStringField.OS_RELEASE,
+        attribute_regex=r"\bVista\b",
     )
-    self.assertFalse(r.Evaluate(info))
+    self.assertFalse(foreman_rules.EvaluateForemanRegexClientRule(r, info))
 
-  def testLabels(self):
-    client_id = self.SetupClient(0, system="Linux")
-
-    data_store.REL_DB.WriteGRRUser("GRR")
-    data_store.REL_DB.AddClientLabels(client_id, "GRR", ["hello", "world"])
-
-    info = data_store.REL_DB.ReadClientFullInfo(client_id)
-    info = mig_objects.ToRDFClientFullInfo(info)
-
-    # Match a system label.
-    r = foreman_rules.ForemanRegexClientRule(
-        field="CLIENT_LABELS", attribute_regex="label1"
-    )
-    self.assertTrue(r.Evaluate(info))
+  @db_test_lib.WithDatabase
+  def testLabels(self, db: abstract_db.Database) -> None:
+    client_id = "C.1%015x" % 28
+    db.WriteClientMetadata(client_id)
+    db.WriteGRRUser("GRR")
+    db.AddClientLabels(client_id, "GRR", ["hello", "world"])
+    info = db.ReadClientFullInfo(client_id)
 
     # Match a user label.
-    r = foreman_rules.ForemanRegexClientRule(
-        field="CLIENT_LABELS", attribute_regex="ell"
+    r = jobs_pb2.ForemanRegexClientRule(
+        field=jobs_pb2.ForemanRegexClientRule.ForemanStringField.CLIENT_LABELS,
+        attribute_regex="ell",
     )
-    self.assertTrue(r.Evaluate(info))
+    self.assertTrue(foreman_rules.EvaluateForemanRegexClientRule(r, info))
 
     # This rule doesn't match any label.
-    r = foreman_rules.ForemanRegexClientRule(
-        field="CLIENT_LABELS", attribute_regex="NonExistentLabel"
+    r = jobs_pb2.ForemanRegexClientRule(
+        field=jobs_pb2.ForemanRegexClientRule.ForemanStringField.CLIENT_LABELS,
+        attribute_regex="NonExistentLabel",
     )
-    self.assertFalse(r.Evaluate(info))
+    self.assertFalse(foreman_rules.EvaluateForemanRegexClientRule(r, info))
 
-  def testClientId(self):
-    client_id = self.SetupClient(0)
-    info = data_store.REL_DB.ReadClientFullInfo(client_id)
-    info = mig_objects.ToRDFClientFullInfo(info)
+  @db_test_lib.WithDatabase
+  def testClientId(self, db: abstract_db.Database) -> None:
+    client_id = "C.1000000000000001"
+    db.WriteClientMetadata(client_id)
+    info = db.ReadClientFullInfo(client_id)
 
     # Match identifier
-    r = foreman_rules.ForemanRegexClientRule(
-        field="CLIENT_ID", attribute_regex=client_id
+    r = jobs_pb2.ForemanRegexClientRule(
+        field=jobs_pb2.ForemanRegexClientRule.ForemanStringField.CLIENT_ID,
+        attribute_regex=client_id,
     )
-    self.assertTrue(r.Evaluate(info))
+    self.assertTrue(foreman_rules.EvaluateForemanRegexClientRule(r, info))
 
     # Match slice
-    r = foreman_rules.ForemanRegexClientRule(
-        field="CLIENT_ID", attribute_regex=r"c\.10.*"
+    r = jobs_pb2.ForemanRegexClientRule(
+        field=jobs_pb2.ForemanRegexClientRule.ForemanStringField.CLIENT_ID,
+        attribute_regex=r"C\.10.*",
     )
-    self.assertTrue(r.Evaluate(info))
+    self.assertTrue(foreman_rules.EvaluateForemanRegexClientRule(r, info))
 
     # Non-match
-    r = foreman_rules.ForemanRegexClientRule(
-        field="CLIENT_ID", attribute_regex=r"abc"
+    r = jobs_pb2.ForemanRegexClientRule(
+        field=jobs_pb2.ForemanRegexClientRule.ForemanStringField.CLIENT_ID,
+        attribute_regex=r"abc",
     )
-    self.assertFalse(r.Evaluate(info))
+    self.assertFalse(foreman_rules.EvaluateForemanRegexClientRule(r, info))
 
 
-class ForemanIntegerClientRuleTestRelational(test_lib.GRRBaseTest):
+class EvaluateForemanIntegerClientRuleTest(absltest.TestCase):
 
-  def testEvaluation(self):
-    now = rdfvalue.RDFDatetime().Now()
-    client_id = self.SetupClient(0, last_boot_time=now)
-    info = data_store.REL_DB.ReadClientFullInfo(client_id)
-    info = mig_objects.ToRDFClientFullInfo(info)
+  @db_test_lib.WithDatabase
+  def testEvaluatesSizeLessThanEqualValueToFalse(
+      self, db: abstract_db.Database
+  ) -> None:
+    now_us = 1709355863000000
+    client_id = "C.1%015x" % 30
+    db.WriteClientMetadata(client_id)
+    snapshot = objects_pb2.ClientSnapshot(
+        client_id=client_id,
+        startup_info=jobs_pb2.StartupInfo(boot_time=now_us),
+    )
+    db.WriteClientSnapshot(snapshot)
+    info = db.ReadClientFullInfo(client_id)
 
-    int_f = foreman_rules.ForemanIntegerClientRule.ForemanIntegerField
-    for f in int_f.enum_dict:
-      if f == "UNSET":
-        continue
-
-      r = foreman_rules.ForemanIntegerClientRule(
-          field=f,
-          operator=foreman_rules.ForemanIntegerClientRule.Operator.LESS_THAN,
-          value=now.AsSecondsSinceEpoch(),
-      )
-      r.Evaluate(info)
-
-  def testEvaluatesSizeLessThanEqualValueToFalse(self):
-    now = rdfvalue.RDFDatetime().Now()
-    client_id = self.SetupClient(0, last_boot_time=now)
-    info = data_store.REL_DB.ReadClientFullInfo(client_id)
-    info = mig_objects.ToRDFClientFullInfo(info)
-
-    r = foreman_rules.ForemanIntegerClientRule(
-        field="LAST_BOOT_TIME",
-        operator=foreman_rules.ForemanIntegerClientRule.Operator.LESS_THAN,
-        value=now.AsSecondsSinceEpoch(),
+    r = jobs_pb2.ForemanIntegerClientRule(
+        field=jobs_pb2.ForemanIntegerClientRule.ForemanIntegerField.LAST_BOOT_TIME,
+        operator=jobs_pb2.ForemanIntegerClientRule.Operator.LESS_THAN,
+        value=now_us // 1_000_000,
     )
 
     # The values are the same, less than should not trigger.
-    self.assertFalse(r.Evaluate(info))
+    self.assertFalse(foreman_rules.EvaluateForemanIntegerClientRule(r, info))
 
-  def testEvaluatesSizeGreaterThanSmallerValueToTrue(self):
-    now = rdfvalue.RDFDatetime().Now()
-    client_id = self.SetupClient(0, last_boot_time=now)
-    info = data_store.REL_DB.ReadClientFullInfo(client_id)
-    info = mig_objects.ToRDFClientFullInfo(info)
+  @db_test_lib.WithDatabase
+  def testEvaluatesSizeGreaterThanSmallerValueToTrue(
+      self, db: abstract_db.Database
+  ) -> None:
+    now_us = 1709355863000000
+    client_id = "C.1%015x" % 31
+    db.WriteClientMetadata(client_id)
+    snapshot = objects_pb2.ClientSnapshot(
+        client_id=client_id,
+        startup_info=jobs_pb2.StartupInfo(boot_time=now_us),
+    )
+    db.WriteClientSnapshot(snapshot)
+    info = db.ReadClientFullInfo(client_id)
 
-    before_boot = now - 1
+    before_boot_s = (now_us - 1) // 1_000_000
 
-    r = foreman_rules.ForemanIntegerClientRule(
-        field="LAST_BOOT_TIME",
-        operator=foreman_rules.ForemanIntegerClientRule.Operator.GREATER_THAN,
-        value=before_boot.AsSecondsSinceEpoch(),
+    r = jobs_pb2.ForemanIntegerClientRule(
+        field=jobs_pb2.ForemanIntegerClientRule.ForemanIntegerField.LAST_BOOT_TIME,
+        operator=jobs_pb2.ForemanIntegerClientRule.Operator.GREATER_THAN,
+        value=before_boot_s,
     )
 
-    self.assertTrue(r.Evaluate(info))
+    self.assertTrue(foreman_rules.EvaluateForemanIntegerClientRule(r, info))
 
-  def testEvaluatesRaisesWithUnsetField(self):
-    r = foreman_rules.ForemanIntegerClientRule(
-        operator=foreman_rules.ForemanIntegerClientRule.Operator.EQUAL,
+  @db_test_lib.WithDatabase
+  def testEvaluatesRaisesWithUnsetField(self, db: abstract_db.Database) -> None:
+    client_id = "C.1%015x" % 32
+    db.WriteClientMetadata(client_id)
+    info = db.ReadClientFullInfo(client_id)
+
+    r = jobs_pb2.ForemanIntegerClientRule(
+        operator=jobs_pb2.ForemanIntegerClientRule.Operator.EQUAL,
         value=123,
     )
-
-    client_id = self.SetupClient(0)
-    info = data_store.REL_DB.ReadClientFullInfo(client_id)
-    info = mig_objects.ToRDFClientFullInfo(info)
-
     with self.assertRaises(ValueError):
-      r.Evaluate(info)
+      foreman_rules.EvaluateForemanIntegerClientRule(r, info)
 
 
-def main(argv):
-  # Run the full test suite
-  test_lib.main(argv)
+class ValidateForemanRuleSetTest(absltest.TestCase):
+
+  def testValidRuleSet(self):
+    rule_set = jobs_pb2.ForemanClientRuleSet(
+        rules=[
+            jobs_pb2.ForemanClientRule(
+                rule_type=jobs_pb2.ForemanClientRule.Type.OS,
+                os=jobs_pb2.ForemanOsClientRule(os_linux=True),
+            ),
+            jobs_pb2.ForemanClientRule(
+                rule_type=jobs_pb2.ForemanClientRule.Type.LABEL,
+                label=jobs_pb2.ForemanLabelClientRule(label_names=["foo"]),
+            ),
+            jobs_pb2.ForemanClientRule(
+                rule_type=jobs_pb2.ForemanClientRule.Type.REGEX,
+                regex=jobs_pb2.ForemanRegexClientRule(
+                    field=jobs_pb2.ForemanRegexClientRule.ForemanStringField.FQDN,
+                    attribute_regex="foo",
+                ),
+            ),
+            jobs_pb2.ForemanClientRule(
+                rule_type=jobs_pb2.ForemanClientRule.Type.INTEGER,
+                integer=jobs_pb2.ForemanIntegerClientRule(
+                    field=jobs_pb2.ForemanIntegerClientRule.ForemanIntegerField.CLIENT_VERSION,
+                    operator=jobs_pb2.ForemanIntegerClientRule.Operator.EQUAL,
+                    value=123,
+                ),
+            ),
+        ]
+    )
+    foreman_rules.ValidateForemanRuleSet(rule_set)
+
+  def testInvalidRegexRule(self):
+    rule_set = jobs_pb2.ForemanClientRuleSet(
+        rules=[
+            jobs_pb2.ForemanClientRule(
+                rule_type=jobs_pb2.ForemanClientRule.Type.REGEX,
+                regex=jobs_pb2.ForemanRegexClientRule(
+                    field=jobs_pb2.ForemanRegexClientRule.ForemanStringField.UNSET,
+                    attribute_regex="foo",
+                ),
+            ),
+        ]
+    )
+    with self.assertRaisesRegex(ValueError, "field not set"):
+      foreman_rules.ValidateForemanRuleSet(rule_set)
+
+  def testInvalidIntegerRule(self):
+    rule_set = jobs_pb2.ForemanClientRuleSet(
+        rules=[
+            jobs_pb2.ForemanClientRule(
+                rule_type=jobs_pb2.ForemanClientRule.Type.INTEGER,
+                integer=jobs_pb2.ForemanIntegerClientRule(
+                    field=jobs_pb2.ForemanIntegerClientRule.ForemanIntegerField.UNSET,
+                    operator=jobs_pb2.ForemanIntegerClientRule.Operator.EQUAL,
+                    value=123,
+                ),
+            ),
+        ]
+    )
+    with self.assertRaisesRegex(ValueError, "field not set"):
+      foreman_rules.ValidateForemanRuleSet(rule_set)
+
+  def testNoRuleTypeSet(self):
+    rule_set = jobs_pb2.ForemanClientRuleSet(
+        rules=[
+            jobs_pb2.ForemanClientRule(),
+        ]
+    )
+    with self.assertRaisesRegex(ValueError, "no type set"):
+      foreman_rules.ValidateForemanRuleSet(rule_set)
+
+
+class ValidateConditionTest(absltest.TestCase):
+
+  def testValidCondition(self):
+    condition = jobs_pb2.ForemanCondition(
+        creation_time=1000,
+        expiration_time=2000,
+        client_rule_set=jobs_pb2.ForemanClientRuleSet(
+            rules=[
+                jobs_pb2.ForemanClientRule(
+                    rule_type=jobs_pb2.ForemanClientRule.Type.REGEX,
+                    regex=jobs_pb2.ForemanRegexClientRule(
+                        field=jobs_pb2.ForemanRegexClientRule.ForemanStringField.FQDN,
+                        attribute_regex="foo",
+                    ),
+                ),
+                jobs_pb2.ForemanClientRule(
+                    rule_type=jobs_pb2.ForemanClientRule.Type.INTEGER,
+                    integer=jobs_pb2.ForemanIntegerClientRule(
+                        field=jobs_pb2.ForemanIntegerClientRule.ForemanIntegerField.CLIENT_VERSION,
+                        operator=jobs_pb2.ForemanIntegerClientRule.Operator.EQUAL,
+                        value=123,
+                    ),
+                ),
+            ]
+        ),
+    )
+    foreman_rules.ValidateForemanCondition(condition)
+
+  def testInvalidRegexRule(self):
+    condition = jobs_pb2.ForemanCondition(
+        creation_time=1000,
+        expiration_time=2000,
+        client_rule_set=jobs_pb2.ForemanClientRuleSet(
+            rules=[
+                jobs_pb2.ForemanClientRule(
+                    rule_type=jobs_pb2.ForemanClientRule.Type.REGEX,
+                    regex=jobs_pb2.ForemanRegexClientRule(
+                        field=jobs_pb2.ForemanRegexClientRule.ForemanStringField.UNSET,
+                        attribute_regex="foo",
+                    ),
+                ),
+            ]
+        ),
+    )
+    with self.assertRaisesRegex(ValueError, "field not set"):
+      foreman_rules.ValidateForemanCondition(condition)
+
+  def testInvalidIntegerRule(self):
+    condition = jobs_pb2.ForemanCondition(
+        creation_time=1000,
+        expiration_time=2000,
+        client_rule_set=jobs_pb2.ForemanClientRuleSet(
+            rules=[
+                jobs_pb2.ForemanClientRule(
+                    rule_type=jobs_pb2.ForemanClientRule.Type.INTEGER,
+                    integer=jobs_pb2.ForemanIntegerClientRule(
+                        field=jobs_pb2.ForemanIntegerClientRule.ForemanIntegerField.UNSET,
+                        operator=jobs_pb2.ForemanIntegerClientRule.Operator.EQUAL,
+                        value=123,
+                    ),
+                ),
+            ]
+        ),
+    )
+    with self.assertRaisesRegex(ValueError, "field not set"):
+      foreman_rules.ValidateForemanCondition(condition)
 
 
 if __name__ == "__main__":
-  app.run(main)
+  absltest.main()

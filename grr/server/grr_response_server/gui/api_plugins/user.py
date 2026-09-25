@@ -858,7 +858,7 @@ class ApiCreateClientApprovalHandler(api_call_handler_base.ApiCallHandler):
     subject_title = GetSubjectTitleForClientApproval(api_client_approval)
 
     review_url_path = (
-        f"/v2/clients/{api_client_approval.subject.client_id}/approvals/"
+        f"/clients/{api_client_approval.subject.client_id}/approvals/"
         f"{api_client_approval.id}/users/{api_client_approval.requestor}"
     )
 
@@ -974,7 +974,7 @@ class ApiGrantClientApprovalHandler(api_call_handler_base.ApiCallHandler):
         api_client_approval,
         context.username,
         subject_title,
-        f"/v2/clients/{api_client_approval.subject.client_id}",
+        f"/clients/{api_client_approval.subject.client_id}",
     )
     notification_lib.Notify(
         api_client_approval.requestor,
@@ -1104,7 +1104,7 @@ class ApiCreateHuntApprovalHandler(api_call_handler_base.ApiCallHandler):
 
     subject_title = GetSubjectTitleForHuntApproval(api_hunt_approval)
     review_url_path = (
-        f"/v2/fleet-collections/{api_hunt_approval.subject.hunt_id}/approvals/"
+        f"/fleet-collections/{api_hunt_approval.subject.hunt_id}/approvals/"
         f"{api_hunt_approval.id}/users/{api_hunt_approval.requestor}"
     )
 
@@ -1204,7 +1204,7 @@ class ApiGrantHuntApprovalHandler(api_call_handler_base.ApiCallHandler):
         api_hunt_approval,
         context.username,
         subject_title,
-        f"/v2/fleet-collections/{api_hunt_approval.subject.hunt_id}",
+        f"/fleet-collections/{api_hunt_approval.subject.hunt_id}",
     )
     notification_lib.Notify(
         api_hunt_approval.requestor,
@@ -1480,7 +1480,7 @@ class ApiGetOwnGrrUserHandler(api_call_handler_base.ApiCallHandler):
     """Fetches and renders current user's settings."""
     assert context is not None
 
-    # TODO: Use function to get API from proto user.
+    # TODO - Use function to get API from proto user.
     user_record = data_store.REL_DB.ReadGRRUser(context.username)
     if self.is_admin:
       user_record.user_type = objects_pb2.GRRUser.UserType.USER_TYPE_ADMIN

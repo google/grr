@@ -31,9 +31,7 @@ from grr_response_proto import sysinfo_pb2
 # We try to support PEP 425 style component names if possible. This makes it
 # possible to have wheel as an optional dependency.
 try:
-  # pytype: disable=import-error
-  from wheel import pep425tags  # pylint: disable=g-import-not-at-top
-  # pytype: enable=import-error
+  from wheel import pep425tags  # pylint: disable=g-import-not-at-top  # pyrefly: ignore[missing-import]
 except ImportError:
   pep425tags = None
 
@@ -105,41 +103,10 @@ class ClientURN(rdfvalue.RDFURN):
     return rdfvalue.RDFURN(utils.JoinPath(self._value, path))
 
 
-class PackageRepository(rdf_structs.RDFProtoStruct):
-  """Description of the configured repositories (Yum etc).
-
-  Describes the configured software package repositories.
-  """
-
-  protobuf = sysinfo_pb2.PackageRepository
-
-
-class ManagementAgent(rdf_structs.RDFProtoStruct):
-  """Description of the running management agent (puppet etc).
-
-  Describes the state, last run timestamp, and name of the management agent
-  installed on the system.
-  """
-
-  protobuf = sysinfo_pb2.ManagementAgent
-  rdf_deps = [
-      rdfvalue.RDFDatetime,
-  ]
-
-
 class PwEntry(rdf_structs.RDFProtoStruct):
   """Information about password structures."""
 
   protobuf = knowledge_base_pb2.PwEntry
-
-
-class Group(rdf_structs.RDFProtoStruct):
-  """Information about system posix groups."""
-
-  protobuf = knowledge_base_pb2.Group
-  rdf_deps = [
-      PwEntry,
-  ]
 
 
 class User(rdf_structs.RDFProtoStruct):
@@ -185,10 +152,10 @@ class KnowledgeBase(rdf_structs.RDFProtoStruct):
     """
 
     user = self.GetUser(
-        sid=kb_user.sid, uid=kb_user.uid, username=kb_user.username
+        sid=kb_user.sid, uid=kb_user.uid, username=kb_user.username  # pyrefly: ignore[missing-attribute]
     )
     if not user:
-      self.users.Append(kb_user)
+      self.users.Append(kb_user)  # pyrefly: ignore[missing-attribute]
     else:
       for key, val in kb_user.AsDict().items():
         user.Set(key, val)
@@ -218,16 +185,16 @@ class KnowledgeBase(rdf_structs.RDFProtoStruct):
       rdf_client.User or None
     """
     if sid:
-      for user in self.users:
+      for user in self.users:  # pyrefly: ignore[missing-attribute]
         if user.sid == sid:
           return user
       return None
     if uid:
-      for user in self.users:
+      for user in self.users:  # pyrefly: ignore[missing-attribute]
         if user.uid == uid:
           return user
     if username:
-      for user in self.users:
+      for user in self.users:  # pyrefly: ignore[missing-attribute]
         if user.username == username:
           # Make sure we aren't combining different uids if we know them
           # user.uid = 0 is the default, which makes this more complicated.
@@ -251,15 +218,9 @@ class KnowledgeBase(rdf_structs.RDFProtoStruct):
     fields.add("hostname")
 
     fields.remove("users")
-    for field in self.users.type_descriptor.type.type_infos.descriptor_names:
+    for field in self.users.type_descriptor.type.type_infos.descriptor_names:  # pyrefly: ignore[missing-attribute]
       fields.add("users.%s" % field)
     return sorted(fields)
-
-
-class HardwareInfo(rdf_structs.RDFProtoStruct):
-  """Various hardware information."""
-
-  protobuf = sysinfo_pb2.HardwareInfo
 
 
 class ClientInformation(rdf_structs.RDFProtoStruct):
@@ -277,7 +238,7 @@ class BufferReference(rdf_structs.RDFProtoStruct):
   ]
 
   def __eq__(self, other):
-    return self.data == other
+    return self.data == other  # pyrefly: ignore[missing-attribute]
 
 
 class Process(rdf_structs.RDFProtoStruct):
@@ -311,7 +272,7 @@ class Process(rdf_structs.RDFProtoStruct):
           pass
 
       try:
-        response.cmdline = list(psutil_process.cmdline())
+        response.cmdline = list(psutil_process.cmdline())  # pyrefly: ignore[missing-attribute]
       except (psutil.NoSuchProcess, psutil.AccessDenied):
         pass
       except Exception as e:  # pylint: disable=broad-except
@@ -319,36 +280,36 @@ class Process(rdf_structs.RDFProtoStruct):
         # additional memory protection. For those, cmdline() and cwd() will
         # raise a Windows Error 998 (ERROR_NOACCESS, Invalid access to memory
         # location).
-        if not hasattr(e, "winerror") or e.winerror != 998:  # pytype: disable=attribute-error
+        if not hasattr(e, "winerror") or e.winerror != 998:
           raise
 
       try:
-        response.nice = psutil_process.nice()
+        response.nice = psutil_process.nice()  # pyrefly: ignore[missing-attribute]
       except (psutil.NoSuchProcess, psutil.AccessDenied):
         pass
 
       try:
         # Not available on Windows.
         if hasattr(psutil_process, "uids"):
-          (response.real_uid, response.effective_uid, response.saved_uid) = (
+          (response.real_uid, response.effective_uid, response.saved_uid) = (  # pyrefly: ignore[missing-attribute]
               psutil_process.uids()
           )
-          (response.real_gid, response.effective_gid, response.saved_gid) = (
+          (response.real_gid, response.effective_gid, response.saved_gid) = (  # pyrefly: ignore[missing-attribute]
               psutil_process.gids()
           )
       except (psutil.NoSuchProcess, psutil.AccessDenied):
         pass
 
       try:
-        response.ctime = int(psutil_process.create_time() * 1e6)
-        response.status = str(psutil_process.status())
+        response.ctime = int(psutil_process.create_time() * 1e6)  # pyrefly: ignore[missing-attribute]
+        response.status = str(psutil_process.status())  # pyrefly: ignore[missing-attribute]
       except (psutil.NoSuchProcess, psutil.AccessDenied):
         pass
 
       try:
         # Not available on OSX.
         if hasattr(psutil_process, "cwd"):
-          response.cwd = utils.SmartUnicode(psutil_process.cwd())
+          response.cwd = utils.SmartUnicode(psutil_process.cwd())  # pyrefly: ignore[missing-attribute]
       except (psutil.NoSuchProcess, psutil.AccessDenied):
         pass
       # We have seen psutil on macos raise OSError here with errno 2 - ENOENT -
@@ -362,18 +323,18 @@ class Process(rdf_structs.RDFProtoStruct):
         # additional memory protection. For those, cmdline() and cwd() will
         # raise a Windows Error 998 (ERROR_NOACCESS, Invalid access to memory
         # location).
-        if not hasattr(e, "winerror") or e.winerror != 998:  # pytype: disable=attribute-error
+        if not hasattr(e, "winerror") or e.winerror != 998:
           raise
 
       try:
-        response.num_threads = psutil_process.num_threads()
+        response.num_threads = psutil_process.num_threads()  # pyrefly: ignore[missing-attribute]
       except (psutil.NoSuchProcess, psutil.AccessDenied, RuntimeError):
         pass
 
       try:
         cpu_times = psutil_process.cpu_times()
-        response.user_cpu_time = cpu_times.user
-        response.system_cpu_time = cpu_times.system
+        response.user_cpu_time = cpu_times.user  # pyrefly: ignore[missing-attribute]
+        response.system_cpu_time = cpu_times.system  # pyrefly: ignore[missing-attribute]
         # psutil_process.get_cpu_percent() is very time consuming so we do not
         # collect it.
       except (psutil.NoSuchProcess, psutil.AccessDenied):
@@ -381,23 +342,15 @@ class Process(rdf_structs.RDFProtoStruct):
 
       try:
         pmem = psutil_process.memory_info()
-        response.RSS_size = pmem.rss  # pylint: disable=invalid-name
-        response.VMS_size = pmem.vms  # pylint: disable=invalid-name
-        response.memory_percent = psutil_process.memory_percent()
+        response.RSS_size = pmem.rss  # pylint: disable=invalid-name  # pyrefly: ignore[missing-attribute]
+        response.VMS_size = pmem.vms  # pylint: disable=invalid-name  # pyrefly: ignore[missing-attribute]
+        response.memory_percent = psutil_process.memory_percent()  # pyrefly: ignore[missing-attribute]
       except (psutil.NoSuchProcess, psutil.AccessDenied):
         pass
 
-      # Due to a bug in psutil, this function is disabled for now
-      # (https://github.com/giampaolo/psutil/issues/340)
-      # try:
-      #  for f in psutil_process.open_files():
-      #    response.open_files.append(utils.SmartUnicode(f.path))
-      # except (psutil.NoSuchProcess, psutil.AccessDenied):
-      #  pass
-
       try:
         for c in psutil_process.connections():
-          conn = response.connections.Append(
+          conn = response.connections.Append(  # pyrefly: ignore[missing-attribute]
               family=c.family, type=c.type, pid=psutil_process.pid
           )
 
@@ -444,19 +397,19 @@ class SoftwarePackage(rdf_structs.RDFProtoStruct):
   @classmethod
   def Installed(cls, **kwargs):
     return SoftwarePackage(
-        install_state=SoftwarePackage.InstallState.INSTALLED, **kwargs
+        install_state=SoftwarePackage.InstallState.INSTALLED, **kwargs  # pyrefly: ignore[missing-attribute]
     )
 
   @classmethod
   def Pending(cls, **kwargs):
     return SoftwarePackage(
-        install_state=SoftwarePackage.InstallState.PENDING, **kwargs
+        install_state=SoftwarePackage.InstallState.PENDING, **kwargs  # pyrefly: ignore[missing-attribute]
     )
 
   @classmethod
   def Uninstalled(cls, **kwargs):
     return SoftwarePackage(
-        install_state=SoftwarePackage.InstallState.UNINSTALLED, **kwargs
+        install_state=SoftwarePackage.InstallState.UNINSTALLED, **kwargs  # pyrefly: ignore[missing-attribute]
     )
 
 
@@ -487,9 +440,9 @@ class Uname(rdf_structs.RDFProtoStruct):
   @property
   def arch(self):
     """Return a more standard representation of the architecture."""
-    if self.machine in ["x86_64", "AMD64", "i686"]:
+    if self.machine in ["x86_64", "AMD64", "i686"]:  # pyrefly: ignore[missing-attribute]
       # 32 bit binaries running on AMD64 will still have a i386 arch.
-      if self.architecture == "32bit":
+      if self.architecture == "32bit":  # pyrefly: ignore[missing-attribute]
         return "i386"
 
       return "amd64"
@@ -501,7 +454,7 @@ class Uname(rdf_structs.RDFProtoStruct):
   def signature(self):
     """Returns a unique string that encapsulates the architecture."""
     # If the protobuf contains a proper pep425 tag return that.
-    result = self.pep425tag
+    result = self.pep425tag  # pyrefly: ignore[missing-attribute]
     if result:
       return result
 
@@ -554,15 +507,15 @@ class Uname(rdf_structs.RDFProtoStruct):
       )
     else:
       # For example: windows_7_amd64
-      pep425tag = "%s_%s_%s" % (system, release, architecture)
+      pep425tag = "%s_%s_%s" % (system, release, architecture)  # pyrefly: ignore[unbound-name]
 
     return cls(
         system=system,
         architecture=architecture,
-        release=release,
-        version=version,
+        release=release,  # pyrefly: ignore[unbound-name]
+        version=version,  # pyrefly: ignore[unbound-name]
         machine=uname[4],  # x86, x86_64
-        kernel=kernel,
+        kernel=kernel,  # pyrefly: ignore[unbound-name]
         fqdn=fqdn,
         pep425tag=pep425tag,
     )
@@ -627,11 +580,11 @@ class FleetspeakValidationInfo(rdf_structs.RDFProtoStruct):
   def FromStringDict(cls, dct: Mapping[str, str]) -> "FleetspeakValidationInfo":
     instance = cls()
     for key, value in dct.items():
-      instance.tags.Append(key=key, value=value)
+      instance.tags.Append(key=key, value=value)  # pyrefly: ignore[missing-attribute]
     return instance
 
   def ToStringDict(self) -> Mapping[str, str]:
-    return {tag.key: tag.value for tag in self.tags}
+    return {tag.key: tag.value for tag in self.tags}  # pyrefly: ignore[missing-attribute]
 
 
 class ClientSummary(rdf_structs.RDFProtoStruct):

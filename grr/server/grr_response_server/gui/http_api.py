@@ -11,12 +11,12 @@ import traceback
 from typing import Iterable, Optional, Union
 from urllib import parse
 
-from werkzeug import exceptions as werkzeug_exceptions
-from werkzeug import routing
-
 from google.protobuf import descriptor as proto_descriptor
 from google.protobuf import json_format
 from google.protobuf import message
+from werkzeug import exceptions as werkzeug_exceptions
+from werkzeug import routing
+
 from grr_response_core import config
 from grr_response_core.lib import utils
 from grr_response_core.lib.util import precondition
