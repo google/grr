@@ -1216,8 +1216,13 @@ class ApiListScheduledFlowsHandler(api_call_handler_base.ApiCallHandler):
       args: flow_pb2.ApiListScheduledFlowsArgs,
       context: Optional[api_call_context.ApiCallContext] = None,
   ) -> flow_pb2.ApiListScheduledFlowsResult:
+    # Scope the listing to the authenticated caller. Trusting the caller-supplied
+    # `args.creator` would let any user read another user's scheduled flows on any
+    # client (no approval required). This matches how every other scheduled-flow
+    # operation (ScheduleFlow/UnscheduleFlow) already pins the creator to
+    # `context.username`.
     results = flow.ListScheduledFlows(
-        client_id=args.client_id, creator=args.creator
+        client_id=args.client_id, creator=context.username
     )
     results = sorted(results, key=lambda sf: sf.create_time)
     results = [InitApiScheduledFlowFromScheduledFlow(sf) for sf in results]
