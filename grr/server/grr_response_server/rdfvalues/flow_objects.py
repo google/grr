@@ -225,11 +225,3 @@ def FlowResponseForLegacyResponse(legacy_msg):
     raise ValueError("Unknown message type: %d" % legacy_msg.type)
 
   return response
-
-
-class ScheduledFlow(rdf_structs.RDFProtoStruct):
-  """A scheduled flow, to be executed after approval has been granted."""
-
-  protobuf = flows_pb2.ScheduledFlow
-
-  rdf_deps = [rdf_flow_runner.FlowRunnerArgs, rdfvalue.RDFDatetime]

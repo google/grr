@@ -67,7 +67,7 @@ class ArtifactRegistrySourcesTest(absltest.TestCase):
       self.assertNotIn(thud_path, files)
 
   @mock.patch("logging.warning")
-  def testGetAllFilesErrors(self, warning):
+  def testGetAllFilesErrors(self, warning: mock.MagicMock):
     with (
         temp.AutoTempDirPath() as foo_dirpath,
         temp.AutoTempDirPath() as bar_dirpath,

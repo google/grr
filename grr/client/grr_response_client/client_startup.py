@@ -8,7 +8,7 @@ from grr_response_core.config import contexts
 from grr_response_core.lib import config_lib
 
 
-def ClientInit():
+def ClientInit() -> None:
   """Run all startup routines for the client."""
   registry_init.RegisterClientActions()
 

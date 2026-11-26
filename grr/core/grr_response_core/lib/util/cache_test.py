@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 import random
 import threading
+from typing import Any
 from unittest import mock
 
 from absl.testing import absltest
@@ -115,7 +116,7 @@ class WithLimitedCallFrequencyTest(absltest.TestCase):
     # Can't rely on mock's call_count as it's not thread safe.
     fn_calls = []
 
-    def Fn():
+    def Fn() -> Any:
       fn_calls.append(True)
       event.wait()
       return self.mock_fn()
@@ -126,7 +127,7 @@ class WithLimitedCallFrequencyTest(absltest.TestCase):
 
     results = []
 
-    def T():
+    def T() -> None:
       results.append(decorated())
 
     threads = []
@@ -153,7 +154,7 @@ class WithLimitedCallFrequencyTest(absltest.TestCase):
     # Can't rely on mock's call_count as it's not thread safe.
     fn_calls = []
 
-    def Fn(x):
+    def Fn(x: int) -> int:
       fn_calls.append(x)
       if x != 42:
         event.wait()
@@ -163,7 +164,7 @@ class WithLimitedCallFrequencyTest(absltest.TestCase):
         rdfvalue.Duration.From(30, rdfvalue.SECONDS)
     )(Fn)
 
-    def T():
+    def T() -> None:
       decorated(1)
 
     t = threading.Thread(target=T)
@@ -315,7 +316,7 @@ class WithLimitedCallFrequencyWithoutReturnValueTest(absltest.TestCase):
     # Can't rely on mock's call_count as it's not thread safe.
     fn_calls = []
 
-    def Fn():
+    def Fn() -> Any:
       fn_calls.append(True)
       event.wait()
       return self.mock_fn()
@@ -326,7 +327,7 @@ class WithLimitedCallFrequencyWithoutReturnValueTest(absltest.TestCase):
 
     results = []
 
-    def T():
+    def T() -> None:
       results.append(decorated())
 
     threads = []
@@ -352,7 +353,7 @@ class WithLimitedCallFrequencyWithoutReturnValueTest(absltest.TestCase):
     # Can't rely on mock's call_count as it's not thread safe.
     fn_calls = []
 
-    def Fn(x):
+    def Fn(x: int) -> None:
       fn_calls.append(x)
       # Wait if this is the first call.
       if not fn_calls:
@@ -362,7 +363,7 @@ class WithLimitedCallFrequencyWithoutReturnValueTest(absltest.TestCase):
         rdfvalue.Duration.From(30, rdfvalue.SECONDS)
     )(Fn)
 
-    def T():
+    def T() -> None:
       decorated(1)
 
     t = threading.Thread(target=T)

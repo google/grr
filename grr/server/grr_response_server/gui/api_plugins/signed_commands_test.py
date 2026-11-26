@@ -3,6 +3,7 @@ import os
 
 from absl.testing import absltest
 
+from grr_response_proto import signed_commands_pb2
 from grr_response_proto.api import signed_commands_pb2 as api_signed_commands_pb2
 from grr_response_server import data_store
 from grr_response_server.databases import db
@@ -60,7 +61,7 @@ class ApiCreateSignedCommandsTest(api_test_lib.ApiCallHandlerTest):
     self.handler.Handle(args)
 
     wrote = data_store.REL_DB.ReadSignedCommand(
-        "foo", api_signed_commands_pb2.ApiSignedCommand.OS.WINDOWS
+        "foo", signed_commands_pb2.SignedCommand.OS.WINDOWS
     )
     self.assertEqual(wrote.ed25519_signature, signed_command.ed25519_signature)
     self.assertEqual(wrote.id, signed_command.id)

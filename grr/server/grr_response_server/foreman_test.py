@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """Tests for the GRR Foreman."""
 
+from collections.abc import Sequence
 from unittest import mock
 
 from absl import app
@@ -17,9 +18,9 @@ from grr.test_lib import test_lib
 class ForemanTests(test_lib.GRRBaseTest):
   """Tests the Foreman."""
 
-  clients_started = []
+  clients_started: list[tuple[str, str]] = []
 
-  def StartHuntFlowOnClient(self, client_id, hunt_id):
+  def StartHuntFlowOnClient(self, client_id: str, hunt_id: str) -> None:
     # Keep a record of all the clients
     self.clients_started.append((hunt_id, client_id))
 
@@ -299,7 +300,7 @@ class ForemanTests(test_lib.GRRBaseTest):
         self.assertLen(rules, num_rules)
 
 
-def main(argv):
+def main(argv: Sequence[str]) -> None:
   # Run the full test suite
   test_lib.main(argv)
 

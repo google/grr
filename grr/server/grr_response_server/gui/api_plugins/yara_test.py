@@ -28,6 +28,7 @@ class ApiUploadYaraSignatureHandlerTest(api_test_lib.ApiCallHandlerTest):
 
     blob_id = self.handler.Handle(args, context=self.context).blob_id
     blob = data_store.BLOBS.ReadBlob(models_blobs.BlobID(blob_id))
+    assert blob is not None
 
     self.assertEqual(blob.decode("utf-8"), signature)
 

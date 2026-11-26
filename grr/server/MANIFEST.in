@@ -1,6 +1,8 @@
-include version.ini
+include _build_backend.py
 
-recursive-exclude grr_response_server/gui/static/node_modules *
-recursive-exclude grr_response_server/gui/static/tmp *
+recursive-include grr_response_server/databases/mysql_migrations *
+recursive-include grr_response_server/gui/templates *
+recursive-include grr_response_server/gui/static *
 
+recursive-exclude grr_response_server/gui/ui *
 recursive-exclude * *.pyc

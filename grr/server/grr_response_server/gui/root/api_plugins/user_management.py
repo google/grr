@@ -52,7 +52,6 @@ class ApiCreateGrrUserHandler(api_call_handler_base.ApiCallHandler):
         user_type=args.user_type,
         email=email,
     )
-    # TODO - Use function to get API from proto user.
     user = data_store.REL_DB.ReadGRRUser(args.username)
     return api_user.InitApiGrrUserFromGrrUser(user)
 
@@ -124,7 +123,6 @@ class ApiModifyGrrUserHandler(api_call_handler_base.ApiCallHandler):
         email=email,
     )
 
-    # TODO - Use function to get API from proto user.
     user = data_store.REL_DB.ReadGRRUser(args.username)
     return api_user.InitApiGrrUserFromGrrUser(user)
 
@@ -142,7 +140,6 @@ class ApiListGrrUsersHandler(api_call_handler_base.ApiCallHandler):
   ) -> user_management_pb2.ApiListGrrUsersResult:
     total_count = data_store.REL_DB.CountGRRUsers()
     users = data_store.REL_DB.ReadGRRUsers(offset=args.offset, count=args.count)
-    # TODO - Use function to get API from proto user.
     items = [api_user.InitApiGrrUserFromGrrUser(u) for u in users]
     return user_management_pb2.ApiListGrrUsersResult(
         total_count=total_count, items=items
@@ -165,7 +162,6 @@ class ApiGetGrrUserHandler(api_call_handler_base.ApiCallHandler):
       raise ValueError("Username is empty.")
 
     try:
-      # TODO - Use function to get API from proto user.
       user = data_store.REL_DB.ReadGRRUser(args.username)
     except db.UnknownGRRUserError as e:
       raise api_call_handler_base.ResourceNotFoundError(e)

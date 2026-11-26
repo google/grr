@@ -72,14 +72,6 @@ class InfiniteFlow(flow_base.FlowBase):
     )
 
 
-class ClientFlowWithoutCategory(flow_base.FlowBase):
-  pass
-
-
-class ClientFlowWithCategory(flow_base.FlowBase):
-  category = "/Test/"
-
-
 class CPULimitFlow(flow_base.FlowBase):
   """This flow is used to test the cpu limit."""
 
@@ -157,11 +149,6 @@ class SendingFlowArgs(rdf_structs.RDFProtoStruct):
 class SendingFlow(flow_base.FlowBase):
   """Tests sending messages to clients."""
   proto_args_type = tests_pb2.SendingFlowArgs
-
-  # Flow has to have a category otherwise FullAccessControlManager won't
-  # let non-supervisor users to run it at all (it will be considered
-  # externally inaccessible).
-  category = "/Test/"
 
   def Start(self):
     """Just send a few messages."""
@@ -419,7 +406,7 @@ class MockClient(object):
       message = mig_flow_objects.ToProtoFlowResponse(message)  # pyrefly: ignore[bad-assignment]
     if isinstance(message, rdf_flow_objects.FlowStatus):
       message = mig_flow_objects.ToProtoFlowStatus(message)  # pyrefly: ignore[bad-assignment]
-    data_store.REL_DB.WriteFlowResponses([message])
+    data_store.REL_DB.WriteFlowResponses([message])  # pyrefly: ignore[bad-argument-type]
 
   def Next(self):
     """Emulates execution of a single client action request.

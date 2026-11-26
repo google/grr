@@ -198,53 +198,7 @@ class GRRSeleniumTest(test_lib.GRRBaseTest, acl_test_lib.AclTestMixin):
     # Make sure ApiAuthManager is initialized with this configuration setting.
     api_auth_manager.InitializeApiAuthManager()
 
-  def _CheckJavascriptErrors(self):
-    errors = self.driver.execute_script(
-        "return (() => {const e = window.grrInterceptedJSErrors_ || []; "
-        "window.grrInterceptedJSErrors_ = []; return e;})();"
-    )
-
-    msgs = []
-    for e in errors:
-      msg = "[javascript]: %s" % e
-      logging.error(msg)
-      msgs.append(msg)
-
-    if msgs:
-      self.fail(
-          "Javascript error encountered during test: %s" % "\n\t".join(msgs)
-      )
-
-  def GetHttpErrors(self):
-    return self.driver.execute_script(
-        "return (() => {const e = window.grrInterceptedHTTPErrors_ || []; "
-        "window.grrInterceptedHTTPErrors_ = []; return e;})();"
-    )
-
-  def _CheckHttpErrors(self):
-    if self.ignore_http_errors:
-      return
-
-    msgs = []
-    for e in self.GetHttpErrors():
-      try:
-        msg = e["data"]["traceBack"]
-      except (TypeError, KeyError):
-        msg = "[http]: {!r}".format(e)
-
-      logging.error(msg)
-      msgs.append(msg)
-
-    if msgs:
-      self.fail("HTTP request failed during test: %s" % "\n\t".join(msgs))
-
-  def CheckBrowserErrors(self):
-    self._CheckJavascriptErrors()
-    self._CheckHttpErrors()
-
   def WaitUntil(self, condition_cb, *args):
-    self.CheckBrowserErrors()
-
     for _ in range(int(self.duration / self.sleep_time)):
       try:
         res = condition_cb(*args)
@@ -259,7 +213,6 @@ class GRRSeleniumTest(test_lib.GRRBaseTest, acl_test_lib.AclTestMixin):
       except Exception as e:  # pylint: disable=broad-except
         logging.warning("Selenium raised %s", utils.SmartUnicode(e))
 
-      self.CheckBrowserErrors()
       time.sleep(self.sleep_time)
 
     self.fail(
@@ -377,17 +330,6 @@ class GRRSeleniumTest(test_lib.GRRBaseTest, acl_test_lib.AclTestMixin):
     element = self.WaitUntil(self.GetVisibleElement, target)
     return element.get_attribute(attribute)
 
-  def GetJavaScriptValue(self, js_expression):
-    return self.driver.execute_script(js_expression)
-
-  def _WaitForAjaxCompleted(self):
-    self.WaitUntilEqual(
-        [],
-        self.GetJavaScriptValue,
-        "return (window.$ && $('body') && $('body').injector && "
-        "$('body').injector().get('$http').pendingRequests) || []",
-    )
-
   @SeleniumAction
   def Type(self, target, text, end_with_enter=False):
     element = self.WaitUntil(self.GetVisibleElement, target)
@@ -408,17 +350,6 @@ class GRRSeleniumTest(test_lib.GRRBaseTest, acl_test_lib.AclTestMixin):
 
   @SeleniumAction
   def Click(self, target):
-    # Selenium clicks elements by obtaining their position and then issuing a
-    # click action in the middle of this area. This may lead to misclicks when
-    # elements are moving. Make sure that they are stationary before issuing
-    # the click action (specifically, using the bootstrap "fade" class that
-    # slides dialogs in is highly discouraged in combination with .Click()).
-
-    # Since Selenium does not know when the page is ready after AJAX calls, we
-    # need to wait for AJAX completion here to be sure that all event handlers
-    # are attached to their respective DOM elements.
-    self._WaitForAjaxCompleted()
-
     element = self.WaitUntil(self.GetVisibleElement, target)
 
     try:
@@ -453,9 +384,6 @@ class GRRSeleniumTest(test_lib.GRRBaseTest, acl_test_lib.AclTestMixin):
   def setUp(self):
     super().setUp()
 
-    # Used by CheckHttpErrors
-    self.ignore_http_errors = False
-
     self.test_username = "gui_user"
     webauth.WEBAUTH_MANAGER.SetUserName(self.test_username)
 
@@ -475,10 +403,6 @@ class GRRSeleniumTest(test_lib.GRRBaseTest, acl_test_lib.AclTestMixin):
           "Page.setDownloadBehavior",
           {"behavior": "allow", "downloadPath": self.temp_dir},
       )
-
-  def tearDown(self):
-    self.CheckBrowserErrors()
-    super().tearDown()
 
 
 class GRRSeleniumHuntTest(hunt_test_lib.StandardHuntTestMixin, GRRSeleniumTest):

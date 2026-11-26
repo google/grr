@@ -1,5 +1,5 @@
 import {TestbedHarnessEnvironment} from '@angular/cdk/testing/testbed';
-import {TestBed, waitForAsync} from '@angular/core/testing';
+import {fakeAsync, TestBed, waitForAsync} from '@angular/core/testing';
 
 import {newApproval} from '../../lib/models/model_test_util';
 import {initTestEnvironment} from '../../testing';
@@ -75,7 +75,7 @@ describe('Approval Chip Component', () => {
     expect(await harness.isAccessPendingChipVisible()).toBeTrue();
   });
 
-  it('shows time left for valid approval', async () => {
+  it('shows time left for valid approval', fakeAsync(async () => {
     const mockNow = new Date('2020-07-01T13:00:00.000');
     jasmine.clock().mockDate(mockNow);
 
@@ -94,9 +94,9 @@ describe('Approval Chip Component', () => {
     );
     expect(await harness.isAccessGrantedChipVisible()).toBeTrue();
     expect(await harness.getAccessGrantedChipText()).toContain('3 days left');
-  });
+  }));
 
-  it('shows 61 minutes left as "1 hour left"', async () => {
+  it('shows 61 minutes left as "1 hour left"', fakeAsync(async () => {
     const mockNow = new Date('2020-07-01T13:00:00.000');
     jasmine.clock().mockDate(mockNow);
     const sixtyOneMinutesMs = 1000 * 60 * 61;
@@ -112,5 +112,5 @@ describe('Approval Chip Component', () => {
     );
     expect(await harness.isAccessGrantedChipVisible()).toBeTrue();
     expect(await harness.getAccessGrantedChipText()).toContain('1 hour left');
-  });
+  }));
 });

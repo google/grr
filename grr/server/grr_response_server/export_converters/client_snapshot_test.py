@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 """Tests for client snapshot export converters."""
 
+from collections.abc import Sequence
+
 from absl import app
 from absl.testing import absltest
 
@@ -31,7 +33,7 @@ class ClientSnapshotToExportedClientConverterProtoTest(absltest.TestCase):
     self.assertEqual(results[0].metadata, self.metadata_proto)
 
 
-def main(argv):
+def main(argv: Sequence[str]) -> None:
   test_lib.main(argv)
 
 

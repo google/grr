@@ -1,10 +1,13 @@
 #!/usr/bin/env python
 """A module that configures the behaviour of pytest runner."""
 
+from __future__ import annotations
+
 import os
 import sys
 import threading
 import traceback
+from typing import Any
 
 from absl import flags
 import pytest
@@ -20,10 +23,10 @@ except ModuleNotFoundError:
 
 FLAGS = flags.FLAGS
 
-test_args = None
+test_args: list[str] | None = None
 
 
-def pytest_cmdline_preparse(config, args):
+def pytest_cmdline_preparse(config: pytest.Config, args: list[str]) -> None:
   """A pytest hook that is called during command-line argument parsing."""
   del config  # Unused.
 
@@ -37,33 +40,36 @@ def pytest_cmdline_preparse(config, args):
   del args[separator:]
 
 
-def pytest_cmdline_main(config):
+def pytest_cmdline_main(config: pytest.Config) -> None:
   """A pytest hook that is called when the main function is executed."""
 
   if "PYTEST_XDIST_WORKER" in os.environ:
     # If ran concurrently using pytest-xdist (`-n` cli flag), mainargv is the
     # result of the execution of pytest_cmdline_main in the main process.
-    sys.argv = config.workerinput["mainargv"]
+    sys.argv = getattr(config, "workerinput")["mainargv"]
   else:
+    if test_args is None:
+      raise RuntimeError("pytest_cmdline_preparse must run before main.")
     sys.argv = ["pytest"] + test_args
 
 
-last_module = None
+last_module: Any = None
 
 
-def pytest_runtest_setup(item):
+def pytest_runtest_setup(item: pytest.Item) -> None:
   """A pytest hook that is called before each test item is executed."""
   # We need to re-initialize flags (and hence also testing setup) because
   # various modules might have various flags defined.
   global last_module
-  if last_module != item.module:
+  item_module = getattr(item, "module")
+  if last_module != item_module:
     FLAGS(sys.argv)
     if testing_startup:
       testing_startup.TestInit()
-  last_module = item.module
+  last_module = item_module
 
 
-def pytest_addoption(parser):
+def pytest_addoption(parser: pytest.Parser) -> None:
   """A pytest hook that is called during the argument parser initialization."""
   parser.addoption(
       "--full_thread_trace",
@@ -73,7 +79,7 @@ def pytest_addoption(parser):
   )
 
 
-def _generate_full_thread_trace():
+def _generate_full_thread_trace() -> str:
   """Generates a full stack trace for all currently running threads."""
   threads = threading.enumerate()
 
@@ -94,12 +100,12 @@ def _generate_full_thread_trace():
   return res
 
 
-last_test_name = None
-known_leaks = []
+last_test_name: str | None = None
+known_leaks: list[str] = []
 
 
 @pytest.fixture(scope="function", autouse=True)
-def thread_leak_check(request):
+def thread_leak_check(request: pytest.FixtureRequest) -> None:
   """Makes sure that no threads are left running by any test."""
   global last_test_name
 

@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 import argparse
 import builtins
+from collections.abc import Sequence
 import getpass
 import os
 from unittest import mock
@@ -271,7 +272,9 @@ class ConfigUpdaterLibTest(test_lib.GRRBaseTest):
     with self.assertRaises(config_updater_util.UserNotFoundError):
       config_updater_util.GetUserSummary("foo_user")
 
-  def _AssertStoredUserDetailsAre(self, username, password, is_admin):
+  def _AssertStoredUserDetailsAre(
+      self, username: str, password: str, is_admin: bool
+  ) -> None:
     user = data_store.REL_DB.ReadGRRUser(username)
     self.assertTrue(rdf_crypto.CheckPassword(user.password, password))
     if is_admin:
@@ -316,7 +319,7 @@ class ConfigUpdaterLibTest(test_lib.GRRBaseTest):
       config_updater_util.ArgparseBool("baz")
 
 
-def main(argv):
+def main(argv: Sequence[str]) -> None:
   test_lib.main(argv)
 
 

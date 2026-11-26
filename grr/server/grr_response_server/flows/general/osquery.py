@@ -177,10 +177,6 @@ class OsqueryFlow(
 ):
   """A flow mixin wrapping the osquery client action."""
 
-  friendly_name = "Osquery"
-  category = "/Collectors/"
-  behaviours = flow_base.BEHAVIOUR_BASIC
-
   proto_args_type = osquery_pb2.OsqueryFlowArgs
   proto_result_types = (osquery_pb2.OsqueryResult, jobs_pb2.StatEntry)
   proto_progress_type = osquery_pb2.OsqueryProgress
@@ -249,7 +245,7 @@ class OsqueryFlow(
           next_state=self._StatForFileArrived.__name__,
       )
 
-  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+  @flow_base.UseProto2AnyResponses
   def _StatForFileArrived(
       self,
       responses: flow_responses.Responses[any_pb2.Any],
@@ -345,7 +341,7 @@ class OsqueryFlow(
       action.args.unsigned_stdin = self.proto_args.query.encode("utf-8")
       action.args.timeout.seconds = timeout_millis // 1_000
       action.args.timeout.nanos = (timeout_millis % 1_000) * 1_000_000
-      action.Call(self._ProcessRRG)  # pyrefly: ignore[bad-argument-type]
+      action.Call(self._ProcessRRG)
     elif (
         # `store_filestore_part` was introduced in version 0.0.8.
         self.rrg_version >= (0, 0, 8)
@@ -358,7 +354,7 @@ class OsqueryFlow(
       action.args.file_size = len(content)
       action.args.part_offset = 0
       action.args.part_content = content
-      action.Call(self._ProcessStoreConfig)  # pyrefly: ignore[bad-argument-type]
+      action.Call(self._ProcessStoreConfig)
     else:
       action_args = osquery_pb2.OsqueryArgs(
           query=self.proto_args.query,
@@ -374,7 +370,7 @@ class OsqueryFlow(
           next_state=self.Process.__name__,
       )
 
-  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+  @flow_base.UseProto2AnyResponses
   def _ProcessRRG(
       self,
       responses: flow_responses.Responses[any_pb2.Any],
@@ -451,7 +447,7 @@ class OsqueryFlow(
           next_state=self._ProcessMultiGetFile.__name__,
       )
 
-  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+  @flow_base.UseProto2AnyResponses
   def _ProcessMultiGetFile(
       self,
       responses: flow_responses.Responses[any_pb2.Any],
@@ -467,7 +463,7 @@ class OsqueryFlow(
 
       self.SendReplyProto(response)
 
-  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+  @flow_base.UseProto2AnyResponses
   def _ProcessStoreConfig(
       self,
       responses: flow_responses.Responses[any_pb2.Any],
@@ -516,9 +512,9 @@ class OsqueryFlow(
     action.args.timeout.seconds = timeout_millis // 1_000
     action.args.timeout.nanos = (timeout_millis % 1_000) * 1_000_000
     action.args.unsigned_filestore_file_sha256s.append(response.file_sha256)
-    action.Call(self._ProcessRRG)  # pyrefly: ignore[bad-argument-type]
+    action.Call(self._ProcessRRG)
 
-  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+  @flow_base.UseProto2AnyResponses
   def Process(
       self,
       responses: flow_responses.Responses[any_pb2.Any],
@@ -553,7 +549,7 @@ class OsqueryFlow(
   def GetProgressProto(self) -> osquery_pb2.OsqueryProgress:
     return self.progress
 
-  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+  @flow_base.UseProto2AnyResponses
   def ProcessCollectedFile(
       self,
       responses: flow_responses.Responses[any_pb2.Any],

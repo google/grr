@@ -15,11 +15,9 @@ from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.util import collection
 from grr_response_proto import objects_pb2
 from grr_response_proto.api import client_pb2
-from grr_response_proto.api import cron_pb2
 from grr_response_proto.api import hunt_pb2
 from grr_response_proto.api import user_pb2 as api_user_pb2
 from grr_response_server import access_control
-from grr_response_server import cronjobs
 from grr_response_server import data_store
 from grr_response_server import email_alerts
 from grr_response_server import flow
@@ -29,13 +27,11 @@ from grr_response_server.gui import access_controller
 from grr_response_server.gui import api_call_context
 from grr_response_server.gui import api_call_handler_base
 from grr_response_server.gui.api_plugins import client as api_client
-from grr_response_server.gui.api_plugins import cron as api_cron
 from grr_response_server.gui.api_plugins import flow as api_flow
 from grr_response_server.gui.api_plugins import hunt as api_hunt
 from grr_response_server.models import clients as models_clients
 from grr_response_server.models import protobuf_utils as models_utils
 from grr_response_server.models import users as models_users
-from grr_response_server.rdfvalues import mig_cronjobs
 from grr_response_server.rdfvalues import objects as rdf_objects
 
 
@@ -65,10 +61,6 @@ def InitApiNotificationReferenceFromObjectReference(
     api_reference.type = api_reference.Type.FLOW
     api_reference.flow.client_id = reference.flow.client_id
     api_reference.flow.flow_id = reference.flow.flow_id
-
-  elif reference.reference_type == objects_pb2.ObjectReference.CRON_JOB:
-    api_reference.type = api_reference.Type.CRON
-    api_reference.cron.cron_job_id = reference.cron_job.cron_job_id
 
   elif reference.reference_type == objects_pb2.ObjectReference.VFS_FILE:
     api_reference.type = api_reference.Type.VFS
@@ -110,14 +102,6 @@ def InitApiNotificationReferenceFromObjectReference(
       api_reference.hunt_approval.approval_id = ref_ar.approval_id
       api_reference.hunt_approval.username = ref_ar.requestor_username
       api_reference.hunt_approval.hunt_id = ref_ar.subject_id
-    elif (
-        ref_ar.approval_type
-        == objects_pb2.ApprovalRequest.ApprovalType.APPROVAL_TYPE_CRON_JOB
-    ):
-      api_reference.type = api_reference.Type.CRON_JOB_APPROVAL
-      api_reference.cron_job_approval.approval_id = ref_ar.approval_id
-      api_reference.cron_job_approval.username = ref_ar.requestor_username
-      api_reference.cron_job_approval.cron_job_id = ref_ar.subject_id
     else:
       raise ValueError("Unexpected approval type: %d" % ref_ar.approval_type)
   else:
@@ -275,44 +259,14 @@ def InitObjectReferenceFromApiClient(
   )
 
 
-def InitApiCronJobApprovalFromApprovalRequest(
-    approval_request: objects_pb2.ApprovalRequest,
-    approval_checker: access_controller.ApprovalChecker,
-) -> api_user_pb2.ApiCronJobApproval:
-  """Initializes ApiCronJobApproval from an ApprovalRequest."""
-
-  api_cron_job_approval = api_user_pb2.ApiCronJobApproval()
-  _FillApiApprovalFromApprovalRequest(api_cron_job_approval, approval_request)
-
-  try:
-    approval_checker.CheckCronJobApprovals(
-        approval_request.subject_id, [approval_request]
-    )
-    api_cron_job_approval.is_valid = True
-  except access_control.UnauthorizedAccess as e:
-    api_cron_job_approval.is_valid_message = str(e)
-    api_cron_job_approval.is_valid = False
-
-  approval_subject_obj = cronjobs.CronManager().ReadJob(
-      approval_request.subject_id
-  )
-  approval_subject_obj = mig_cronjobs.ToProtoCronJob(approval_subject_obj)
-  api_cron_job_approval.subject.CopyFrom(
-      api_cron.InitApiCronJobFromCronJob(approval_subject_obj)
-  )
-
-  return api_cron_job_approval
-
-
 def _FillApiApprovalFromApprovalRequest(
     api_approval: Union[
         api_user_pb2.ApiClientApproval,
         api_user_pb2.ApiHuntApproval,
-        api_user_pb2.ApiCronJobApproval,
     ],
     approval_request: objects_pb2.ApprovalRequest,
 ):
-  """Fills a given Api(Client|Hunt|CronJob)Approval with data from an ApprovalRequest."""
+  """Fills a given Api(Client|Hunt)Approval with data from an ApprovalRequest."""
 
   models_utils.CopyAttr(approval_request, api_approval, "approval_id", "id")
   models_utils.CopyAttr(
@@ -329,11 +283,9 @@ def _FillApiApprovalFromApprovalRequest(
   api_approval.approvers.extend(
       sorted([g.grantor_username for g in approval_request.grants])
   )
-  # TODO(user): Remove this once Cron jobs are removed.
-  if not isinstance(api_approval, api_user_pb2.ApiCronJobApproval):
-    models_utils.CopyAttr(
-        approval_request, api_approval, "expiration_time", "expiration_time_us"
-    )
+  models_utils.CopyAttr(
+      approval_request, api_approval, "expiration_time", "expiration_time_us"
+  )
 
   return api_approval
 
@@ -343,13 +295,6 @@ def GetSubjectTitleForHuntApproval(
 ) -> str:
   """Returns a human-readable title for a hunt approval."""
   return f"hunt {approval.subject.hunt_id}"
-
-
-def GetSubjectTitleForCronJobApproval(
-    approval: api_user_pb2.ApiCronJobApproval,
-) -> str:
-  """Returns a human-readable title for a cron job approval."""
-  return f"a cron job {approval.subject.cron_job_id}"
 
 
 def GetSubjectTitleForClientApproval(
@@ -401,32 +346,6 @@ def InitObjectReferenceFromApiHunt(
   return objects_pb2.ObjectReference(
       reference_type=objects_pb2.ObjectReference.Type.HUNT,
       hunt=objects_pb2.HuntReference(hunt_id=hunt.hunt_id),
-  )
-
-
-def InitObjectReferenceFromApiCronJobApproval(
-    approval_request: api_user_pb2.ApiCronJobApproval,
-) -> objects_pb2.ObjectReference:
-  """Initializes ObjectReference from an ApprovalRequest."""
-  at = objects_pb2.ApprovalRequest.ApprovalType.APPROVAL_TYPE_CRON_JOB
-  return objects_pb2.ObjectReference(
-      reference_type=objects_pb2.ObjectReference.Type.APPROVAL_REQUEST,
-      approval_request=objects_pb2.ApprovalRequestReference(
-          approval_type=at,
-          approval_id=approval_request.id,
-          subject_id=approval_request.subject.cron_job_id,
-          requestor_username=approval_request.requestor,
-      ),
-  )
-
-
-def InitObjectReferenceFromApiCronJob(
-    cron_job: cron_pb2.ApiCronJob,
-) -> objects_pb2.ObjectReference:
-  """Initializes ObjectReference from an ApprovalRequest."""
-  return objects_pb2.ObjectReference(
-      reference_type=objects_pb2.ObjectReference.Type.CRON_JOB,
-      cron_job=objects_pb2.CronJobReference(cron_job_id=cron_job.cron_job_id),
   )
 
 
@@ -1268,198 +1187,6 @@ class ApiListHuntApprovalsHandler(api_call_handler_base.ApiCallHandler):
     )
 
 
-class ApiCreateCronJobApprovalHandler(api_call_handler_base.ApiCallHandler):
-  """Creates new user cron approval and notifies requested approvers."""
-
-  proto_args_type = api_user_pb2.ApiCreateCronJobApprovalArgs
-  proto_result_type = api_user_pb2.ApiCronJobApproval
-
-  def __init__(
-      self,
-      approval_checker: Optional[access_controller.ApprovalChecker] = None,
-  ):
-    super().__init__()
-    if not approval_checker:
-      approval_checker = access_controller.ApprovalChecker(
-          access_controller.AdminAccessChecker()
-      )
-    self._approval_checker = approval_checker
-
-  def Handle(
-      self,
-      args: api_user_pb2.ApiCreateCronJobApprovalArgs,
-      context: Optional[api_call_context.ApiCallContext] = None,
-  ) -> api_user_pb2.ApiCronJobApproval:
-    assert context is not None
-
-    approval_request = CreateApprovalRequest(
-        args,
-        objects_pb2.ApprovalRequest.ApprovalType.APPROVAL_TYPE_CRON_JOB,
-        args.cron_job_id,
-        _GetTokenExpirationTime(),
-        context,
-    )
-    api_cron_job_approval = InitApiCronJobApprovalFromApprovalRequest(
-        approval_request, self._approval_checker
-    )
-
-    subject_title = GetSubjectTitleForCronJobApproval(api_cron_job_approval)
-
-    SendApprovalRequestEmail(
-        api_cron_job_approval,
-        subject_title,
-        None,
-    )
-    CreateApprovalNotification(
-        api_cron_job_approval.notified_users,
-        objects_pb2.UserNotification.Type.TYPE_CRON_JOB_APPROVAL_REQUESTED,
-        subject_title,
-        InitObjectReferenceFromApiCronJobApproval(api_cron_job_approval),
-    )
-
-    return api_cron_job_approval
-
-
-class ApiGetCronJobApprovalHandler(api_call_handler_base.ApiCallHandler):
-  """Returns details about approval for a given cron, user and approval id."""
-
-  proto_args_type = api_user_pb2.ApiGetCronJobApprovalArgs
-  proto_result_type = api_user_pb2.ApiCronJobApproval
-
-  def __init__(
-      self,
-      approval_checker: Optional[access_controller.ApprovalChecker] = None,
-  ):
-    super().__init__()
-    if not approval_checker:
-      approval_checker = access_controller.ApprovalChecker(
-          access_controller.AdminAccessChecker()
-      )
-    self._approval_checker = approval_checker
-
-  def Handle(
-      self,
-      args: api_user_pb2.ApiGetCronJobApprovalArgs,
-      context: Optional[api_call_context.ApiCallContext] = None,
-  ) -> api_user_pb2.ApiCronJobApproval:
-    approval_obj = GetApprovalRequest(args.approval_id, args.username)
-
-    expected_approval_type = (
-        objects_pb2.ApprovalRequest.ApprovalType.APPROVAL_TYPE_CRON_JOB
-    )
-    if approval_obj.approval_type != expected_approval_type:
-      raise ValueError(
-          "Unexpected approval type: %s, expected: %s"
-          % (approval_obj.approval_type, expected_approval_type)
-      )
-
-    if approval_obj.subject_id != args.cron_job_id:
-      raise ValueError(
-          "Unexpected subject id: %s, expected: %s"
-          % (approval_obj.subject_id, args.cron_job_id)
-      )
-
-    return InitApiCronJobApprovalFromApprovalRequest(
-        approval_obj, self._approval_checker
-    )
-
-
-class ApiGrantCronJobApprovalHandler(api_call_handler_base.ApiCallHandler):
-  """Handle for GrantCronJobApproval requests."""
-
-  proto_args_type = api_user_pb2.ApiGrantCronJobApprovalArgs
-  proto_result_type = api_user_pb2.ApiCronJobApproval
-
-  def __init__(
-      self,
-      approval_checker: Optional[access_controller.ApprovalChecker] = None,
-  ):
-    super().__init__()
-    if not approval_checker:
-      approval_checker = access_controller.ApprovalChecker(
-          access_controller.AdminAccessChecker()
-      )
-    self._approval_checker = approval_checker
-
-  def Handle(
-      self,
-      args: api_user_pb2.ApiGrantCronJobApprovalArgs,
-      context: Optional[api_call_context.ApiCallContext] = None,
-  ) -> api_user_pb2.ApiCronJobApproval:
-    assert context is not None
-
-    approval_request = GrantApprovalRequest(
-        args.approval_id, args.username, context.username
-    )
-    api_cron_job_approval = InitApiCronJobApprovalFromApprovalRequest(
-        approval_request, self._approval_checker
-    )
-    subject_title = GetSubjectTitleForCronJobApproval(api_cron_job_approval)
-
-    SendGrantEmail(
-        api_cron_job_approval,
-        context.username,
-        subject_title,
-        f"#/crons/{api_cron_job_approval.subject.cron_job_id}",
-    )
-    notification_lib.Notify(
-        api_cron_job_approval.requestor,
-        objects_pb2.UserNotification.Type.TYPE_CRON_JOB_APPROVAL_GRANTED,
-        "%s has granted you access to %s." % (context.username, subject_title),
-        InitObjectReferenceFromApiCronJob(api_cron_job_approval.subject),
-    )
-
-    return api_cron_job_approval
-
-
-class ApiListCronJobApprovalsHandler(api_call_handler_base.ApiCallHandler):
-  """Returns list of user's cron jobs approvals."""
-
-  proto_args_type = api_user_pb2.ApiListCronJobApprovalsArgs
-  proto_result_type = api_user_pb2.ApiListCronJobApprovalsResult
-
-  def __init__(
-      self,
-      approval_checker: Optional[access_controller.ApprovalChecker] = None,
-  ):
-    super().__init__()
-    if not approval_checker:
-      approval_checker = access_controller.ApprovalChecker(
-          access_controller.AdminAccessChecker()
-      )
-    self._approval_checker = approval_checker
-
-  def Handle(
-      self,
-      args: api_user_pb2.ApiListCronJobApprovalsArgs,
-      context: Optional[api_call_context.ApiCallContext] = None,
-  ) -> api_user_pb2.ApiListCronJobApprovalsResult:
-    assert context is not None
-
-    approvals = sorted(
-        data_store.REL_DB.ReadApprovalRequests(
-            context.username,
-            objects_pb2.ApprovalRequest.ApprovalType.APPROVAL_TYPE_CRON_JOB,
-            subject_id=None,
-            include_expired=True,
-        ),
-        key=lambda ar: ar.timestamp,
-        reverse=True,
-    )
-
-    if not args.HasField("count"):
-      end = None
-    else:
-      end = args.offset + args.count
-
-    api_approvals = [
-        InitApiCronJobApprovalFromApprovalRequest(ar, self._approval_checker)
-        for ar in approvals[args.offset : end]
-    ]
-
-    return api_user_pb2.ApiListCronJobApprovalsResult(items=api_approvals)
-
-
 class ApiGetOwnGrrUserHandler(api_call_handler_base.ApiCallHandler):
   """Renders current user settings."""
 
@@ -1480,7 +1207,6 @@ class ApiGetOwnGrrUserHandler(api_call_handler_base.ApiCallHandler):
     """Fetches and renders current user's settings."""
     assert context is not None
 
-    # TODO - Use function to get API from proto user.
     user_record = data_store.REL_DB.ReadGRRUser(context.username)
     if self.is_admin:
       user_record.user_type = objects_pb2.GRRUser.UserType.USER_TYPE_ADMIN

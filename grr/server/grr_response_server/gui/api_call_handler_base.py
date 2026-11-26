@@ -1,10 +1,14 @@
 #!/usr/bin/env python
 """The base class for ApiCallHandlers."""
 
-from typing import Iterator, Optional
+from __future__ import annotations
+
+from collections.abc import Iterator
+from typing import Any
 
 from grr_response_core.lib.util import precondition
 from grr_response_server import access_control
+from grr_response_server.gui import api_call_context
 
 
 class Error(Exception):
@@ -28,7 +32,7 @@ class ApiBinaryStream(object):
       self,
       filename: str,
       content_generator: Iterator[bytes],
-      content_length: Optional[int] = None,
+      content_length: int | None = None,
   ):
     """ApiBinaryStream constructor.
 
@@ -50,7 +54,7 @@ class ApiBinaryStream(object):
       raise ValueError("content_generator can't be None")
     self.content_generator = content_generator
 
-  def GenerateContent(self):
+  def GenerateContent(self) -> Iterator[bytes]:
     """Generates content of the stream.
 
     Yields:
@@ -79,6 +83,10 @@ class ApiCallHandler:
   # fields of the resulting proto.
   strip_json_root_fields_types = True
 
-  def Handle(self, args, context=None):
+  def Handle(
+      self,
+      args: Any,
+      context: api_call_context.ApiCallContext | None = None,
+  ) -> Any:
     """Handles request and returns an RDFValue of result_type."""
     raise NotImplementedError()

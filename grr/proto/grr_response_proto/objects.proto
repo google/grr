@@ -164,7 +164,7 @@ message ApprovalRequest {
     APPROVAL_TYPE_NONE = 0;
     APPROVAL_TYPE_CLIENT = 1;
     APPROVAL_TYPE_HUNT = 2;
-    APPROVAL_TYPE_CRON_JOB = 3;
+    APPROVAL_TYPE_CRON_JOB = 3 [deprecated = true];
   }
   optional ApprovalType approval_type = 1;
   optional string approval_id = 2;
@@ -238,7 +238,7 @@ message ObjectReference {
     CLIENT = 1;
     HUNT = 2;
     FLOW = 3;
-    CRON_JOB = 4;
+    CRON_JOB = 4 [deprecated = true];
     VFS_FILE = 5;
     APPROVAL_REQUEST = 6;
   }
@@ -247,7 +247,7 @@ message ObjectReference {
   optional ClientReference client = 2;
   optional HuntReference hunt = 3;
   optional FlowReference flow = 4;
-  optional CronJobReference cron_job = 5;
+  optional CronJobReference cron_job = 5 [deprecated = true];
   optional VfsFileReference vfs_file = 6;
   optional ApprovalRequestReference approval_request = 7;
 }
@@ -292,10 +292,10 @@ message UserNotification {
     TYPE_CLIENT_INTERROGATED = 1;
     TYPE_CLIENT_APPROVAL_REQUESTED = 2;
     TYPE_HUNT_APPROVAL_REQUESTED = 3;
-    TYPE_CRON_JOB_APPROVAL_REQUESTED = 4;
+    TYPE_CRON_JOB_APPROVAL_REQUESTED = 4 [deprecated = true];
     TYPE_CLIENT_APPROVAL_GRANTED = 5;
     TYPE_HUNT_APPROVAL_GRANTED = 6;
-    TYPE_CRON_JOB_APPROVAL_GRANTED = 7;
+    TYPE_CRON_JOB_APPROVAL_GRANTED = 7 [deprecated = true];
     TYPE_VFS_FILE_COLLECTED = 8;
     TYPE_VFS_FILE_COLLECTION_FAILED = 9;
     TYPE_HUNT_STOPPED = 10;

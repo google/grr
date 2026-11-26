@@ -501,8 +501,7 @@ class MySQLDBFlowMixin:
           % (flow_id, client_id)
       )
 
-    if flow.parent_hunt_id is not None:
-
+    if flow.parent_hunt_id:
       query = "SELECT hunt_state FROM hunts WHERE hunt_id=%s"
       args = [db_utils.HuntIDToInt(flow.parent_hunt_id)]
       rows_found = cursor.execute(query, args)

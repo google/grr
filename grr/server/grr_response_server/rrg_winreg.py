@@ -180,7 +180,10 @@ def StatEntryOfKeyResult(
   """Converts the given `list_winreg_keys` result to a stat entry object."""
   stat_entry = jobs_pb2.StatEntry()
   stat_entry.pathspec.pathtype = jobs_pb2.PathSpec.PathType.REGISTRY
-  stat_entry.pathspec.path = f"{HKEY_STR[result.root]}\\{result.key}\\{result.subkey}"  # pylint: disable=line-too-long
+  stat_entry.pathspec.path = f"{HKEY_STR[result.root]}"
+  if result.key:
+    stat_entry.pathspec.path += f"\\{result.key}"
+  stat_entry.pathspec.path += f"\\{result.subkey}"
   # We preserve Python agent semantics and since we are dealing with stat
   # entries for registry keys, we pretend to be a directory.
   stat_entry.st_mode = stat.S_IFDIR
@@ -194,7 +197,9 @@ def StatEntryOfValueResult(
   """Converts the given `list_winreg_values` result to a stat entry object."""
   stat_entry = jobs_pb2.StatEntry()
   stat_entry.pathspec.pathtype = jobs_pb2.PathSpec.PathType.REGISTRY
-  stat_entry.pathspec.path = f"{HKEY_STR[result.root]}\\{result.key}"
+  stat_entry.pathspec.path = f"{HKEY_STR[result.root]}"
+  if result.key:
+    stat_entry.pathspec.path += f"\\{result.key}"
   if result.value.name:
     stat_entry.pathspec.path += f"\\{result.value.name}"
 

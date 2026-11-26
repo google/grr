@@ -1,13 +1,13 @@
 #!/usr/bin/env python
 """Client actions related to administrating the client and its configuration."""
 
+import importlib.metadata
 import logging
 import os
 import traceback
 
 import cryptography
 from cryptography.hazmat.backends import openssl
-import pkg_resources
 import psutil
 import pytsk3
 import yara
@@ -107,7 +107,7 @@ class GetLibraryVersions(actions.ActionPlugin):
     return ".".join(map(utils.SmartUnicode, psutil.version_info))
 
   def GetProtoVersion(self):
-    return pkg_resources.get_distribution("protobuf").version
+    return importlib.metadata.version("protobuf")
 
   def GetTSKVersion(self):
     return pytsk3.TSK_VERSION_STR

@@ -1,0 +1,28 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "_build_backend"
+backend-path = ["."]
+
+[project]
+name = "grr-response-templates"
+version = "4.0.0.post0"
+description = "GRR Rapid Response client templates"
+license = "Apache-2.0"
+requires-python = ">=3.9"
+
+[project.readme]
+text = """
+This PyPi package is just a placeholder. The package itself is too large to \
+distribute on PyPi so it is available from google cloud storage. See \
+https://github.com/google/grr-doc/blob/master/installfrompip.adoc for \
+installation instructions."""
+content-type = "text/plain"
+
+[project.urls]
+Homepage = "https://github.com/google/grr"
+
+[tool.setuptools]
+packages = []
+
+[tool.setuptools.data-files]
+"grr-response-templates/templates" = ["templates/*.zip"]

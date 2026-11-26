@@ -1,3 +1,4 @@
-include version.ini
+include _build_backend.py
 recursive-include components *.bin
 recursive-include templates *.zip
+recursive-exclude * *.pyc

@@ -40,13 +40,7 @@ from grr_response_server.rdfvalues import objects as rdf_objects
 
 HUNTS_ROOT_PATH = rdfvalue.RDFURN("aff4:/hunts")
 
-# fmt: off
-
 CANCELLED_BY_USER = "Cancelled by user"
-
-# /grr/server/grr_response_server/hunt.py,
-# )
-# fmt: on
 
 
 class HuntNotFoundError(api_call_handler_base.ResourceNotFoundError):
@@ -1238,6 +1232,12 @@ class ApiCreateHuntHandler(api_call_handler_base.ApiCallHandler):
     hunt_obj.args.hunt_type = hunts_pb2.HuntArguments.HuntType.STANDARD
     hunt_obj.args.standard.flow_name = args.flow_name
     if args.HasField("flow_args"):
+      # Try to unpack the flow args just for validation purposes.
+      unpacked_args = flow_cls.proto_args_type()
+      if not args.flow_args.Unpack(unpacked_args):
+        raise ValueError(
+            f"Failed to unpack flow_args as {flow_cls.proto_args_type!r}"
+        )
       hunt_obj.args.standard.flow_args.CopyFrom(args.flow_args)
     hunt_obj.creator = context.username
 

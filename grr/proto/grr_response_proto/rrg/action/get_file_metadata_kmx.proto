@@ -9,6 +9,21 @@ package rrg.action.get_file_metadata_kmx;
 import "grr_response_proto/rrg/fs.proto";
 
 message Args {
+  oneof volume {
+    // Absolute path to the raw volume holding the files to get the metadata of.
+    //
+    // For example, `\\?\Volume{f000f000-baa5-f000-baa5-f00ba5f00ba5}`.
+    rrg.fs.Path volume_path = 2;
+
+    // Absolute path to the point (e.g. a drive letter) where a volume holding
+    // the files to get the metadata of is mounted.
+    //
+    // For example, `C:\`.
+    //
+    // This is supported only on Windows.
+    rrg.fs.Path volume_mount_path = 3;
+  }
+
   // Root path to the file to get the metadata for.
   //
   // Note that if a path points to a symbolic link, the metadata associated
@@ -16,10 +31,22 @@ message Args {
   // the link points to.
   rrg.fs.Path path = 1; // TODO: Add support for multiple paths.
 
+  // Limit on the depth of recursion when visiting subfolders.
+  //
+  // The default value (0) means that there is no recursion and only metadata
+  // about the root path is returned.
+  uint32 max_depth = 4;
+
   // TODO: Add the remaining fields that original `get_file_metadata` supports.
 }
 
 message Result {
+  // Absolute path to the raw volume on which the file is located.
+  //
+  // This will be the original volume path specified in the arguments, if avail-
+  // lable or the inferred path if only volume mount path is given.
+  rrg.fs.Path volume_path = 3;
+
   // Path to the file.
   //
   // This is the original root path of the file as specified in the arguments,

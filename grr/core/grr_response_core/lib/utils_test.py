@@ -4,7 +4,10 @@
 import contextlib
 import io
 import os
+import random
+import struct
 import threading
+from typing import Optional
 from unittest import mock
 import zipfile
 
@@ -16,6 +19,75 @@ from grr.test_lib import test_lib
 
 # Test method names don't conform with Google style
 # pylint: disable=g-bad-name
+
+# Lowered `zipfile.ZIP64_LIMIT` (2 GiB - 1 by default), so that tests can write
+# archive members that are too big for the classic ZIP format.
+_TEST_ZIP64_LIMIT = 1024
+
+# Size of the chunks in which the tests write archive members.
+_CHUNK_SIZE = 1000
+
+# Layout of a local file header (APPNOTE.TXT, section 4.3.7).
+_LOCAL_FILE_HEADER_FORMAT = "<4s5H3L2H"
+_LOCAL_FILE_HEADER_SIZE = struct.calcsize(_LOCAL_FILE_HEADER_FORMAT)
+
+# ID of the ZIP64 extended information extra field (APPNOTE.TXT, 4.5.3).
+_ZIP64_EXTRA_FIELD_ID = 0x0001
+
+# Sizes of data descriptors, including the signature (APPNOTE.TXT, 4.3.9).
+_DATA_DESCRIPTOR_SIZE = 16
+_ZIP64_DATA_DESCRIPTOR_SIZE = 24
+
+# Versions needed to extract archive members (APPNOTE.TXT, 4.4.3.2).
+_DEFAULT_EXTRACT_VERSION = 20
+_ZIP64_EXTRACT_VERSION = 45
+
+
+def _ExtraFieldIds(local_file_header: bytes) -> list[int]:
+  """Returns the IDs of the extra fields of a local file header."""
+  fields = struct.unpack_from(_LOCAL_FILE_HEADER_FORMAT, local_file_header)
+  filename_length, extra_length = fields[-2:]
+  start = _LOCAL_FILE_HEADER_SIZE + filename_length
+  extra = local_file_header[start : start + extra_length]
+
+  field_ids = []
+  offset = 0
+  while offset < len(extra):
+    field_id, field_size = struct.unpack_from("<HH", extra, offset)
+    field_ids.append(field_id)
+    offset += 4 + field_size
+  return field_ids
+
+
+def _WriteMember(
+    archiver: utils.StreamingZipGenerator,
+    arcname: str,
+    data: bytes,
+    st: Optional[os.stat_result] = None,
+) -> tuple[bytes, bytes, bytes]:
+  """Writes an archive member in chunks.
+
+  Args:
+    archiver: Archive to write the member to.
+    arcname: Name of the member in the archive.
+    data: Contents of the member.
+    st: Stat of the member to pass to the archive, if any.
+
+  Returns:
+    Archive bytes produced by the member: its local file header, its (possibly
+    compressed) contents and its footer.
+  """
+  header = archiver.WriteFileHeader(arcname, st=st)
+  contents = b"".join(
+      archiver.WriteFileChunk(data[i : i + _CHUNK_SIZE])
+      for i in range(0, len(data), _CHUNK_SIZE)
+  )
+  footer = archiver.WriteFileFooter()
+  return header, contents, footer
+
+
+def _StatOfSize(size: int) -> os.stat_result:
+  return os.stat_result((0o644, 0, 0, 0, 0, 0, size, 0, 0, 0))
 
 
 class StoreTests(test_lib.GRRBaseTest):
@@ -421,6 +493,9 @@ class StreamingZipGeneratorTest(absltest.TestCase):
 
     with zipfile.ZipFile(output, mode="r") as zipdesc:
       self.assertEqual(zipdesc.read("foo"), b"quuxnorf")
+      self.assertEqual(
+          zipdesc.getinfo("foo").compress_type, zipfile.ZIP_DEFLATED
+      )
 
   def testWriteFromFD(self):
     filedesc = io.BytesIO(b"foobarbaz" * 1024 * 1024)
@@ -435,6 +510,169 @@ class StreamingZipGeneratorTest(absltest.TestCase):
 
     with zipfile.ZipFile(output, mode="r") as zipdesc:
       self.assertEqual(zipdesc.read("quux"), filedesc.getvalue())
+
+
+class StreamingZipGeneratorZip64Test(absltest.TestCase):
+  """Tests for archive members above the ZIP64 limit (2 GiB by default).
+
+  Writing that much data would make the tests too slow, so they lower the limit
+  of the `zipfile` module instead (like the tests of `zipfile` itself do).
+  """
+
+  def setUp(self):
+    super().setUp()
+    self.enter_context(
+        mock.patch.object(zipfile, "ZIP64_LIMIT", _TEST_ZIP64_LIMIT)
+    )
+    # Random data is not compressible, so it stays above the limit even when
+    # deflated.
+    self.large_data = random.Random(0).randbytes(4 * _TEST_ZIP64_LIMIT)
+
+  def testFileOfUnknownSizeAboveLimit(self):
+    archiver = utils.StreamingZipGenerator()
+    output = io.BytesIO()
+
+    header, contents, footer = _WriteMember(archiver, "foo", self.large_data)
+    output.write(header + contents + footer)
+    output.write(archiver.Close())
+
+    with zipfile.ZipFile(output, mode="r") as zipdesc:
+      self.assertEqual(zipdesc.read("foo"), self.large_data)
+      self.assertEqual(
+          zipdesc.getinfo("foo").extract_version, _ZIP64_EXTRACT_VERSION
+      )
+
+  def testFileOfUnknownSizeUsesZip64(self):
+    archiver = utils.StreamingZipGenerator()
+    output = io.BytesIO()
+
+    # The size is not known when the header is written, so even a small file
+    # has to be written in a format that allows it to grow above the limit.
+    header, contents, footer = _WriteMember(archiver, "foo", b"bar")
+    output.write(header + contents + footer)
+    output.write(archiver.Close())
+
+    self.assertIn(_ZIP64_EXTRA_FIELD_ID, _ExtraFieldIds(header))
+    self.assertLen(footer, _ZIP64_DATA_DESCRIPTOR_SIZE)
+    with zipfile.ZipFile(output, mode="r") as zipdesc:
+      self.assertEqual(zipdesc.read("foo"), b"bar")
+
+  def testFileOfSmallKnownSizeDoesNotUseZip64(self):
+    archiver = utils.StreamingZipGenerator()
+    output = io.BytesIO()
+
+    header, contents, footer = _WriteMember(
+        archiver, "foo", b"bar", st=_StatOfSize(len(b"bar"))
+    )
+    output.write(header + contents + footer)
+    output.write(archiver.Close())
+
+    self.assertNotIn(_ZIP64_EXTRA_FIELD_ID, _ExtraFieldIds(header))
+    self.assertLen(footer, _DATA_DESCRIPTOR_SIZE)
+    with zipfile.ZipFile(output, mode="r") as zipdesc:
+      self.assertEqual(zipdesc.read("foo"), b"bar")
+      self.assertEqual(
+          zipdesc.getinfo("foo").extract_version, _DEFAULT_EXTRACT_VERSION
+      )
+
+  def testFileOfLargeKnownSizeAboveLimit(self):
+    archiver = utils.StreamingZipGenerator()
+    output = io.BytesIO()
+
+    header, contents, footer = _WriteMember(
+        archiver, "foo", self.large_data, st=_StatOfSize(len(self.large_data))
+    )
+    output.write(header + contents + footer)
+    output.write(archiver.Close())
+
+    self.assertIn(_ZIP64_EXTRA_FIELD_ID, _ExtraFieldIds(header))
+    self.assertLen(footer, _ZIP64_DATA_DESCRIPTOR_SIZE)
+    with zipfile.ZipFile(output, mode="r") as zipdesc:
+      self.assertEqual(zipdesc.read("foo"), self.large_data)
+
+  def testCompressedFileOfUnknownSizeAboveLimit(self):
+    archiver = utils.StreamingZipGenerator(zipfile.ZIP_DEFLATED)
+    output = io.BytesIO()
+
+    header, contents, footer = _WriteMember(archiver, "foo", self.large_data)
+    output.write(header + contents + footer)
+    output.write(archiver.Close())
+
+    with zipfile.ZipFile(output, mode="r") as zipdesc:
+      self.assertEqual(zipdesc.read("foo"), self.large_data)
+      info = zipdesc.getinfo("foo")
+      self.assertEqual(info.compress_type, zipfile.ZIP_DEFLATED)
+      self.assertGreater(info.compress_size, _TEST_ZIP64_LIMIT)
+
+  def testCompressedFileOfLargeKnownSizeAboveLimit(self):
+    archiver = utils.StreamingZipGenerator(zipfile.ZIP_DEFLATED)
+    output = io.BytesIO()
+
+    header, contents, footer = _WriteMember(
+        archiver, "foo", self.large_data, st=_StatOfSize(len(self.large_data))
+    )
+    output.write(header + contents + footer)
+    output.write(archiver.Close())
+
+    with zipfile.ZipFile(output, mode="r") as zipdesc:
+      self.assertEqual(zipdesc.read("foo"), self.large_data)
+      info = zipdesc.getinfo("foo")
+      self.assertEqual(info.compress_type, zipfile.ZIP_DEFLATED)
+      self.assertGreater(info.compress_size, _TEST_ZIP64_LIMIT)
+
+  def testWriteFromFDOfUnknownSizeAboveLimit(self):
+    archiver = utils.StreamingZipGenerator()
+    output = io.BytesIO()
+
+    for chunk in archiver.WriteFromFD(io.BytesIO(self.large_data), "foo"):
+      output.write(chunk)
+    output.write(archiver.Close())
+
+    with zipfile.ZipFile(output, mode="r") as zipdesc:
+      self.assertEqual(zipdesc.read("foo"), self.large_data)
+
+  def testWriteFromFDOfLargeKnownSizeAboveLimit(self):
+    archiver = utils.StreamingZipGenerator()
+    output = io.BytesIO()
+
+    for chunk in archiver.WriteFromFD(
+        io.BytesIO(self.large_data),
+        "foo",
+        st=_StatOfSize(len(self.large_data)),
+    ):
+      output.write(chunk)
+    output.write(archiver.Close())
+
+    with zipfile.ZipFile(output, mode="r") as zipdesc:
+      self.assertEqual(zipdesc.read("foo"), self.large_data)
+
+  def testMultipleFilesBeyondLimit(self):
+    archiver = utils.StreamingZipGenerator(zipfile.ZIP_DEFLATED)
+    output = io.BytesIO()
+
+    members = {
+        "large_unknown_size": (self.large_data, None),
+        "small_known_size": (b"foo", _StatOfSize(len(b"foo"))),
+        "large_known_size": (
+            self.large_data[::-1],
+            _StatOfSize(len(self.large_data)),
+        ),
+        "small_unknown_size": (b"bar", None),
+    }
+    for arcname, (data, st) in members.items():
+      output.write(b"".join(_WriteMember(archiver, arcname, data, st=st)))
+    output.write(archiver.Close())
+
+    with zipfile.ZipFile(output, mode="r") as zipdesc:
+      self.assertIsNone(zipdesc.testzip())
+      # Members after the first one start beyond the limit, so the central
+      # directory has to use ZIP64 for their offsets.
+      self.assertGreater(
+          zipdesc.getinfo("small_unknown_size").header_offset,
+          _TEST_ZIP64_LIMIT,
+      )
+      for arcname, (data, _) in members.items():
+        self.assertEqual(zipdesc.read(arcname), data)
 
 
 class MergeDirectoriesTest(absltest.TestCase):

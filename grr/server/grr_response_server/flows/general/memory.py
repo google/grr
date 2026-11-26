@@ -45,10 +45,6 @@ class YaraProcessScan(
 ):
   """Scans process memory using Yara."""
 
-  category = "/Memory/"
-  friendly_name = "Yara Process Scan"
-  behaviours = flow_base.BEHAVIOUR_BASIC
-
   proto_args_type = flows_pb2.YaraProcessScanRequest
   proto_store_type = flows_pb2.YaraProcessScanStore
   proto_result_types = [
@@ -490,10 +486,6 @@ class DumpProcessMemory(
     ]
 ):
   """Acquires memory for a given list of processes."""
-
-  category = "/Memory/"
-  friendly_name = "Process Dump"
-  behaviours = flow_base.BEHAVIOUR_BASIC
 
   proto_args_type = flows_pb2.YaraProcessDumpArgs
   proto_store_type = flows_pb2.DumpProcessMemoryStore

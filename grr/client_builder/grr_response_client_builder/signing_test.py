@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+from collections.abc import Sequence
 import io
 import platform
 import tempfile
@@ -42,7 +43,7 @@ class WindowsOsslsigncodeCodeSignerTest(test_lib.GRRBaseTest):
         self.winsign.SignBuffer(b"asdflkjlaksjdf")
 
 
-def main(argv):
+def main(argv: Sequence[str]) -> None:
   test_lib.main(argv)
 
 

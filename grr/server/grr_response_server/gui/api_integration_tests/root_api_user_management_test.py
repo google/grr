@@ -46,6 +46,7 @@ class RootApiUserManagementTest(
     self.assertEqual(user.data.user_type, user.USER_TYPE_STANDARD)
 
     password = self._GetPassword("user_foo")
+    assert password is not None
     self.assertTrue(rdf_crypto.CheckPassword(password, "blah"))
 
   def testUserModificationWorksCorrectly(self):
@@ -62,11 +63,13 @@ class RootApiUserManagementTest(
     user = self.api.root.CreateGrrUser(username="user_foo", password="blah")
 
     password = self._GetPassword("user_foo")
+    assert password is not None
     self.assertTrue(rdf_crypto.CheckPassword(password, "blah"))
 
     user.Modify(password="ohno")
 
     password = self._GetPassword("user_foo")
+    assert password is not None
     self.assertTrue(rdf_crypto.CheckPassword(password, "ohno"))
 
   def testUsersAreCorrectlyListed(self):

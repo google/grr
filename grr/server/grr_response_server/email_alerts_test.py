@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+from collections.abc import Sequence
 from unittest import mock
 
 from absl import app
@@ -17,11 +18,13 @@ class SendEmailTests(test_lib.GRRBaseTest):
     self.mail_stubber.Stop()
 
   def testSplitEmailsAndAppendEmailDomain(self):
+    assert email_alerts.EMAIL_ALERTER is not None
     self.assertEqual(
         email_alerts.EMAIL_ALERTER.SplitEmailsAndAppendEmailDomain(""), []
     )
 
   def testSendEmail(self):
+    assert email_alerts.EMAIL_ALERTER is not None
     # This is already patched out in tests but in this specific test we
     # are interested in the results so we just add another patcher.
     with mock.patch("smtplib.SMTP") as mock_smtp:
@@ -137,7 +140,7 @@ class SendEmailTests(test_lib.GRRBaseTest):
         )
 
 
-def main(argv):
+def main(argv: Sequence[str]) -> None:
   test_lib.main(argv)
 
 

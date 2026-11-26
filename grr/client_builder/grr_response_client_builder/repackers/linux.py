@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 """Linux client repackers."""
 
+from __future__ import annotations
+
 import io
 import logging
 import os
@@ -10,7 +12,6 @@ import zipfile
 
 from grr_response_client_builder import build
 from grr_response_client_builder import build_helpers
-
 from grr_response_core import config
 from grr_response_core.lib import utils
 
@@ -20,7 +21,7 @@ class LinuxClientRepacker(build.ClientRepacker):
 
   # TODO(user):pytype: incorrect shutil.move() definition in typeshed.
   # pytype: disable=wrong-arg-types
-  def _GenerateDPKGFiles(self, template_path):
+  def _GenerateDPKGFiles(self, template_path: str) -> None:
     """Generates the files needed by dpkg-buildpackage."""
 
     fleetspeak_bundled = config.CONFIG.Get(
@@ -97,13 +98,15 @@ class LinuxClientRepacker(build.ClientRepacker):
     self._RmTreeIfExists(os.path.join(template_path, "dist/fleetspeak"))
     self._RmTreeIfExists(os.path.join(template_path, "dist/bundled-fleetspeak"))
 
-  def _RmTreeIfExists(self, path):
+  def _RmTreeIfExists(self, path: str) -> None:
     if os.path.exists(path):
       shutil.rmtree(path)
 
   # pytype: enable=wrong-arg-types
 
-  def _GenerateFleetspeakConfig(self, build_dir, dest_config_dir):
+  def _GenerateFleetspeakConfig(
+      self, build_dir: str, dest_config_dir: str
+  ) -> None:
     """Generates a Fleetspeak config for GRR in the debian build dir."""
     # We need to strip leading /'s or .join will ignore everything that comes
     # before it.
@@ -125,7 +128,7 @@ class LinuxClientRepacker(build.ClientRepacker):
         output_filename=dest_config,
         context=self.context)
 
-  def _GenerateBundledFleetspeakFiles(self, src_dir, dst_dir):
+  def _GenerateBundledFleetspeakFiles(self, src_dir: str, dst_dir: str) -> None:
     files = [
         "etc/fleetspeak-client/communicator.txt",
         "lib/systemd/system/fleetspeak-client.service",
@@ -137,7 +140,9 @@ class LinuxClientRepacker(build.ClientRepacker):
       utils.EnsureDirExists(os.path.dirname(dst))
       shutil.copy(src, dst)
 
-  def MakeDeployableBinary(self, template_path, output_path):
+  def MakeDeployableBinary(
+      self, template_path: str, output_path: str
+  ) -> str | None:
     """This will add the config to the client template and create a .deb."""
     buildpackage_binary = "/usr/bin/dpkg-buildpackage"
     if not os.path.exists(buildpackage_binary):
@@ -240,11 +245,13 @@ class LinuxClientRepacker(build.ClientRepacker):
 class CentosClientRepacker(LinuxClientRepacker):
   """Repackages Linux RPM templates."""
 
-  def _Sign(self, rpm_filename):
+  def _Sign(self, rpm_filename: str) -> None:
     if self.signer:
       return self.signer.AddSignatureToRPMs([rpm_filename])
 
-  def MakeDeployableBinary(self, template_path, output_path):
+  def MakeDeployableBinary(
+      self, template_path: str, output_path: str
+  ) -> str | None:
     """This will add the config to the client template and create a .rpm."""
 
     rpmbuild_binary = "/usr/bin/rpmbuild"
@@ -393,7 +400,9 @@ class CentosClientRepacker(LinuxClientRepacker):
       self._Sign(output_path)
       return output_path
 
-  def _GenerateFleetspeakConfig(self, template_dir, rpm_build_dir):
+  def _GenerateFleetspeakConfig(  # pylint: disable=arguments-renamed
+      self, template_dir: str, rpm_build_dir: str
+  ) -> None:
     """Generates a Fleetspeak config for GRR."""
     source_config = os.path.join(
         template_dir, "fleetspeak",
@@ -413,7 +422,7 @@ class CentosClientRepacker(LinuxClientRepacker):
         output_filename=dest_config_path,
         context=self.context)
 
-  def _ProcessUniversalTemplate(self, dist_dir):
+  def _ProcessUniversalTemplate(self, dist_dir: str) -> None:
     # Since there is fleetspeak/fleetspeak, rename the top-level
     # fleetspeak directory.
     shutil.move(

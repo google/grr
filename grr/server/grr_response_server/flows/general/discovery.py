@@ -52,9 +52,6 @@ class Interrogate(
 ):
   """Interrogate various things about the host."""
 
-  category = "/Administrative/"
-  behaviours = flow_base.BEHAVIOUR_BASIC
-
   proto_args_type = flows_pb2.InterrogateArgs
   proto_result_types = (objects_pb2.ClientSnapshot,)
   proto_store_type = flows_pb2.InterrogateStore
@@ -102,9 +99,9 @@ class Interrogate(
       )
 
     if self.rrg_support:
-      rrg_stubs.GetSystemMetadata().Call(self.HandleRRGGetSystemMetadata)  # pyrefly: ignore[bad-argument-type]
-      rrg_stubs.ListInterfaces().Call(self.HandleRRGListInterfaces)  # pyrefly: ignore[bad-argument-type]
-      rrg_stubs.ListMounts().Call(self.HandleRRGListMounts)  # pyrefly: ignore[bad-argument-type]
+      rrg_stubs.GetSystemMetadata().Call(self.HandleRRGGetSystemMetadata)
+      rrg_stubs.ListInterfaces().Call(self.HandleRRGListInterfaces)
+      rrg_stubs.ListMounts().Call(self.HandleRRGListMounts)
 
       # For RRG-enabled endpoints we can collect CrowdStrike ID collection right
       # away because we always know the operating system. For Python agent-only
@@ -135,7 +132,7 @@ class Interrogate(
         next_state=self.StoreMemorySize.__name__,
     )
 
-  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+  @flow_base.UseProto2AnyResponses
   def HandleRRGGetSystemMetadata(
       self,
       responses: flow_responses.Responses[any_pb2.Any],
@@ -210,7 +207,7 @@ class Interrogate(
         next_state=self.ProcessKnowledgeBase.__name__,
     )
 
-  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+  @flow_base.UseProto2AnyResponses
   def HandleRRGListInterfaces(
       self,
       responses: flow_responses.Responses[any_pb2.Any],
@@ -219,8 +216,7 @@ class Interrogate(
       self.Log("Failed to list interfaces: %s", responses.status)
       return
 
-    # TODO - Replace with `clear()` once upgraded.
-    del self.store.client_snapshot.interfaces[:]
+    self.store.client_snapshot.interfaces.clear()
 
     for response in responses:
       result = rrg_list_interfaces_pb2.Result()
@@ -244,7 +240,7 @@ class Interrogate(
 
         iface.addresses.append(iface_address)
 
-  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+  @flow_base.UseProto2AnyResponses
   def HandleRRGListMounts(
       self,
       responses: flow_responses.Responses[any_pb2.Any],
@@ -253,8 +249,7 @@ class Interrogate(
       self.Log("Failed to list mounts: %s", responses.status)
       return
 
-    # TODO - Replace with `clear()` once upgraded.
-    del self.store.client_snapshot.filesystems[:]
+    self.store.client_snapshot.filesystems.clear()
 
     for response in responses:
       result = rrg_list_mounts_pb2.Result()
@@ -276,7 +271,7 @@ class Interrogate(
             errors="replace",
         )
 
-  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+  @flow_base.UseProto2AnyResponses
   def _ProcessCollectCloudVMMetadata(
       self, responses: flow_responses.Responses[any_pb2.Any]
   ) -> None:
@@ -297,7 +292,7 @@ class Interrogate(
 
     self.store.client_snapshot.cloud_instance.CopyFrom(result.vm_metadata)
 
-  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+  @flow_base.UseProto2AnyResponses
   def StoreMemorySize(self, responses: flow_responses.Responses[any_pb2.Any]):
     """Stores the memory size."""
     if not responses.success or not list(responses):
@@ -308,7 +303,7 @@ class Interrogate(
 
     self.store.client_snapshot.memory_size = response.total_bytes
 
-  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+  @flow_base.UseProto2AnyResponses
   def Platform(self, responses: flow_responses.Responses[any_pb2.Any]):
     """Stores information about the platform."""
     if not responses.success or not list(responses):
@@ -383,7 +378,7 @@ class Interrogate(
         log_msg += " and GetCrowdStrikeAgentID"
       self.Log(log_msg)
 
-  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+  @flow_base.UseProto2AnyResponses
   def InstallDate(self, responses: flow_responses.Responses[any_pb2.Any]):
     """Stores the time when the OS was installed on the client."""
     if not responses.success or not list(responses):
@@ -412,7 +407,7 @@ class Interrogate(
 
     self.store.client_snapshot.install_time = install_date
 
-  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+  @flow_base.UseProto2AnyResponses
   def ProcessKnowledgeBase(
       self, responses: flow_responses.Responses[any_pb2.Any]
   ):
@@ -463,7 +458,7 @@ class Interrogate(
         FROM
           Win32_LogicalDisk
         """
-        action.Call(self.ProcessRRGWin32LogicalDisk)  # pyrefly: ignore[bad-argument-type]
+        action.Call(self.ProcessRRGWin32LogicalDisk)
       else:
         self.CallClientProto(
             server_stubs.WmiQuery,
@@ -482,7 +477,7 @@ class Interrogate(
     except db.UnknownClientError:
       pass
 
-  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+  @flow_base.UseProto2AnyResponses
   def ProcessHardwareInfo(
       self,
       responses: flow_responses.Responses[any_pb2.Any],
@@ -496,7 +491,7 @@ class Interrogate(
       res.Unpack(response)
       self.store.client_snapshot.hardware_info.CopyFrom(response)
 
-  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+  @flow_base.UseProto2AnyResponses
   def ProcessRootStatFS(
       self,
       responses: flow_responses.Responses[any_pb2.Any],
@@ -510,7 +505,7 @@ class Interrogate(
       response.Unpack(volume)
       self.store.client_snapshot.volumes.append(volume)
 
-  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+  @flow_base.UseProto2AnyResponses
   def ProcessRRGWin32LogicalDisk(
       self,
       responses: flow_responses.Responses[any_pb2.Any],
@@ -537,15 +532,11 @@ class Interrogate(
       if "FileSystem" in response.row:
         volume.file_system_type = response.row["FileSystem"].string
 
-      if "Size" in response.row:
-        volume.total_allocation_units = rrg_wmi.UInt64(
-            response.row["Size"],
-        )
+      if (size := rrg_wmi.UInt64(response.row["Size"])) is not None:
+        volume.total_allocation_units = size
 
-      if "FreeSpace" in response.row:
-        volume.actual_available_allocation_units = rrg_wmi.UInt64(
-            response.row["FreeSpace"],
-        )
+      if (free_space := rrg_wmi.UInt64(response.row["FreeSpace"])) is not None:
+        volume.actual_available_allocation_units = free_space
 
       # WMI gives us size and free space in bytes and does not give us sector
       # sizes, we use 1 for these. It is not clear how correct doing it is but
@@ -553,7 +544,7 @@ class Interrogate(
       volume.bytes_per_sector = 1
       volume.sectors_per_allocation_unit = 1
 
-  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+  @flow_base.UseProto2AnyResponses
   def ProcessWin32LogicalDisk(
       self,
       responses: flow_responses.Responses[any_pb2.Any],
@@ -605,7 +596,7 @@ class Interrogate(
 
   FILTERED_IPS = ["127.0.0.1", "::1", "fe80::1"]
 
-  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+  @flow_base.UseProto2AnyResponses
   def EnumerateInterfaces(
       self,
       responses: flow_responses.Responses[any_pb2.Any],
@@ -622,11 +613,10 @@ class Interrogate(
       interfaces.append(network_interface)
     interfaces.sort(key=lambda i: i.ifname)
 
-    # TODO - Replace with `clear()` once upgraded.
-    del self.store.client_snapshot.interfaces[:]
+    self.store.client_snapshot.interfaces.clear()
     self.store.client_snapshot.interfaces.extend(interfaces)
 
-  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+  @flow_base.UseProto2AnyResponses
   def EnumerateFilesystems(
       self,
       responses: flow_responses.Responses[any_pb2.Any],
@@ -645,7 +635,7 @@ class Interrogate(
     del self.store.client_snapshot.filesystems[:]
     self.store.client_snapshot.filesystems.extend(proto_filesystems)
 
-  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+  @flow_base.UseProto2AnyResponses
   def ClientInfo(
       self, responses: flow_responses.Responses[any_pb2.Any]
   ) -> None:
@@ -665,7 +655,7 @@ class Interrogate(
           metadata.last_fleetspeak_validation_info
       )
 
-  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+  @flow_base.UseProto2AnyResponses
   def ClientConfiguration(
       self, responses: flow_responses.Responses[any_pb2.Any]
   ) -> None:
@@ -682,7 +672,7 @@ class Interrogate(
           objects_pb2.StringMapEntry(key=pair.k.string, value=str_v)
       )
 
-  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+  @flow_base.UseProto2AnyResponses
   def ClientLibraries(
       self, responses: flow_responses.Responses[any_pb2.Any]
   ) -> None:
@@ -698,7 +688,7 @@ class Interrogate(
           objects_pb2.StringMapEntry(key=pair.k.string, value=str_v)
       )
 
-  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+  @flow_base.UseProto2AnyResponses
   def ProcessGetCrowdStrikeAgentID(
       self,
       responses: flow_responses.Responses[any_pb2.Any],

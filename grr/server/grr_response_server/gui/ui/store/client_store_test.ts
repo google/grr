@@ -501,8 +501,6 @@ describe('ClientStore', () => {
 
     const flowDescriptor = newFlowDescriptor({
       name: 'Kill',
-      friendlyName: 'Kill',
-      category: 'Kill',
     });
     const flowArgs = {
       '@type': 'example.com/grr.Args',

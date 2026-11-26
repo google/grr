@@ -219,7 +219,7 @@ class UploadSession(object):
       # also possible that the upload process has been cancelled (i.e. by the
       # analyst), in which case further attempts to send the file are futile.
       @retry.On((RequestError, InterruptedResponseError), opts=retry_opts)
-      def PutChunk():
+      def PutChunk() -> None:
         try:
           # We need to set a timeout equal to the requested progress function
           # call interval so that we can call it often enough. In general, if an

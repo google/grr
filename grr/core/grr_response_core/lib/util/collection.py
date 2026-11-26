@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """A module with utility functions for working with collections."""
 
-from collections.abc import Callable, Iterable, Iterator
+from collections.abc import Callable, Iterable, Iterator, Mapping
 import itertools
 from typing import TypeVar
 
@@ -119,7 +119,7 @@ def StartsWith(this: Iterable[T], that: Iterable[T]) -> bool:
       return False
 
 
-def Unzip(iterable: Iterable[tuple[K, T]]) -> tuple[Iterable[K], Iterable[T]]:
+def Unzip(iterable: Iterable[tuple[K, T]]) -> tuple[list[K], list[T]]:
   """Unzips specified iterable of pairs to pair of two iterables.
 
   This function is an inversion of the standard `zip` function and the following
@@ -148,7 +148,7 @@ def Unzip(iterable: Iterable[tuple[K, T]]) -> tuple[Iterable[K], Iterable[T]]:
   return lefts, rights
 
 
-def DictProduct(dictionary: dict[K, Iterable[T]]) -> Iterator[dict[K, T]]:
+def DictProduct(dictionary: Mapping[K, Iterable[T]]) -> Iterator[dict[K, T]]:
   """Computes a cartesian product of dict with iterable values.
 
   This utility function, accepts a dictionary with iterable values, computes

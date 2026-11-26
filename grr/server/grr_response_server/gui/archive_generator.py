@@ -1,10 +1,13 @@
 #!/usr/bin/env python
 """This file contains code to generate ZIP/TAR archives."""
 
+from __future__ import annotations
+
+from collections.abc import Callable, Iterable, Iterator
 import enum
 import io
 import os
-from typing import Callable, Dict, Iterable, Iterator, Optional
+from typing import Any
 import zipfile
 
 from google.protobuf import json_format
@@ -51,9 +54,9 @@ class CollectionArchiveGenerator:
   def __init__(
       self,
       archive_format: ArchiveFormat = ArchiveFormat.ZIP,
-      prefix: Optional[str] = None,
-      description: Optional[str] = None,
-      predicate: Optional[Callable[db.ClientPath, bool]] = None,
+      prefix: str | None = None,
+      description: str | None = None,
+      predicate: Callable[[db.ClientPath], bool] | None = None,
   ):
     """CollectionArchiveGenerator constructor.
 
@@ -89,10 +92,10 @@ class CollectionArchiveGenerator:
 
     self.description = description or "Files archive collection"
 
-    self.archived_files = set()
-    self.ignored_files = set()
-    self.failed_files = set()
-    self.processed_files = set()
+    self.archived_files: set[db.ClientPath] = set()
+    self.ignored_files: set[db.ClientPath] = set()
+    self.failed_files: set[db.ClientPath] = set()
+    self.processed_files: set[db.ClientPath] = set()
 
     self.predicate = predicate or (lambda _: True)
 
@@ -107,7 +110,7 @@ class CollectionArchiveGenerator:
   def _GenerateDescription(self) -> Iterator[bytes]:
     """Generates description into a MANIFEST file in the archive."""
 
-    manifest = {
+    manifest: dict[str, Any] = {
         "description": self.description,
         "processed_files": len(self.processed_files),
         "archived_files": len(self.archived_files),
@@ -266,12 +269,12 @@ class FlowArchiveGenerator:
 
   def _GenerateDescription(
       self,
-      processed_files: Dict[str, str],
+      processed_files: dict[str, str],
       missing_files: Iterable[str],
   ) -> Iterable[bytes]:
     """Generates a MANIFEST file in the archive."""
 
-    manifest = {
+    manifest: dict[str, Any] = {
         "processed_files": processed_files,
         "missing_files": missing_files,
         "client_id": self.flow.client_id,
@@ -294,7 +297,7 @@ class FlowArchiveGenerator:
   def _WriteFileChunk(
       self,
       chunk: file_store.StreamedFileChunk,
-      archive_paths_by_id: Dict[rdf_objects.PathID, str],
+      archive_paths_by_id: dict[rdf_objects.PathID, str],
   ) -> Iterator[bytes]:
     """Yields binary chunks, respecting archive file headers and footers.
 
@@ -306,7 +309,7 @@ class FlowArchiveGenerator:
       # Make sure size of the original file is passed. It's required
       # when output_writer is StreamingTarWriter.
       st = os.stat_result((0o644, 0, 0, 0, 0, 0, chunk.total_size, 0, 0, 0))
-      archive_path = (archive_paths_by_id or {}).get(chunk.client_path.path_id)
+      archive_path = archive_paths_by_id[chunk.client_path.path_id]
       target_path = os.path.join(self.prefix, archive_path)
 
       yield self.archive_generator.WriteFileHeader(target_path, st=st)
@@ -319,7 +322,7 @@ class FlowArchiveGenerator:
 
   def Generate(
       self,
-      mappings: Iterator[flow_base.ClientPathArchiveMapping],
+      mappings: Iterable[flow_base.ClientPathArchiveMapping],
   ) -> Iterator[bytes]:
     """Generates archive from a given set of client path mappings.
 

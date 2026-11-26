@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """API handlers for accessing config."""
 
+from collections.abc import Iterator
 import logging
 from typing import Any, Optional
 
@@ -139,12 +140,16 @@ class ApiGetConfigHandler(api_call_handler_base.ApiCallHandler):
 
   proto_result_type = config_pb2.ApiGetConfigResult
 
-  def _ListParametersInSection(self, section):
+  def _ListParametersInSection(self, section: str) -> Iterator[str]:
     for descriptor in sorted(config.CONFIG.type_infos, key=lambda x: x.name):
       if descriptor.section == section:
         yield descriptor.name
 
-  def Handle(self, unused_args, context=None):
+  def Handle(
+      self,
+      unused_args: Optional[None] = None,
+      context: Optional[api_call_context.ApiCallContext] = None,
+  ) -> config_pb2.ApiGetConfigResult:
     """Build the data structure representing the config."""
 
     sections = {}
@@ -163,8 +168,6 @@ class ApiGetConfigHandler(api_call_handler_base.ApiCallHandler):
       section = sections[section_name]
 
       api_section = config_pb2.ApiConfigSection(name=section_name)
-      # TODO - Replace with `clear()` once upgraded.
-      del api_section.options[:]
       for param_name in sorted(section):
         api_section.options.append(section[param_name])
       result.sections.append(api_section)

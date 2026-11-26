@@ -136,9 +136,6 @@ class WindowsTemplateBuilder(object):
 
     self.virtualenv64 = os.path.join(args.build_dir, "python_64")
     self.grr_client_build64 = "grr_client_build"
-    self.virtualenv_python64 = os.path.join(
-        self.virtualenv64, r"Scripts\python.exe"
-    )
 
     self.git = r"git"
 
@@ -179,59 +176,6 @@ class WindowsTemplateBuilder(object):
         [self.git, "clone", "https://github.com/google/grr.git"]
     )
 
-  def MakeProtoSdist(self):
-    os.chdir(os.path.join(args.grr_src, "grr/proto"))
-    subprocess.check_call([
-        self.virtualenv_python64,
-        "setup.py",
-        "sdist",
-        "--formats=zip",
-        "--dist-dir=%s" % args.build_dir,
-    ])
-    return glob.glob(
-        os.path.join(args.build_dir, "grr_response_proto-*.zip")
-    ).pop()
-
-  def MakeCoreSdist(self):
-    os.chdir(os.path.join(args.grr_src, "grr/core"))
-    subprocess.check_call([
-        self.virtualenv_python64,
-        "setup.py",
-        "sdist",
-        "--formats=zip",
-        "--dist-dir=%s" % args.build_dir,
-        "--no-sync-artifacts",
-    ])
-    return glob.glob(
-        os.path.join(args.build_dir, "grr_response_core-*.zip")
-    ).pop()
-
-  def MakeClientSdist(self):
-    os.chdir(os.path.join(args.grr_src, "grr/client/"))
-    subprocess.check_call([
-        self.virtualenv_python64,
-        "setup.py",
-        "sdist",
-        "--formats=zip",
-        "--dist-dir=%s" % args.build_dir,
-    ])
-    return glob.glob(
-        os.path.join(args.build_dir, "grr_response_client-*.zip")
-    ).pop()
-
-  def MakeClientBuilderSdist(self):
-    os.chdir(os.path.join(args.grr_src, "grr/client_builder/"))
-    subprocess.check_call([
-        self.virtualenv_python64,
-        "setup.py",
-        "sdist",
-        "--formats=zip",
-        "--dist-dir=%s" % args.build_dir,
-    ])
-    return glob.glob(
-        os.path.join(args.build_dir, "grr_response_client_builder-*.zip")
-    ).pop()
-
   def InstallGRR(self, path):
     """Installs GRR."""
 
@@ -239,6 +183,15 @@ class WindowsTemplateBuilder(object):
 
     if args.wheel_dir:
       cmd64 += ["--no-index", r"--find-links=file:///%s" % args.wheel_dir]
+      # pyproject.toml triggers PEP 517 build isolation, which tries to
+      # install setuptools and wheel from wheel_dir under --no-index. If
+      # wheel_dir only contains runtime wheels, fall back to the
+      # virtualenv's pre-installed build tools.
+      if not (
+          glob.glob(os.path.join(args.wheel_dir, "setuptools-*"))
+          and glob.glob(os.path.join(args.wheel_dir, "wheel-*"))
+      ):
+        cmd64.append("--no-build-isolation")
 
     cmd64.append(path)
 
@@ -423,15 +376,11 @@ class WindowsTemplateBuilder(object):
 
     if not os.path.exists(args.grr_src):
       self.GitCheckoutGRR()
-    proto_sdist = self.MakeProtoSdist()
-    core_sdist = self.MakeCoreSdist()
-    client_sdist = self.MakeClientSdist()
-    client_builder_sdist = self.MakeClientBuilderSdist()
 
-    self.InstallGRR(proto_sdist)
-    self.InstallGRR(core_sdist)
-    self.InstallGRR(client_sdist)
-    self.InstallGRR(client_builder_sdist)
+    self.InstallGRR(os.path.join(args.grr_src, "grr/proto"))
+    self.InstallGRR(os.path.join(args.grr_src, "grr/core"))
+    self.InstallGRR(os.path.join(args.grr_src, "grr/client"))
+    self.InstallGRR(os.path.join(args.grr_src, "grr/client_builder"))
     self.BuildTemplates()
     if args.test_repack_install:
       self._RepackTemplates()

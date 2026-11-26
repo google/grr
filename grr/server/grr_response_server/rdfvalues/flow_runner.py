@@ -10,7 +10,6 @@ from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import flows_pb2
 from grr_response_proto import jobs_pb2
 from grr_response_proto import output_plugin_pb2
-from grr_response_server.rdfvalues import objects as rdf_objects
 
 
 class RequestState(rdf_structs.RDFProtoStruct):
@@ -21,22 +20,6 @@ class RequestState(rdf_structs.RDFProtoStruct):
       rdf_flows.GrrMessage,
       rdf_flows.GrrStatus,
       rdfvalue.SessionID,
-  ]
-
-
-class FlowRunnerArgs(rdf_structs.RDFProtoStruct):
-  """The argument to the flow runner.
-
-  Note that all flows receive these arguments. This object is stored in the
-  flows state.context.arg attribute.
-  """
-
-  protobuf = flows_pb2.FlowRunnerArgs
-  rdf_deps = [
-      rdf_client.ClientURN,
-      rdf_objects.FlowReference,
-      "OutputPluginDescriptor",  # TODO(user): dependency loop.
-      RequestState,
   ]
 
 

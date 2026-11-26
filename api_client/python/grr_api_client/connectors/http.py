@@ -3,6 +3,7 @@
 
 from collections.abc import Iterable, Iterator
 import contextlib
+import importlib.metadata
 import json
 import logging
 import re
@@ -13,7 +14,6 @@ from google.protobuf import descriptor
 from google.protobuf import json_format
 from google.protobuf import message
 from google.protobuf import symbol_database
-import pkg_resources
 import requests
 from werkzeug import routing
 
@@ -95,10 +95,8 @@ class VersionTuple(NamedTuple):
         major=int(match[1]),
         minor=int(match[2]),
         revision=int(match[3]),
-        # TODO(hanuszczak): Replace with `str.removeprefix` once we support only
-        # Python 3.9+.
-        release=int(match[4][len("post"):] if match[4]
-                    .startswith("post") else match[4]))
+        release=int(match[4].removeprefix("post")),
+    )
 
 
 class Error(Exception):
@@ -252,7 +250,7 @@ class HttpConnector(abstract.Connector):
     except errors.Error:
       return None
 
-    json_str = response.content.decode("utf-8").lstrip(self.JSON_PREFIX)
+    json_str = response.content.decode("utf-8").removeprefix(self.JSON_PREFIX)
     return VersionTuple.FromJson(json_str)
 
   def _InitializeIfNeeded(self):
@@ -276,10 +274,10 @@ class HttpConnector(abstract.Connector):
   def _GetMethodUrlAndPathParamsNames(
       self,
       handler_name: str,
-      args: message.Message,
-  ) -> tuple[reflection_pb2.ApiMethod, str, Iterable[str]]:
+      args: Optional[message.Message],
+  ) -> tuple[str, str, Iterable[str]]:
     path_params = {}  # Dict[str, Union[int, str]]
-    if args:
+    if args is not None:
       for field, value in args.ListFields():
         if self.handlers_map.is_endpoint_expecting(handler_name, field.name):
           path_params[field.name] = self._CoerceValueToQueryStringType(
@@ -295,7 +293,7 @@ class HttpConnector(abstract.Connector):
     if not method:
       raise RuntimeError("Can't find method for %s" % handler_name)
 
-    return method, url, list(path_params.keys())  # pyrefly: ignore[bad-return]
+    return method, url, list(path_params)
 
   def _ArgsToQueryParams(
       self,
@@ -361,7 +359,8 @@ class HttpConnector(abstract.Connector):
   ) -> requests.Request:
     self._InitializeIfNeeded()
     method, url, path_params_names = self._GetMethodUrlAndPathParamsNames(
-        method_name, args)  # pyrefly: ignore[bad-argument-type]
+        method_name, args
+    )
 
     if method == "GET":
       body = None
@@ -471,8 +470,8 @@ class HttpConnector(abstract.Connector):
     """Retrieves (lazily) the API client version tuple (if possible)."""
     if self._api_client_version is None:
       try:
-        distribution = pkg_resources.get_distribution("grr_api_client")
-      except pkg_resources.DistributionNotFound:
+        distribution = importlib.metadata.distribution("grr_api_client")
+      except importlib.metadata.PackageNotFoundError:
         # Distribution might not be available if we are not running from within
         # a PIP package. In such case, it is not possible to retrieve version.
         return None

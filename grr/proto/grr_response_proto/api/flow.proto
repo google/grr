@@ -17,11 +17,9 @@ package grr;
 message ApiFlowDescriptor {
   optional string name = 1
       [(sem_type) = { description: "Flow name as registered in GRR." }];
-  optional string friendly_name = 2
-      [(sem_type) = { description: "Friendly flow name." }];
-  optional string category = 3 [(sem_type) = { description: "Flow category." }];
-  optional string doc = 4
-      [(sem_type) = { description: "Flow documentation string." }];
+  reserved 2;
+  reserved 3;
+  reserved 4;
 
   optional string args_type = 5
       [(sem_type) = { description: "Flow arguments type name." }];
@@ -30,8 +28,7 @@ message ApiFlowDescriptor {
     dynamic_type: "GetDefaultArgsClass"
   }];
 
-  repeated string behaviours = 7
-      [(sem_type) = { description: "Flow behaviours." }];
+  reserved 7;
   optional bool block_hunt_creation = 8
       [(sem_type) = { description: "Block hunt creation for the flow." }];
 }

@@ -178,12 +178,6 @@ export declare interface ApiCreateClientApprovalArgs {
   readonly approval?: ApiClientApproval;
 }
 
-/** ApiCreateCronJobApprovalArgs proto mapping. */
-export declare interface ApiCreateCronJobApprovalArgs {
-  readonly cronJobId?: string;
-  readonly approval?: ApiCronJobApproval;
-}
-
 /** ApiCreateFlowArgs proto mapping. */
 export declare interface ApiCreateFlowArgs {
   readonly clientId?: string;
@@ -219,49 +213,6 @@ export declare interface ApiCreateVfsRefreshOperationResult {
   readonly operationId?: string;
 }
 
-/** ApiCronJob proto mapping. */
-export declare interface ApiCronJob {
-  readonly cronJobId?: string;
-  readonly args?: CronJobAction;
-  readonly createdAt?: RDFDatetime;
-  readonly currentRunId?: string;
-  readonly enabled?: boolean;
-  readonly lastRunStatus?: CronJobRunCronJobRunStatus;
-  readonly lastRunTime?: RDFDatetime;
-  readonly state?: ApiDataObject;
-  readonly frequency?: DurationSeconds;
-  readonly lifetime?: DurationSeconds;
-  readonly allowOverruns?: boolean;
-  readonly forcedRunRequested?: boolean;
-  readonly isFailing?: boolean;
-  readonly description?: string;
-}
-
-/** ApiCronJobApproval proto mapping. */
-export declare interface ApiCronJobApproval {
-  readonly subject?: ApiCronJob;
-  readonly id?: string;
-  readonly requestor?: string;
-  readonly reason?: string;
-  readonly isValid?: boolean;
-  readonly isValidMessage?: string;
-  readonly emailMessageId?: string;
-  readonly notifiedUsers?: readonly string[];
-  readonly emailCcAddresses?: readonly string[];
-  readonly approvers?: readonly string[];
-}
-
-/** ApiCronJobRun proto mapping. */
-export declare interface ApiCronJobRun {
-  readonly runId?: string;
-  readonly cronJobId?: string;
-  readonly startedAt?: RDFDatetime;
-  readonly finishedAt?: RDFDatetime;
-  readonly status?: CronJobRunCronJobRunStatus;
-  readonly logMessage?: string;
-  readonly backtrace?: string;
-}
-
 /** ApiDataObject proto mapping. */
 export declare interface ApiDataObject {
   readonly items?: readonly ApiDataObjectKeyValuePair[];
@@ -278,11 +229,6 @@ export declare interface ApiDataObjectKeyValuePair {
 /** ApiDeleteArtifactArgs proto mapping. */
 export declare interface ApiDeleteArtifactArgs {
   readonly name?: string;
-}
-
-/** ApiDeleteCronJobArgs proto mapping. */
-export declare interface ApiDeleteCronJobArgs {
-  readonly cronJobId?: string;
 }
 
 /** ApiDeleteFleetspeakPendingMessagesArgs proto mapping. */
@@ -361,12 +307,8 @@ export enum ApiFlowState {
 /** ApiFlowDescriptor proto mapping. */
 export declare interface ApiFlowDescriptor {
   readonly name?: string;
-  readonly friendlyName?: string;
-  readonly category?: string;
-  readonly doc?: string;
   readonly argsType?: string;
   readonly defaultArgs?: Any;
-  readonly behaviours?: readonly string[];
   readonly blockHuntCreation?: boolean;
 }
 
@@ -411,11 +353,6 @@ export declare interface ApiFlowResult {
   readonly payload?: Any;
   readonly timestamp?: RDFDatetime;
   readonly tag?: string;
-}
-
-/** ApiForceRunCronJobArgs proto mapping. */
-export declare interface ApiForceRunCronJobArgs {
-  readonly cronJobId?: string;
 }
 
 /** ApiGetClientApprovalArgs proto mapping. */
@@ -516,24 +453,6 @@ export declare interface ApiGetConfigOptionArgs {
 /** ApiGetConfigResult proto mapping. */
 export declare interface ApiGetConfigResult {
   readonly sections?: readonly ApiConfigSection[];
-}
-
-/** ApiGetCronJobApprovalArgs proto mapping. */
-export declare interface ApiGetCronJobApprovalArgs {
-  readonly cronJobId?: string;
-  readonly approvalId?: string;
-  readonly username?: string;
-}
-
-/** ApiGetCronJobArgs proto mapping. */
-export declare interface ApiGetCronJobArgs {
-  readonly cronJobId?: string;
-}
-
-/** ApiGetCronJobRunArgs proto mapping. */
-export declare interface ApiGetCronJobRunArgs {
-  readonly cronJobId?: string;
-  readonly runId?: string;
 }
 
 /** ApiGetExportedFlowResultsArgs proto mapping. */
@@ -895,13 +814,6 @@ export declare interface ApiGrantClientApprovalArgs {
   readonly username?: string;
 }
 
-/** ApiGrantCronJobApprovalArgs proto mapping. */
-export declare interface ApiGrantCronJobApprovalArgs {
-  readonly cronJobId?: string;
-  readonly approvalId?: string;
-  readonly username?: string;
-}
-
 /** ApiGrantHuntApprovalArgs proto mapping. */
 export declare interface ApiGrantHuntApprovalArgs {
   readonly huntId?: string;
@@ -1169,41 +1081,6 @@ export declare interface ApiListClientCrashesResult {
 /** ApiListClientsLabelsResult proto mapping. */
 export declare interface ApiListClientsLabelsResult {
   readonly items?: readonly ClientLabel[];
-}
-
-/** ApiListCronJobApprovalsArgs proto mapping. */
-export declare interface ApiListCronJobApprovalsArgs {
-  readonly offset?: ProtoInt64;
-  readonly count?: ProtoInt64;
-}
-
-/** ApiListCronJobApprovalsResult proto mapping. */
-export declare interface ApiListCronJobApprovalsResult {
-  readonly items?: readonly ApiCronJobApproval[];
-}
-
-/** ApiListCronJobRunsArgs proto mapping. */
-export declare interface ApiListCronJobRunsArgs {
-  readonly cronJobId?: string;
-  readonly offset?: ProtoInt64;
-  readonly count?: ProtoInt64;
-}
-
-/** ApiListCronJobRunsResult proto mapping. */
-export declare interface ApiListCronJobRunsResult {
-  readonly items?: readonly ApiCronJobRun[];
-}
-
-/** ApiListCronJobsArgs proto mapping. */
-export declare interface ApiListCronJobsArgs {
-  readonly offset?: ProtoInt64;
-  readonly count?: ProtoInt64;
-}
-
-/** ApiListCronJobsResult proto mapping. */
-export declare interface ApiListCronJobsResult {
-  readonly items?: readonly ApiCronJob[];
-  readonly totalCount?: ProtoInt64;
 }
 
 /** ApiListFilesArgs proto mapping. */
@@ -1519,18 +1396,11 @@ export declare interface ApiListSignedCommandsResult {
 /** ApiMethod proto mapping. */
 export declare interface ApiMethod {
   readonly name?: string;
-  readonly category?: string;
   readonly doc?: string;
   readonly httpRoute?: string;
   readonly httpMethods?: readonly string[];
   readonly argsTypeUrl?: string;
   readonly resultTypeUrl?: string;
-}
-
-/** ApiModifyCronJobArgs proto mapping. */
-export declare interface ApiModifyCronJobArgs {
-  readonly cronJobId?: string;
-  readonly enabled?: boolean;
 }
 
 /** ApiModifyHuntArgs proto mapping. */
@@ -2232,29 +2102,6 @@ export declare interface CpuSeconds {
   readonly deprecatedSystemCpuTime?: ProtoFloat;
   readonly userCpuTime?: ProtoDouble;
   readonly systemCpuTime?: ProtoDouble;
-}
-
-/** CronJobAction proto mapping. */
-export declare interface CronJobAction {
-  readonly actionType?: CronJobActionActionType;
-  readonly systemCronAction?: SystemCronAction;
-  readonly huntCronAction?: HuntCronAction;
-}
-
-/** CronJobAction.ActionType proto mapping. */
-export enum CronJobActionActionType {
-  UNSET = 'UNSET',
-  SYSTEM_CRON_ACTION = 'SYSTEM_CRON_ACTION',
-  HUNT_CRON_ACTION = 'HUNT_CRON_ACTION',
-}
-
-/** CronJobRun.CronJobRunStatus proto mapping. */
-export enum CronJobRunCronJobRunStatus {
-  UNSET = 'UNSET',
-  RUNNING = 'RUNNING',
-  FINISHED = 'FINISHED',
-  ERROR = 'ERROR',
-  LIFETIME_EXCEEDED = 'LIFETIME_EXCEEDED',
 }
 
 /** DataBlob proto mapping. */
@@ -2963,13 +2810,6 @@ export declare interface HuntContext {
   readonly usageStats?: ClientResourcesStats;
 }
 
-/** HuntCronAction proto mapping. */
-export declare interface HuntCronAction {
-  readonly huntRunnerArgs?: HuntRunnerArgs;
-  readonly flowName?: string;
-  readonly flowArgs?: ProtoBytes;
-}
-
 /** HuntReference proto mapping. */
 export declare interface HuntReference {
   readonly huntId?: string;
@@ -3100,6 +2940,12 @@ export declare interface LaunchExecutableResult {
   readonly stdoutTruncated?: boolean;
   readonly stderrTruncated?: boolean;
   readonly timeoutReached?: boolean;
+}
+
+/** LaunchExecutableStore proto mapping. */
+export declare interface LaunchExecutableStore {
+  readonly filePath?: string;
+  readonly fileSha256?: ProtoBytes;
 }
 
 /** ListContainersFlowArgs proto mapping. */
@@ -3570,37 +3416,6 @@ export declare interface ProcessMemoryRegion {
   readonly dumpedSize?: ProtoUint64;
 }
 
-/** PwEntry proto mapping. */
-export declare interface PwEntry {
-  readonly store?: PwEntryPwStore;
-  readonly hashType?: PwEntryPwHash;
-  readonly age?: ProtoUint32;
-  readonly maxAge?: ProtoUint32;
-}
-
-/** PwEntry.PwHash proto mapping. */
-export enum PwEntryPwHash {
-  DES = 'DES',
-  MD5 = 'MD5',
-  BLOWFISH = 'BLOWFISH',
-  NTHASH = 'NTHASH',
-  UNUSED = 'UNUSED',
-  SHA256 = 'SHA256',
-  SHA512 = 'SHA512',
-  UNSET = 'UNSET',
-  DISABLED = 'DISABLED',
-  EMPTY = 'EMPTY',
-}
-
-/** PwEntry.PwStore proto mapping. */
-export enum PwEntryPwStore {
-  UNKNOWN = 'UNKNOWN',
-  PASSWD = 'PASSWD',
-  SHADOW = 'SHADOW',
-  GROUP = 'GROUP',
-  GSHADOW = 'GSHADOW',
-}
-
 /** RecursiveListDirectoryArgs proto mapping. */
 export declare interface RecursiveListDirectoryArgs {
   readonly pathspec?: PathSpec;
@@ -3781,11 +3596,6 @@ export declare interface StringMapEntry {
   readonly value?: string;
 }
 
-/** SystemCronAction proto mapping. */
-export declare interface SystemCronAction {
-  readonly jobClassName?: string;
-}
-
 /** TimelineArgs proto mapping. */
 export declare interface TimelineArgs {
   readonly root?: ProtoBytes;
@@ -3856,7 +3666,6 @@ export declare interface User {
   readonly uid?: ProtoUint32;
   readonly gid?: ProtoUint32;
   readonly shell?: string;
-  readonly pwEntry?: PwEntry;
   readonly gids?: readonly ProtoUint32[];
 }
 

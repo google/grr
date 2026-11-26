@@ -2,6 +2,7 @@
 """Tests for YAML instant output plugin."""
 
 import os
+from typing import ClassVar
 import zipfile
 
 from absl import app
@@ -20,7 +21,9 @@ class YamlInstantOutputPluginProtoTest(
 ):
   """Tests the proto-based YAML instant output plugin."""
 
-  plugin_cls = yaml_instant_plugin.YamlInstantOutputPluginProto
+  plugin_cls: ClassVar[
+      type[yaml_instant_plugin.YamlInstantOutputPluginProto]
+  ] = yaml_instant_plugin.YamlInstantOutputPluginProto
 
   def ProcessValuesToZip(self, values_by_cls):
     fd_path = self.ProcessValuesProto(values_by_cls)

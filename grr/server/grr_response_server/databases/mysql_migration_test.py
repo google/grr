@@ -1,6 +1,9 @@
 #!/usr/bin/env python
 """Tests for the MySQL migrations logic."""
 
+from __future__ import annotations
+
+from collections.abc import Sequence
 import contextlib
 import io
 import os
@@ -8,10 +11,12 @@ import shutil
 
 from absl import app
 from absl.testing import absltest
+import MySQLdb.connections
 
 from grr_response_core import config
 from grr_response_core.lib.util import temp
 from grr_response_server.databases import mysql_migration
+from grr_response_server.databases import mysql_pool
 from grr_response_server.databases import mysql_test
 from grr.test_lib import test_lib
 
@@ -23,7 +28,7 @@ class ListMigrationsToProcessTest(absltest.TestCase):
     self.temp_dir = temp.TempDirPath()
     self.addCleanup(lambda: shutil.rmtree(self.temp_dir, ignore_errors=True))
 
-  def _CreateMigrationFiles(self, fnames):
+  def _CreateMigrationFiles(self, fnames: Sequence[str]) -> None:
     for fname in fnames:
       with open(os.path.join(self.temp_dir, fname), "w"):
         pass
@@ -55,7 +60,10 @@ class MySQLMigrationTest(
     mysql_test.MySQLDatabaseProviderMixin, absltest.TestCase
 ):
 
-  def _GetLatestMigrationNumber(self, conn):
+  def _GetLatestMigrationNumber(
+      self,
+      conn: MySQLdb.connections.Connection | mysql_pool._ConnectionProxy,
+  ) -> int:
     with contextlib.closing(conn.cursor()) as cursor:
       return mysql_migration.GetLatestMigrationNumber(cursor)
 
@@ -68,7 +76,10 @@ class MySQLMigrationTest(
         len(all_migrations) - 1,
     )
 
-  def _DumpSchema(self, conn):
+  def _DumpSchema(
+      self,
+      conn: MySQLdb.connections.Connection | mysql_pool._ConnectionProxy,
+  ) -> str:
     with contextlib.closing(conn.cursor()) as cursor:
       return mysql_migration.DumpCurrentSchema(cursor)
 

@@ -6,13 +6,13 @@ from absl import app
 # pylint: disable=g-import-not-at-top
 
 
-def FleetspeakClient():
+def FleetspeakClient() -> None:
   from grr_response_client import client
 
   app.run(client.main)
 
 
-def FleetspeakClientWrapper():
+def FleetspeakClientWrapper() -> None:
   from grr_response_client import fleetspeak_client_wrapper
 
   app.run(fleetspeak_client_wrapper.main)

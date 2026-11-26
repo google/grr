@@ -72,7 +72,7 @@ class MetricsTest(
       counter = metrics.Counter("cfoo", fields=[("bar", str)])
 
     @counter.Counted(fields=["baz"])
-    def Foo():
+    def Foo() -> None:
       pass
 
     with self.assertStatsCounterDelta(1, counter, fields=["baz"]):
@@ -85,7 +85,7 @@ class MetricsTest(
       counter = metrics.Counter("cfoo", fields=[("bar", str)])
 
     @counter.SuccessesCounted(fields=["baz"])
-    def Foo():
+    def Foo() -> None:
       pass
 
     with self.assertStatsCounterDelta(1, counter, fields=["baz"]):
@@ -98,7 +98,7 @@ class MetricsTest(
       counter = metrics.Counter("cfoo", fields=[("bar", str)])
 
     @counter.ErrorsCounted(fields=["baz"])
-    def Foo():
+    def Foo() -> None:
       raise ValueError()
 
     with self.assertStatsCounterDelta(1, counter, fields=["baz"]):
@@ -128,7 +128,7 @@ class MetricsTest(
       event = metrics.Event("efoo", fields=[("bar", str)])
 
     @event.Timed(fields=["baz"])
-    def Foo():
+    def Foo() -> None:
       pass
 
     with self.assertStatsCounterDelta(1, event, fields=["baz"]):

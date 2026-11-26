@@ -51,4 +51,4 @@ def await_flow(f: flow.Flow) -> None:
     timeout = 0 if _FLOW_TIMEOUT is None else _FLOW_TIMEOUT
     f.WaitUntilDone(timeout=timeout)
   except api_errors.PollTimeoutError as e:
-    raise errors.FlowTimeoutError(f.client_id, f.flow_id, e)
+    raise errors.FlowTimeoutError(f.client_id, f.flow_id) from e

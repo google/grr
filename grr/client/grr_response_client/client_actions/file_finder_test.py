@@ -448,13 +448,13 @@ class FileFinderTest(client_test_lib.EmptyActionTest):
       )
 
   def testHashAction(self):
-    paths = [os.path.join(self.base_path, "win_hello.exe")]
+    data = os.urandom(1337)
+    tempfile = self.create_tempfile(content=data)
 
     hash_action = rdf_file_finder.FileFinderAction.Hash()
-    results = self._RunFileFinder(paths, hash_action)
+    results = self._RunFileFinder([tempfile.full_path], hash_action)
     self.assertLen(results, 1)
     res = results[0]
-    data = open(paths[0], "rb").read()
     self.assertLen(data, res.hash_entry.num_bytes)
     self.assertEqual(
         res.hash_entry.md5.HexDigest(), hashlib.md5(data).hexdigest()
@@ -470,7 +470,7 @@ class FileFinderTest(client_test_lib.EmptyActionTest):
         max_size=100, oversized_file_policy="SKIP"
     )
 
-    results = self._RunFileFinder(paths, hash_action)
+    results = self._RunFileFinder([tempfile.full_path], hash_action)
     self.assertLen(results, 1)
     res = results[0]
     self.assertFalse(res.HasField("hash"))
@@ -479,19 +479,21 @@ class FileFinderTest(client_test_lib.EmptyActionTest):
         max_size=100, oversized_file_policy="HASH_TRUNCATED"
     )
 
-    results = self._RunFileFinder(paths, hash_action)
+    results = self._RunFileFinder([tempfile.full_path], hash_action)
     self.assertLen(results, 1)
     res = results[0]
-    data = open(paths[0], "rb").read()[:100]
-    self.assertLen(data, res.hash_entry.num_bytes)
+    self.assertLen(data[:100], res.hash_entry.num_bytes)
     self.assertEqual(
-        res.hash_entry.md5.HexDigest(), hashlib.md5(data).hexdigest()
+        res.hash_entry.md5.HexDigest(),
+        hashlib.md5(data[:100]).hexdigest(),
     )
     self.assertEqual(
-        res.hash_entry.sha1.HexDigest(), hashlib.sha1(data).hexdigest()
+        res.hash_entry.sha1.HexDigest(),
+        hashlib.sha1(data[:100]).hexdigest(),
     )
     self.assertEqual(
-        res.hash_entry.sha256.HexDigest(), hashlib.sha256(data).hexdigest()
+        res.hash_entry.sha256.HexDigest(),
+        hashlib.sha256(data[:100]).hexdigest(),
     )
 
   def testHashDirectory(self):

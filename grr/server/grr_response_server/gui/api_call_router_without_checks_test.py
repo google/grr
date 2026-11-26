@@ -1,4 +1,6 @@
 #!/usr/bin/env python
+from collections.abc import Sequence
+
 from absl import app
 
 from grr_response_server.gui import api_call_handler_base
@@ -20,7 +22,7 @@ class ApiCallRouterWithoutChecksTest(test_lib.GRRBaseTest):
       self.assertIsInstance(handler, api_call_handler_base.ApiCallHandler)
 
 
-def main(argv):
+def main(argv: Sequence[str]) -> None:
   test_lib.main(argv)
 
 

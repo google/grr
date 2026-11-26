@@ -27,9 +27,6 @@ class GetMemorySize(
 ):
   """Flow that gets size of the RAM available on the endpoint."""
 
-  category = "/Collectors/"
-  behaviours = flow_base.BEHAVIOUR_DEBUG
-
   proto_result_types = [flows_pb2.GetMemorySizeResult]
 
   def Start(self) -> None:
@@ -37,14 +34,14 @@ class GetMemorySize(
       action = rrg_stubs.GrepFileContents()
       action.args.path.raw_bytes = "/proc/meminfo".encode("utf-8")
       action.args.regex = "^MemTotal:.*$"
-      action.Call(self._ProcessLinuxMeminfo)  # pyrefly: ignore[bad-argument-type]
+      action.Call(self._ProcessLinuxMeminfo)
     elif self.rrg_support and self.rrg_os_type == rrg_os_pb2.WINDOWS:
       action = rrg_stubs.QueryWmi()
       action.args.query = """
       SELECT TotalPhysicalMemory
         FROM Win32_ComputerSystem
       """
-      action.Call(self._ProcessWindowsWin32ComputerSystem)  # pyrefly: ignore[bad-argument-type]
+      action.Call(self._ProcessWindowsWin32ComputerSystem)
     elif self.rrg_support and self.rrg_os_type == rrg_os_pb2.MACOS:
       signed_command = data_store.REL_DB.ReadSignedCommand(
           "sysctl_hw_memsize",
@@ -55,14 +52,14 @@ class GetMemorySize(
       action.args.command = signed_command.command
       action.args.command_ed25519_signature = signed_command.ed25519_signature
       action.args.timeout.seconds = 10
-      action.Call(self._ProcessMacosSysctlHwMemsize)  # pyrefly: ignore[bad-argument-type]
+      action.Call(self._ProcessMacosSysctlHwMemsize)
     else:
       self.CallClientProto(
           server_stubs.GetMemorySize,
           next_state=self._ProcessGetMemorySize.__name__,
       )
 
-  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+  @flow_base.UseProto2AnyResponses
   def _ProcessLinuxMeminfo(
       self,
       responses: flow_responses.Responses[any_pb2.Any],
@@ -108,7 +105,7 @@ class GetMemorySize(
 
     self.SendReplyProto(result)
 
-  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+  @flow_base.UseProto2AnyResponses
   def _ProcessWindowsWin32ComputerSystem(
       self,
       responses: flow_responses.Responses[any_pb2.Any],
@@ -126,17 +123,17 @@ class GetMemorySize(
     response = rrg_query_wmi_pb2.Result()
     response.ParseFromString(list(responses)[0].value)
 
-    if "TotalPhysicalMemory" not in response.row:
+    if not (total_bytes := rrg_wmi.UInt64(response.row["TotalPhysicalMemory"])):
       raise flow_base.FlowError(
           f"Row {response!r} missing 'TotalPhysicalMemory' column",
       )
 
     result = flows_pb2.GetMemorySizeResult()
-    result.total_bytes = rrg_wmi.UInt64(response.row["TotalPhysicalMemory"])
+    result.total_bytes = total_bytes
 
     self.SendReplyProto(result)
 
-  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+  @flow_base.UseProto2AnyResponses
   def _ProcessMacosSysctlHwMemsize(
       self,
       responses: flow_responses.Responses[any_pb2.Any],
@@ -165,7 +162,7 @@ class GetMemorySize(
 
     self.SendReplyProto(result)
 
-  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+  @flow_base.UseProto2AnyResponses
   def _ProcessGetMemorySize(
       self,
       responses: flow_responses.Responses[any_pb2.Any],

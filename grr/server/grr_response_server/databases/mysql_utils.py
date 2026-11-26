@@ -1,18 +1,26 @@
 #!/usr/bin/env python
 """Utilities used by the MySQL database."""
 
-from collections.abc import Iterable, Sequence
+from __future__ import annotations
+
+from collections.abc import Callable, Iterable, Sequence
 import contextlib
+import decimal
 import functools
 import hashlib
-from typing import Optional, overload
+from typing import Any, TypeVar, overload
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.util import precondition
 from grr_response_server.databases import db as db_module
 
+_RDFValueT = TypeVar("_RDFValueT", bound=rdfvalue.RDFValue)
+_R = TypeVar("_R")
 
-def StringToRDFProto(proto_type, value):
+
+def StringToRDFProto(
+    proto_type: type[_RDFValueT], value: bytes | None
+) -> _RDFValueT | None:
   return value if value is None else proto_type.FromSerializedBytes(value)
 
 
@@ -99,7 +107,7 @@ def Columns(iterable: Iterable[str]) -> str:
 
 @overload
 def TimestampToRDFDatetime(
-    timestamp: int,
+    timestamp: decimal.Decimal | int,
 ) -> rdfvalue.RDFDatetime:
   ...
 
@@ -111,11 +119,10 @@ def TimestampToRDFDatetime(
   ...
 
 
-def TimestampToRDFDatetime(timestamp) -> Optional[rdfvalue.RDFDatetime]:
+def TimestampToRDFDatetime(
+    timestamp: decimal.Decimal | int | None,
+) -> rdfvalue.RDFDatetime | None:
   """Converts MySQL `TIMESTAMP(6)` columns to datetime objects."""
-  # TODO(hanuszczak): `timestamp` should be of MySQL type `Decimal`. However,
-  # it is unclear where this type is actually defined and how to import it in
-  # order to have a type assertion.
   if timestamp is None:
     return None
   else:
@@ -137,7 +144,9 @@ def RDFDatetimeToTimestamp(
   ...
 
 
-def RDFDatetimeToTimestamp(datetime):
+def RDFDatetimeToTimestamp(
+    datetime: rdfvalue.RDFDatetime | None,
+) -> str | None:
   """Converts a datetime object to MySQL `TIMESTAMP(6)` column."""
   if datetime is None:
     return None
@@ -212,7 +221,7 @@ class WithTransaction(object):
   process, the decorated function may be called again after a short delay.
   """
 
-  def __init__(self, readonly=False):
+  def __init__(self, readonly: bool = False):
     """Constructs a decorator.
 
     Args:
@@ -221,17 +230,17 @@ class WithTransaction(object):
     """
     self.readonly = readonly
 
-  def __call__(self, func):
+  def __call__(self, func: Callable[..., _R]) -> Callable[..., _R]:
     readonly = self.readonly
 
     @functools.wraps(func)
-    def Decorated(self, *args, **kw):  # pylint: disable=function-redefined
+    def Decorated(self, *args: Any, **kw: Any) -> _R:  # pylint: disable=function-redefined
       """A function decorated by WithTransaction to receive a cursor."""
       cursor = kw.get("cursor", None)
       if cursor:
         return func(self, *args, **kw)
 
-      def Closure(connection):
+      def Closure(connection: Any) -> _R:
         with contextlib.closing(connection.cursor()) as cursor:
           new_kw = kw.copy()
           new_kw["cursor"] = cursor

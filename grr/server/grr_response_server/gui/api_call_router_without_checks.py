@@ -6,7 +6,6 @@ from typing import Optional
 from grr_response_proto.api import artifact_pb2 as api_artifact_pb2
 from grr_response_proto.api import client_pb2 as api_client_pb2
 from grr_response_proto.api import config_pb2 as api_config_pb2
-from grr_response_proto.api import cron_pb2 as api_cron_pb2
 from grr_response_proto.api import flow_pb2 as api_flow_pb2
 from grr_response_proto.api import hunt_pb2 as api_hunt_pb2
 from grr_response_proto.api import osquery_pb2 as api_osquery_pb2
@@ -19,7 +18,6 @@ from grr_response_server.gui import api_call_router
 from grr_response_server.gui.api_plugins import artifact as api_artifact
 from grr_response_server.gui.api_plugins import client as api_client
 from grr_response_server.gui.api_plugins import config as api_config
-from grr_response_server.gui.api_plugins import cron as api_cron
 from grr_response_server.gui.api_plugins import flow as api_flow
 from grr_response_server.gui.api_plugins import hunt as api_hunt
 from grr_response_server.gui.api_plugins import metadata as api_metadata
@@ -63,7 +61,11 @@ class ApiCallRouterWithoutChecks(api_call_router.ApiCallRouterStub):
   # Clients methods.
   # ===============
   #
-  def SearchClients(self, args, context=None):
+  def SearchClients(
+      self,
+      args: api_client_pb2.ApiSearchClientsArgs,
+      context: Optional[api_call_context.ApiCallContext] = None,
+  ) -> api_client.ApiSearchClientsHandler:
     return api_client.ApiSearchClientsHandler()
 
   def VerifyAccess(
@@ -254,7 +256,11 @@ class ApiCallRouterWithoutChecks(api_call_router.ApiCallRouterStub):
   # Clients labels methods.
   # ======================
   #
-  def ListClientsLabels(self, args, context=None):
+  def ListClientsLabels(
+      self,
+      args: None,
+      context: Optional[api_call_context.ApiCallContext] = None,
+  ) -> api_client.ApiListClientsLabelsHandler:
     return api_client.ApiListClientsLabelsHandler()
 
   def AddClientsLabels(
@@ -278,7 +284,7 @@ class ApiCallRouterWithoutChecks(api_call_router.ApiCallRouterStub):
       self,
       args: api_flow_pb2.ApiListFlowsArgs,
       context: Optional[api_call_context.ApiCallContext] = None,
-  ):
+  ) -> api_flow.ApiListFlowsHandler:
     return api_flow.ApiListFlowsHandler()
 
   def GetFlow(
@@ -299,14 +305,14 @@ class ApiCallRouterWithoutChecks(api_call_router.ApiCallRouterStub):
       self,
       args: api_flow_pb2.ApiCancelFlowArgs,
       context: Optional[api_call_context.ApiCallContext] = None,
-  ):
+  ) -> api_flow.ApiCancelFlowHandler:
     return api_flow.ApiCancelFlowHandler()
 
   def ListFlowRequests(
       self,
       args: api_flow_pb2.ApiListFlowRequestsArgs,
       context: Optional[api_call_context.ApiCallContext] = None,
-  ):
+  ) -> api_flow.ApiListFlowRequestsHandler:
     return api_flow.ApiListFlowRequestsHandler()
 
   def ListFlowResults(
@@ -341,28 +347,28 @@ class ApiCallRouterWithoutChecks(api_call_router.ApiCallRouterStub):
       self,
       args: api_flow_pb2.ApiListFlowOutputPluginsArgs,
       context: Optional[api_call_context.ApiCallContext] = None,
-  ):
+  ) -> api_flow.ApiListFlowOutputPluginsHandler:
     return api_flow.ApiListFlowOutputPluginsHandler()
 
   def ListFlowOutputPluginLogs(
       self,
       args: api_flow_pb2.ApiListFlowOutputPluginLogsArgs,
       context: Optional[api_call_context.ApiCallContext] = None,
-  ):
+  ) -> api_flow.ApiListFlowOutputPluginLogsHandler:
     return api_flow.ApiListFlowOutputPluginLogsHandler()
 
   def ListFlowOutputPluginErrors(
       self,
       args: api_flow_pb2.ApiListFlowOutputPluginErrorsArgs,
       context: Optional[api_call_context.ApiCallContext] = None,
-  ):
+  ) -> api_flow.ApiListFlowOutputPluginErrorsHandler:
     return api_flow.ApiListFlowOutputPluginErrorsHandler()
 
   def ListAllFlowOutputPluginLogs(
       self,
       args: api_flow_pb2.ApiListAllFlowOutputPluginLogsArgs,
       context: Optional[api_call_context.ApiCallContext] = None,
-  ):
+  ) -> api_flow.ApiListAllFlowOutputPluginLogsHandler:
     return api_flow.ApiListAllFlowOutputPluginLogsHandler()
 
   def ListFlowLogs(
@@ -420,7 +426,7 @@ class ApiCallRouterWithoutChecks(api_call_router.ApiCallRouterStub):
       self,
       args: api_osquery_pb2.ApiGetOsqueryResultsArgs,
       context: Optional[api_call_context.ApiCallContext] = None,
-  ):
+  ) -> api_osquery.ApiGetOsqueryResultsHandler:
     del args, context  # Unused.
     return api_osquery.ApiGetOsqueryResultsHandler()
 
@@ -433,58 +439,6 @@ class ApiCallRouterWithoutChecks(api_call_router.ApiCallRouterStub):
       context: Optional[api_call_context.ApiCallContext] = None,
   ) -> api_signed_commands.ApiListSignedCommandsHandler:
     return api_signed_commands.ApiListSignedCommandsHandler()
-
-  # Cron jobs methods.
-  # =================
-  #
-  def ListCronJobs(
-      self,
-      args: api_cron_pb2.ApiListCronJobsArgs,
-      context: Optional[api_call_context.ApiCallContext] = None,
-  ) -> api_cron.ApiListCronJobsHandler:
-    return api_cron.ApiListCronJobsHandler()
-
-  def GetCronJob(
-      self,
-      args: api_cron_pb2.ApiGetCronJobArgs,
-      context: Optional[api_call_context.ApiCallContext] = None,
-  ) -> api_cron.ApiGetCronJobHandler:
-    return api_cron.ApiGetCronJobHandler()
-
-  def ForceRunCronJob(
-      self,
-      args: api_cron_pb2.ApiForceRunCronJobArgs,
-      context: Optional[api_call_context.ApiCallContext] = None,
-  ) -> api_cron.ApiForceRunCronJobHandler:
-    return api_cron.ApiForceRunCronJobHandler()
-
-  def ModifyCronJob(
-      self,
-      args: api_cron_pb2.ApiModifyCronJobArgs,
-      context: Optional[api_call_context.ApiCallContext] = None,
-  ) -> api_cron.ApiModifyCronJobHandler:
-    return api_cron.ApiModifyCronJobHandler()
-
-  def ListCronJobRuns(
-      self,
-      args: api_cron_pb2.ApiListCronJobRunsArgs,
-      context: Optional[api_call_context.ApiCallContext] = None,
-  ) -> api_cron.ApiListCronJobRunsHandler:
-    return api_cron.ApiListCronJobRunsHandler()
-
-  def GetCronJobRun(
-      self,
-      args: api_cron_pb2.ApiGetCronJobRunArgs,
-      context: Optional[api_call_context.ApiCallContext] = None,
-  ) -> api_cron.ApiGetCronJobRunHandler:
-    return api_cron.ApiGetCronJobRunHandler()
-
-  def DeleteCronJob(
-      self,
-      args: api_cron_pb2.ApiDeleteCronJobArgs,
-      context: Optional[api_call_context.ApiCallContext] = None,
-  ) -> api_cron.ApiDeleteCronJobHandler:
-    return api_cron.ApiDeleteCronJobHandler()
 
   # Hunts methods.
   # =============
@@ -702,34 +656,6 @@ class ApiCallRouterWithoutChecks(api_call_router.ApiCallRouterStub):
   ) -> api_user.ApiListHuntApprovalsHandler:
     return api_user.ApiListHuntApprovalsHandler()
 
-  def CreateCronJobApproval(
-      self,
-      args: api_user_pb2.ApiCreateCronJobApprovalArgs,
-      context: Optional[api_call_context.ApiCallContext] = None,
-  ) -> api_user.ApiCreateCronJobApprovalHandler:
-    return api_user.ApiCreateCronJobApprovalHandler()
-
-  def GetCronJobApproval(
-      self,
-      args: api_user_pb2.ApiGetCronJobApprovalArgs,
-      context: Optional[api_call_context.ApiCallContext] = None,
-  ) -> api_user.ApiGetCronJobApprovalHandler:
-    return api_user.ApiGetCronJobApprovalHandler()
-
-  def GrantCronJobApproval(
-      self,
-      args: api_user_pb2.ApiGrantCronJobApprovalArgs,
-      context: Optional[api_call_context.ApiCallContext] = None,
-  ) -> api_user.ApiGrantCronJobApprovalHandler:
-    return api_user.ApiGrantCronJobApprovalHandler()
-
-  def ListCronJobApprovals(
-      self,
-      args: api_user_pb2.ApiListCronJobApprovalsArgs,
-      context: Optional[api_call_context.ApiCallContext] = None,
-  ) -> api_user.ApiListCronJobApprovalsHandler:
-    return api_user.ApiListCronJobApprovalsHandler()
-
   def ListApproverSuggestions(
       self,
       args: api_user_pb2.ApiListApproverSuggestionsArgs,
@@ -772,7 +698,7 @@ class ApiCallRouterWithoutChecks(api_call_router.ApiCallRouterStub):
       self,
       args: None,
       context: Optional[api_call_context.ApiCallContext] = None,
-  ):
+  ) -> api_user.ApiGetOwnGrrUserHandler:
     del args, context  # Unused.
     return api_user.ApiGetOwnGrrUserHandler(is_admin=True)
 
@@ -786,7 +712,11 @@ class ApiCallRouterWithoutChecks(api_call_router.ApiCallRouterStub):
   # Config methods.
   # ==============
   #
-  def GetConfig(self, args, context=None):
+  def GetConfig(
+      self,
+      args: None,
+      context: Optional[api_call_context.ApiCallContext] = None,
+  ) -> api_config.ApiGetConfigHandler:
     return api_config.ApiGetConfigHandler()
 
   def GetConfigOption(
@@ -817,23 +747,43 @@ class ApiCallRouterWithoutChecks(api_call_router.ApiCallRouterStub):
   ) -> api_config.ApiGetGrrBinaryBlobHandler:
     return api_config.ApiGetGrrBinaryBlobHandler()
 
-  def GetUiConfig(self, args, context=None):
+  def GetUiConfig(
+      self,
+      args: None,
+      context: Optional[api_call_context.ApiCallContext] = None,
+  ) -> api_config.ApiGetUiConfigHandler:
     return api_config.ApiGetUiConfigHandler()
 
   # Reflection methods.
   # ==================
   #
-  def ListKbFields(self, args, context=None):
+  def ListKbFields(
+      self,
+      args: None,
+      context: Optional[api_call_context.ApiCallContext] = None,
+  ) -> api_client.ApiListKbFieldsHandler:
     return api_client.ApiListKbFieldsHandler()
 
-  def ListFlowDescriptors(self, args, context=None):
+  def ListFlowDescriptors(
+      self,
+      args: None,
+      context: Optional[api_call_context.ApiCallContext] = None,
+  ) -> api_flow.ApiListFlowDescriptorsHandler:
     # TODO(user): move to reflection.py
     return api_flow.ApiListFlowDescriptorsHandler()
 
-  def ListOutputPluginDescriptors(self, args, context=None):
+  def ListOutputPluginDescriptors(
+      self,
+      args: None,
+      context: Optional[api_call_context.ApiCallContext] = None,
+  ) -> api_output_plugin.ApiListOutputPluginDescriptorsHandler:
     return api_output_plugin.ApiListOutputPluginDescriptorsHandler()
 
-  def ListApiMethods(self, args, context=None):
+  def ListApiMethods(
+      self,
+      args: None,
+      context: Optional[api_call_context.ApiCallContext] = None,
+  ) -> api_reflection.ApiListApiMethodsHandler:
     return api_reflection.ApiListApiMethodsHandler(self)
 
   def GetGrrVersion(

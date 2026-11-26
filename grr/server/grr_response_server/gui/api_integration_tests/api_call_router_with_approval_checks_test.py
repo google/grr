@@ -241,27 +241,6 @@ class ApiCallRouterWithApprovalChecksE2ETest(
             self.api.Client(client_id).Flow(f.flow_id).Get,
         )
 
-  def testClientFlowWithoutCategoryCanNotBeStartedWithClient(self):
-    self.InitDefaultRouter()
-
-    client_id = self.SetupClient(0)
-    self.RequestAndGrantClientApproval(client_id, requestor=self.test_username)
-
-    with self.assertRaises(grr_api_errors.AccessForbiddenError):
-      self.api.Client(client_id).CreateFlow(
-          name=flow_test_lib.ClientFlowWithoutCategory.__name__
-      )
-
-  def testClientFlowWithCategoryCanBeStartedWithClient(self):
-    self.InitDefaultRouter()
-
-    client_id = self.SetupClient(0)
-    self.RequestAndGrantClientApproval(client_id, requestor=self.test_username)
-
-    self.api.Client(client_id).CreateFlow(
-        name=flow_test_lib.ClientFlowWithCategory.__name__
-    )
-
   def testRestrictedFlowCanBeStartedByAdminsWithDefaultConfig(self):
     self.InitDefaultRouter()
 
@@ -271,6 +250,7 @@ class ApiCallRouterWithApprovalChecksE2ETest(
 
     for flow_name in [
         administrative.LaunchBinary.__name__,
+        administrative.LaunchExecutable.__name__,
         administrative.ExecutePythonHack.__name__,
     ]:
       with self.subTest(flow_name=flow_name):
@@ -284,6 +264,7 @@ class ApiCallRouterWithApprovalChecksE2ETest(
 
     for flow_name in [
         administrative.LaunchBinary.__name__,
+        administrative.LaunchExecutable.__name__,
         administrative.ExecutePythonHack.__name__,
     ]:
       with self.subTest(flow_name=flow_name):
@@ -309,6 +290,7 @@ users:
 
     for flow_name in [
         administrative.LaunchBinary.__name__,
+        administrative.LaunchExecutable.__name__,
         administrative.ExecutePythonHack.__name__,
     ]:
       with self.subTest(flow_name=flow_name):
@@ -452,6 +434,7 @@ users:
 
     for flow_name in [
         administrative.LaunchBinary.__name__,
+        administrative.LaunchExecutable.__name__,
         administrative.ExecutePythonHack.__name__,
     ]:
       with self.subTest(flow_name=flow_name):
@@ -462,6 +445,7 @@ users:
 
     for flow_name in [
         administrative.LaunchBinary.__name__,
+        administrative.LaunchExecutable.__name__,
         administrative.ExecutePythonHack.__name__,
     ]:
       with self.subTest(flow_name=flow_name):
@@ -485,6 +469,7 @@ users:
 
     for flow_name in [
         administrative.LaunchBinary.__name__,
+        administrative.LaunchExecutable.__name__,
         administrative.ExecutePythonHack.__name__,
     ]:
       with self.subTest(flow_name=flow_name):

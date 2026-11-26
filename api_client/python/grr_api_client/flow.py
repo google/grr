@@ -262,17 +262,16 @@ class Flow(FlowBase):
 
     encryption_key = self.GetLargeFileEncryptionKey()
 
-    if input_path:
-      input_context = open(input_path, mode="rb")
-    else:
-      input_context = contextlib.nullcontext(sys.stdin.buffer)
+    with contextlib.ExitStack() as stack:
+      if input_path:
+        input_stream = stack.enter_context(open(input_path, mode="rb"))
+      else:
+        input_stream = sys.stdin.buffer
 
-    if output_path:
-      output_context = open(output_path, mode="wb")
-    else:
-      output_context = contextlib.nullcontext(sys.stdout.buffer)
+      if output_path:
+        output_stream = stack.enter_context(open(output_path, mode="wb"))
+      else:
+        output_stream = sys.stdout.buffer
 
-    with input_context as input_stream:
-      with output_context as output_stream:
-        decrypted_stream = utils.AEADDecrypt(input_stream, encryption_key)
-        shutil.copyfileobj(decrypted_stream, output_stream)
+      decrypted_stream = utils.AEADDecrypt(input_stream, encryption_key)
+      shutil.copyfileobj(decrypted_stream, output_stream)

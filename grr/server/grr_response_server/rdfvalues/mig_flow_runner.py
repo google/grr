@@ -21,20 +21,6 @@ def ToRDFRequestState(
   )
 
 
-def ToProtoFlowRunnerArgs(
-    rdf: rdf_flow_runner.FlowRunnerArgs,
-) -> flows_pb2.FlowRunnerArgs:
-  return rdf.AsPrimitiveProto()
-
-
-def ToRDFFlowRunnerArgs(
-    proto: flows_pb2.FlowRunnerArgs,
-) -> rdf_flow_runner.FlowRunnerArgs:
-  return rdf_flow_runner.FlowRunnerArgs.FromSerializedBytes(
-      proto.SerializeToString()
-  )
-
-
 def ToProtoOutputPluginState(
     rdf: rdf_flow_runner.OutputPluginState,
 ) -> output_plugin_pb2.OutputPluginState:

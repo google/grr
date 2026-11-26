@@ -16,32 +16,13 @@ unset _JAVA_OPTIONS
 # ===========================================================
 
 # Proto package.
-cd grr/proto
-python setup.py sdist
-pip install ./dist/grr_response_proto-*.tar.gz
-cd -
+pip install ./grr/proto
 
 # Base package, grr-response-core, depends on grr-response-proto.
-# Running sdist first since it accepts --no-sync-artifacts flag.
-cd grr/core
-python setup.py sdist --no-sync-artifacts
-pip install ./dist/grr_response_core-*.tar.gz
-cd -
+pip install ./grr/core
 
 # Depends on grr-response-core.
-# Note that we can't do "python setup.py install" since setup.py
-# is configured to include version.ini as data and version.ini
-# only gets copied during sdist step.
-cd grr/client
-python setup.py sdist
-pip install ./dist/grr_response_client-*.tar.gz
-cd -
+pip install ./grr/client
 
 # Depends on grr-response-client.
-# Note that we can't do "python setup.py install" since setup.py
-# is configured to include version.ini as data and version.ini
-# only gets copied during sdist step.
-cd grr/client_builder
-python setup.py sdist
-pip install ./dist/grr_response_client_builder-*.tar.gz
-cd -
+pip install ./grr/client_builder

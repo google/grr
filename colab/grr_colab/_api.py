@@ -1,12 +1,14 @@
 #!/usr/bin/env python
 """A module for lazy instantiation of the GRR's Python API."""
-from grr_api_client import api
 
+from typing import Optional
+
+from grr_api_client import api
 from grr_colab import flags
 
 FLAGS = flags.FLAGS
 
-_API: api.GrrApi = None  # pyrefly: ignore[bad-assignment]
+_API: Optional[api.GrrApi] = None
 
 
 def get() -> api.GrrApi:

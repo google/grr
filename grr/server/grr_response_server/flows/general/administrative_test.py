@@ -600,6 +600,28 @@ magic_return_str = "foo(%s)"
         email_message.get("message", ""),
     )
 
+  def testOnlineNotificationEmailDefaultsToCreator(self):
+    client_id = self.SetupClient(0)
+    email_messages = []
+
+    def SendEmail(address, sender, title, message, **_):
+      email_messages.append(
+          dict(address=address, sender=sender, title=title, message=message)
+      )
+
+    with mock.patch.object(email_alerts.EMAIL_ALERTER, "SendEmail", SendEmail):
+      client_mock = action_mocks.ActionMock(admin.Echo)
+      flow_test_lib.StartAndRunFlow(
+          administrative.OnlineNotification,
+          client_mock,
+          flow_args=flows_pb2.OnlineNotificationArgs(),
+          creator=self.test_username,
+          client_id=client_id,
+      )
+
+    self.assertLen(email_messages, 1)
+    self.assertEqual(email_messages[0]["address"], self.test_username)
+
   def testStartupHandler(self):
     client_id = self.SetupClient(0)
 
@@ -874,13 +896,27 @@ magic_return_str = "foo(%s)"
       self,
       db: abstract_db.Database,
   ) -> None:
-    username = db_test_utils.InitializeUser(db)
+    # System user to which Fleetspeak labels are attributed to.
+    db_test_utils.InitializeUser(db, "GRR")
 
     client_id_foo = db_test_utils.InitializeClient(db)
-    db.AddClientLabels(client_id_foo, username, labels=["foo"])
-
     client_id_bar = db_test_utils.InitializeClient(db)
-    db.AddClientLabels(client_id_bar, username, labels=["bar"])
+
+    def GetLabelsFromFleetspeak(client_id: str):
+      if client_id == client_id_foo:
+        return ["foo"]
+      if client_id == client_id_bar:
+        return ["bar"]
+
+      raise RuntimeError(f"Unknown client: {client_id}")
+
+    self.enter_context(
+        mock.patch.object(
+            fleetspeak_utils,
+            "GetLabelsFromFleetspeak",
+            GetLabelsFromFleetspeak,
+        )
+    )
 
     startup_info_foo = jobs_pb2.StartupInfo()
     startup_info_foo.client_info.client_name = "GRR"
@@ -1014,6 +1050,11 @@ class LaunchExecutableTest(absltest.TestCase):
     self.assertEqual(flow_obj.backtrace, "")
     self.assertEqual(flow_obj.error_message, "")
     self.assertEqual(flow_obj.flow_state, flows_pb2.Flow.FINISHED)
+
+    flow_store = flows_pb2.LaunchExecutableStore()
+    self.assertTrue(flow_obj.store.Unpack(flow_store))
+    self.assertEqual(flow_store.file_path, file.full_path)
+    self.assertEqual(flow_store.file_sha256, hashlib.sha256(content).digest())
 
     flow_results = flow_test_lib.GetUnpackedFlowResults(
         client_id=client_id,

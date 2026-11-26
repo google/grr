@@ -9,7 +9,6 @@ from typing import Optional
 from google.protobuf import message as proto2_message
 import grpc
 
-from grr_response_core import config
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_core.lib.rdfvalues import mig_flows
@@ -79,13 +78,7 @@ class GRRFSServer:
   """
 
   def __init__(self):
-    self.frontend = frontend_lib.FrontEndServer(
-        max_queue_size=config.CONFIG["Frontend.max_queue_size"],
-        message_expiry_time=config.CONFIG["Frontend.message_expiry_time"],
-        max_retransmission_time=config.CONFIG[
-            "Frontend.max_retransmission_time"
-        ],
-    )
+    self.frontend = frontend_lib.FrontEndServer()
 
   def ProcessFromGRPC(
       self, fs_msg: common_pb2.Message, context: grpc.ServicerContext
@@ -144,10 +137,8 @@ class GRRFSServer:
             )
             continue
 
-          message_list_proto = mig_flows.ToProtoMessageList(
-              communicator.Communicator.DecompressMessageList(
-                  mig_flows.ToRDFPackedMessageList(packed_message_list_proto),
-              )
+          message_list_proto = communicator.UnpackMessageList(
+              packed_message_list_proto,
           )
 
           grr_message_protos.extend(message_list_proto.job)
@@ -273,14 +264,14 @@ class GRRFSServer:
             fields=["PROCESS_GRR_MESSAGE_LIST"]
         )
 
-        packed_messages = rdf_flows.PackedMessageList.FromSerializedBytes(
-            fs_msg.data.value
-        )
-        message_list = communicator.Communicator.DecompressMessageList(
-            packed_messages
-        )
+        packed_messages = jobs_pb2.PackedMessageList()
+        packed_messages.ParseFromString(fs_msg.data.value)
+        message_list = communicator.UnpackMessageList(packed_messages)
         _LogDelayed("Starting processing GRR message list")
-        self._ProcessGRRMessages(grr_client_id, message_list.job)
+        self._ProcessGRRMessages(
+            grr_client_id,
+            list(map(mig_flows.ToRDFGrrMessage, message_list.job)),
+        )
         _LogDelayed("Finished processing GRR message list")
       elif fs_msg.message_type == "rrg.Response":
         INCOMING_FLEETSPEAK_MESSAGES.Increment(fields=["PROCESS_RRG_RESPONSE"])
@@ -343,7 +334,7 @@ class GRRFSServer:
       for grr_message in grr_messages:
         grr_message.source = grr_client_id  # pyrefly: ignore[missing-attribute]
         grr_message.auth_state = (  # pyrefly: ignore[missing-attribute]
-            rdf_flows.GrrMessage.AuthorizationState.AUTHENTICATED
+            rdf_flows.GrrMessage.AuthorizationState.AUTHENTICATED  # pyrefly: ignore[missing-attribute]
         )
       self.frontend.ReceiveMessages(
           client_id=grr_client_id, messages=grr_messages

@@ -1,10 +1,13 @@
 #!/usr/bin/env python
 """Contains tests for archive_generator."""
 
+from __future__ import annotations
+
+from collections.abc import Callable, Iterable, Sequence
 import hashlib
 import os
+import random
 import tarfile
-from typing import Iterable
 from unittest import mock
 import zipfile
 
@@ -25,6 +28,10 @@ from grr_response_server.rdfvalues import objects as rdf_objects
 from grr.test_lib import flow_test_lib
 from grr.test_lib import test_lib
 from grr.test_lib import vfs_test_lib
+
+# Lowered `zipfile.ZIP64_LIMIT` (2 GiB - 1 by default), so that tests can
+# archive files that are too big for the classic ZIP format.
+_TEST_ZIP64_LIMIT = 1024
 
 
 class CollectionArchiveGeneratorTest(test_lib.GRRBaseTest):
@@ -93,9 +100,11 @@ class CollectionArchiveGeneratorTest(test_lib.GRRBaseTest):
   def _GenerateArchive(
       self,
       collection: Iterable[flows_pb2.FlowResult],
-      archive_format=archive_generator.ArchiveFormat.ZIP,
-      predicate=None,
-  ):
+      archive_format: archive_generator.ArchiveFormat = (
+          archive_generator.ArchiveFormat.ZIP
+      ),
+      predicate: Callable[[db.ClientPath], bool] | None = None,
+  ) -> str:
 
     fd_path = os.path.join(self.temp_dir, "archive")
     generator = archive_generator.CollectionArchiveGenerator(
@@ -216,6 +225,7 @@ class CollectionArchiveGeneratorTest(test_lib.GRRBaseTest):
 
     with tarfile.open(fd_path, encoding="utf-8") as tar_fd:
       manifest_fd = tar_fd.extractfile("test_prefix/MANIFEST")
+      assert manifest_fd is not None
       self.assertEqual(
           yaml.safe_load(manifest_fd.read()),
           {
@@ -229,15 +239,54 @@ class CollectionArchiveGeneratorTest(test_lib.GRRBaseTest):
 
       archive_path_0, archive_path_1 = self.archive_paths
 
-      self.assertEqual(tar_fd.extractfile(archive_path_0).read(), b"hello1")
-      self.assertEqual(tar_fd.extractfile(archive_path_1).read(), b"hello2")
+      archive_fd_0 = tar_fd.extractfile(archive_path_0)
+      assert archive_fd_0 is not None
+      self.assertEqual(archive_fd_0.read(), b"hello1")
+      archive_fd_1 = tar_fd.extractfile(archive_path_1)
+      assert archive_fd_1 is not None
+      self.assertEqual(archive_fd_1.read(), b"hello2")
 
       client_info_name = "test_prefix/%s/client_info.yaml" % self.client_id
-      client_info = yaml.safe_load(tar_fd.extractfile(client_info_name).read())
+      client_info_fd = tar_fd.extractfile(client_info_name)
+      assert client_info_fd is not None
+      client_info = yaml.safe_load(client_info_fd.read())
 
       self.assertEqual(
           client_info["knowledge_base"]["fqdn"], "Host-0.example.com"
       )
+
+  def testCreatesZipContainingFileAboveZip64Limit(self):
+    # Random data is not compressible, so it stays above the limit even when
+    # deflated.
+    content = random.Random(0).randbytes(4 * _TEST_ZIP64_LIMIT)
+    self._CreateFile(self.client_id, "fs/os/foo/bar/large.bin", content)
+
+    flow_result = flows_pb2.FlowResult()
+    flow_result.client_id = self.client_id
+    flow_result.payload.Pack(
+        jobs_pb2.StatEntry(
+            pathspec=jobs_pb2.PathSpec(
+                path="foo/bar/large.bin",
+                pathtype=jobs_pb2.PathSpec.PathType.OS,
+            )
+        )
+    )
+
+    # Archiving files above 2 GiB would make the test too slow, so it lowers
+    # the limit instead.
+    with mock.patch.object(zipfile, "ZIP64_LIMIT", _TEST_ZIP64_LIMIT):
+      fd_path = self._GenerateArchive(
+          [flow_result],
+          archive_format=archive_generator.ArchiveFormat.ZIP,
+      )
+
+    with zipfile.ZipFile(fd_path) as zip_fd:
+      archive_path = f"test_prefix/{self.client_id}/fs/os/foo/bar/large.bin"
+      self.assertEqual(zip_fd.read(archive_path), content)
+
+      manifest = yaml.safe_load(zip_fd.read("test_prefix/MANIFEST"))
+      self.assertEqual(manifest["archived_files"], 1)
+      self.assertEqual(manifest["failed_files"], 0)
 
   def testCorrectlyAccountsForFailedFiles(self):
     self._InitializeFiles()
@@ -293,7 +342,7 @@ class CollectionArchiveGeneratorTest(test_lib.GRRBaseTest):
   def testIgnoresFilesNotMatchingPredicate(self):
     self._InitializeFiles()
 
-    def predicate(pathspec):
+    def predicate(pathspec: db.ClientPath) -> bool:
       return os.path.basename(pathspec.Path()).startswith("hello")
 
     fd_path = self._GenerateArchive(
@@ -404,19 +453,25 @@ class FlowArchiveGeneratorTest(test_lib.GRRBaseTest):
     with tarfile.open(fd_path, encoding="utf-8") as tar_fd:
       self.assertLen(tar_fd.getnames(), 3)
 
-      contents = tar_fd.extractfile(
+      file_1_fd = tar_fd.extractfile(
           os.path.join(generator.prefix, "foo", "file")
-      ).read()
+      )
+      assert file_1_fd is not None
+      contents = file_1_fd.read()
       self.assertEqual(contents, b"hello1")
 
-      contents = tar_fd.extractfile(
+      file_2_fd = tar_fd.extractfile(
           os.path.join(generator.prefix, "foo", "bar", "file")
-      ).read()
+      )
+      assert file_2_fd is not None
+      contents = file_2_fd.read()
       self.assertEqual(contents, b"hello2")
 
-      manifest = yaml.safe_load(
-          tar_fd.extractfile(os.path.join(generator.prefix, "MANIFEST")).read()
+      manifest_fd = tar_fd.extractfile(
+          os.path.join(generator.prefix, "MANIFEST")
       )
+      assert manifest_fd is not None
+      manifest = yaml.safe_load(manifest_fd.read())
       self.assertCountEqual(
           manifest["processed_files"].items(),
           [
@@ -427,6 +482,38 @@ class FlowArchiveGeneratorTest(test_lib.GRRBaseTest):
       self.assertCountEqual(manifest["missing_files"], [])
       self.assertEqual(manifest["client_id"], self.client_id)
       self.assertEqual(manifest["flow_id"], self.flow_id)
+
+  def testCreatesZipContainingFileAboveZip64Limit(self):
+    path = db.ClientPath.OS(self.client_id, ["foo", "bar", "large.bin"])
+    # Random data is not compressible, so it stays above the limit even when
+    # deflated.
+    content = random.Random(0).randbytes(4 * _TEST_ZIP64_LIMIT)
+    vfs_test_lib.CreateFile(path, content)
+
+    generator = archive_generator.FlowArchiveGenerator(
+        self.flow, archive_generator.ArchiveFormat.ZIP
+    )
+    mappings = [flow_base.ClientPathArchiveMapping(path, "foo/large.bin")]
+
+    # Archiving files above 2 GiB would make the test too slow, so it lowers
+    # the limit instead.
+    with mock.patch.object(zipfile, "ZIP64_LIMIT", _TEST_ZIP64_LIMIT):
+      fd_path = self._GenerateArchive(generator.Generate(mappings))
+
+    with zipfile.ZipFile(fd_path) as zip_fd:
+      archived_content = zip_fd.read(
+          os.path.join(generator.prefix, "foo", "large.bin")
+      )
+      self.assertEqual(archived_content, content)
+
+      manifest = yaml.safe_load(
+          zip_fd.read(os.path.join(generator.prefix, "MANIFEST"))
+      )
+      self.assertCountEqual(
+          manifest["processed_files"].items(),
+          [(path.vfs_path, "foo/large.bin")],
+      )
+      self.assertCountEqual(manifest["missing_files"], [])
 
   def testPropagatesStreamingExceptions(self):
     generator = archive_generator.FlowArchiveGenerator(
@@ -476,7 +563,7 @@ class FlowArchiveGeneratorTest(test_lib.GRRBaseTest):
     self.assertCountEqual(manifest["missing_files"], ["fs/os/non/existing"])
 
 
-def main(argv):
+def main(argv: Sequence[str]) -> None:
   test_lib.main(argv)
 
 

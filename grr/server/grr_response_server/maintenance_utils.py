@@ -1,11 +1,17 @@
 #!/usr/bin/env python
 """This file contains utility classes related to maintenance used by GRR."""
 
+from __future__ import annotations
+
+from collections.abc import Sequence
 import logging
 
 from grr_api_client import api
+from grr_api_client import root
+
 from grr_response_core import config
 from grr_response_core.lib import rdfvalue
+from grr_response_core.lib.rdfvalues import crypto as rdf_crypto
 from grr_response_server import signed_binary_utils
 from grr_response_server.bin import api_shell_raw_access_lib
 from grr_response_server.gui import api_call_context
@@ -18,7 +24,7 @@ SUPPORTED_ARCHITECTURES = ["i386", "amd64"]
 _GRR_API_PAGE_SIZE = 1000
 
 
-def InitGRRRootAPI():
+def InitGRRRootAPI() -> root.RootGrrApi:
   """Initializes the GRR root API.
 
   This function should be used only in code that has initialized the entire
@@ -36,7 +42,12 @@ def InitGRRRootAPI():
   ).root
 
 
-def UploadSignedConfigBlob(content, aff4_path, client_context=None, limit=None):
+def UploadSignedConfigBlob(
+    content: bytes,
+    aff4_path: str | rdfvalue.RDFURN,
+    client_context: Sequence[str] | None = None,
+    limit: int | None = None,
+) -> None:
   """Upload a signed blob into the datastore.
 
   Args:
@@ -61,11 +72,11 @@ def UploadSignedConfigBlob(content, aff4_path, client_context=None, limit=None):
       parameters="PrivateKeys.executable_signing_private_key"
   )
 
-  signing_key = config.CONFIG.Get(
+  signing_key: rdf_crypto.RSAPrivateKey = config.CONFIG.Get(
       "PrivateKeys.executable_signing_private_key", context=client_context
   )
 
-  verification_key = config.CONFIG.Get(
+  verification_key: rdf_crypto.RSAPublicKey | None = config.CONFIG.Get(
       "Client.executable_signing_public_key", context=client_context
   )
 

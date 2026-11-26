@@ -3,6 +3,7 @@
 
 import os
 import sqlite3
+from typing import ClassVar
 import zipfile
 
 from absl import app
@@ -22,7 +23,9 @@ class SqliteInstantOutputPluginProtoTest(
 ):
   """Tests the SQLite instant output plugin."""
 
-  plugin_cls = sqlite_instant_plugin.SqliteInstantOutputPluginProto
+  plugin_cls: ClassVar[
+      type[sqlite_instant_plugin.SqliteInstantOutputPluginProto]
+  ] = sqlite_instant_plugin.SqliteInstantOutputPluginProto
 
   def ProcessValuesToZip(self, values_by_cls):
     fd_path = self.ProcessValuesProto(values_by_cls)

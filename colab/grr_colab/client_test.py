@@ -364,7 +364,7 @@ class ClientTest(testing.ColabE2ETest):
 
     client = grr_colab.Client.with_id(ClientTest.FAKE_CLIENT_ID)
 
-    def ProcessApproval():
+    def ProcessApproval() -> None:
       while True:
         approvals = data_store.REL_DB.ReadApprovalRequests(
             self.test_username,
@@ -536,6 +536,7 @@ class ClientTest(testing.ColabE2ETest):
 
       results = client.collect('FakeArtifact')
       self.assertNotEmpty(results)
+      self.assertIsInstance(results[0], jobs_pb2.ExecuteResponse)
       self.assertEqual(results[0].stdout, b'1\n')
 
   @testing.with_approval_checks

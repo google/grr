@@ -108,7 +108,9 @@ class ApiClientLibHuntTest(
     self.assertEqual(client_ids, set(self.client_ids))
     for r in results:
       self.assertEqual(r.timestamp, 42000000)
-      self.assertEqual(r.payload.stat_entry.pathspec.path, "/tmp/evil.txt")
+      payload = r.payload
+      self.assertIsInstance(payload, flows_pb2.FileFinderResult)
+      self.assertEqual(payload.stat_entry.pathspec.path, "/tmp/evil.txt")
 
   def testListLogsWithoutClientIds(self):
     hunt_id = self.StartHunt()
@@ -147,6 +149,7 @@ class ApiClientLibHuntTest(
     logs = list(self.api.Hunt(hunt_id).ListLogs())
     client_ids = set()
     for l in logs:
+      assert l.client is not None
       client_ids.add(l.client.client_id)
     self.assertEqual(client_ids, set(self.client_ids))
 

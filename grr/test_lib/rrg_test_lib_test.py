@@ -31,6 +31,7 @@ from grr_response_proto.rrg import winreg_pb2 as rrg_winreg_pb2
 from grr_response_proto.rrg.action import execute_signed_command_pb2 as rrg_execute_signed_command_pb2
 from grr_response_proto.rrg.action import get_file_contents_kmx_pb2 as rrg_get_file_contents_kmx_pb2
 from grr_response_proto.rrg.action import get_file_contents_pb2 as rrg_get_file_contents_pb2
+from grr_response_proto.rrg.action import get_file_metadata_kmx_pb2 as rrg_get_file_metadata_kmx_pb2
 from grr_response_proto.rrg.action import get_file_metadata_pb2 as rrg_get_file_metadata_pb2
 from grr_response_proto.rrg.action import get_file_sha256_kmx_pb2 as rrg_get_file_sha256_kmx_pb2
 from grr_response_proto.rrg.action import get_file_sha256_pb2 as rrg_get_file_sha256_pb2
@@ -92,9 +93,9 @@ class ExecuteFlowTest(absltest.TestCase):
       proto_result_types = (wrappers_pb2.StringValue,)
 
       def Start(self) -> None:
-        rrg_stubs.GetSystemMetadata().Call(self._ProcessSystemMetadata)  # pyrefly: ignore[bad-argument-type]
+        rrg_stubs.GetSystemMetadata().Call(self._ProcessSystemMetadata)
 
-      @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+      @flow_base.UseProto2AnyResponses
       def _ProcessSystemMetadata(
           self,
           responses: flow_responses.Responses[any_pb2.Any],
@@ -152,15 +153,15 @@ class ExecuteFlowTest(absltest.TestCase):
         action = rrg_stubs.GetWinregValue()
 
         action.args.key = "Foo\\Bar"
-        action.Call(self._ProcessGetWinregValueFoo)  # pyrefly: ignore[bad-argument-type]
+        action.Call(self._ProcessGetWinregValueFoo)
 
         action.args.key = "Foo\\Baz"
-        action.Call(self._ProcessGetWinregValueFoo)  # pyrefly: ignore[bad-argument-type]
+        action.Call(self._ProcessGetWinregValueFoo)
 
         action.args.key = "Quux"
-        action.Call(self._ProcessGetWinregValueQuux)  # pyrefly: ignore[bad-argument-type]
+        action.Call(self._ProcessGetWinregValueQuux)
 
-      @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+      @flow_base.UseProto2AnyResponses
       def _ProcessGetWinregValueFoo(
           self,
           responses: flow_responses.Responses[any_pb2.Any],
@@ -172,7 +173,7 @@ class ExecuteFlowTest(absltest.TestCase):
 
         self.SendReplyProto(wrappers_pb2.StringValue(value=result.value.string))
 
-      @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+      @flow_base.UseProto2AnyResponses
       def _ProcessGetWinregValueQuux(
           self,
           responses: flow_responses.Responses[any_pb2.Any],
@@ -255,9 +256,9 @@ class ExecuteFlowTest(absltest.TestCase):
       def Start(self) -> None:
         action = rrg_stubs.ListWinregKeys()
         action.args.key = "Foo"
-        action.Call(self._ProcessListWinregKeysFoo)  # pyrefly: ignore[bad-argument-type]
+        action.Call(self._ProcessListWinregKeysFoo)
 
-      @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+      @flow_base.UseProto2AnyResponses
       def _ProcessListWinregKeysFoo(
           self,
           responses: flow_responses.Responses[any_pb2.Any],
@@ -268,9 +269,9 @@ class ExecuteFlowTest(absltest.TestCase):
 
           action = rrg_stubs.GetWinregValue()
           action.args.key = f"{result.key}\\{result.subkey}"
-          action.Call(self._ProcessGetWinregValue)  # pyrefly: ignore[bad-argument-type]
+          action.Call(self._ProcessGetWinregValue)
 
-      @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+      @flow_base.UseProto2AnyResponses
       def _ProcessGetWinregValue(
           self,
           responses: flow_responses.Responses[any_pb2.Any],
@@ -336,7 +337,7 @@ class ExecuteFlowTest(absltest.TestCase):
             next_state=self._ProcessChildFlow.__name__,
         )
 
-      @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+      @flow_base.UseProto2AnyResponses
       def _ProcessChildFlow(
           self,
           responses: flow_responses.Responses[any_pb2.Any],
@@ -352,9 +353,9 @@ class ExecuteFlowTest(absltest.TestCase):
       def Start(self) -> None:
         action = rrg_stubs.ListWinregValues()
         action.args.key = "Foo"
-        action.Call(self._ProcessListWinregValuesFoo)  # pyrefly: ignore[bad-argument-type]
+        action.Call(self._ProcessListWinregValuesFoo)
 
-      @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+      @flow_base.UseProto2AnyResponses
       def _ProcessListWinregValuesFoo(
           self,
           responses: flow_responses.Responses[any_pb2.Any],
@@ -406,9 +407,9 @@ class ExecuteFlowTest(absltest.TestCase):
     class ActionErrorFlow(flow_base.FlowBase):
 
       def Start(self) -> None:
-        rrg_stubs.GetSystemMetadata().Call(self._ProcessSystemMetadata)  # pyrefly: ignore[bad-argument-type]
+        rrg_stubs.GetSystemMetadata().Call(self._ProcessSystemMetadata)
 
-      @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+      @flow_base.UseProto2AnyResponses
       def _ProcessSystemMetadata(
           self,
           responses: flow_responses.Responses[any_pb2.Any],
@@ -450,9 +451,9 @@ class ExecuteFlowTest(absltest.TestCase):
     class AssertionErrorFlow(flow_base.FlowBase):
 
       def Start(self) -> None:
-        rrg_stubs.GetSystemMetadata().Call(self._ProcessSystemMetadata)  # pyrefly: ignore[bad-argument-type]
+        rrg_stubs.GetSystemMetadata().Call(self._ProcessSystemMetadata)
 
-      @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+      @flow_base.UseProto2AnyResponses
       def _ProcessSystemMetadata(
           self,
           responses: flow_responses.Responses[any_pb2.Any],
@@ -494,9 +495,9 @@ class ExecuteFlowTest(absltest.TestCase):
     class AssertionErrorWithMessageFlow(flow_base.FlowBase):
 
       def Start(self) -> None:
-        rrg_stubs.GetSystemMetadata().Call(self._ProcessSystemMetadata)  # pyrefly: ignore[bad-argument-type]
+        rrg_stubs.GetSystemMetadata().Call(self._ProcessSystemMetadata)
 
-      @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+      @flow_base.UseProto2AnyResponses
       def _ProcessSystemMetadata(
           self,
           responses: flow_responses.Responses[any_pb2.Any],
@@ -579,9 +580,9 @@ class ExecuteFlowTest(absltest.TestCase):
     class NestedFlowErrorChildFlow(flow_base.FlowBase):
 
       def Start(self) -> None:
-        rrg_stubs.GetSystemMetadata().Call(self._ProcessSystemMetadata)  # pyrefly: ignore[bad-argument-type]
+        rrg_stubs.GetSystemMetadata().Call(self._ProcessSystemMetadata)
 
-      @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+      @flow_base.UseProto2AnyResponses
       def _ProcessSystemMetadata(
           self,
           responses: flow_responses.Responses[any_pb2.Any],
@@ -612,9 +613,9 @@ class ExecuteFlowTest(absltest.TestCase):
     class MissingHandlerErrorFlow(flow_base.FlowBase):
 
       def Start(self) -> None:
-        rrg_stubs.GetSystemMetadata().Call(self._ProcessSystemMetadata)  # pyrefly: ignore[bad-argument-type]
+        rrg_stubs.GetSystemMetadata().Call(self._ProcessSystemMetadata)
 
-      @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+      @flow_base.UseProto2AnyResponses
       def _ProcessSystemMetadata(
           self,
           responses: flow_responses.Responses[any_pb2.Any],
@@ -665,9 +666,9 @@ class ExecuteFlowTest(absltest.TestCase):
 
       def Start(self):
         action = rrg_stubs.GetFileContents()
-        action.Call(self._ProcessGetFileContents)  # pyrefly: ignore[bad-argument-type]
+        action.Call(self._ProcessGetFileContents)
 
-      @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+      @flow_base.UseProto2AnyResponses
       def _ProcessGetFileContents(
           self,
           responses: flow_responses.Responses[any_pb2.Any],
@@ -743,9 +744,9 @@ class ExecuteFlowTest(absltest.TestCase):
     class ParcelsSinkErrorFlow(flow_base.FlowBase):
 
       def Start(self):
-        rrg_stubs.GetSystemMetadata().Call(self._ProcessGetSystemMetadata)  # pyrefly: ignore[bad-argument-type]
+        rrg_stubs.GetSystemMetadata().Call(self._ProcessGetSystemMetadata)
 
-      @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+      @flow_base.UseProto2AnyResponses
       def _ProcessGetSystemMetadata(
           self,
           responses: flow_responses.Responses[any_pb2.Any],
@@ -797,9 +798,9 @@ class ExecuteFlowTest(absltest.TestCase):
 
       def Start(self) -> None:
         list_winreg_values = rrg_stubs.ListWinregValues()
-        list_winreg_values.Call(self._ProcessListWinregValues)  # pyrefly: ignore[bad-argument-type]
+        list_winreg_values.Call(self._ProcessListWinregValues)
 
-      @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+      @flow_base.UseProto2AnyResponses
       def _ProcessListWinregValues(
           self,
           responses: flow_responses.Responses[any_pb2.Any],
@@ -854,9 +855,9 @@ class ExecuteFlowTest(absltest.TestCase):
 
       def Start(self):
         get_file_contents = rrg_stubs.GetFileContents()
-        get_file_contents.Call(self._ProcessGetFileContents)  # pyrefly: ignore[bad-argument-type]
+        get_file_contents.Call(self._ProcessGetFileContents)
 
-      @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+      @flow_base.UseProto2AnyResponses
       def _ProcessGetFileContents(
           self,
           responses: flow_responses.Responses[any_pb2.Any],
@@ -917,9 +918,9 @@ class ExecuteFlowTest(absltest.TestCase):
             rrg_list_winreg_keys_pb2.Result.KEY_FIELD_NUMBER,
         )
 
-        list_winreg_keys.Call(self._ProcessListWinregKeys)  # pyrefly: ignore[bad-argument-type]
+        list_winreg_keys.Call(self._ProcessListWinregKeys)
 
-      @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+      @flow_base.UseProto2AnyResponses
       def _ProcessListWinregKeys(
           self,
           responses: flow_responses.Responses[any_pb2.Any],
@@ -980,9 +981,9 @@ class ExecuteFlowTest(absltest.TestCase):
             rrg_list_winreg_keys_pb2.Result.KEY_FIELD_NUMBER,
         )
 
-        list_winreg_keys.Call(self._ProcessListWinregKeys)  # pyrefly: ignore[bad-argument-type]
+        list_winreg_keys.Call(self._ProcessListWinregKeys)
 
-      @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+      @flow_base.UseProto2AnyResponses
       def _ProcessListWinregKeys(
           self,
           responses: flow_responses.Responses[any_pb2.Any],
@@ -1042,9 +1043,9 @@ class ExecuteFlowTest(absltest.TestCase):
             rrg_list_winreg_keys_pb2.Result.KEY_FIELD_NUMBER,
         )
 
-        list_winreg_keys.Call(self._ProcessListWinregKeys)  # pyrefly: ignore[bad-argument-type]
+        list_winreg_keys.Call(self._ProcessListWinregKeys)
 
-      @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+      @flow_base.UseProto2AnyResponses
       def _ProcessListWinregKeys(
           self,
           responses: flow_responses.Responses[any_pb2.Any],
@@ -1101,9 +1102,9 @@ class ExecuteFlowTest(absltest.TestCase):
             rrg_list_winreg_keys_pb2.Result.KEY_FIELD_NUMBER,
         )
 
-        list_winreg_keys.Call(self._ProcessListWinregKeys)  # pyrefly: ignore[bad-argument-type]
+        list_winreg_keys.Call(self._ProcessListWinregKeys)
 
-      @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+      @flow_base.UseProto2AnyResponses
       def _ProcessListWinregKeys(
           self,
           responses: flow_responses.Responses[any_pb2.Any],
@@ -1163,9 +1164,9 @@ class ExecuteFlowTest(absltest.TestCase):
             timestamp_pb2.Timestamp.SECONDS_FIELD_NUMBER,
         )
 
-        get_system_metadata.Call(self._ProcessGetSystemMetadata)  # pyrefly: ignore[bad-argument-type]
+        get_system_metadata.Call(self._ProcessGetSystemMetadata)
 
-      @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+      @flow_base.UseProto2AnyResponses
       def _ProcessGetSystemMetadata(
           self,
           responses: flow_responses.Responses[any_pb2.Any],
@@ -1221,9 +1222,9 @@ class ExecuteFlowTest(absltest.TestCase):
             timestamp_pb2.Timestamp.SECONDS_FIELD_NUMBER,
         ])
 
-        list_winreg_keys.Call(self._ProcessListWinregKeys)  # pyrefly: ignore[bad-argument-type]
+        list_winreg_keys.Call(self._ProcessListWinregKeys)
 
-      @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+      @flow_base.UseProto2AnyResponses
       def _ProcessListWinregKeys(
           self,
           responses: flow_responses.Responses[any_pb2.Any],
@@ -1276,9 +1277,9 @@ class ExecuteFlowTest(absltest.TestCase):
             rrg_fs_pb2.FileMetadata.TYPE_FIELD_NUMBER,
         ])
 
-        get_file_metadata.Call(self._ProcessGetFileMetadata)  # pyrefly: ignore[bad-argument-type]
+        get_file_metadata.Call(self._ProcessGetFileMetadata)
 
-      @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+      @flow_base.UseProto2AnyResponses
       def _ProcessGetFileMetadata(
           self,
           responses: flow_responses.Responses[any_pb2.Any],
@@ -1473,9 +1474,9 @@ class FakeFileHandlersTest(absltest.TestCase):
       def Start(self) -> None:
         get_file_metadata = rrg_stubs.GetFileMetadata()
         get_file_metadata.args.paths.add().raw_bytes = "/foo/bar".encode()
-        get_file_metadata.Call(self._ProcessGetFileMetadata)  # pyrefly: ignore[bad-argument-type]
+        get_file_metadata.Call(self._ProcessGetFileMetadata)
 
-      @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+      @flow_base.UseProto2AnyResponses
       def _ProcessGetFileMetadata(
           self,
           responses: flow_responses.Responses[any_pb2.Any],
@@ -1520,9 +1521,9 @@ class FakeFileHandlersTest(absltest.TestCase):
         get_file_metadata.args.paths.add().raw_bytes = "/foo/bar".encode()
         get_file_metadata.args.paths.add().raw_bytes = "/foo/baz".encode()
         get_file_metadata.args.paths.add().raw_bytes = "/foo/quux".encode()
-        get_file_metadata.Call(self._ProcessGetFileMetadata)  # pyrefly: ignore[bad-argument-type]
+        get_file_metadata.Call(self._ProcessGetFileMetadata)
 
-      @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+      @flow_base.UseProto2AnyResponses
       def _ProcessGetFileMetadata(
           self,
           responses: flow_responses.Responses[any_pb2.Any],
@@ -1597,9 +1598,9 @@ class FakeFileHandlersTest(absltest.TestCase):
         get_file_metadata = rrg_stubs.GetFileMetadata()
         get_file_metadata.args.paths.add().raw_bytes = "/foo/bar".encode()
         get_file_metadata.args.paths.add().raw_bytes = "/foo/baz".encode()
-        get_file_metadata.Call(self._ProcessGetFileMetadata)  # pyrefly: ignore[bad-argument-type]
+        get_file_metadata.Call(self._ProcessGetFileMetadata)
 
-      @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+      @flow_base.UseProto2AnyResponses
       def _ProcessGetFileMetadata(
           self,
           responses: flow_responses.Responses[any_pb2.Any],
@@ -1634,9 +1635,9 @@ class FakeFileHandlersTest(absltest.TestCase):
       def Start(self) -> None:
         get_file_metadata = rrg_stubs.GetFileMetadata()
         get_file_metadata.args.paths.add().raw_bytes = "/foo/bar".encode()
-        get_file_metadata.Call(self._ProcessGetFileMetadata)  # pyrefly: ignore[bad-argument-type]
+        get_file_metadata.Call(self._ProcessGetFileMetadata)
 
-      @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+      @flow_base.UseProto2AnyResponses
       def _ProcessGetFileMetadata(
           self,
           responses: flow_responses.Responses[any_pb2.Any],
@@ -1673,9 +1674,9 @@ class FakeFileHandlersTest(absltest.TestCase):
       def Start(self) -> None:
         get_file_metadata = rrg_stubs.GetFileMetadata()
         get_file_metadata.args.paths.add().raw_bytes = "/foo/symlink".encode()
-        get_file_metadata.Call(self._ProcessGetFileMetadata)  # pyrefly: ignore[bad-argument-type]
+        get_file_metadata.Call(self._ProcessGetFileMetadata)
 
-      @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+      @flow_base.UseProto2AnyResponses
       def _ProcessGetFileMetadata(
           self,
           responses: flow_responses.Responses[any_pb2.Any],
@@ -1716,9 +1717,9 @@ class FakeFileHandlersTest(absltest.TestCase):
         get_file_metadata = rrg_stubs.GetFileMetadata()
         get_file_metadata.args.paths.add().raw_bytes = "/".encode()
         get_file_metadata.args.max_depth = 2
-        get_file_metadata.Call(self._ProcessGetFileMetadata)  # pyrefly: ignore[bad-argument-type]
+        get_file_metadata.Call(self._ProcessGetFileMetadata)
 
-      @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+      @flow_base.UseProto2AnyResponses
       def _ProcessGetFileMetadata(
           self,
           responses: flow_responses.Responses[any_pb2.Any],
@@ -1768,9 +1769,9 @@ class FakeFileHandlersTest(absltest.TestCase):
         get_file_metadata.args.paths.add().raw_bytes = "/bar".encode()
         get_file_metadata.args.paths.add().raw_bytes = "/baz".encode()
         get_file_metadata.args.max_size = 5
-        get_file_metadata.Call(self._ProcessGetFileMetadata)  # pyrefly: ignore[bad-argument-type]
+        get_file_metadata.Call(self._ProcessGetFileMetadata)
 
-      @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+      @flow_base.UseProto2AnyResponses
       def _ProcessGetFileMetadata(
           self,
           responses: flow_responses.Responses[any_pb2.Any],
@@ -1815,9 +1816,9 @@ class FakeFileHandlersTest(absltest.TestCase):
         get_file_metadata.args.paths.add().raw_bytes = "/foo".encode()
         get_file_metadata.args.max_depth = 128
         get_file_metadata.args.path_pruning_regex = "^/foo(/ba.(/.*)?)?$"
-        get_file_metadata.Call(self._ProcessGetFileMetadata)  # pyrefly: ignore[bad-argument-type]
+        get_file_metadata.Call(self._ProcessGetFileMetadata)
 
-      @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+      @flow_base.UseProto2AnyResponses
       def _ProcessGetFileMetadata(
           self,
           responses: flow_responses.Responses[any_pb2.Any],
@@ -1866,9 +1867,9 @@ class FakeFileHandlersTest(absltest.TestCase):
         get_file_metadata.args.paths.add().raw_bytes = "/".encode()
         get_file_metadata.args.max_depth = 1
         get_file_metadata.args.contents_regex = "BA[RZ]"
-        get_file_metadata.Call(self._ProcessGetFileMetadata)  # pyrefly: ignore[bad-argument-type]
+        get_file_metadata.Call(self._ProcessGetFileMetadata)
 
-      @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+      @flow_base.UseProto2AnyResponses
       def _ProcessGetFileMetadata(
           self,
           responses: flow_responses.Responses[any_pb2.Any],
@@ -1915,9 +1916,9 @@ class FakeFileHandlersTest(absltest.TestCase):
         get_file_metadata.args.md5 = True
         get_file_metadata.args.sha1 = True
         get_file_metadata.args.sha256 = True
-        get_file_metadata.Call(self._ProcessGetFileMetadata)  # pyrefly: ignore[bad-argument-type]
+        get_file_metadata.Call(self._ProcessGetFileMetadata)
 
-      @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+      @flow_base.UseProto2AnyResponses
       def _ProcessGetFileMetadata(
           self,
           responses: flow_responses.Responses[any_pb2.Any],
@@ -1956,9 +1957,9 @@ class FakeFileHandlersTest(absltest.TestCase):
         get_file_metadata = rrg_stubs.GetFileMetadata()
         get_file_metadata.args.paths.add().raw_bytes = "C:\\".encode()
         get_file_metadata.args.max_depth = 2
-        get_file_metadata.Call(self._ProcessGetFileMetadata)  # pyrefly: ignore[bad-argument-type]
+        get_file_metadata.Call(self._ProcessGetFileMetadata)
 
-      @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+      @flow_base.UseProto2AnyResponses
       def _ProcessGetFileMetadata(
           self,
           responses: flow_responses.Responses[any_pb2.Any],
@@ -2004,9 +2005,9 @@ class FakeFileHandlersTest(absltest.TestCase):
       def Start(self) -> None:
         action = rrg_stubs.GetFileContents()
         action.args.paths.add().raw_bytes = "/foo/bar".encode("utf-8")
-        action.Call(self._ProcessGetFileContents)  # pyrefly: ignore[bad-argument-type]
+        action.Call(self._ProcessGetFileContents)
 
-      @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+      @flow_base.UseProto2AnyResponses
       def _ProcessGetFileContents(
           self,
           responses: flow_responses.Responses[any_pb2.Any],
@@ -2061,9 +2062,9 @@ class FakeFileHandlersTest(absltest.TestCase):
         action.args.paths.add().raw_bytes = "/foo/bar".encode("utf-8")
         action.args.paths.add().raw_bytes = "/foo/baz".encode("utf-8")
         action.args.paths.add().raw_bytes = "/foo/quux".encode("utf-8")
-        action.Call(self._ProcessGetFileContents)  # pyrefly: ignore[bad-argument-type]
+        action.Call(self._ProcessGetFileContents)
 
-      @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+      @flow_base.UseProto2AnyResponses
       def _ProcessGetFileContents(
           self,
           responses: flow_responses.Responses[any_pb2.Any],
@@ -2131,9 +2132,9 @@ class FakeFileHandlersTest(absltest.TestCase):
       def Start(self) -> None:
         action = rrg_stubs.GetFileContents()
         action.args.paths.add().raw_bytes = "/foo/symlink".encode("utf-8")
-        action.Call(self._ProcessGetFileContents)  # pyrefly: ignore[bad-argument-type]
+        action.Call(self._ProcessGetFileContents)
 
-      @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+      @flow_base.UseProto2AnyResponses
       def _ProcessGetFileContents(
           self,
           responses: flow_responses.Responses[any_pb2.Any],
@@ -2186,9 +2187,9 @@ class FakeFileHandlersTest(absltest.TestCase):
       def Start(self) -> None:
         action = rrg_stubs.GetFileContents()
         action.args.paths.add().raw_bytes = "/foo/symlink1".encode("utf-8")
-        action.Call(self._ProcessGetFileContents)  # pyrefly: ignore[bad-argument-type]
+        action.Call(self._ProcessGetFileContents)
 
-      @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+      @flow_base.UseProto2AnyResponses
       def _ProcessGetFileContents(
           self,
           responses: flow_responses.Responses[any_pb2.Any],
@@ -2249,9 +2250,9 @@ class FakeFileHandlersTest(absltest.TestCase):
       def Start(self) -> None:
         action = rrg_stubs.GetFileContents()
         action.args.paths.add().raw_bytes = "/foo/bar".encode("utf-8")
-        action.Call(self._ProcessGetFileContents)  # pyrefly: ignore[bad-argument-type]
+        action.Call(self._ProcessGetFileContents)
 
-      @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+      @flow_base.UseProto2AnyResponses
       def _ProcessGetFileContents(
           self,
           responses: flow_responses.Responses[any_pb2.Any],
@@ -2297,9 +2298,9 @@ class FakeFileHandlersTest(absltest.TestCase):
       def Start(self) -> None:
         action = rrg_stubs.GetFileContents()
         action.args.paths.add().raw_bytes = "/foo/bar".encode("utf-8")
-        action.Call(self._ProcessGetFileContents)  # pyrefly: ignore[bad-argument-type]
+        action.Call(self._ProcessGetFileContents)
 
-      @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+      @flow_base.UseProto2AnyResponses
       def _ProcessGetFileContents(
           self,
           responses_any: flow_responses.Responses[any_pb2.Any],
@@ -2369,9 +2370,9 @@ class FakeFileHandlersTest(absltest.TestCase):
       def Start(self) -> None:
         action = rrg_stubs.GetFileContents()
         action.args.paths.add().raw_bytes = "/foo/bar".encode("utf-8")
-        action.Call(self._ProcessGetFileContents)  # pyrefly: ignore[bad-argument-type]
+        action.Call(self._ProcessGetFileContents)
 
-      @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+      @flow_base.UseProto2AnyResponses
       def _ProcessGetFileContents(
           self,
           responses: flow_responses.Responses[any_pb2.Any],
@@ -2415,9 +2416,9 @@ class FakeFileHandlersTest(absltest.TestCase):
         action = rrg_stubs.GetFileContents()
         action.args.mode = rrg_get_file_contents_pb2.Mode.INLINE
         action.args.paths.add().raw_bytes = "/foo/bar".encode("utf-8")
-        action.Call(self._ProcessGetFileContents)  # pyrefly: ignore[bad-argument-type]
+        action.Call(self._ProcessGetFileContents)
 
-      @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+      @flow_base.UseProto2AnyResponses
       def _ProcessGetFileContents(
           self,
           responses: flow_responses.Responses[any_pb2.Any],
@@ -2448,6 +2449,258 @@ class FakeFileHandlersTest(absltest.TestCase):
     self.assertEqual(flow_obj.flow_state, flows_pb2.Flow.FINISHED)
 
   @db_test_lib.WithDatabase
+  def testGetFileMetadataKmx_SingleFile(self, db: abstract_db.Database):
+    client_id = db_test_utils.InitializeRRGClient(db)
+
+    test = self  # Bypass shadowed `self` in the nested class.
+
+    class GetFileMetadataKmxSingleFileFlow(flow_base.FlowBase):
+
+      def Start(self) -> None:
+        action = rrg_stubs.GetFileMetadataKmx()
+        action.args.volume_mount_path.raw_bytes = "X:\\".encode()
+        action.args.path.raw_bytes = "\\foo\\bar.txt".encode()
+        action.Call(self._ProcessGetFileMetadataKmx)
+
+      @flow_base.UseProto2AnyResponses
+      def _ProcessGetFileMetadataKmx(
+          self,
+          responses: flow_responses.Responses[any_pb2.Any],
+      ) -> None:
+        test.assertTrue(responses.success)
+        test.assertLen(responses, 1)
+
+        result = rrg_get_file_metadata_kmx_pb2.Result()
+        test.assertTrue(list(responses)[0].Unpack(result))
+
+        test.assertEqual(result.path.raw_bytes, "\\foo\\bar.txt".encode())
+        test.assertEqual(result.metadata.type, rrg_fs_pb2.FileMetadata.FILE)
+        test.assertEqual(result.metadata.size, len("Lorem ipsum."))  # pylint: disable=g-generic-assert
+        test.assertGreater(result.metadata.access_time.seconds, 0)
+        test.assertGreater(result.metadata.modification_time.seconds, 0)
+        test.assertGreater(result.metadata.creation_time.seconds, 0)
+
+    flow_id = rrg_test_lib.ExecuteFlow(
+        client_id=client_id,
+        flow_cls=GetFileMetadataKmxSingleFileFlow,
+        flow_args=flows_pb2.EmptyFlowArgs(),
+        handlers=rrg_test_lib.FakeWindowsFileHandlers({
+            "X:\\foo\\bar.txt": b"Lorem ipsum.",
+        }),
+    )
+
+    flow_obj = db.ReadFlowObject(client_id, flow_id)
+    self.assertEqual(flow_obj.backtrace, "")
+    self.assertEqual(flow_obj.error_message, "")
+    self.assertEqual(flow_obj.flow_state, flows_pb2.Flow.FINISHED)
+
+  @db_test_lib.WithDatabase
+  def testGetFileMetadataKmx_NotExistingVolume(self, db: abstract_db.Database):
+    client_id = db_test_utils.InitializeRRGClient(db)
+
+    test = self  # Bypass shadowed `self` in the nested class.
+
+    class GetFileMetadataKmxNotExistingVolumeFlow(flow_base.FlowBase):
+
+      def Start(self) -> None:
+        action = rrg_stubs.GetFileMetadataKmx()
+        action.args.volume_mount_path.raw_bytes = "X:\\".encode()
+        action.args.path.raw_bytes = "\\foo\\bar.txt".encode()
+        action.Call(self._ProcessGetFileMetadataKmx)
+
+      @flow_base.UseProto2AnyResponses
+      def _ProcessGetFileMetadataKmx(
+          self,
+          responses: flow_responses.Responses[any_pb2.Any],
+      ) -> None:
+        test.assertFalse(responses.success)
+
+    flow_id = rrg_test_lib.ExecuteFlow(
+        client_id=client_id,
+        flow_cls=GetFileMetadataKmxNotExistingVolumeFlow,
+        flow_args=flows_pb2.EmptyFlowArgs(),
+        handlers=rrg_test_lib.FakeWindowsFileHandlers({}),
+    )
+
+    flow_obj = db.ReadFlowObject(client_id, flow_id)
+    self.assertEqual(flow_obj.backtrace, "")
+    self.assertEqual(flow_obj.error_message, "")
+    self.assertEqual(flow_obj.flow_state, flows_pb2.Flow.FINISHED)
+
+  @db_test_lib.WithDatabase
+  def testGetFileMetadataKmx_NotExistingFile(self, db: abstract_db.Database):
+    client_id = db_test_utils.InitializeRRGClient(db)
+
+    test = self  # Bypass shadowed `self` in the nested class.
+
+    class GetFileMetadataKmxNotExistingFileFlow(flow_base.FlowBase):
+
+      def Start(self) -> None:
+        action = rrg_stubs.GetFileMetadataKmx()
+        action.args.volume_mount_path.raw_bytes = "X:\\".encode()
+        action.args.path.raw_bytes = "\\foo\\bar.txt".encode()
+        action.Call(self._ProcessGetFileMetadataKmx)
+
+      @flow_base.UseProto2AnyResponses
+      def _ProcessGetFileMetadataKmx(
+          self,
+          responses: flow_responses.Responses[any_pb2.Any],
+      ) -> None:
+        test.assertTrue(responses.success)
+        test.assertEmpty(responses)
+
+    flow_id = rrg_test_lib.ExecuteFlow(
+        client_id=client_id,
+        flow_cls=GetFileMetadataKmxNotExistingFileFlow,
+        flow_args=flows_pb2.EmptyFlowArgs(),
+        handlers=rrg_test_lib.FakeWindowsFileHandlers({
+            "X:\\foo\\quux.txt": b"",
+        }),
+    )
+
+    flow_obj = db.ReadFlowObject(client_id, flow_id)
+    self.assertEqual(flow_obj.backtrace, "")
+    self.assertEqual(flow_obj.error_message, "")
+    self.assertEqual(flow_obj.flow_state, flows_pb2.Flow.FINISHED)
+
+  @db_test_lib.WithDatabase
+  def testGetFileMetadataKmx_EmptyDir(self, db: abstract_db.Database):
+    client_id = db_test_utils.InitializeRRGClient(db)
+
+    test = self  # Bypass shadowed `self` in the nested class.
+
+    class GetFileMetadataKmxEmptyDirFlow(flow_base.FlowBase):
+
+      def Start(self) -> None:
+        action = rrg_stubs.GetFileMetadataKmx()
+        action.args.volume_mount_path.raw_bytes = "X:\\".encode()
+        action.args.path.raw_bytes = "\\foo".encode()
+        action.Call(self._ProcessGetFileMetadataKmx)
+
+      @flow_base.UseProto2AnyResponses
+      def _ProcessGetFileMetadataKmx(
+          self,
+          responses: flow_responses.Responses[any_pb2.Any],
+      ) -> None:
+        test.assertTrue(responses.success)
+        test.assertLen(responses, 1)
+
+        result = rrg_get_file_metadata_kmx_pb2.Result()
+        test.assertTrue(list(responses)[0].Unpack(result))
+
+        test.assertEqual(result.path.raw_bytes, "\\foo".encode())
+        test.assertEqual(result.metadata.type, rrg_fs_pb2.FileMetadata.DIR)
+
+    flow_id = rrg_test_lib.ExecuteFlow(
+        client_id=client_id,
+        flow_cls=GetFileMetadataKmxEmptyDirFlow,
+        flow_args=flows_pb2.EmptyFlowArgs(),
+        handlers=rrg_test_lib.FakeWindowsFileHandlers({
+            "X:\\foo": {},
+        }),
+    )
+
+    flow_obj = db.ReadFlowObject(client_id, flow_id)
+    self.assertEqual(flow_obj.backtrace, "")
+    self.assertEqual(flow_obj.error_message, "")
+    self.assertEqual(flow_obj.flow_state, flows_pb2.Flow.FINISHED)
+
+  @db_test_lib.WithDatabase
+  def testGetFileMetadataKmx_MaxDepth(self, db: abstract_db.Database):
+    client_id = db_test_utils.InitializeRRGClient(db)
+
+    test = self  # Bypass shadowed `self` in the nested class.
+
+    class GetFileMetadataKmxMaxDepthFlow(flow_base.FlowBase):
+
+      def Start(self) -> None:
+        action = rrg_stubs.GetFileMetadataKmx()
+        action.args.volume_mount_path.raw_bytes = "X:\\".encode()
+        action.args.path.raw_bytes = "\\foo".encode()
+        action.args.max_depth = 2
+        action.Call(self._ProcessGetFileMetadataKmx)
+
+      @flow_base.UseProto2AnyResponses
+      def _ProcessGetFileMetadataKmx(
+          self,
+          responses: flow_responses.Responses[any_pb2.Any],
+      ) -> None:
+        test.assertTrue(responses.success)
+
+        results_by_path = {}
+        for response in responses:
+          result = rrg_get_file_metadata_kmx_pb2.Result()
+          test.assertTrue(response.Unpack(result))
+
+          results_by_path[result.path.raw_bytes.decode()] = result
+
+        test.assertIn("\\foo", results_by_path)
+        test.assertIn("\\foo\\bar", results_by_path)
+        test.assertIn("\\foo\\baz", results_by_path)
+        test.assertIn("\\foo\\quux", results_by_path)
+        test.assertIn("\\foo\\quux\\thud", results_by_path)
+
+        test.assertNotIn("\\foo\\quux\\thud\\too-deep", results_by_path)
+
+    flow_id = rrg_test_lib.ExecuteFlow(
+        client_id=client_id,
+        flow_cls=GetFileMetadataKmxMaxDepthFlow,
+        flow_args=flows_pb2.EmptyFlowArgs(),
+        handlers=rrg_test_lib.FakeWindowsFileHandlers({
+            "X:\\foo\\bar": b"",
+            "X:\\foo\\baz": b"",
+            "X:\\foo\\quux\\thud\\too-deep": b"",
+        }),
+    )
+
+    flow_obj = db.ReadFlowObject(client_id, flow_id)
+    self.assertEqual(flow_obj.backtrace, "")
+    self.assertEqual(flow_obj.error_message, "")
+    self.assertEqual(flow_obj.flow_state, flows_pb2.Flow.FINISHED)
+
+  @db_test_lib.WithDatabase
+  def testGetFileMetadataKmx_Symlink(self, db: abstract_db.Database):
+    client_id = db_test_utils.InitializeRRGClient(db)
+
+    test = self  # Bypass shadowed `self` in the nested class.
+
+    class GetFileMetadataKmxSymlimkFlow(flow_base.FlowBase):
+
+      def Start(self) -> None:
+        action = rrg_stubs.GetFileMetadataKmx()
+        action.args.volume_mount_path.raw_bytes = "X:\\".encode()
+        action.args.path.raw_bytes = "\\link".encode()
+        action.Call(self._ProcessGetFileMetadataKmx)
+
+      @flow_base.UseProto2AnyResponses
+      def _ProcessGetFileMetadataKmx(
+          self,
+          responses: flow_responses.Responses[any_pb2.Any],
+      ) -> None:
+        test.assertTrue(responses.success)
+        test.assertLen(responses, 1)
+
+        result = rrg_get_file_metadata_kmx_pb2.Result()
+        test.assertTrue(list(responses)[0].Unpack(result))
+
+        test.assertEqual(result.path.raw_bytes, "\\link".encode())
+        test.assertEqual(result.metadata.type, rrg_fs_pb2.FileMetadata.SYMLINK)
+
+    flow_id = rrg_test_lib.ExecuteFlow(
+        client_id=client_id,
+        flow_cls=GetFileMetadataKmxSymlimkFlow,
+        flow_args=flows_pb2.EmptyFlowArgs(),
+        handlers=rrg_test_lib.FakeWindowsFileHandlers({
+            "X:\\link": "..\\file",
+        }),
+    )
+
+    flow_obj = db.ReadFlowObject(client_id, flow_id)
+    self.assertEqual(flow_obj.backtrace, "")
+    self.assertEqual(flow_obj.error_message, "")
+    self.assertEqual(flow_obj.flow_state, flows_pb2.Flow.FINISHED)
+
+  @db_test_lib.WithDatabase
   def testGetFileContentsKmx(self, db: abstract_db.Database):
     client_id = db_test_utils.InitializeRRGClient(db)
 
@@ -2459,9 +2712,9 @@ class FakeFileHandlersTest(absltest.TestCase):
         action = rrg_stubs.GetFileContentsKmx()
         action.args.volume_mount_path.raw_bytes = "C:\\".encode()
         action.args.paths.add().raw_bytes = "\\Users\\foo\\bar.txt".encode()
-        action.Call(self._ProcessGetFileContentsKmx)  # pyrefly: ignore[bad-argument-type]
+        action.Call(self._ProcessGetFileContentsKmx)
 
-      @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+      @flow_base.UseProto2AnyResponses
       def _ProcessGetFileContentsKmx(
           self,
           responses: flow_responses.Responses[any_pb2.Any],
@@ -2512,9 +2765,9 @@ class FakeFileHandlersTest(absltest.TestCase):
       def Start(self) -> None:
         get_file_sha256 = rrg_stubs.GetFileSha256()
         get_file_sha256.args.path.raw_bytes = "/foo/bar".encode()
-        get_file_sha256.Call(self._ProcessGetFileSha256)  # pyrefly: ignore[bad-argument-type]
+        get_file_sha256.Call(self._ProcessGetFileSha256)
 
-      @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+      @flow_base.UseProto2AnyResponses
       def _ProcessGetFileSha256(
           self,
           responses: flow_responses.Responses[any_pb2.Any],
@@ -2553,9 +2806,9 @@ class FakeFileHandlersTest(absltest.TestCase):
         get_file_sha256 = rrg_stubs.GetFileSha256()
         get_file_sha256.args.path.raw_bytes = "/foo/bar".encode()
         get_file_sha256.args.length = len(b"Lorem")
-        get_file_sha256.Call(self._ProcessGetFileSha256)  # pyrefly: ignore[bad-argument-type]
+        get_file_sha256.Call(self._ProcessGetFileSha256)
 
-      @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+      @flow_base.UseProto2AnyResponses
       def _ProcessGetFileSha256(
           self,
           responses: flow_responses.Responses[any_pb2.Any],
@@ -2596,9 +2849,9 @@ class FakeFileHandlersTest(absltest.TestCase):
         action = rrg_stubs.GetFileSha256Kmx()
         action.args.volume_mount_path.raw_bytes = "C:\\".encode()
         action.args.path.raw_bytes = "\\Users\\foo\\bar.txt".encode()
-        action.Call(self._ProcessGetFileSha256Kmx)  # pyrefly: ignore[bad-argument-type]
+        action.Call(self._ProcessGetFileSha256Kmx)
 
-      @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+      @flow_base.UseProto2AnyResponses
       def _ProcessGetFileSha256Kmx(
           self,
           responses_any: flow_responses.Responses[any_pb2.Any],
@@ -2640,9 +2893,9 @@ class FakeFileHandlersTest(absltest.TestCase):
         action.args.volume_mount_path.raw_bytes = "C:\\".encode()
         action.args.path.raw_bytes = "\\Users\\foo\\bar.txt".encode()
         action.args.length = len(b"FOO")
-        action.Call(self._ProcessGetFileSha256Kmx)  # pyrefly: ignore[bad-argument-type]
+        action.Call(self._ProcessGetFileSha256Kmx)
 
-      @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+      @flow_base.UseProto2AnyResponses
       def _ProcessGetFileSha256Kmx(
           self,
           responses_any: flow_responses.Responses[any_pb2.Any],
@@ -2684,9 +2937,9 @@ class FakeFileHandlersTest(absltest.TestCase):
         action.args.volume_mount_path.raw_bytes = "C:\\".encode()
         action.args.path.raw_bytes = "\\Users\\foo\\bar.txt".encode()
         action.args.offsets.append(len(b"FOO"))
-        action.Call(self._ProcessGetFileSha256Kmx)  # pyrefly: ignore[bad-argument-type]
+        action.Call(self._ProcessGetFileSha256Kmx)
 
-      @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+      @flow_base.UseProto2AnyResponses
       def _ProcessGetFileSha256Kmx(
           self,
           responses_any: flow_responses.Responses[any_pb2.Any],
@@ -2739,9 +2992,9 @@ class FakeOsqueryHandlersTest(absltest.TestCase):
         action.args.unsigned_stdin = """
         SELECT cmdline FROM processes WHERE pid = 1;
         """.encode("utf-8")
-        action.Call(self._ProcessExecuteSignedCommand)  # pyrefly: ignore[bad-argument-type]
+        action.Call(self._ProcessExecuteSignedCommand)
 
-      @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+      @flow_base.UseProto2AnyResponses
       def _ProcessExecuteSignedCommand(
           self,
           responses: flow_responses.Responses[any_pb2.Any],
@@ -2797,9 +3050,9 @@ class FakeOsqueryHandlersTest(absltest.TestCase):
         action.args.part_content = config
         action.args.file_size = len(config)
         action.args.file_sha256 = hashlib.sha256(config).digest()
-        action.Call(self._ProcessStoreFilestorePart)  # pyrefly: ignore[bad-argument-type]
+        action.Call(self._ProcessStoreFilestorePart)
 
-      @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+      @flow_base.UseProto2AnyResponses
       def _ProcessStoreFilestorePart(
           self,
           responses: flow_responses.Responses[any_pb2.Any],
@@ -2825,9 +3078,9 @@ class FakeOsqueryHandlersTest(absltest.TestCase):
         SELECT cmdline FROM processes WHERE pid = 1;
         """.encode("utf-8")
         action.args.unsigned_filestore_file_sha256s.append(response.file_sha256)
-        action.Call(self._ProcessExecuteSignedCommand)  # pyrefly: ignore[bad-argument-type]
+        action.Call(self._ProcessExecuteSignedCommand)
 
-      @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+      @flow_base.UseProto2AnyResponses
       def _ProcessExecuteSignedCommand(
           self,
           responses: flow_responses.Responses[any_pb2.Any],
@@ -2880,9 +3133,9 @@ class FakeWinregHandlersTest(absltest.TestCase):
         get_winreg_value.args.root = rrg_winreg_pb2.LOCAL_MACHINE
         get_winreg_value.args.key = r"SOFTWARE\Foo"
         get_winreg_value.args.name = "Bar"
-        get_winreg_value.Call(self._ProcessGetWinregValue)  # pyrefly: ignore[bad-argument-type]
+        get_winreg_value.Call(self._ProcessGetWinregValue)
 
-      @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+      @flow_base.UseProto2AnyResponses
       def _ProcessGetWinregValue(
           self,
           responses: flow_responses.Responses[any_pb2.Any],
@@ -2930,9 +3183,9 @@ class FakeWinregHandlersTest(absltest.TestCase):
         get_winreg_value.args.root = rrg_winreg_pb2.LOCAL_MACHINE
         get_winreg_value.args.key = r"SOFTWARE\Foo"
         get_winreg_value.args.name = "Bar"
-        get_winreg_value.Call(self._ProcessGetWinregValue)  # pyrefly: ignore[bad-argument-type]
+        get_winreg_value.Call(self._ProcessGetWinregValue)
 
-      @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+      @flow_base.UseProto2AnyResponses
       def _ProcessGetWinregValue(
           self,
           responses: flow_responses.Responses[any_pb2.Any],
@@ -2965,9 +3218,9 @@ class FakeWinregHandlersTest(absltest.TestCase):
         get_winreg_value = rrg_stubs.GetWinregValue()
         get_winreg_value.args.root = rrg_winreg_pb2.LOCAL_MACHINE
         get_winreg_value.args.key = r"SOFTWARE\Foo\Bar"
-        get_winreg_value.Call(self._ProcessGetWinregValue)  # pyrefly: ignore[bad-argument-type]
+        get_winreg_value.Call(self._ProcessGetWinregValue)
 
-      @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+      @flow_base.UseProto2AnyResponses
       def _ProcessGetWinregValue(
           self,
           responses: flow_responses.Responses[any_pb2.Any],
@@ -3013,9 +3266,9 @@ class FakeWinregHandlersTest(absltest.TestCase):
         list_winreg_values = rrg_stubs.ListWinregValues()
         list_winreg_values.args.root = rrg_winreg_pb2.LOCAL_MACHINE
         list_winreg_values.args.key = r"SOFTWARE\Foo"
-        list_winreg_values.Call(self._ProcessListWinregValues)  # pyrefly: ignore[bad-argument-type]
+        list_winreg_values.Call(self._ProcessListWinregValues)
 
-      @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+      @flow_base.UseProto2AnyResponses
       def _ProcessListWinregValues(
           self,
           responses: flow_responses.Responses[any_pb2.Any],
@@ -3077,9 +3330,9 @@ class FakeWinregHandlersTest(absltest.TestCase):
         list_winreg_values.args.root = rrg_winreg_pb2.LOCAL_MACHINE
         list_winreg_values.args.key = r"SOFTWARE"
         list_winreg_values.args.max_depth = 1
-        list_winreg_values.Call(self._ProcessListWinregValues)  # pyrefly: ignore[bad-argument-type]
+        list_winreg_values.Call(self._ProcessListWinregValues)
 
-      @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+      @flow_base.UseProto2AnyResponses
       def _ProcessListWinregValues(
           self,
           responses: flow_responses.Responses[any_pb2.Any],
@@ -3143,9 +3396,9 @@ class FakeWinregHandlersTest(absltest.TestCase):
         list_winreg_values = rrg_stubs.ListWinregValues()
         list_winreg_values.args.root = rrg_winreg_pb2.LOCAL_MACHINE
         list_winreg_values.args.key = r"SOFTWARE\Foo\Bar"
-        list_winreg_values.Call(self._ProcessListWinregValues)  # pyrefly: ignore[bad-argument-type]
+        list_winreg_values.Call(self._ProcessListWinregValues)
 
-      @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+      @flow_base.UseProto2AnyResponses
       def _ProcessListWinregValues(
           self,
           responses: flow_responses.Responses[any_pb2.Any],
@@ -3178,9 +3431,9 @@ class FakeWinregHandlersTest(absltest.TestCase):
         list_winreg_values = rrg_stubs.ListWinregValues()
         list_winreg_values.args.root = rrg_winreg_pb2.LOCAL_MACHINE
         list_winreg_values.args.key = r"SOFTWARE\Foo\Bar"
-        list_winreg_values.Call(self._ProcessListWinregValues)  # pyrefly: ignore[bad-argument-type]
+        list_winreg_values.Call(self._ProcessListWinregValues)
 
-      @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+      @flow_base.UseProto2AnyResponses
       def _ProcessListWinregValues(
           self,
           responses: flow_responses.Responses[any_pb2.Any],
@@ -3219,6 +3472,60 @@ class FakeWinregHandlersTest(absltest.TestCase):
     self.assertEqual(flow_obj.flow_state, flows_pb2.Flow.FlowState.FINISHED)
 
   @db_test_lib.WithDatabase
+  def testListWinregValues_OnlyRoot(self, db: abstract_db.Database):
+    client_id = db_test_utils.InitializeRRGClient(db)
+
+    test = self  # Bypass shadowed `self` in the nested class.
+
+    class ListWinregValuesOnlyRootFlow(flow_base.FlowBase):
+
+      def Start(self) -> None:
+        list_winreg_values = rrg_stubs.ListWinregValues()
+        list_winreg_values.args.root = rrg_winreg_pb2.LOCAL_MACHINE
+        list_winreg_values.Call(self._ProcessListWinregValues)
+
+      @flow_base.UseProto2AnyResponses
+      def _ProcessListWinregValues(
+          self,
+          responses: flow_responses.Responses[any_pb2.Any],
+      ) -> None:
+        test.assertTrue(responses.success)
+        test.assertLen(responses, 2)
+
+        results_by_value_name = {}
+        for response in responses:
+          result = rrg_list_winreg_values_pb2.Result()
+          test.assertTrue(response.Unpack(result))
+
+          results_by_value_name[result.value.name] = result
+
+        result_default = results_by_value_name[""]
+        test.assertEqual(result_default.root, rrg_winreg_pb2.LOCAL_MACHINE)
+        test.assertEqual(result_default.key, "")
+        test.assertEqual(result_default.value.string, "")
+
+        result_status = results_by_value_name["ServiceLastKnownStatus"]
+        test.assertEqual(result_status.root, rrg_winreg_pb2.LOCAL_MACHINE)
+        test.assertEqual(result_status.key, "")
+        test.assertEqual(result_status.value.uint32, 0x00000002)
+
+    flow_id = rrg_test_lib.ExecuteFlow(
+        client_id=client_id,
+        flow_cls=ListWinregValuesOnlyRootFlow,
+        flow_args=flows_pb2.EmptyFlowArgs(),
+        handlers=rrg_test_lib.FakeWinregHandlers({
+            rrg_winreg_pb2.LOCAL_MACHINE: {
+                "ServiceLastKnownStatus": 0x00000002,
+            },
+        }),
+    )
+
+    flow_obj = db.ReadFlowObject(client_id, flow_id)
+    self.assertEqual(flow_obj.backtrace, "")
+    self.assertEqual(flow_obj.error_message, "")
+    self.assertEqual(flow_obj.flow_state, flows_pb2.Flow.FlowState.FINISHED)
+
+  @db_test_lib.WithDatabase
   def testListWinregKeys(self, db: abstract_db.Database):
     client_id = db_test_utils.InitializeRRGClient(db)
 
@@ -3228,9 +3535,9 @@ class FakeWinregHandlersTest(absltest.TestCase):
         list_winreg_keys = rrg_stubs.ListWinregKeys()
         list_winreg_keys.args.root = rrg_winreg_pb2.LOCAL_MACHINE
         list_winreg_keys.args.key = r"SOFTWARE\Foo"
-        list_winreg_keys.Call(self._ProcessListWinregKeys)  # pyrefly: ignore[bad-argument-type]
+        list_winreg_keys.Call(self._ProcessListWinregKeys)
 
-      @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+      @flow_base.UseProto2AnyResponses
       def _ProcessListWinregKeys(
           self,
           responses: flow_responses.Responses[any_pb2.Any],
@@ -3291,9 +3598,9 @@ class FakeWinregHandlersTest(absltest.TestCase):
         list_winreg_keys.args.root = rrg_winreg_pb2.LOCAL_MACHINE
         list_winreg_keys.args.key = r"SOFTWARE"
         list_winreg_keys.args.max_depth = 2
-        list_winreg_keys.Call(self._ProcessListWinregKeys)  # pyrefly: ignore[bad-argument-type]
+        list_winreg_keys.Call(self._ProcessListWinregKeys)
 
-      @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+      @flow_base.UseProto2AnyResponses
       def _ProcessListWinregKeys(
           self,
           responses: flow_responses.Responses[any_pb2.Any],
@@ -3355,9 +3662,9 @@ class FakeWinregHandlersTest(absltest.TestCase):
         list_winreg_keys = rrg_stubs.ListWinregKeys()
         list_winreg_keys.args.root = rrg_winreg_pb2.LOCAL_MACHINE
         list_winreg_keys.args.key = r"SOFTWARE\Foo\Bar"
-        list_winreg_keys.Call(self._ProcessListWinregKeys)  # pyrefly: ignore[bad-argument-type]
+        list_winreg_keys.Call(self._ProcessListWinregKeys)
 
-      @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+      @flow_base.UseProto2AnyResponses
       def _ProcessListWinregKeys(
           self,
           responses: flow_responses.Responses[any_pb2.Any],
@@ -3371,6 +3678,54 @@ class FakeWinregHandlersTest(absltest.TestCase):
         handlers=rrg_test_lib.FakeWinregHandlers({
             rrg_winreg_pb2.LOCAL_MACHINE: {
                 "SOFTWARE": {},
+            },
+        }),
+    )
+
+    flow_obj = db.ReadFlowObject(client_id, flow_id)
+    self.assertEqual(flow_obj.backtrace, "")
+    self.assertEqual(flow_obj.error_message, "")
+    self.assertEqual(flow_obj.flow_state, flows_pb2.Flow.FlowState.FINISHED)
+
+  @db_test_lib.WithDatabase
+  def testListWinregKeys_OnlyRoot(self, db: abstract_db.Database):
+    client_id = db_test_utils.InitializeRRGClient(db)
+
+    test = self  # Bypass shadowed `self` in the nested class.
+
+    class ListWinregKeysOnlyRootFlow(flow_base.FlowBase):
+
+      def Start(self) -> None:
+        list_winreg_keys = rrg_stubs.ListWinregKeys()
+        list_winreg_keys.args.root = rrg_winreg_pb2.LOCAL_MACHINE
+        list_winreg_keys.Call(self._ProcessListWinregKeys)
+
+      @flow_base.UseProto2AnyResponses
+      def _ProcessListWinregKeys(
+          self,
+          responses: flow_responses.Responses[any_pb2.Any],
+      ) -> None:
+        test.assertTrue(responses.success)
+        test.assertLen(responses, 2)
+
+        results_by_subkey = {}
+        for response in responses:
+          result = rrg_list_winreg_keys_pb2.Result()
+          test.assertTrue(response.Unpack(result))
+
+          results_by_subkey[result.subkey] = result
+
+        test.assertIn("SOFTWARE", results_by_subkey)
+        test.assertIn("HARDWARE", results_by_subkey)
+
+    flow_id = rrg_test_lib.ExecuteFlow(
+        client_id=client_id,
+        flow_cls=ListWinregKeysOnlyRootFlow,
+        flow_args=flows_pb2.EmptyFlowArgs(),
+        handlers=rrg_test_lib.FakeWinregHandlers({
+            rrg_winreg_pb2.LOCAL_MACHINE: {
+                "SOFTWARE": {},
+                "HARDWARE": {},
             },
         }),
     )
@@ -3399,9 +3754,9 @@ class FakeWmiHandlers(absltest.TestCase):
       def Start(self) -> None:
         query_wmi = rrg_stubs.QueryWmi()
         query_wmi.args.query = "SELECT * FROM Win32_Foo"
-        query_wmi.Call(self._ProcessQueryWmi)  # pyrefly: ignore[bad-argument-type]
+        query_wmi.Call(self._ProcessQueryWmi)
 
-      @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+      @flow_base.UseProto2AnyResponses
       def _ProcessQueryWmi(
           self,
           responses: flow_responses.Responses[any_pb2.Any],
@@ -3415,13 +3770,18 @@ class FakeWmiHandlers(absltest.TestCase):
         test.assertTrue(result.row["Bool"].bool)
         test.assertEqual(rrg_wmi.UInt32(result.row["UnsignedInt"]), 1337)
         test.assertEqual(rrg_wmi.SInt32(result.row["SignedInt"]), -42)
-        test.assertAlmostEqual(
-            rrg_wmi.Real32(result.row["Float"]), 3.14, places=5
-        )
-        test.assertAlmostEqual(
-            rrg_wmi.Real64(result.row["Double"]), 2.71, places=5
-        )
+
+        real32 = rrg_wmi.Real32(result.row["Float"])
+        assert real32 is not None
+        test.assertAlmostEqual(real32, 3.14, places=5)
+
+        real64 = rrg_wmi.Real64(result.row["Double"])
+        assert real64 is not None
+        test.assertAlmostEqual(real64, 2.71, places=5)
+
         test.assertEqual(result.row["String"].string, "Lorem ipsum")
+        test.assertIsNone(rrg_wmi.UInt32(result.row["Null"]))
+        test.assertIsNone(rrg_wmi.UInt64(result.row["Null"]))
 
     flow_id = rrg_test_lib.ExecuteFlow(
         client_id=client_id,
@@ -3436,6 +3796,7 @@ class FakeWmiHandlers(absltest.TestCase):
                     "Float": rrg_wmi_test_lib.Real32(3.14),
                     "Double": rrg_wmi_test_lib.Real64(2.71),
                     "String": "Lorem ipsum",
+                    "Null": None,
                 },
             ],
         }),

@@ -6,6 +6,7 @@ commands {
   operating_system: LINUX
 
   path_on_server_template: "${E2E_TEST_EXECUTABLES}/hello.sh"
+  path_on_server_sha256: "6c8b10b3daaae6b0092e5eb2844677d470284e745990cba46b1205e98a4f798b"
 }
 
 commands {
@@ -13,6 +14,7 @@ commands {
   operating_system: MACOS
 
   path_on_server_template: "${E2E_TEST_EXECUTABLES}/hello.sh"
+  path_on_server_sha256: "6c8b10b3daaae6b0092e5eb2844677d470284e745990cba46b1205e98a4f798b"
 }
 
 commands {
@@ -20,6 +22,7 @@ commands {
   operating_system: WINDOWS
 
   path_on_server_template: "${E2E_TEST_EXECUTABLES}/win_hello.exe"
+  path_on_server_sha256: "5702ae123e9b566509cad0b7289c3a55298ac5e8296dc1bda27310fd2babf60b"
 }
 
 commands {
@@ -27,6 +30,7 @@ commands {
   operating_system: LINUX
 
   path_on_server_template: "${E2E_TEST_EXECUTABLES}/exit42.sh"
+  path_on_server_sha256: "cf5e43388f1b33d2655756ad946c88cb698d27a3b3bb8089d1bd4e6fee00c20d"
 }
 
 commands {
@@ -34,6 +38,7 @@ commands {
   operating_system: MACOS
 
   path_on_server_template: "${E2E_TEST_EXECUTABLES}/exit42.sh"
+  path_on_server_sha256: "cf5e43388f1b33d2655756ad946c88cb698d27a3b3bb8089d1bd4e6fee00c20d"
 }
 
 commands {
@@ -41,6 +46,7 @@ commands {
   operating_system: LINUX
 
   path_on_server_template: "${E2E_TEST_EXECUTABLES}/sleep.sh"
+  path_on_server_sha256: "20416fbd1cea0e0cc5247d8d0c327589993b6ddda91334a5c9919fa36ccefbf1"
 }
 
 commands {
@@ -48,4 +54,5 @@ commands {
   operating_system: MACOS
 
   path_on_server_template: "${E2E_TEST_EXECUTABLES}/sleep.sh"
+  path_on_server_sha256: "20416fbd1cea0e0cc5247d8d0c327589993b6ddda91334a5c9919fa36ccefbf1"
 }

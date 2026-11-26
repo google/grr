@@ -1,3 +1,4 @@
+build==1.2.2.post1
 packaging==25.0
 pip==24.0
 pytest==6.2.5

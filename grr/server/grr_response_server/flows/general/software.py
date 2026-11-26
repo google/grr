@@ -28,8 +28,6 @@ from grr_response_proto.rrg.action import query_wmi_pb2 as rrg_query_wmi_pb2
 class CollectInstalledSoftware(flow_base.FlowBase):
   """Flow that collects information about software installed on an endpoint."""
 
-  category = "/Collectors/"
-  behaviours = flow_base.BEHAVIOUR_DEBUG
   proto_result_types = (sysinfo_pb2.SoftwarePackages,)
 
   def Start(self) -> None:
@@ -44,7 +42,7 @@ class CollectInstalledSoftware(flow_base.FlowBase):
       dpkg_query.args.command_ed25519_signature = (
           dpkg_query_signed_command.ed25519_signature
       )
-      dpkg_query.Call(self._ProcessDpkgQueryRrg)  # pyrefly: ignore[bad-argument-type]
+      dpkg_query.Call(self._ProcessDpkgQueryRrg)
 
       rpm_query_signed_command = data_store.REL_DB.ReadSignedCommand(
           "rpm_query_all_queryformat",
@@ -56,7 +54,7 @@ class CollectInstalledSoftware(flow_base.FlowBase):
       rpm_query.args.command_ed25519_signature = (
           rpm_query_signed_command.ed25519_signature
       )
-      rpm_query.Call(self._ProcessRpmQueryRrg)  # pyrefly: ignore[bad-argument-type]
+      rpm_query.Call(self._ProcessRpmQueryRrg)
 
       return
     elif self.rrg_support and self.rrg_os_type == rrg_os_pb2.WINDOWS:
@@ -68,7 +66,7 @@ class CollectInstalledSoftware(flow_base.FlowBase):
       FROM
         Win32_Product
       """.strip()
-      query_wmi_product.Call(self._ProcessWin32ProductRrg)  # pyrefly: ignore[bad-argument-type]
+      query_wmi_product.Call(self._ProcessWin32ProductRrg)
 
       query_wmi_qfe = rrg_stubs.QueryWmi()
       query_wmi_qfe.args.namespace = "root\\cimv2"
@@ -78,7 +76,7 @@ class CollectInstalledSoftware(flow_base.FlowBase):
       FROM
         Win32_QuickFixEngineering
       """.strip()
-      query_wmi_qfe.Call(self._ProcessWin32QfeRrg)  # pyrefly: ignore[bad-argument-type]
+      query_wmi_qfe.Call(self._ProcessWin32QfeRrg)
 
       return
     elif self.rrg_version >= (0, 0, 9) and self.rrg_os_type == rrg_os_pb2.MACOS:
@@ -87,7 +85,7 @@ class CollectInstalledSoftware(flow_base.FlowBase):
       get_file_contents.args.paths.add().raw_bytes = (
           "/Library/Receipts/InstallHistory.plist"
       ).encode("utf-8")
-      get_file_contents.Call(self._ProcessInstallHistoryPlistRrg)  # pyrefly: ignore[bad-argument-type]
+      get_file_contents.Call(self._ProcessInstallHistoryPlistRrg)
 
       return
 
@@ -186,7 +184,7 @@ class CollectInstalledSoftware(flow_base.FlowBase):
           next_state=self._ProcessInstallHistoryPlist.__name__,
       )
 
-  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+  @flow_base.UseProto2AnyResponses
   def _ProcessDpkgQueryRrg(
       self,
       responses_any: flow_responses.Responses[any_pb2.Any],
@@ -240,7 +238,7 @@ class CollectInstalledSoftware(flow_base.FlowBase):
     if result.packages:
       self.SendReplyProto(result)
 
-  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+  @flow_base.UseProto2AnyResponses
   def _ProcessRpmQueryRrg(
       self,
       responses_any: flow_responses.Responses[any_pb2.Any],
@@ -273,7 +271,7 @@ class CollectInstalledSoftware(flow_base.FlowBase):
     if result.packages:
       self.SendReplyProto(result)
 
-  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+  @flow_base.UseProto2AnyResponses
   def _ProcessDpkgResults(
       self,
       responses: flow_responses.Responses[any_pb2.Any],
@@ -339,7 +337,7 @@ class CollectInstalledSoftware(flow_base.FlowBase):
     if result.packages:
       self.SendReplyProto(result)
 
-  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+  @flow_base.UseProto2AnyResponses
   def _ProcessDpkgQueryResults(
       self,
       responses: flow_responses.Responses[any_pb2.Any],
@@ -411,7 +409,7 @@ class CollectInstalledSoftware(flow_base.FlowBase):
 
     return result
 
-  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+  @flow_base.UseProto2AnyResponses
   def _ProcessRpmResults(
       self,
       responses: flow_responses.Responses[any_pb2.Any],
@@ -508,7 +506,7 @@ class CollectInstalledSoftware(flow_base.FlowBase):
 
     return result
 
-  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+  @flow_base.UseProto2AnyResponses
   def _ProcessWin32ProductRrg(
       self,
       responses_any: flow_responses.Responses[any_pb2.Any],
@@ -551,7 +549,7 @@ class CollectInstalledSoftware(flow_base.FlowBase):
     if result.packages:
       self.SendReplyProto(result)
 
-  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+  @flow_base.UseProto2AnyResponses
   def _ProcessWin32QfeRrg(
       self,
       responses_any: flow_responses.Responses[any_pb2.Any],
@@ -599,7 +597,7 @@ class CollectInstalledSoftware(flow_base.FlowBase):
     if result.packages:
       self.SendReplyProto(result)
 
-  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+  @flow_base.UseProto2AnyResponses
   def _ProcessWin32ProductResults(
       self,
       responses: flow_responses.Responses[any_pb2.Any],
@@ -640,7 +638,7 @@ class CollectInstalledSoftware(flow_base.FlowBase):
     if result.packages:
       self.SendReplyProto(result)
 
-  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+  @flow_base.UseProto2AnyResponses
   def _ProcessWin32QuickFixEngineeringResults(
       self,
       responses: flow_responses.Responses[any_pb2.Any],
@@ -686,7 +684,7 @@ class CollectInstalledSoftware(flow_base.FlowBase):
     if result.packages:
       self.SendReplyProto(result)
 
-  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+  @flow_base.UseProto2AnyResponses
   def _ProcessInstallHistoryPlistRrg(
       self,
       responses_any: flow_responses.Responses[any_pb2.Any],
@@ -716,7 +714,7 @@ class CollectInstalledSoftware(flow_base.FlowBase):
     if result.packages:
       self.SendReplyProto(result)
 
-  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+  @flow_base.UseProto2AnyResponses
   def _ProcessInstallHistoryPlist(
       self,
       responses: flow_responses.Responses[any_pb2.Any],

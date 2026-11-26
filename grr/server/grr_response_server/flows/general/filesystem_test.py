@@ -41,6 +41,7 @@ from grr.test_lib import test_lib
 from grr.test_lib import vfs_test_lib
 from grr_response_proto.rrg import fs_pb2 as rrg_fs_pb2
 from grr_response_proto.rrg import os_pb2 as rrg_os_pb2
+from grr_response_proto.rrg import winreg_pb2 as rrg_winreg_pb2
 from grr_response_proto.rrg.action import get_file_metadata_pb2 as rrg_get_file_metadata_pb2
 
 
@@ -790,6 +791,433 @@ class ListDirectoryTest(absltest.TestCase):
     flow_obj = rel_db.ReadFlowObject(client_id, flow_id)
     self.assertEqual(flow_obj.flow_state, flows_pb2.Flow.FlowState.ERROR)
     self.assertStartsWith(flow_obj.error_message, "Symlink depth reached")
+
+  @db_test_lib.WithDatabase
+  def testRRG_KMX_Empty(self, rel_db: db.Database):
+    client_id = db_test_utils.InitializeRRGClient(
+        rel_db,
+        os_type=rrg_os_pb2.WINDOWS,
+    )
+
+    args = flows_pb2.ListDirectoryArgs()
+    args.pathspec.path = "X:\\Foo"
+    args.pathspec.pathtype = jobs_pb2.PathSpec.PathType.NTFS
+
+    flow_id = rrg_test_lib.ExecuteFlow(
+        client_id=client_id,
+        flow_cls=filesystem.ListDirectory,
+        flow_args=args,
+        handlers=rrg_test_lib.FakeWindowsFileHandlers({
+            "X:\\Foo": {},
+        }),
+        # TODO - Remove once Keramics is enabled by default.
+        rrg_mode=flows_pb2.FlowRunnerArgs.RrgMode.FORCED,
+    )
+
+    flow_obj = rel_db.ReadFlowObject(client_id, flow_id)
+    self.assertEqual(flow_obj.backtrace, "")
+    self.assertEqual(flow_obj.error_message, "")
+    self.assertEqual(flow_obj.flow_state, flows_pb2.Flow.FlowState.FINISHED)
+
+    flow_results = rel_db.ReadFlowResults(client_id, flow_id, offset=0, count=8)
+    self.assertEmpty(flow_results)
+
+    path_info = rel_db.ReadPathInfo(
+        client_id=client_id,
+        path_type=objects_pb2.PathInfo.PathType.NTFS,
+        components=("X:", "Foo"),
+    )
+    self.assertTrue(path_info.directory)
+    self.assertTrue(stat.S_ISDIR(path_info.stat_entry.st_mode))
+    self.assertEqual(path_info.stat_entry.pathspec.path, "X:/Foo")
+
+  @db_test_lib.WithDatabase
+  def testRRG_KMX_Dir(self, rel_db: db.Database):
+    client_id = db_test_utils.InitializeRRGClient(
+        rel_db,
+        os_type=rrg_os_pb2.WINDOWS,
+    )
+
+    args = flows_pb2.ListDirectoryArgs()
+    args.pathspec.path = "X:\\Foo"
+    args.pathspec.pathtype = jobs_pb2.PathSpec.PathType.NTFS
+
+    flow_id = rrg_test_lib.ExecuteFlow(
+        client_id=client_id,
+        flow_cls=filesystem.ListDirectory,
+        flow_args=args,
+        handlers=rrg_test_lib.FakeWindowsFileHandlers({
+            "X:\\Foo\\Bar": b"",
+            "X:\\Foo\\Baz": {},
+        }),
+        # TODO - Remove once Keramics is enabled by default.
+        rrg_mode=flows_pb2.FlowRunnerArgs.RrgMode.FORCED,
+    )
+
+    flow_obj = rel_db.ReadFlowObject(client_id, flow_id)
+    self.assertEqual(flow_obj.backtrace, "")
+    self.assertEqual(flow_obj.error_message, "")
+    self.assertEqual(flow_obj.flow_state, flows_pb2.Flow.FlowState.FINISHED)
+
+    flow_results = rel_db.ReadFlowResults(client_id, flow_id, offset=0, count=8)
+    self.assertLen(flow_results, 2)
+
+    results_by_path = {}
+    for flow_result in flow_results:
+      result = jobs_pb2.StatEntry()
+      self.assertTrue(flow_result.payload.Unpack(result))
+
+      results_by_path[result.pathspec.path] = result
+
+    self.assertIn("X:/Foo/Bar", results_by_path)
+    self.assertIn("X:/Foo/Baz", results_by_path)
+
+    self.assertTrue(stat.S_ISREG(results_by_path["X:/Foo/Bar"].st_mode))
+    self.assertTrue(stat.S_ISDIR(results_by_path["X:/Foo/Baz"].st_mode))
+
+    path_info = rel_db.ReadPathInfo(
+        client_id=client_id,
+        path_type=objects_pb2.PathInfo.PathType.NTFS,
+        components=("X:", "Foo"),
+    )
+    self.assertTrue(path_info.directory)
+    self.assertTrue(stat.S_ISDIR(path_info.stat_entry.st_mode))
+    self.assertEqual(path_info.stat_entry.pathspec.path, "X:/Foo")
+
+    path_infos = rel_db.ListChildPathInfos(
+        client_id=client_id,
+        path_type=objects_pb2.PathInfo.PathType.NTFS,
+        components=("X:", "Foo"),
+    )
+    self.assertLen(path_infos, 2)
+
+    path_infos_by_components = {}
+    for path_info in path_infos:
+      path_infos_by_components[tuple(path_info.components)] = path_info
+
+    self.assertIn(("X:", "Foo", "Bar"), path_infos_by_components)
+    self.assertIn(("X:", "Foo", "Baz"), path_infos_by_components)
+
+  @db_test_lib.WithDatabase
+  def testRRG_KMX_NotDir(self, rel_db: db.Database):
+    client_id = db_test_utils.InitializeRRGClient(
+        rel_db,
+        os_type=rrg_os_pb2.WINDOWS,
+    )
+
+    args = flows_pb2.ListDirectoryArgs()
+    args.pathspec.path = "X:\\Foo"
+    args.pathspec.pathtype = jobs_pb2.PathSpec.PathType.NTFS
+
+    flow_id = rrg_test_lib.ExecuteFlow(
+        client_id=client_id,
+        flow_cls=filesystem.ListDirectory,
+        flow_args=args,
+        handlers=rrg_test_lib.FakeWindowsFileHandlers({
+            "X:\\Foo": b"",
+        }),
+        # TODO - Remove once Keramics is enabled by default.
+        rrg_mode=flows_pb2.FlowRunnerArgs.RrgMode.FORCED,
+    )
+
+    flow_obj = rel_db.ReadFlowObject(client_id, flow_id)
+    self.assertEqual(flow_obj.flow_state, flows_pb2.Flow.FlowState.ERROR)
+    self.assertStartsWith(flow_obj.error_message, "Unexpected file type")
+
+  @db_test_lib.WithDatabase
+  def testRRG_KMX_Root(self, rel_db: db.Database):
+    client_id = db_test_utils.InitializeRRGClient(
+        rel_db,
+        os_type=rrg_os_pb2.WINDOWS,
+    )
+
+    args = flows_pb2.ListDirectoryArgs()
+    args.pathspec.path = "X:\\"
+    args.pathspec.pathtype = jobs_pb2.PathSpec.PathType.NTFS
+
+    flow_id = rrg_test_lib.ExecuteFlow(
+        client_id=client_id,
+        flow_cls=filesystem.ListDirectory,
+        flow_args=args,
+        handlers=rrg_test_lib.FakeWindowsFileHandlers({
+            "X:\\$MFT": b"",
+        }),
+        # TODO - Remove once Keramics is enabled by default.
+        rrg_mode=flows_pb2.FlowRunnerArgs.RrgMode.FORCED,
+    )
+
+    flow_obj = rel_db.ReadFlowObject(client_id, flow_id)
+    self.assertEqual(flow_obj.backtrace, "")
+    self.assertEqual(flow_obj.error_message, "")
+    self.assertEqual(flow_obj.flow_state, flows_pb2.Flow.FlowState.FINISHED)
+
+    flow_results = rel_db.ReadFlowResults(client_id, flow_id, offset=0, count=8)
+    self.assertLen(flow_results, 1)
+
+    result = jobs_pb2.StatEntry()
+    self.assertTrue(flow_results[0].payload.Unpack(result))
+
+    self.assertEqual(result.pathspec.path, "X:/$MFT")
+
+  @db_test_lib.WithDatabase
+  def testRRG_Registry(self, rel_db: db.Database):
+    client_id = db_test_utils.InitializeRRGClient(
+        rel_db,
+        os_type=rrg_os_pb2.WINDOWS,
+    )
+
+    args = flows_pb2.ListDirectoryArgs()
+    args.pathspec.path = r"HKEY_LOCAL_MACHINE\Key"
+    args.pathspec.pathtype = jobs_pb2.PathSpec.PathType.REGISTRY
+
+    flow_id = rrg_test_lib.ExecuteFlow(
+        client_id=client_id,
+        flow_cls=filesystem.ListDirectory,
+        flow_args=args,
+        handlers=rrg_test_lib.FakeWinregHandlers({
+            rrg_winreg_pb2.LOCAL_MACHINE: {
+                "Key": {
+                    "Subkey": {},
+                    "ValueStr": "Lorem ipsum.",
+                    "ValueInt": 42,
+                },
+            },
+        }),
+    )
+
+    flow_obj = rel_db.ReadFlowObject(client_id, flow_id)
+    self.assertEqual(flow_obj.backtrace, "")
+    self.assertEqual(flow_obj.error_message, "")
+    self.assertEqual(flow_obj.flow_state, flows_pb2.Flow.FlowState.FINISHED)
+
+    flow_results = rel_db.ReadFlowResults(client_id, flow_id, offset=0, count=8)
+    self.assertLen(flow_results, 4)
+
+    results_by_path: dict[str, jobs_pb2.StatEntry] = {}
+    for flow_result in flow_results:
+      result = jobs_pb2.StatEntry()
+      self.assertTrue(flow_result.payload.Unpack(result))
+
+      results_by_path[result.pathspec.path] = result
+
+    result_default = results_by_path[r"HKEY_LOCAL_MACHINE\Key"]
+    self.assertFalse(stat.S_ISDIR(result_default.st_mode))
+    self.assertEqual(result_default.registry_data.string, "")
+
+    result_subkey = results_by_path[r"HKEY_LOCAL_MACHINE\Key\Subkey"]
+    self.assertTrue(stat.S_ISDIR(result_subkey.st_mode))
+
+    result_value_str = results_by_path[r"HKEY_LOCAL_MACHINE\Key\ValueStr"]
+    self.assertEqual(result_value_str.registry_data.string, "Lorem ipsum.")
+
+    result_value_int = results_by_path[r"HKEY_LOCAL_MACHINE\Key\ValueInt"]
+    self.assertEqual(result_value_int.registry_data.integer, 42)
+
+    path_info_key = data_store.REL_DB.ReadPathInfo(
+        client_id=client_id,
+        path_type=objects_pb2.PathInfo.PathType.REGISTRY,
+        components=("HKEY_LOCAL_MACHINE", "Key"),
+    )
+    self.assertTrue(stat.S_ISDIR(path_info_key.stat_entry.st_mode))
+
+    path_infos = data_store.REL_DB.ListDescendantPathInfos(
+        client_id=client_id,
+        path_type=objects_pb2.PathInfo.PathType.REGISTRY,
+        components=("HKEY_LOCAL_MACHINE", "Key"),
+    )
+    self.assertLen(path_infos, 3)
+
+    path_infos_by_components = {
+        tuple(path_info.components): path_info for path_info in path_infos
+    }
+    self.assertIn(
+        ("HKEY_LOCAL_MACHINE", "Key", "Subkey"),
+        path_infos_by_components,
+    )
+    self.assertIn(
+        ("HKEY_LOCAL_MACHINE", "Key", "ValueStr"),
+        path_infos_by_components,
+    )
+    self.assertIn(
+        ("HKEY_LOCAL_MACHINE", "Key", "ValueInt"),
+        path_infos_by_components,
+    )
+
+  @db_test_lib.WithDatabase
+  def testRRG_Registry_ForwardSlash(self, rel_db: db.Database):
+    client_id = db_test_utils.InitializeRRGClient(
+        rel_db,
+        os_type=rrg_os_pb2.WINDOWS,
+    )
+
+    args = flows_pb2.ListDirectoryArgs()
+    args.pathspec.path = r"HKEY_LOCAL_MACHINE/Key"
+    args.pathspec.pathtype = jobs_pb2.PathSpec.PathType.REGISTRY
+
+    flow_id = rrg_test_lib.ExecuteFlow(
+        client_id=client_id,
+        flow_cls=filesystem.ListDirectory,
+        flow_args=args,
+        handlers=rrg_test_lib.FakeWinregHandlers({
+            rrg_winreg_pb2.LOCAL_MACHINE: {
+                "Key": {
+                    "Subkey": {},
+                },
+            },
+        }),
+    )
+
+    flow_obj = rel_db.ReadFlowObject(client_id, flow_id)
+    self.assertEqual(flow_obj.backtrace, "")
+    self.assertEqual(flow_obj.error_message, "")
+    self.assertEqual(flow_obj.flow_state, flows_pb2.Flow.FlowState.FINISHED)
+
+    flow_results = rel_db.ReadFlowResults(client_id, flow_id, offset=0, count=8)
+    self.assertLen(flow_results, 2)
+
+    path_infos = data_store.REL_DB.ListDescendantPathInfos(
+        client_id=client_id,
+        path_type=objects_pb2.PathInfo.PathType.REGISTRY,
+        components=("HKEY_LOCAL_MACHINE", "Key"),
+    )
+    self.assertLen(path_infos, 1)
+    self.assertEqual(
+        path_infos[0].components,
+        ["HKEY_LOCAL_MACHINE", "Key", "Subkey"],
+    )
+
+  @db_test_lib.WithDatabase
+  def testRRG_Registry_LeadingAndTrailingSlash(self, rel_db: db.Database):
+    client_id = db_test_utils.InitializeRRGClient(
+        rel_db,
+        os_type=rrg_os_pb2.WINDOWS,
+    )
+
+    args = flows_pb2.ListDirectoryArgs()
+    args.pathspec.path = "\\HKEY_LOCAL_MACHINE\\Key\\"
+    args.pathspec.pathtype = jobs_pb2.PathSpec.PathType.REGISTRY
+
+    flow_id = rrg_test_lib.ExecuteFlow(
+        client_id=client_id,
+        flow_cls=filesystem.ListDirectory,
+        flow_args=args,
+        handlers=rrg_test_lib.FakeWinregHandlers({
+            rrg_winreg_pb2.LOCAL_MACHINE: {
+                "Key": {
+                    "Subkey": {},
+                },
+            },
+        }),
+    )
+
+    flow_obj = rel_db.ReadFlowObject(client_id, flow_id)
+    self.assertEqual(flow_obj.backtrace, "")
+    self.assertEqual(flow_obj.error_message, "")
+    self.assertEqual(flow_obj.flow_state, flows_pb2.Flow.FlowState.FINISHED)
+
+    flow_results = rel_db.ReadFlowResults(client_id, flow_id, offset=0, count=8)
+    self.assertLen(flow_results, 2)
+
+    path_infos = data_store.REL_DB.ListDescendantPathInfos(
+        client_id=client_id,
+        path_type=objects_pb2.PathInfo.PathType.REGISTRY,
+        components=("HKEY_LOCAL_MACHINE", "Key"),
+    )
+    self.assertLen(path_infos, 1)
+    self.assertEqual(
+        path_infos[0].components,
+        ["HKEY_LOCAL_MACHINE", "Key", "Subkey"],
+    )
+
+  @db_test_lib.WithDatabase
+  def testRRG_Registry_OnlyRoot(self, rel_db: db.Database):
+    client_id = db_test_utils.InitializeRRGClient(
+        rel_db,
+        os_type=rrg_os_pb2.WINDOWS,
+    )
+
+    args = flows_pb2.ListDirectoryArgs()
+    args.pathspec.path = "HKEY_LOCAL_MACHINE"
+    args.pathspec.pathtype = jobs_pb2.PathSpec.PathType.REGISTRY
+
+    flow_id = rrg_test_lib.ExecuteFlow(
+        client_id=client_id,
+        flow_cls=filesystem.ListDirectory,
+        flow_args=args,
+        handlers=rrg_test_lib.FakeWinregHandlers({
+            rrg_winreg_pb2.LOCAL_MACHINE: {
+                "Subkey": {},
+            },
+        }),
+    )
+
+    flow_obj = rel_db.ReadFlowObject(client_id, flow_id)
+    self.assertEqual(flow_obj.backtrace, "")
+    self.assertEqual(flow_obj.error_message, "")
+    self.assertEqual(flow_obj.flow_state, flows_pb2.Flow.FlowState.FINISHED)
+
+    flow_results = rel_db.ReadFlowResults(client_id, flow_id, offset=0, count=8)
+    self.assertLen(flow_results, 2)
+
+    path_infos = data_store.REL_DB.ListDescendantPathInfos(
+        client_id=client_id,
+        path_type=objects_pb2.PathInfo.PathType.REGISTRY,
+        components=("HKEY_LOCAL_MACHINE",),
+    )
+    self.assertLen(path_infos, 1)
+    self.assertEqual(
+        path_infos[0].components,
+        ["HKEY_LOCAL_MACHINE", "Subkey"],
+    )
+
+  @db_test_lib.WithDatabase
+  def testRRG_Registry_Root(self, rel_db: db.Database):
+    client_id = db_test_utils.InitializeRRGClient(
+        rel_db,
+        os_type=rrg_os_pb2.WINDOWS,
+    )
+
+    args = flows_pb2.ListDirectoryArgs()
+    args.pathspec.path = "/"
+    args.pathspec.pathtype = jobs_pb2.PathSpec.PathType.REGISTRY
+
+    flow_id = rrg_test_lib.ExecuteFlow(
+        client_id=client_id,
+        flow_cls=filesystem.ListDirectory,
+        flow_args=args,
+        handlers=rrg_test_lib.FakeWinregHandlers({}),
+    )
+
+    flow_obj = rel_db.ReadFlowObject(client_id, flow_id)
+    self.assertEqual(flow_obj.backtrace, "")
+    self.assertEqual(flow_obj.error_message, "")
+    self.assertEqual(flow_obj.flow_state, flows_pb2.Flow.FlowState.FINISHED)
+
+    flow_results = rel_db.ReadFlowResults(client_id, flow_id, offset=0, count=8)
+
+    results_by_path: dict[str, jobs_pb2.StatEntry] = {}
+    for flow_result in flow_results:
+      result = jobs_pb2.StatEntry()
+      self.assertTrue(flow_result.payload.Unpack(result))
+
+      results_by_path[result.pathspec.path] = result
+
+    self.assertIn("HKEY_CLASSES_ROOT", results_by_path)
+    self.assertIn("HKEY_LOCAL_MACHINE", results_by_path)
+    self.assertIn("HKEY_USERS", results_by_path)
+
+    path_infos = data_store.REL_DB.ListDescendantPathInfos(
+        client_id=client_id,
+        path_type=objects_pb2.PathInfo.PathType.REGISTRY,
+        components=(),
+    )
+
+    path_infos_by_components = {
+        tuple(path_info.components): path_info for path_info in path_infos
+    }
+    self.assertIn(("HKEY_CLASSES_ROOT",), path_infos_by_components)
+    self.assertIn(("HKEY_LOCAL_MACHINE",), path_infos_by_components)
+    self.assertIn(("HKEY_USERS",), path_infos_by_components)
 
   @db_test_lib.WithDatabase
   def testHandleRRG_Windows_LeadingSlash(self, rel_db: db.Database):

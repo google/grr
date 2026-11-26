@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """Tests for utility classes."""
 
+from collections.abc import Sequence
 import datetime
 import sys
 import unittest
@@ -635,7 +636,7 @@ class DocTest(test_lib.DocTest):
   module = rdfvalue
 
 
-def main(argv):
+def main(argv: Sequence[str]) -> None:
   test_lib.main(argv)
 
 

@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """Test for the stats server implementation."""
 
+from collections.abc import Sequence
 import io
 from unittest import mock
 
@@ -24,7 +25,7 @@ class StatsServerTest(
     test_lib.GRRBaseTest,
 ):
 
-  def setUpStatsServer(self, port):
+  def setUpStatsServer(self, port: int) -> stats_server.StatsServer:
     return stats_server.StatsServer("::1", port)
 
   def testPrometheusIntegration(self):
@@ -55,7 +56,7 @@ class StatsServerTest(
     self.assertEqual(families["foobars"].samples[0].value, 42)
 
 
-def main(args):
+def main(args: Sequence[str]) -> None:
   test_lib.main(args)
 
 

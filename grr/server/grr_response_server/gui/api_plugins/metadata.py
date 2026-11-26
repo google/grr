@@ -783,7 +783,6 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
 
     # The `Operation Object` associated with the current http method.
     operation_obj = {
-        "tags": [router_method.category or "NoCategory"],
         "description": router_method.doc or "No description.",
         "operationId": urlparse.quote(f"{router_method.name}"),
         "parameters": self._GetParameters(

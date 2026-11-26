@@ -1,6 +1,8 @@
 #!/usr/bin/env python
+from collections.abc import Callable, Sequence
 import io
 import os
+from typing import Any
 from unittest import mock
 
 from absl.testing import absltest
@@ -8,11 +10,11 @@ from absl.testing import absltest
 from grr_response_core.lib.util import random
 
 
-def WithUrandom(func):
+def WithUrandom(func: Callable[[int], bytes]) -> Any:
   return mock.patch.object(os, "urandom", side_effect=func)
 
 
-def WithRandomBuffer(values):
+def WithRandomBuffer(values: Sequence[int]) -> Any:
   return mock.patch.object(random, "_random_buffer", list(reversed(values)))
 
 
@@ -20,7 +22,7 @@ class UInt16Test(absltest.TestCase):
 
   @WithRandomBuffer([])
   @WithUrandom(lambda count: b"\x00" * count)
-  def testMin(self, urandom):
+  def testMin(self, urandom: Callable[[int], bytes]):
     del urandom  # Unused.
 
     for _ in range(10000):
@@ -29,7 +31,7 @@ class UInt16Test(absltest.TestCase):
 
   @WithRandomBuffer([])
   @WithUrandom(lambda count: b"\xff" * count)
-  def testMax(self, urandom):
+  def testMax(self, urandom: Callable[[int], bytes]):
     del urandom  # Unused.
 
     for _ in range(10000):
@@ -45,7 +47,7 @@ class PositiveUInt16Test(absltest.TestCase):
 
   @WithRandomBuffer([])
   @WithUrandom(io.BytesIO(b"\x00" * 10 * 1024 + b"\xff" * 10 * 1024).read)
-  def testPositive(self, urandom):
+  def testPositive(self, urandom: Callable[[int], bytes]):
     del urandom  # Unused.
 
     for _ in range(10):
@@ -56,7 +58,7 @@ class UInt32Test(absltest.TestCase):
 
   @WithRandomBuffer([])
   @WithUrandom(lambda count: b"\x00" * count)
-  def testMin(self, urandom):
+  def testMin(self, urandom: Callable[[int], bytes]):
     del urandom  # Unused.
 
     for _ in range(10000):
@@ -64,7 +66,7 @@ class UInt32Test(absltest.TestCase):
 
   @WithRandomBuffer([])
   @WithUrandom(lambda count: b"\xff" * count)
-  def testMax(self, urandom):
+  def testMax(self, urandom: Callable[[int], bytes]):
     del urandom  # Unused.
 
     for _ in range(10000):
@@ -80,7 +82,7 @@ class PositiveUInt32Test(absltest.TestCase):
 
   @WithRandomBuffer([])
   @WithUrandom(io.BytesIO(b"\x00" * 10 * 1024 + b"\xff" * 10 * 1024).read)
-  def testPositive(self, urandom):
+  def testPositive(self, urandom: Callable[[int], bytes]):
     del urandom  # Unused.
 
     for _ in range(10):
@@ -91,7 +93,7 @@ class UInt64Test(absltest.TestCase):
 
   @WithRandomBuffer([])
   @WithUrandom(lambda count: b"\x00" * count)
-  def testMin(self, urandom):
+  def testMin(self, urandom: Callable[[int], bytes]):
     del urandom  # Unused.
 
     for _ in range(10000):
@@ -99,7 +101,7 @@ class UInt64Test(absltest.TestCase):
 
   @WithRandomBuffer([])
   @WithUrandom(lambda count: b"\xff" * count)
-  def testMax(self, urandom):
+  def testMax(self, urandom: Callable[[int], bytes]):
     del urandom  # Unused.
 
     for _ in range(10000):
@@ -117,7 +119,7 @@ class Id64Test(absltest.TestCase):
 
   @WithRandomBuffer([])
   @WithUrandom(lambda count: b"\xff" * count)
-  def testMax(self, urandom):
+  def testMax(self, urandom: Callable[[int], bytes]):
     del urandom  # Unused.
 
     for _ in range(10000):

@@ -1,9 +1,12 @@
 #!/usr/bin/env python
 """Output plugins used for testing."""
 
+from __future__ import annotations
+
+from collections.abc import Callable, Iterable
 import functools
 import os
-from typing import Any, Callable, Iterable, Type
+from typing import Any, ClassVar
 
 from google.protobuf import message
 
@@ -18,14 +21,14 @@ from grr.test_lib import test_lib
 
 
 def WithInstantOutputPluginProto(
-    plugin_cls: Type[instant_output_plugin.InstantOutputPluginProto],
+    plugin_cls: type[instant_output_plugin.InstantOutputPluginProto],
 ) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
   """Makes given function execute with specified instant output plugin registered."""
 
-  def Decorator(func):
+  def Decorator(func: Callable[..., Any]) -> Callable[..., Any]:
 
     @functools.wraps(func)
-    def Wrapper(*args, **kwargs):
+    def Wrapper(*args: Any, **kwargs: Any) -> None:
       with _InstantOutputPluginProtoContext(plugin_cls):
         func(*args, **kwargs)
 
@@ -38,32 +41,33 @@ class _InstantOutputPluginProtoContext:
   """A context manager for execution with a certain InstantOutputPlugin registered."""
 
   def __init__(
-      self, plugin_cls: Type[instant_output_plugin.InstantOutputPluginProto]
+      self, plugin_cls: type[instant_output_plugin.InstantOutputPluginProto]
   ):
     self._plugin_cls = plugin_cls
 
-  def __enter__(self):
+  def __enter__(self) -> None:
     instant_output_plugin_registry.RegisterInstantOutputPluginProto(
         self._plugin_cls
     )
 
-  def __exit__(self, exc_type, exc_value, traceback):
+  def __exit__(self, exc_type: Any, exc_value: Any, traceback: Any) -> None:
     del exc_type, exc_value, traceback  # Unused.
 
+    assert self._plugin_cls.plugin_name is not None
     instant_output_plugin_registry.UnregisterInstantOutputPluginProto(
         self._plugin_cls.plugin_name
     )
 
 
 def WithOutputPluginProto(
-    plugin_cls: Type[output_plugin.OutputPluginProto],
+    plugin_cls: type[output_plugin.OutputPluginProto[Any]],
 ) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
   """Makes given function execute with specified output plugin registered."""
 
-  def Decorator(func):
+  def Decorator(func: Callable[..., Any]) -> Callable[..., Any]:
 
     @functools.wraps(func)
-    def Wrapper(*args, **kwargs):
+    def Wrapper(*args: Any, **kwargs: Any) -> None:
       with _OutputPluginProtoContext(plugin_cls):
         func(*args, **kwargs)
 
@@ -75,13 +79,13 @@ def WithOutputPluginProto(
 class _OutputPluginProtoContext:
   """A context manager for execution with a certain OutputPluginProto registered."""
 
-  def __init__(self, plugin_cls: Type[output_plugin.OutputPluginProto]):
+  def __init__(self, plugin_cls: type[output_plugin.OutputPluginProto[Any]]):
     self._plugin_cls = plugin_cls
 
-  def __enter__(self):
+  def __enter__(self) -> None:
     output_plugin_registry.RegisterOutputPluginProto(self._plugin_cls)
 
-  def __exit__(self, exc_type, exc_value, traceback):
+  def __exit__(self, exc_type: Any, exc_value: Any, traceback: Any) -> None:
     del exc_type, exc_value, traceback  # Unused.
 
     output_plugin_registry.UnregisterOutputPluginProto(self._plugin_cls)
@@ -90,7 +94,9 @@ class _OutputPluginProtoContext:
 class InstantOutputPluginTestBase(test_lib.GRRBaseTest):
   """Mixing with helper methods."""
 
-  plugin_cls = None
+  plugin_cls: ClassVar[
+      type[instant_output_plugin.InstantOutputPluginProto] | None
+  ] = None
 
   def setUp(self):
     super().setUp()
@@ -98,9 +104,10 @@ class InstantOutputPluginTestBase(test_lib.GRRBaseTest):
     self.client_id = self.SetupClient(0)
     self.results_urn = rdf_client.ClientURN(self.client_id).Add("foo/bar")
 
-    # pylint: disable=not-callable
-    self.plugin = self.__class__.plugin_cls(source_urn=self.results_urn)
-    # pylint: enable=not-callable
+    assert self.__class__.plugin_cls is not None
+    self.plugin: instant_output_plugin.InstantOutputPluginProto = (
+        self.__class__.plugin_cls(source_urn=self.results_urn)
+    )
 
   def ProcessValuesProto(
       self,

@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 """The access control classes and user management classes for the data_store."""
 
+from __future__ import annotations
+
 
 _SYSTEM_USERS_LIST = [
     "GRRWorker",
@@ -40,11 +42,16 @@ class UnauthorizedAccess(Error):  # pylint: disable=g-bad-exception-name
 
   counter = "grr_unauthorised_requests"
 
-  def __init__(self, message, subject=None, requested_access="?"):
+  def __init__(
+      self,
+      message: str | Exception,
+      subject: str | None = None,
+      requested_access: str = "?",
+  ):
     self.subject = subject
     self.requested_access = requested_access
     super().__init__(message)
 
 
-def IsValidUsername(username):
+def IsValidUsername(username: str) -> bool:
   return username.lower() not in _SYSTEM_USERS_LOWERCASE

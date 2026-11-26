@@ -2,6 +2,7 @@
 """A module with utilities for working with the Sleuthkit's body format."""
 
 from collections.abc import Iterator
+import dataclasses
 import enum
 import io
 import stat
@@ -12,7 +13,7 @@ from grr_response_proto import timeline_pb2
 DEFAULT_CHUNK_SIZE = 1024 * 1024  # 1 MiB.
 
 
-# TODO(hanuszczak): Migrate this to dataclasses once we are Python 3.7+ only.
+@dataclasses.dataclass
 class Opts:
   """Options for generating files in the body format.
 
@@ -22,8 +23,8 @@ class Opts:
       negligible.
     timestamp_subsecond_precision: An (optional) flag that controls whether the
       output should use floating-point subsecond-precision timestamps.
-    inode_ntfs_file_reference_format: An (optional) flag that controls whether
-      the output should use NTFS file reference format for inode values.
+    inode_format: An (optional) format in which inode values should be
+      formatted.
     backslash_escape: An (optional) flag that controls whether the output should
       have backslashes escaped.
     carriage_return_escape: An (optional) flag that controls whether the output

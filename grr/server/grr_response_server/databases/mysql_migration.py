@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """Incremental MySQL migrations implementation."""
 
-from collections.abc import Callable, Sequence
+from collections.abc import Callable
 import contextlib
 import logging
 import os
@@ -28,7 +28,7 @@ def _MigrationFilenameToInt(fname: str) -> int:
 
 def ListMigrationsToProcess(
     migrations_root: str, current_migration_number: Optional[int]
-) -> Sequence[str]:
+) -> list[str]:
   """Lists filenames of migrations with numbers bigger than a given one."""
   migrations = []
   for m in os.listdir(migrations_root):

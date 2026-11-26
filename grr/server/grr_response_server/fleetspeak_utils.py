@@ -2,8 +2,8 @@
 """FS GRR server side integration utility functions."""
 
 import binascii
+from collections.abc import Collection
 import datetime
-from typing import Collection, List
 
 from google.protobuf import timestamp_pb2
 from grr_response_core import config
@@ -117,11 +117,11 @@ def SendGrrMessageProtoThroughFleetspeak(
       ),
   )
   fs_msg.data.Pack(grr_msg)
-  if grr_msg.session_id is not None:
+  if grr_msg.HasField("session_id"):
     annotation = fs_msg.annotations.entries.add()
     annotation.key = "flow_id"
     annotation.value = rdfvalue.FlowSessionID(grr_msg.session_id).Basename()
-  if grr_msg.request_id is not None:
+  if grr_msg.HasField("request_id"):
     annotation = fs_msg.annotations.entries.add()
     annotation.key = "request_id"
     annotation.value = str(grr_msg.request_id)
@@ -202,7 +202,7 @@ def KillFleetspeak(grr_id: str, force: bool) -> None:
 
 @FLEETSPEAK_CALL_LATENCY.Timed(fields=["InsertMessage"])
 def RestartFleetspeakGrrService(grr_id: str) -> None:
-  """Restarts the GRR service on the given client."""
+  """Restarts the GRR service (all of them) on the given client."""
   restart_req = fs_system_pb2.RestartServiceRequest(name="GRR")
   fs_msg = fs_common_pb2.Message()
   fs_msg.message_type = "RestartService"
@@ -212,6 +212,21 @@ def RestartFleetspeakGrrService(grr_id: str) -> None:
 
   fleetspeak_connector.CONN.outgoing.InsertMessage(  # pyrefly: ignore[missing-attribute]
       fs_msg,
+      single_try_timeout=WRITE_SINGLE_TRY_TIMEOUT,
+      timeout=WRITE_TOTAL_TIMEOUT,
+  )
+
+  restart_request = fs_system_pb2.RestartServiceRequest()
+  restart_request.name = "RRG"
+
+  message = fs_common_pb2.Message()
+  message.message_type = "RestartService"
+  message.destination.client_id = GRRIDToFleetspeakID(grr_id)
+  message.destination.service_name = "system"
+  message.data.Pack(restart_request)
+
+  fleetspeak_connector.CONN.outgoing.InsertMessage(  # pyrefly: ignore[missing-attribute]
+      message,
       single_try_timeout=WRITE_SINGLE_TRY_TIMEOUT,
       timeout=WRITE_TOTAL_TIMEOUT,
   )
@@ -296,7 +311,7 @@ def FetchClientResourceUsageRecords(
     client_id: str,
     start_range: timestamp_pb2.Timestamp,
     end_range: timestamp_pb2.Timestamp,
-) -> List[resource_pb2.ClientResourceUsageRecord]:
+) -> list[resource_pb2.ClientResourceUsageRecord]:
   """Returns aggregated resource usage metrics of a client from Fleetspeak.
 
   Args:

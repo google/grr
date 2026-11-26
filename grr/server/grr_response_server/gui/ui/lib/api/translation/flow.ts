@@ -57,15 +57,12 @@ export function translateFlowDescriptor(
   fd: apiInterfaces.ApiFlowDescriptor,
 ): FlowDescriptor {
   assertKeyNonNull(fd, 'name');
-  assertKeyNonNull(fd, 'category');
   assertKeyNonNull(fd, 'defaultArgs');
   assertKeyNonNull(fd, 'blockHuntCreation');
 
   const result = {
     name: fd.name,
-    friendlyName: fd.friendlyName || fd.name,
     blockHuntCreation: fd.blockHuntCreation,
-    category: fd.category,
     defaultArgs: {...fd.defaultArgs},
   };
   // The protobuf type URL is an implementation detail of the API, thus we

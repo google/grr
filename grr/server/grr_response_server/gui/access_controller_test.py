@@ -1,7 +1,9 @@
 #!/usr/bin/env python
 """Tests for access_control module."""
 
-from typing import Iterable
+from __future__ import annotations
+
+from collections.abc import Iterable
 from unittest import mock
 
 from absl import app
@@ -19,10 +21,10 @@ from grr.test_lib import test_lib
 def _CreateApprovalRequest(
     approval_type: objects_pb2.ApprovalRequest.ApprovalType,
     subject_id: str,
-    expiration_time: rdfvalue.RDFDatetime = None,
-    grants: Iterable[objects_pb2.ApprovalGrant] = None,
+    expiration_time: rdfvalue.RDFDatetime | None = None,
+    grants: Iterable[objects_pb2.ApprovalGrant] | None = None,
     username: str = "requestor",
-):
+) -> objects_pb2.ApprovalRequest:
   expiration_time = expiration_time or (
       rdfvalue.RDFDatetime.Now() + rdfvalue.Duration.From(1, rdfvalue.HOURS)
   )
@@ -40,7 +42,11 @@ def _CreateApprovalRequest(
 
 class ApprovalChecksTest(test_lib.GRRBaseTest):
 
-  def _CreateRequest(self, expiration_time=None, grants=None):
+  def _CreateRequest(
+      self,
+      expiration_time: rdfvalue.RDFDatetime | None = None,
+      grants: Iterable[objects_pb2.ApprovalGrant] | None = None,
+  ) -> objects_pb2.ApprovalRequest:
     expiration_time = expiration_time or (
         rdfvalue.RDFDatetime.Now() + rdfvalue.Duration.From(1, rdfvalue.HOURS)
     )
@@ -300,12 +306,12 @@ class ApprovalCheckerTest(test_lib.GRRBaseTest):
 
     called_checks = []
 
-    def _CheckSuccessfulOne(approval):
+    def _CheckSuccessfulOne(approval: objects_pb2.ApprovalRequest) -> None:
       called_checks.append(("one", approval.subject_id))
       del approval
       return
 
-    def _CheckSuccessfulTwo(approval):
+    def _CheckSuccessfulTwo(approval: objects_pb2.ApprovalRequest) -> None:
       called_checks.append(("two", approval.subject_id))
       del approval
       return
@@ -328,7 +334,7 @@ class ApprovalCheckerTest(test_lib.GRRBaseTest):
         )
     ]
 
-    def _FailingCheck(approval):
+    def _FailingCheck(approval: objects_pb2.ApprovalRequest) -> None:
       del approval
       raise access_control.UnauthorizedAccess("some error")
 

@@ -770,7 +770,7 @@ def _PrioritizeRegions(
   """
 
   # Sort regions and offsets to be mononotically increasing and insert sentinel.
-  all_regions = collections.deque(sorted(regions, key=lambda r: r.start))
+  all_regions = collections.deque(sorted(regions, key=lambda r: r.start))  # pyrefly: ignore[missing-attribute]
   all_regions.append(None)  # pyrefly: ignore[bad-argument-type]
   region = all_regions.popleft()
 
@@ -934,7 +934,7 @@ class YaraProcessDump(actions.ActionPlugin):
         for region in regions:
           region.dumped_size = region.size  # pyrefly: ignore[missing-attribute]
 
-      regions = sorted(regions, key=lambda r: r.start)
+      regions = sorted(regions, key=lambda r: r.start)  # pyrefly: ignore[missing-attribute]
 
       with tempfiles.TemporaryDirectory(cleanup=False) as tmp_dir:
         for region in regions:

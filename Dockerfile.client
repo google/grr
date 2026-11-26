@@ -58,7 +58,5 @@ RUN ${VIRTUAL_ENV}/bin/python -m pip install \
   -e grr/core \
   -e grr/client
 
-RUN ${VIRTUAL_ENV}/bin/python grr/proto/makefile.py && \
-  ${VIRTUAL_ENV}/bin/python grr/core/grr_response_core/artifacts/makefile.py
 
 ENTRYPOINT [ "fleetspeak-client" ]

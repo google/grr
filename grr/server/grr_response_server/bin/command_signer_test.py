@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 import hashlib
+import os
 
 from absl.testing import absltest
 from absl.testing import flagsaver
@@ -168,6 +169,7 @@ echo 'Hello, world!'
 
     command = api_signed_commands_pb2.ApiCommand()
     command.path_on_server_template = file.full_path
+    command.path_on_server_sha256 = hashlib.sha256(content).hexdigest()
 
     signed_command = command_signer.Sign(command, self.signer)
     self.assertSignatureValid(signed_command)
@@ -178,6 +180,27 @@ echo 'Hello, world!'
     self.assertEqual(
         rrg_command.filestore_file_sha256,
         hashlib.sha256(content).digest(),
+    )
+
+  def testPathOnServerTemplate_Sha256Mismatch(self):
+    content = b"""\
+#!/usr/bin/env bash
+echo 'Hello, world!'
+"""
+
+    file = self.create_tempfile(content=content)
+
+    command = api_signed_commands_pb2.ApiCommand()
+    command.id = "hello"
+    command.path_on_server_template = file.full_path
+    command.path_on_server_sha256 = os.urandom(32).hex()
+
+    with self.assertRaises(ValueError) as context:
+      command_signer.Sign(command, self.signer)
+
+    self.assertStartsWith(
+        str(context.exception),
+        "SHA-256 mismatch for 'hello'",
     )
 
 

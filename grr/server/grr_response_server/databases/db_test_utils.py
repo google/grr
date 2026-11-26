@@ -7,7 +7,6 @@ import random
 import string
 from typing import Any, Optional
 
-from grr_response_core.lib import rdfvalue
 from grr_response_proto import flows_pb2
 from grr_response_proto import hunts_pb2
 from grr_response_proto import jobs_pb2
@@ -365,30 +364,3 @@ def InitializeHunt(
     db.UpdateHuntObject(hunt_id, hunt_state=hunt_state)
 
   return hunt_id
-
-
-def InitializeCronJob(
-    db: abstract_db.Database,
-    cron_job_id: Optional[str] = None,
-) -> str:
-  """Initializes a test cron job.
-
-  Args:
-    db: A database object.
-    cron_job_id: A specific job id to use for initialized job. If none is
-      provided a randomly generated one is used.
-
-  Returns:
-    A cron job id of the initialized cron job.
-  """
-  if cron_job_id is None:
-    random_char = lambda: random.choice(string.ascii_uppercase)
-    cron_job_id = "".join(random_char() for _ in range(8))
-
-  job = flows_pb2.CronJob(
-      cron_job_id=cron_job_id,
-      created_at=rdfvalue.RDFDatetime.Now().AsMicrosecondsSinceEpoch(),
-  )
-  db.WriteCronJob(job)
-
-  return cron_job_id

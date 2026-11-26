@@ -25,9 +25,10 @@ class YaraProcessScanMatchConverterProto(
     conv = process.ProcessToExportedProcessConverterProto()
     proc = list(conv.Convert(metadata, value.process))
     if not proc:
-      return []  # pyrefly: ignore[bad-return]
+      return []
 
-    assert len(proc) == 1, f"Expected exactly one process, got {len(proc)}"
+    if len(proc) != 1:
+      raise ValueError(f"Expected exactly one process, got {len(proc)}")
     proc = proc[0]
 
     yara_matches = value.match or [flows_pb2.YaraMatch()]
@@ -63,9 +64,10 @@ class ProcessMemoryErrorConverterProto(
     conv = process.ProcessToExportedProcessConverterProto()
     proc = list(conv.Convert(metadata, value.process))
     if not proc:
-      return []  # pyrefly: ignore[bad-return]
+      return []
 
-    assert len(proc) == 1, f"Expected exactly one process, got {len(proc)}"
+    if len(proc) != 1:
+      raise ValueError(f"Expected exactly one process, got {len(proc)}")
     proc = proc[0]
 
     yield export_pb2.ExportedProcessMemoryError(

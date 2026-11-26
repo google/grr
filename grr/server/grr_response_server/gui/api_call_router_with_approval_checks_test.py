@@ -1,6 +1,10 @@
 #!/usr/bin/env python
 """Tests for an ApiCallRouterWithChecks."""
 
+from __future__ import annotations
+
+from collections.abc import Callable, Sequence
+from typing import Any
 from unittest import mock
 
 from absl import app
@@ -8,7 +12,6 @@ from absl import app
 from grr_response_proto import api_call_router_pb2
 from grr_response_proto import objects_pb2
 from grr_response_proto.api import client_pb2 as api_client_pb2
-from grr_response_proto.api import cron_pb2 as api_cron_pb2
 from grr_response_proto.api import flow_pb2 as api_flow_pb2
 from grr_response_proto.api import hunt_pb2 as api_hunt_pb2
 from grr_response_proto.api import osquery_pb2 as api_osquery_pb2
@@ -37,7 +40,7 @@ class ApiCallRouterWithApprovalChecksTest(
   # for being checked for necessary access rights. This list is used
   # in testAllOtherMethodsAreNotAccessChecked. It is populated below in batches
   # to group tests.
-  ACCESS_CHECKED_METHODS = []
+  ACCESS_CHECKED_METHODS: list[str] = []
 
   # APPROVAL_HANDLER_METHODS use approval checks to return the approval status
   # in the response. Simple tests for access rights are not working in these
@@ -52,10 +55,6 @@ class ApiCallRouterWithApprovalChecksTest(
       "GrantHuntApproval",
       "GetHuntApproval",
       "ListHuntApprovals",
-      "CreateCronJobApproval",
-      "GrantCronJobApproval",
-      "GetCronJobApproval",
-      "ListCronJobApprovals",
   ]
 
   def setUp(self):
@@ -79,12 +78,12 @@ class ApiCallRouterWithApprovalChecksTest(
 
   def CheckMethodIsAccessChecked(
       self,
-      method,
-      access_type,
-      access_checker_mock=None,
-      args=None,
-      context=None,
-  ):
+      method: Callable[..., Any],
+      access_type: str,
+      access_checker_mock: mock.MagicMock | None = None,
+      args: Any = None,
+      context: api_call_context.ApiCallContext | None = None,
+  ) -> None:
     context = context or self.context
 
     if not access_checker_mock:
@@ -119,14 +118,18 @@ class ApiCallRouterWithApprovalChecksTest(
       self.delegate_mock.reset_mock()
       access_checker_mock.reset_mock()
 
-  def CheckMethodIsNotAccessChecked(self, method, args=None, context=None):
+  def CheckMethodIsNotAccessChecked(
+      self,
+      method: Callable[..., Any],
+      args: Any = None,
+      context: api_call_context.ApiCallContext | None = None,
+  ) -> None:
     context = context or self.context
 
     method(args, context=context)
 
     self.assertFalse(self.approval_checker_mock.CheckClientAccess.called)
     self.assertFalse(self.approval_checker_mock.CheckHuntAccess.called)
-    self.assertFalse(self.approval_checker_mock.CheckCronJob.called)
     self.assertFalse(self.admin_checker_mock.CheckIfCanStartFlow.called)
     self.assertFalse(self.approval_checker_mock.CheckDataStoreAccess.called)
     self.assertFalse(
@@ -589,28 +592,6 @@ class ApiCallRouterWithApprovalChecksTest(
     )
 
   ACCESS_CHECKED_METHODS.extend([
-      "ForceRunCronJob",
-      "ModifyCronJob",
-      "DeleteCronJob",
-  ])
-
-  def testCronJobMethodsAreAccessChecked(self):
-    args = api_cron_pb2.ApiForceRunCronJobArgs(cron_job_id="TestCronJob")
-    self.CheckMethodIsAccessChecked(
-        self.router.ForceRunCronJob, "CheckCronJobAccess", args=args
-    )
-
-    args = api_cron_pb2.ApiModifyCronJobArgs(cron_job_id="TestCronJob")
-    self.CheckMethodIsAccessChecked(
-        self.router.ModifyCronJob, "CheckCronJobAccess", args=args
-    )
-
-    args = api_cron_pb2.ApiDeleteCronJobArgs(cron_job_id="TestCronJob")
-    self.CheckMethodIsAccessChecked(
-        self.router.DeleteCronJob, "CheckCronJobAccess", args=args
-    )
-
-  ACCESS_CHECKED_METHODS.extend([
       "CreateHunt",
       "ModifyHunt",
       "DeleteHunt",
@@ -875,7 +856,7 @@ class ApprovalCheckParamsMitigationFlowsAccessCheckerTest(test_lib.GRRBaseTest):
       checker.CheckIfHasAccessToMitigationFlows(username)
 
 
-def main(argv):
+def main(argv: Sequence[str]) -> None:
   test_lib.main(argv)
 
 

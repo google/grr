@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 """Tests for export converters."""
 
+from collections.abc import Sequence
+
 from absl import app
 from absl.testing import absltest
 
@@ -65,7 +67,7 @@ class ExecuteResponseConverterProtoTest(absltest.TestCase):
     self.assertEqual(c.time_used_us, 0)
 
 
-def main(argv):
+def main(argv: Sequence[str]) -> None:
   test_lib.main(argv)
 
 

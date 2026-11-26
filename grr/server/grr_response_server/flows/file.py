@@ -45,10 +45,6 @@ class CollectFilesByKnownPath(
 ):
   """Fetches specified absolute path file contents."""
 
-  friendly_name = "File contents by exact path"
-  category = "/Filesystem/"
-  behaviours = flow_base.BEHAVIOUR_DEBUG
-
   proto_args_type = flows_pb2.CollectFilesByKnownPathArgs
   proto_result_types = (flows_pb2.CollectFilesByKnownPathResult,)
   proto_progress_type = flows_pb2.CollectFilesByKnownPathProgress
@@ -129,7 +125,7 @@ class CollectFilesByKnownPath(
         },
     )
 
-  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+  @flow_base.UseProto2AnyResponses
   def ReceiveFetchedFileStats(
       self,
       responses: flow_responses.Responses[any_pb2.Any],
@@ -202,7 +198,7 @@ class CollectFilesByKnownPath(
     latest_path_info = history[-1]
     return latest_path_info.hash_entry
 
-  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+  @flow_base.UseProto2AnyResponses
   def ReceiveFetchedFileHashes(
       self,
       responses: flow_responses.Responses[any_pb2.Any],
@@ -270,7 +266,7 @@ class CollectFilesByKnownPath(
     except file_store.FileHasNoContentError:
       return False
 
-  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+  @flow_base.UseProto2AnyResponses
   def ReceiveFetchedFileContents(
       self,
       responses: flow_responses.Responses[any_pb2.Any],
@@ -339,10 +335,6 @@ class CollectMultipleFiles(
 ):
   """Fetches contents of files by searching for path expressions."""
 
-  friendly_name = "Collect multiple files"
-  category = "/Filesystem/"
-  behaviours = flow_base.BEHAVIOUR_DEBUG
-
   proto_args_type = flows_pb2.CollectMultipleFilesArgs
   proto_result_types = (flows_pb2.CollectMultipleFilesResult,)
   proto_progress_type = flows_pb2.CollectMultipleFilesProgress
@@ -402,7 +394,7 @@ class CollectMultipleFiles(
         next_state=self.ProcessStatResponses.__name__,
     )
 
-  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+  @flow_base.UseProto2AnyResponses
   def ProcessStatResponses(
       self,
       responses: flow_responses.Responses[any_pb2.Any],
@@ -444,7 +436,7 @@ class CollectMultipleFiles(
 
     self.progress.num_in_progress += len(paths)
 
-  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+  @flow_base.UseProto2AnyResponses
   def ProcessCollectedResponses(
       self,
       responses: flow_responses.Responses[any_pb2.Any],
@@ -535,10 +527,6 @@ class StatMultipleFiles(
 ):
   """Fetches file stats by searching for path expressions."""
 
-  friendly_name = "Collect file stats"
-  category = "/Filesystem/"
-  behaviours = flow_base.BEHAVIOUR_BASIC
-
   proto_args_type = flows_pb2.StatMultipleFilesArgs
   proto_result_types = (jobs_pb2.StatEntry,)
   only_protos_allowed = True
@@ -582,7 +570,7 @@ class StatMultipleFiles(
         next_state=self.ProcessResponses.__name__,
     )
 
-  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+  @flow_base.UseProto2AnyResponses
   def ProcessResponses(
       self, responses: flow_responses.Responses[any_pb2.Any]
   ) -> None:
@@ -603,10 +591,6 @@ class HashMultipleFiles(
     ]
 ):
   """Fetches file hashes and stats by searching for path expressions."""
-
-  friendly_name = "Collect file hashes"
-  category = "/Filesystem/"
-  behaviours = flow_base.BEHAVIOUR_BASIC
 
   proto_args_type = flows_pb2.HashMultipleFilesArgs
   proto_result_types = (flows_pb2.CollectMultipleFilesResult,)
@@ -665,7 +649,7 @@ class HashMultipleFiles(
         next_state=self.ProcessStatResponses.__name__,
     )
 
-  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+  @flow_base.UseProto2AnyResponses
   def ProcessStatResponses(
       self,
       responses: flow_responses.Responses[any_pb2.Any],
@@ -706,7 +690,7 @@ class HashMultipleFiles(
 
     self.progress.num_in_progress += len(paths)
 
-  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+  @flow_base.UseProto2AnyResponses
   def ProcessHashResponses(
       self,
       responses: flow_responses.Responses[any_pb2.Any],

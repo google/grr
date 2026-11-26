@@ -20,13 +20,6 @@ from grr_response_server.models import hunts as models_hunts
 
 MIN_CLIENTS_FOR_AVERAGE_THRESHOLDS = 1000
 
-# fmt: off
-
-CANCELLED_BY_USER = "Cancelled by user"
-
-# /grr/server/grr_response_server/gui/api_plugins/hunt.py)
-# fmt: on
-
 
 class Error(Exception):
   pass
@@ -446,11 +439,9 @@ def StopHunt(
   )
   data_store.REL_DB.RemoveForemanRule(hunt_id=hunt_obj.hunt_id)
 
-  # TODO - Stop matching on string (comment).
   if (
       hunt_state_reason != hunts_pb2.Hunt.HuntStateReason.TRIGGERED_BY_USER
       and reason_comment is not None
-      and reason_comment != CANCELLED_BY_USER
       and hunt_obj.creator not in access_control.SYSTEM_USERS
   ):
     notification.Notify(

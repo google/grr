@@ -218,24 +218,26 @@ class ApiGetConfigOptionHandlerTest(api_test_lib.ApiCallHandlerTest):
     self.assertTrue(result.value.value)
 
   def testRendersList(self):
-    with test_lib.ConfigOverrider(
-        {"Cron.disabled_cron_jobs": ["Job1", "Job2"]}
-    ):
+    with test_lib.ConfigOverrider({
+        "Server.fleetspeak_label_map": ["label1:override1", "label2:override2"]
+    }):
       result = self.handler.Handle(
-          api_config_pb2.ApiGetConfigOptionArgs(name="Cron.disabled_cron_jobs")
+          api_config_pb2.ApiGetConfigOptionArgs(
+              name="Server.fleetspeak_label_map"
+          )
       )
-    self.assertEqual(result.name, "Cron.disabled_cron_jobs")
+    self.assertEqual(result.name, "Server.fleetspeak_label_map")
     # We don't support lists in the API.
     self.assertTrue(result.is_invalid)
 
   def testRendersRDFDuration(self):
-    with test_lib.ConfigOverrider({"Cron.interrogate_duration": "1d"}):
+    with test_lib.ConfigOverrider({"API.FlowDuplicateInterval": "1d"}):
       result = self.handler.Handle(
           api_config_pb2.ApiGetConfigOptionArgs(
-              name="Cron.interrogate_duration"
+              name="API.FlowDuplicateInterval"
           )
       )
-    self.assertEqual(result.name, "Cron.interrogate_duration")
+    self.assertEqual(result.name, "API.FlowDuplicateInterval")
     self.assertEqual(result.type, "Int64Value")
     unpacked = api_config_pb2.Int64Value()
     result.value.Unpack(unpacked)

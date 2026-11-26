@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """Api call context used during the request/response handling."""
 
-from typing import Optional
+from typing import Any, Optional
 
 from werkzeug import wrappers as werkzeug_wrappers
 
@@ -13,9 +13,9 @@ class HttpResponse(werkzeug_wrappers.Response):
 
   def __init__(
       self,
-      *args,
+      *args: Any,
       context: Optional[api_call_context.ApiCallContext] = None,
-      **kwargs,
+      **kwargs: Any,
   ):
     super().__init__(*args, **kwargs)
     self.context = context

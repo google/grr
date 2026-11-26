@@ -51,8 +51,6 @@ export enum FlowType {
 /** Descriptor containing information about a flow class. */
 export declare interface FlowDescriptor {
   readonly name: string;
-  readonly friendlyName: string;
-  readonly category: string;
   readonly defaultArgs: unknown;
   readonly blockHuntCreation: boolean;
 }

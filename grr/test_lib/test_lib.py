@@ -5,6 +5,7 @@ import datetime
 import doctest
 import email
 import functools
+import importlib.metadata
 import ipaddress
 import itertools
 import logging
@@ -18,7 +19,6 @@ import unittest
 from unittest import mock
 
 from absl.testing import absltest
-import pkg_resources
 
 from grr_response_core import config
 from grr_response_core.lib import rdfvalue
@@ -664,8 +664,8 @@ def RequiresPackage(package_name):
     @functools.wraps(test_function)
     def Wrapper(*args, **kwargs):
       try:
-        pkg_resources.get_distribution(package_name)
-      except pkg_resources.DistributionNotFound:
+        importlib.metadata.distribution(package_name)
+      except importlib.metadata.PackageNotFoundError:
         raise unittest.SkipTest("Skipping, package %s not installed" %
                                 package_name)
       return test_function(*args, **kwargs)

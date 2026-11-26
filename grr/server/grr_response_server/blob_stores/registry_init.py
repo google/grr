@@ -6,7 +6,7 @@ from grr_response_server.blob_stores import db_blob_store
 from grr_response_server.blob_stores import gcs_blob_store
 
 
-def RegisterBlobStores():
+def RegisterBlobStores() -> None:
   """Registers all BlobStore implementations in blob_store.REGISTRY."""
   blob_store.REGISTRY[db_blob_store.DbBlobStore.__name__] = (
       db_blob_store.DbBlobStore

@@ -1,6 +1,8 @@
 #!/usr/bin/env python
+from __future__ import annotations
+
+from collections.abc import Iterable, Iterator, Sequence
 import io
-from typing import Iterable, Iterator
 
 from absl import app
 from google.protobuf import message
@@ -53,7 +55,7 @@ class TestInstantOutputPluginWithExportConversionProto(
   friendly_name = "test plugin proto"
   description = "test plugin description proto"
 
-  def Start(self):
+  def Start(self) -> Iterator[bytes]:
     yield "Start\n".encode("utf-8")
 
   def ProcessUniqueOriginalExportedTypePair(
@@ -62,9 +64,13 @@ class TestInstantOutputPluginWithExportConversionProto(
     yield (f"Original: {original_type_name}\n").encode("utf-8")
 
     for item in exported_values:
+      assert isinstance(
+          item,
+          (tests_pb2.DummyOutValueProto1, tests_pb2.DummyOutValueProto2),
+      )
       yield (f"Exported value: {item.value}\n").encode("utf-8")
 
-  def Finish(self):
+  def Finish(self) -> Iterator[bytes]:
     yield "Finish".encode("utf-8")
 
 
@@ -75,7 +81,10 @@ class InstantOutputPluginWithExportConversionProtoTest(
 
   plugin_cls = TestInstantOutputPluginWithExportConversionProto
 
-  def ProcessValuesToLines(self, values_by_cls):
+  def ProcessValuesToLines(
+      self,
+      values_by_cls: dict[type[message.Message], Iterable[message.Message]],
+  ) -> list[str]:
     fd_name = self.ProcessValuesProto(values_by_cls)
     with io.open(fd_name, mode="r", encoding="utf-8") as fd:
       return fd.read().split("\n")
@@ -227,7 +236,7 @@ class GetExportedFlowResultsTest(test_lib.GRRBaseTest):
     )
 
 
-def main(argv):
+def main(argv: Sequence[str]) -> None:
   test_lib.main(argv)
 
 

@@ -1,7 +1,9 @@
 #!/usr/bin/env python
 """Throttle user calls to flows."""
 
-from typing import Iterable, Optional
+from __future__ import annotations
+
+from collections.abc import Iterable
 
 from google.protobuf import message as pb_message
 
@@ -22,7 +24,7 @@ class DailyFlowRequestLimitExceededError(Error):
 class DuplicateFlowError(Error):
   """The same exact flow has run recently on this client."""
 
-  def __init__(self, message, flow_id):
+  def __init__(self, message: str, flow_id: str):
     super().__init__(message)
 
     if not flow_id:
@@ -35,8 +37,8 @@ class FlowThrottler(object):
 
   def __init__(
       self,
-      daily_req_limit=0,
-      dup_interval=rdfvalue.Duration(0),
+      daily_req_limit: int = 0,
+      dup_interval: rdfvalue.Duration = rdfvalue.Duration(0),
       flow_args_type: type[pb_message.Message] = flows_pb2.EmptyFlowArgs,
   ):
     """Create flow throttler object.
@@ -51,7 +53,9 @@ class FlowThrottler(object):
     self.dup_interval = dup_interval
     self.flow_args_type = flow_args_type
 
-  def _LoadFlows(self, client_id, min_create_time) -> Iterable[flows_pb2.Flow]:
+  def _LoadFlows(
+      self, client_id: str, min_create_time: rdfvalue.RDFDatetime
+  ) -> Iterable[flows_pb2.Flow]:
     """Yields all flows for the given client_id and time range.
 
     Args:
@@ -71,8 +75,8 @@ class FlowThrottler(object):
   def _HasSameArguments(
       self,
       loaded_flow_obj: flows_pb2.Flow,
-      packed_flow_args: Optional[any_pb2.Any] = None,
-  ):
+      packed_flow_args: any_pb2.Any | None = None,
+  ) -> bool:
     """Checks if the flow args are the same as the flow args in the flow object."""
     if not loaded_flow_obj.args and not packed_flow_args:
       return True
@@ -94,8 +98,8 @@ class FlowThrottler(object):
       client_id: str,
       user: str,
       flow_name: str,
-      packed_flow_args: Optional[any_pb2.Any] = None,
-  ):
+      packed_flow_args: any_pb2.Any | None = None,
+  ) -> None:
     """Enforce DailyFlowRequestLimit and FlowDuplicateInterval.
 
     Look at the flows that have run on this client recently and check

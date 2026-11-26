@@ -7,14 +7,6 @@ from grr_response_proto import knowledge_base_pb2
 from grr_response_proto import sysinfo_pb2
 
 
-def ToProtoPwEntry(rdf: rdf_client.PwEntry) -> knowledge_base_pb2.PwEntry:
-  return rdf.AsPrimitiveProto()
-
-
-def ToRDFPwEntry(proto: knowledge_base_pb2.PwEntry) -> rdf_client.PwEntry:
-  return rdf_client.PwEntry.FromSerializedBytes(proto.SerializeToString())
-
-
 def ToProtoUserFromUser(rdf: rdf_client.User) -> knowledge_base_pb2.User:
   return rdf.AsPrimitiveProto()
 

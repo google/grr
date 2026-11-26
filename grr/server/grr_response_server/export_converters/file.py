@@ -1,7 +1,9 @@
 #!/usr/bin/env python
 """Classes for exporting StatEntry."""
 
-from typing import Iterable, Union
+from __future__ import annotations
+
+from collections.abc import Iterable
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import mig_paths
@@ -178,11 +180,9 @@ class FileFinderResultConverterProto(
       metadata: export_pb2.ExportedMetadata,
       result: flows_pb2.FileFinderResult,
   ) -> Iterable[
-      Union[
-          export_pb2.ExportedFile,
-          export_pb2.ExportedRegistryKey,
-          export_pb2.ExportedMatch,
-      ]
+      export_pb2.ExportedFile
+      | export_pb2.ExportedRegistryKey
+      | export_pb2.ExportedMatch
   ]:
     """Converts a FileFinderResult.
 

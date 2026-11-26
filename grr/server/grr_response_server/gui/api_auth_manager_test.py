@@ -1,6 +1,10 @@
 #!/usr/bin/env python
 """Tests for the SimpleAPIAuthManager."""
 
+from __future__ import annotations
+
+from collections.abc import Sequence
+
 from absl import app
 from absl.testing import absltest
 from google.protobuf import json_format
@@ -35,7 +39,12 @@ class DummyAuthManagerTestConfigurableApiRouterProto(
 ):
   proto_params_type = tests_pb2.DummyAuthManagerTestConfigurableApiRouterParams
 
-  def __init__(self, params=None):
+  def __init__(
+      self,
+      params: (
+          tests_pb2.DummyAuthManagerTestConfigurableApiRouterParams | None
+      ) = None,
+  ):
     super().__init__(params=params)
     self.params = params
 
@@ -43,13 +52,13 @@ class DummyAuthManagerTestConfigurableApiRouterProto(
 class DummyGroupAccessManager(groups.GroupAccessManager):
 
   def __init__(self):
-    self.authorized_groups = {}
-    self.positive_matches = {"u1": ["g1", "g3"]}
+    self.authorized_groups: dict[str, list[str]] = {}
+    self.positive_matches: dict[str, list[str]] = {"u1": ["g1", "g3"]}
 
-  def AuthorizeGroup(self, group, subject):
+  def AuthorizeGroup(self, group: str, subject: str) -> None:
     self.authorized_groups.setdefault(subject, []).append(group)
 
-  def MemberOfAuthorizedGroup(self, username, subject):
+  def MemberOfAuthorizedGroup(self, username: str, subject: str) -> bool:
     try:
       group_names = self.positive_matches[username]
     except KeyError:
@@ -429,7 +438,7 @@ duration_str_tag_week: !duration_seconds '5w'
     self.assertEqual(parsed_yaml["duration_str_tag_week"], 5 * 7 * 24 * 60 * 60)
 
 
-def main(argv):
+def main(argv: Sequence[str]) -> None:
   # Run the full test suite
   test_lib.main(argv)
 

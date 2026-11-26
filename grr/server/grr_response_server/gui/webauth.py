@@ -1,10 +1,15 @@
 #!/usr/bin/env python
 """Web authentication classes for the GUI."""
 
+from __future__ import annotations
+
 import base64
+from collections.abc import Callable
 import logging
+from typing import Any
 
 from werkzeug import utils as werkzeug_utils
+from werkzeug import wrappers as werkzeug_wrappers
 
 from grr_response_core import config
 from grr_response_core.lib import utils
@@ -13,6 +18,7 @@ from grr_response_core.lib.registry import MetaclassRegistry
 from grr_response_server import access_control
 from grr_response_server import data_store
 from grr_response_server.databases import db
+from grr_response_server.gui import http_request
 from grr_response_server.gui import http_response
 from grr_response_server.gui import validate_iap
 
@@ -27,7 +33,13 @@ class BaseWebAuthManager(metaclass=MetaclassRegistry):
   Checks are done using a decorator function.
   """
 
-  def SecurityCheck(self, func, request, *args, **kwargs):
+  def SecurityCheck(
+      self,
+      func: Callable[..., Any],
+      request: http_request.HttpRequest,
+      *args: Any,
+      **kwargs: Any,
+  ) -> Any:
     """A decorator applied to protected web handlers.
 
     Args:
@@ -43,7 +55,7 @@ class BaseWebAuthManager(metaclass=MetaclassRegistry):
     handlers that is wrapped in @SecurityCheck.
     """
 
-  def RedirectBase(self):
+  def RedirectBase(self) -> werkzeug_wrappers.Response:
     """Return a redirect to the main GRR page."""
     return werkzeug_utils.redirect(config.CONFIG["AdminUI.url"])
 
@@ -58,7 +70,7 @@ class IAPWebAuthManager(BaseWebAuthManager):
 
   IAP_HEADER = "x-goog-iap-jwt-assertion"
 
-  def __init__(self, *args, **kwargs):
+  def __init__(self, *args: Any, **kwargs: Any):
     super().__init__(*args, **kwargs)
 
     if (
@@ -76,12 +88,17 @@ class IAPWebAuthManager(BaseWebAuthManager):
         "AdminUI.google_cloud_backend_service_id"
     ]
 
-  def SecurityCheck(self, func, request, *args, **kwargs):
+  def SecurityCheck(
+      self,
+      func: Callable[..., Any],
+      request: http_request.HttpRequest,
+      *args: Any,
+      **kwargs: Any,
+  ) -> Any:
     """Wrapping function."""
-    if self.IAP_HEADER not in request.headers:
-      return http_response.HttpResponse("Unauthorized", status=401)
-
     jwt = request.headers.get(self.IAP_HEADER)
+    if jwt is None:
+      return http_response.HttpResponse("Unauthorized", status=401)
     try:
       request.user, _ = validate_iap.ValidateIapJwtFromComputeEngine(
           jwt, self.cloud_project_id, self.backend_service_id
@@ -97,7 +114,13 @@ class IAPWebAuthManager(BaseWebAuthManager):
 class BasicWebAuthManager(BaseWebAuthManager):
   """Manager using basic auth using the config file."""
 
-  def SecurityCheck(self, func, request, *args, **kwargs):
+  def SecurityCheck(
+      self,
+      func: Callable[..., Any],
+      request: http_request.HttpRequest,
+      *args: Any,
+      **kwargs: Any,
+  ) -> Any:
     """Wrapping function."""
     request.user = ""
 
@@ -145,17 +168,23 @@ class RemoteUserWebAuthManager(BaseWebAuthManager):
   authenticated username is passed to GRR via a HTTP header.
   """
 
-  def __init__(self, *args, **kwargs):
+  def __init__(self, *args: Any, **kwargs: Any):
     super().__init__(*args, **kwargs)
 
     self.remote_user_header = config.CONFIG["AdminUI.remote_user_header"]
     self.remote_email_header = config.CONFIG["AdminUI.remote_email_header"]
     self.trusted_ips = config.CONFIG["AdminUI.remote_user_trusted_ips"]
 
-  def AuthError(self, message):
+  def AuthError(self, message: str) -> http_response.HttpResponse:
     return http_response.HttpResponse(message, status=403)
 
-  def SecurityCheck(self, func, request, *args, **kwargs):
+  def SecurityCheck(
+      self,
+      func: Callable[..., Any],
+      request: http_request.HttpRequest,
+      *args: Any,
+      **kwargs: Any,
+  ) -> Any:
     if request.remote_addr not in self.trusted_ips:
       return self.AuthError(
           "Request sent from an IP not in AdminUI.remote_user_trusted_ips. "
@@ -185,27 +214,35 @@ class RemoteUserWebAuthManager(BaseWebAuthManager):
 class NullWebAuthManager(BaseWebAuthManager):
   """Null web auth manager always returns test user unless set."""
 
-  def __init__(self, *args, **kwargs):
+  def __init__(self, *args: Any, **kwargs: Any):
     super().__init__(*args, **kwargs)
     self.username = "gui_user"
 
-  def SetUserName(self, username):
+  def SetUserName(self, username: str) -> None:
     self.username = username
 
-  def SecurityCheck(self, func, request, *args, **kwargs):
+  def SecurityCheck(
+      self,
+      func: Callable[..., Any],
+      request: http_request.HttpRequest,
+      *args: Any,
+      **kwargs: Any,
+  ) -> Any:
     """A decorator applied to protected web handlers."""
     request.user = self.username
     return func(request, *args, **kwargs)
 
 
 # Global to store the configured web auth manager.
-WEBAUTH_MANAGER = None
+WEBAUTH_MANAGER: BaseWebAuthManager | None = None
 
 
-def SecurityCheck(func):
+def SecurityCheck(func: Callable[..., Any]) -> Callable[..., Any]:
   """A decorator applied to protected web handlers."""
 
-  def Wrapper(request, *args, **kwargs):
+  def Wrapper(
+      request: http_request.HttpRequest, *args: Any, **kwargs: Any
+  ) -> Any:
     """Wrapping function."""
     if WEBAUTH_MANAGER is None:
       raise RuntimeError("Attempt to initialize before WEBAUTH_MANAGER set.")
@@ -214,7 +251,7 @@ def SecurityCheck(func):
   return Wrapper
 
 
-def InitializeWebAuth():
+def InitializeWebAuth() -> None:
   """Initializes WebAuth."""
   global WEBAUTH_MANAGER  # pylint: disable=global-statement
 
@@ -228,6 +265,6 @@ def InitializeWebAuth():
 
 
 @utils.RunOnce
-def InitializeWebAuthOnce():
+def InitializeWebAuthOnce() -> None:
   """Initializes WebAuth once only."""
   InitializeWebAuth()

@@ -22,10 +22,6 @@ class Dummy(
     A DummyFlowResult with a modified string.
   """
 
-  friendly_name = "Dummy Example Flow"
-  category = "/Administrative/"
-  behaviours = flow_base.BEHAVIOUR_DEBUG
-
   proto_args_type = dummy_pb2.DummyArgs
   proto_result_types = (dummy_pb2.DummyFlowResult,)
 
@@ -46,7 +42,7 @@ class Dummy(
 
     self.Log("Finished Start.")
 
-  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+  @flow_base.UseProto2AnyResponses
   def ReceiveActionOutput(
       self, responses: flow_responses.Responses[any_pb2.Any]
   ) -> None:

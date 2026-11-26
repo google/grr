@@ -10,10 +10,9 @@ FLAGS = flags.FLAGS
 
 class UnknownClientError(Exception):
 
-  def __init__(self, client_id: str, cause: Exception) -> None:
+  def __init__(self, client_id: str) -> None:
     self.client_id = client_id
-    self.cause = cause
-    msg = 'Client with id {} does not exist: {}'.format(client_id, cause)
+    msg = 'Client with id {} does not exist'.format(client_id)
     super().__init__(msg)
 
 
@@ -37,10 +36,9 @@ class UnknownHostnameError(Exception):
 
 class ApprovalMissingError(Exception):
 
-  def __init__(self, client_id: str, cause: Exception) -> None:
+  def __init__(self, client_id: str) -> None:
     self.client_id = client_id
-    self.cause = cause
-    msg = 'No approval to the client {} found: {}'.format(client_id, cause)
+    msg = 'No approval to the client {} found'.format(client_id)
     super().__init__(msg)
 
 
@@ -50,18 +48,15 @@ class FlowTimeoutError(Exception):
   Attributes:
     client_id: Id of the client.
     flow_id: Id of the flow.
-    cause: Exception raised.
   """
 
   def __init__(
       self,
       client_id: str,
       flow_id: str,
-      cause: Optional[Exception] = None,
   ) -> None:
     self.client_id = client_id
     self.flow_id = flow_id
-    self.cause = cause
 
     msg = 'Flow with id {} is timed out'.format(flow_id)
     url = self._build_path_to_ui()

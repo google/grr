@@ -25,9 +25,6 @@ from grr_response_proto.rrg.action import get_winreg_value_pb2 as rrg_get_winreg
 class GetCrowdStrikeAgentID(flow_base.FlowBase):
   """Flow that retrieves the identifier of the CrowdStrike agent."""
 
-  friendly_name = "Get CrowdStrike agent identifier"
-  category = "/Collectors/"
-
   proto_result_types = (crowdstrike_pb2.GetCrowdstrikeAgentIdResult,)
 
   def Start(self) -> None:
@@ -61,7 +58,7 @@ class GetCrowdStrikeAgentID(flow_base.FlowBase):
     action.args.command = command.command
     action.args.command_ed25519_signature = command.ed25519_signature
     action.args.timeout.seconds = 5
-    action.Call(self._OnLinuxRRGResponse)  # pyrefly: ignore[bad-argument-type]
+    action.Call(self._OnLinuxRRGResponse)
 
   def _StartLinux(self) -> None:
     args = jobs_pb2.ExecuteRequest()
@@ -79,7 +76,7 @@ class GetCrowdStrikeAgentID(flow_base.FlowBase):
     action.args.root = rrg_winreg_pb2.LOCAL_MACHINE
     action.args.key = r"SYSTEM\CurrentControlSet\Services\CSAgent\Sim"
     action.args.name = "AG"
-    action.Call(self._OnWindowsRRGResponse)  # pyrefly: ignore[bad-argument-type]
+    action.Call(self._OnWindowsRRGResponse)
 
   def _StartWindows(self) -> None:
     # TODO - There is no dedicated action for obtaining registry
@@ -106,7 +103,7 @@ class GetCrowdStrikeAgentID(flow_base.FlowBase):
     ).encode()
     action.args.offsets.append(0)
     action.args.length = 16
-    action.Call(self._OnMacOSRRGResponse)  # pyrefly: ignore[bad-argument-type]
+    action.Call(self._OnMacOSRRGResponse)
 
   def _StartMacOS(self) -> None:
     # The agent identifier is stored in the first 16 bytes of the file so we
@@ -125,7 +122,7 @@ class GetCrowdStrikeAgentID(flow_base.FlowBase):
         next_state=self._OnMacOSResponse.__name__,
     )
 
-  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+  @flow_base.UseProto2AnyResponses
   def _OnLinuxRRGResponse(
       self,
       responses: flow_responses.Responses[any_pb2.Any],
@@ -149,7 +146,7 @@ class GetCrowdStrikeAgentID(flow_base.FlowBase):
     result.agent_id = match.group("aid")
     self.SendReplyProto(result)
 
-  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+  @flow_base.UseProto2AnyResponses
   def _OnLinuxResponse(
       self, responses: flow_responses.Responses[any_pb2.Any]
   ) -> None:
@@ -178,7 +175,7 @@ class GetCrowdStrikeAgentID(flow_base.FlowBase):
     result.agent_id = match.group("aid")
     self.SendReplyProto(result)
 
-  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+  @flow_base.UseProto2AnyResponses
   def _OnWindowsRRGResponse(
       self,
       responses: flow_responses.Responses[any_pb2.Any],
@@ -199,7 +196,7 @@ class GetCrowdStrikeAgentID(flow_base.FlowBase):
     result.agent_id = binascii.hexlify(agent_id_bytes).decode("ascii")
     self.SendReplyProto(result)
 
-  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+  @flow_base.UseProto2AnyResponses
   def _OnWindowsResponse(
       self, responses: flow_responses.Responses[any_pb2.Any]
   ) -> None:
@@ -225,7 +222,7 @@ class GetCrowdStrikeAgentID(flow_base.FlowBase):
     result.agent_id = binascii.hexlify(agent_id_bytes).decode("ascii")
     self.SendReplyProto(result)
 
-  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+  @flow_base.UseProto2AnyResponses
   def _OnMacOSRRGResponse(
       self,
       responses: flow_responses.Responses[any_pb2.Any],
@@ -253,7 +250,7 @@ class GetCrowdStrikeAgentID(flow_base.FlowBase):
     result.agent_id = binascii.hexlify(blob).decode("ascii")
     self.SendReplyProto(result)
 
-  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+  @flow_base.UseProto2AnyResponses
   def _OnMacOSResponse(
       self, responses: flow_responses.Responses[any_pb2.Any]
   ) -> None:

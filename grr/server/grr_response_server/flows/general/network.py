@@ -23,9 +23,6 @@ class Netstat(
 ):
   """List active network connections on a system."""
 
-  category = "/Network/"
-  behaviours = flow_base.BEHAVIOUR_BASIC
-
   proto_args_type = flows_pb2.NetstatArgs
   proto_result_types = (sysinfo_pb2.NetworkConnection,)
 

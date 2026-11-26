@@ -26,7 +26,7 @@ class ApiCallContext:
     return self._approval
 
   @approval.setter
-  def approval(self, value: Optional[objects_pb2.ApprovalRequest]):
+  def approval(self, value: Optional[objects_pb2.ApprovalRequest]) -> None:
     self._approval = value
 
   def __repr__(self) -> str:

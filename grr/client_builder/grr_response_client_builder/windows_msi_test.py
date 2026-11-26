@@ -279,14 +279,18 @@ class WindowsMsiTest(absltest.TestCase):
 
   def _MsiExec(self, *args: str) -> None:
     log_file = self._TmpPath("installer.log")
-    args = [
-        "msiexec",
-    ] + list(args) + [
-        "/l*V",
-        log_file,
-    ]
+    cmd = (
+        [
+            "msiexec",
+        ]
+        + list(args)
+        + [
+            "/l*V",
+            log_file,
+        ]
+    )
     try:
-      subprocess.check_call(args)
+      subprocess.check_call(cmd)
     except:
       with open(log_file, "rb") as f:
         print(f.read().decode("utf-16"))

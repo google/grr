@@ -262,6 +262,16 @@ class StatEntryOfKeyResultTest(absltest.TestCase):
     )
     self.assertTrue(stat.S_ISDIR(stat_entry.st_mode))
 
+  def testEmptyKey(self):
+    result = rrg_list_winreg_keys_pb2.Result()
+    result.root = rrg_winreg_pb2.PredefinedKey.LOCAL_MACHINE
+    result.subkey = "SOFTWARE"
+
+    stat_entry = rrg_winreg.StatEntryOfKeyResult(result)
+    self.assertEqual(stat_entry.pathspec.pathtype, jobs_pb2.PathSpec.REGISTRY)
+    self.assertEqual(stat_entry.pathspec.path, r"HKEY_LOCAL_MACHINE\SOFTWARE")
+    self.assertTrue(stat.S_ISDIR(stat_entry.st_mode))
+
 
 class StatEntryOfValueResultTest(absltest.TestCase):
 
@@ -313,6 +323,21 @@ class StatEntryOfValueResultTest(absltest.TestCase):
         stat_entry.registry_data.string,
         "txtfilelegacy",
     )
+
+  def testEmptyKey(self):
+    result = rrg_list_winreg_values_pb2.Result()
+    result.root = rrg_winreg_pb2.LOCAL_MACHINE
+    result.value.name = "ServiceLastKnownStatus"
+    result.value.uint32 = 0x00000002
+
+    stat_entry = rrg_winreg.StatEntryOfValueResult(result)
+    self.assertEqual(stat_entry.pathspec.pathtype, jobs_pb2.PathSpec.REGISTRY)
+    self.assertEqual(
+        stat_entry.pathspec.path,
+        r"HKEY_LOCAL_MACHINE\ServiceLastKnownStatus",
+    )
+    self.assertEqual(stat_entry.registry_type, jobs_pb2.StatEntry.REG_DWORD)
+    self.assertEqual(stat_entry.registry_data.integer, 2)
 
 
 if __name__ == "__main__":

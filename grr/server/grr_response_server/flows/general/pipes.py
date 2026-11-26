@@ -23,10 +23,6 @@ class ListNamedPipesFlow(
 ):
   """A flow with logic listing named pipes."""
 
-  friendly_name = "List named pipes"
-  category = "/Processes/"
-  behaviours = flow_base.BEHAVIOUR_BASIC
-
   proto_args_type = pipes_pb2.ListNamedPipesFlowArgs
   proto_result_types = (pipes_pb2.ListNamedPipesFlowResult,)
   proto_store_type = pipes_pb2.ListNamedPipesFlowStore
@@ -42,7 +38,7 @@ class ListNamedPipesFlow(
         next_state=self.OnListNamedPipesResult.__name__,
     )
 
-  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+  @flow_base.UseProto2AnyResponses
   def OnListNamedPipesResult(
       self,
       responses: flow_responses.Responses[any_pb2.Any],
@@ -55,8 +51,7 @@ class ListNamedPipesFlow(
     pipe_type_filter = self.proto_args.pipe_type_filter
     pipe_end_filter = self.proto_args.pipe_end_filter
 
-    # TODO - Replace with `clear()` once upgraded.
-    del self.store.pipes[:]
+    self.store.pipes.clear()
     pids = []
 
     for response_any in responses:
@@ -99,7 +94,7 @@ class ListNamedPipesFlow(
         next_state=self.OnListProcessesResult.__name__,
     )
 
-  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+  @flow_base.UseProto2AnyResponses
   def OnListProcessesResult(
       self,
       responses: flow_responses.Responses[any_pb2.Any],

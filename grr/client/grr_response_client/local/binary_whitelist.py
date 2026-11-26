@@ -1,8 +1,10 @@
 #!/usr/bin/env python
 """Deployment-specific whitelisted binaries."""
 
+from collections.abc import Sequence
 
-def IsExecutionWhitelisted(cmd, args):
+
+def IsExecutionWhitelisted(cmd: str, args: Sequence[str]) -> bool:
   """Check if a binary and args is whitelisted.
 
   Args:

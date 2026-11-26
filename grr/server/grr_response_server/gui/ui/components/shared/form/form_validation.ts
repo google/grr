@@ -191,7 +191,10 @@ export function minValue(min: number): ValidatorFn {
 /**
  * Validator that checks if the input is less than or equal to the maximum.
  */
-export function maxValue(max: number): ValidatorFn {
+export function maxValue(
+  max: number,
+  formatValue: (value: number) => string = String,
+): ValidatorFn {
   return (
     control: AbstractControl<number | null | undefined>,
   ): ValidationErrors | null => {
@@ -200,7 +203,7 @@ export function maxValue(max: number): ValidatorFn {
       return {
         [Validators.MAX_VALUE]: {
           value: control.value,
-          note: `Maximum value is ${max}.`,
+          note: `Maximum value is ${formatValue(max)}.`,
         },
       };
     }

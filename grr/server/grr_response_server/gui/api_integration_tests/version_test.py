@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 from collections.abc import Callable
+import importlib.metadata
 from typing import Optional
 from unittest import mock
 
 from absl.testing import absltest
-import pkg_resources
 
 from grr_api_client import api as grr_api
 from grr_api_client import errors
@@ -16,10 +16,10 @@ from grr.test_lib import skip
 from grr.test_lib import testing_startup
 
 
-def GetDistribution(name: str) -> Optional[pkg_resources.Distribution]:
+def GetDistribution(name: str) -> Optional[importlib.metadata.Distribution]:
   try:
-    return pkg_resources.get_distribution(name)
-  except pkg_resources.DistributionNotFound:
+    return importlib.metadata.distribution(name)
+  except importlib.metadata.PackageNotFoundError:
     return None
 
 

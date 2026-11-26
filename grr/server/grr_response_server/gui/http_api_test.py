@@ -8,6 +8,7 @@ from absl import app
 from absl.testing import absltest
 
 from grr_response_proto import knowledge_base_pb2
+from grr_response_proto import sysinfo_pb2
 from grr_response_proto import tests_pb2
 from grr_response_server import access_control
 from grr_response_server import data_store
@@ -228,22 +229,6 @@ class RouterMatcherTest(test_lib.GRRBaseTest):
         http_api.ApiCallRouterNotFoundError,
         self.router_matcher.MatchRouter,
         self._CreateRequest("GET", "/api/v2/some/missing/path"),
-    )
-
-  # TODO - Stop messing with the routes and delete this test.
-  def testRaisesApiVersionHandling(self):
-    # `SampleGet` is annotated for `/api/test_sample/<path:path>`
-    # However, we have logic that overrides this route for routes starting
-    # with `/api/`, so that we only add and handle `/api/v2/`.
-    # Therefore, where `/api/v2/test_sample/some/path` should work,
-    # the plain `/api/test_sample/some/path` should not.
-    self.assertRaises(
-        http_api.ApiCallRouterNotFoundError,
-        self.router_matcher.MatchRouter,
-        self._CreateRequest("GET", "/api/test_sample/some/path"),
-    )
-    self.router_matcher.MatchRouter(
-        self._CreateRequest("GET", "/api/v2/test_sample/some/path")
     )
 
 
@@ -778,21 +763,21 @@ class RecursivelyBuildProtoFromStringDictTest(absltest.TestCase):
 
   def testFlatDictIsIgnored(self):
     dct = {
-        "pw_entry.age": "1337",
+        "local_address.ip": "168.192.0.1",
     }
-    proto = knowledge_base_pb2.User()
+    proto = sysinfo_pb2.NetworkConnection()
     http_api.RecursivelyBuildProtoFromStringDict(dct, proto)
 
-    self.assertEqual(proto, knowledge_base_pb2.User())
+    self.assertEqual(proto, sysinfo_pb2.NetworkConnection())
 
   def testNestedDict(self):
     dct = {
-        "pw_entry": {"age": "1337"},
+        "local_address": {"ip": "168.192.0.1"},
     }
-    proto = knowledge_base_pb2.User()
+    proto = sysinfo_pb2.NetworkConnection()
     http_api.RecursivelyBuildProtoFromStringDict(dct, proto)
 
-    self.assertEqual(proto.pw_entry.age, 1337)
+    self.assertEqual(proto.local_address.ip, "168.192.0.1")
 
   def testNonExistingFieldIsIgnored(self):
     dct = {

@@ -26,10 +26,7 @@ class CollectLargeFileFlow(
 ):
   """A flow mixing with large file collection logic."""
 
-  friendly_name = "Collect large file"
-  category = "/Filesystem/"
   block_hunt_creation = True
-  behaviours = flow_base.BEHAVIOUR_BASIC
 
   proto_args_type = large_file_pb2.CollectLargeFileFlowArgs
   proto_result_types = (large_file_pb2.CollectLargeFileFlowResult,)
@@ -90,7 +87,7 @@ class CollectLargeFileFlow(
         callback_state=self.Callback.__name__,
     )
 
-  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+  @flow_base.UseProto2AnyResponses
   def Collect(self, responses: flow_responses.Responses[any_pb2.Any]) -> None:
     if not responses.success:
       raise flow_base.FlowError(responses.status)
@@ -109,7 +106,7 @@ class CollectLargeFileFlow(
         )
     )
 
-  @flow_base.UseProto2AnyResponsesCallback  # pyrefly: ignore[bad-argument-type]
+  @flow_base.UseProto2AnyResponsesCallback
   def Callback(self, responses: flow_responses.Responses[any_pb2.Any]) -> None:
     if not responses.success:
       raise flow_base.FlowError(f"Failed to start upload: {responses.status}")

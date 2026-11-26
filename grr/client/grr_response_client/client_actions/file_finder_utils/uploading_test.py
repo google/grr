@@ -2,6 +2,7 @@
 import collections
 import hashlib
 import io
+from typing import Any
 from unittest import mock
 import zlib
 
@@ -138,7 +139,7 @@ class UploaderTest(absltest.TestCase):
       uploader.UploadFilePath("/foo/bar/baz")
 
 
-def Sha256(data):
+def Sha256(data: bytes) -> bytes:
   return hashlib.sha256(data).digest()
 
 
@@ -146,15 +147,15 @@ class FakeAction(mock.MagicMock):
 
   Message = collections.namedtuple("Message", ("item", "session_id"))  # pylint: disable=invalid-name
 
-  def __init__(self, **kwargs):
+  def __init__(self, **kwargs: Any):
     super().__init__(**kwargs)
-    self.charged_bytes = 0
-    self.messages = []
+    self.charged_bytes: int = 0
+    self.messages: list[FakeAction.Message] = []
 
-  def ChargeBytesToSession(self, amount):
+  def ChargeBytesToSession(self, amount: int) -> None:
     self.charged_bytes += amount
 
-  def SendReply(self, item, session_id):
+  def SendReply(self, item: Any, session_id: Any) -> None:
     self.messages.append(self.Message(item=item, session_id=session_id))
 
 

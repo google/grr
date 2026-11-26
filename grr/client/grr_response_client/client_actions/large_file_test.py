@@ -18,10 +18,9 @@ from grr.test_lib import gcs_test_lib
 
 class CollectLargeFileTest(absltest.TestCase):
 
-  # TODO(hanuszczak): Migrate to `setUpClass` once we are on Python 3.8 (because
-  # of `addCleanupClass`).
-  def setUp(self):
-    super().setUp()
+  @classmethod
+  def setUpClass(cls):
+    super().setUpClass()
 
     vfs_patcher = mock.patch.object(
         vfs,
@@ -31,7 +30,7 @@ class CollectLargeFileTest(absltest.TestCase):
         },
     )
     vfs_patcher.start()
-    self.addCleanup(vfs_patcher.stop)
+    cls.addClassCleanup(vfs_patcher.stop)
 
   def testNoEncryptionKey(self):
     with temp.AutoTempFilePath() as temppath:

@@ -13,7 +13,7 @@ class Error(Exception):
 
 class ItemNotExportableError(Error):
 
-  def __init__(self, item):
+  def __init__(self, item: flows_pb2.FlowResult):
     super().__init__("%r is not exportable" % (item,))
 
 

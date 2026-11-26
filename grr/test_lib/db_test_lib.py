@@ -1,8 +1,12 @@
 #!/usr/bin/env python
 """Test utilities for RELDB-related testing."""
 
+from __future__ import annotations
+
+from collections.abc import Callable
 import functools
 import sys
+from typing import Any, TypeVar
 from unittest import mock
 
 from grr_response_server import data_store
@@ -12,17 +16,19 @@ from grr_response_server.databases import db_test_mixin
 from grr_response_server.databases import mem
 from grr_response_server.databases import mysql_test
 
+_ClsT = TypeVar("_ClsT", bound=type)
 
-def TestDatabases(mysql=True):
+
+def TestDatabases(mysql: bool = True) -> Callable[[_ClsT], _ClsT]:
   """Decorator that creates additional RELDB-enabled test classes."""
 
-  def _TestDatabasesDecorator(cls):
+  def _TestDatabasesDecorator(cls: _ClsT) -> _ClsT:
     """Decorator that creates additional RELDB-enabled test classes."""
     module = sys.modules[cls.__module__]
     cls_name = cls.__name__
 
     # Prevent MRO issues caused by inheriting the same Mixin multiple times.
-    base_classes = ()
+    base_classes: tuple[type[Any], ...] = ()
     if not issubclass(cls, db_test_mixin.GlobalDatabaseTestMixin):
       base_classes += (db_test_mixin.GlobalDatabaseTestMixin,)
 
@@ -30,7 +36,9 @@ def TestDatabases(mysql=True):
       db_test_cls_name = "{}_MySQLEnabled".format(cls_name)
       db_test_cls = type(
           db_test_cls_name,
-          base_classes + (mysql_test.MySQLDatabaseProviderMixin, cls), {})
+          base_classes + (mysql_test.MySQLDatabaseProviderMixin, cls),
+          {},
+      )
       setattr(module, db_test_cls_name, db_test_cls)
 
     return cls
@@ -38,7 +46,7 @@ def TestDatabases(mysql=True):
   return _TestDatabasesDecorator
 
 
-def WithDatabase(func):
+def WithDatabase(func: Callable[..., Any]) -> Callable[..., Any]:
   """A decorator for database-dependent test methods.
 
   This decorator is intended for tests that need to access database in their
@@ -53,7 +61,7 @@ def WithDatabase(func):
   """
 
   @functools.wraps(func)
-  def Wrapper(*args, **kwargs):
+  def Wrapper(*args: Any, **kwargs: Any) -> None:
     db = abstract_db.DatabaseValidationWrapper(mem.InMemoryDB())
     with mock.patch.object(data_store, "REL_DB", db):
       func(*(args + (db,)), **kwargs)
@@ -61,7 +69,7 @@ def WithDatabase(func):
   return Wrapper
 
 
-def WithDatabaseBlobstore(func):
+def WithDatabaseBlobstore(func: Callable[..., Any]) -> Callable[..., Any]:
   """A decorator for blobstore-dependent test methods.
 
   This decorator is intended for tests that need to access blobstore in their
@@ -79,7 +87,7 @@ def WithDatabaseBlobstore(func):
   """
 
   @functools.wraps(func)
-  def Wrapper(*args, **kwargs):
+  def Wrapper(*args: Any, **kwargs: Any) -> None:
     blobstore = db_blob_store.DbBlobStore()
     with mock.patch.object(data_store, "BLOBS", blobstore):
       func(*(args + (blobstore,)), **kwargs)

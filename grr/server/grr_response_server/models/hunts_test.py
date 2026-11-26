@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+from collections.abc import Sequence
 from unittest import mock
 
 from absl import app
@@ -120,7 +121,7 @@ class HuntsTest(absltest.TestCase):
     self.assertEqual(hunt.duration, 2 * 7 * 24 * 60 * 60)
 
 
-def main(argv):
+def main(argv: Sequence[str]) -> None:
   # Initializes `config.CONFIG`.
   test_lib.main(argv)
 

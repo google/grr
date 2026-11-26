@@ -116,14 +116,12 @@ class _StatxStruct(ctypes.Structure):
   @property
   def rdev(self) -> int:
     """Device identifier (if the file represents a device)."""
-    # https://elixir.bootlin.com/linux/v5.6/source/tools/include/nolibc/nolibc.h
-    return ((self.stx_rdev_major & 0xFFF) << 8) | (self.stx_rdev_minor & 0xFF)
+    return os.makedev(self.stx_rdev_major, self.stx_rdev_minor)
 
   @property
   def dev(self) -> int:
     """Device identifier of the filesystem the file resides on."""
-    # https://elixir.bootlin.com/linux/v5.6/source/tools/include/nolibc/nolibc.h
-    return ((self.stx_dev_major & 0xFFF) << 8) | (self.stx_dev_minor & 0xFF)
+    return os.makedev(self.stx_dev_major, self.stx_dev_minor)
 
 
 # https://elixir.bootlin.com/linux/v3.4/source/include/linux/fcntl.h

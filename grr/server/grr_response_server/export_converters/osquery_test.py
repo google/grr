@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 """Tests for export converters."""
 
+from collections.abc import Sequence
+
 from absl import app
 from absl.testing import absltest
 
@@ -177,7 +179,7 @@ class OsqueryResultExportConverterProtoTest(absltest.TestCase):
     self.assertEqual(results[8].value, "1337")
 
 
-def main(argv):
+def main(argv: Sequence[str]) -> None:
   test_lib.main(argv)
 
 

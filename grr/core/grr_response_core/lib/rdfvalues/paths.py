@@ -411,12 +411,24 @@ class GlobExpression(rdfvalue.RDFString):
         # if a GlobExpression uses %%users.a%% and %%users.b%%, the underlying
         # user might be different for a and b. For the sake of explaining
         # possible values, this should still be enough.
-        interpolation = artifact_utils.KnowledgeBaseInterpolation(
-            pattern=glob_part,
-            kb=knowledge_base,
-        )
-
-        examples = interpolation.results
+        try:
+          interpolation = artifact_utils.KnowledgeBaseInterpolation(
+              pattern=glob_part,
+              kb=knowledge_base,
+          )
+        except ValueError:
+          # TODO - Interpolation generally logs errors instead of
+          # raising but there is one exception: using a variable that does not
+          # exist. This is good because generally user should be notified about
+          # mistyped variable but explanations run often (e.g. when the user is
+          # typing in the UI), so we explicitly ignore them.
+          #
+          # The proper solution would be to report the error (but not as a ge-
+          # HTTP error code) and display it to the user instead. That requires
+          # some UI tweaking and API changes first though.
+          examples = []
+        else:
+          examples = interpolation.results
       else:
         examples = []
 

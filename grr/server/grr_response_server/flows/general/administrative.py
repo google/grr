@@ -265,7 +265,6 @@ class DeleteGRRTempFiles(
   If path is a regular file and starts with Client.tempfile_prefix, delete it.
   """
 
-  category = "/Administrative/"
   proto_args_type = flows_pb2.DeleteGRRTempFilesArgs
 
   def Start(self):
@@ -290,8 +289,6 @@ class DeleteGRRTempFiles(
 class Kill(flow_base.FlowBase):
   """Terminate a running client (does not disable, just kill)."""
 
-  category = "/Administrative/"
-
   def Start(self):
     """Call the kill function on the client."""
     self.CallClientProto(
@@ -314,7 +311,6 @@ class ExecutePythonHack(
 ):
   """Execute a signed python hack on a client."""
 
-  category = "/Administrative/"
   proto_args_type = flows_pb2.ExecutePythonHackArgs
   proto_result_types = (flows_pb2.ExecutePythonHackResult,)
   only_protos_allowed = True
@@ -379,9 +375,6 @@ class OnlineNotification(
 ):
   """Notifies by email when a client comes online in GRR."""
 
-  category = "/Administrative/"
-  behaviours = flow_base.BEHAVIOUR_BASIC
-
   subject_template = jinja2.Template(
       "GRR Client on {{ hostname }} became available.", autoescape=True
   )
@@ -424,8 +417,6 @@ class OnlineNotification(
 
   def Start(self):
     """Starts processing."""
-    if self.proto_args.email is None:
-      self.proto_args.email = self.creator
     self.CallClientProto(
         server_stubs.Echo,
         jobs_pb2.EchoRequest(data="Ping"),
@@ -451,8 +442,9 @@ class OnlineNotification(
         signature=utils.SmartUnicode(config.CONFIG["Email.signature"]),
     )
 
+    email = self.proto_args.email or self.creator
     email_alerts.EMAIL_ALERTER.SendEmail(
-        self.proto_args.email, "grr-noreply", subject, body, is_html=True
+        email, "grr-noreply", subject, body, is_html=True
     )
 
 
@@ -475,8 +467,6 @@ class UpdateClient(
   Signing and upload of the file is done with grr_config_updater or through
   the API.
   """
-
-  category = "/Administrative/"
 
   proto_args_type = flows_pb2.UpdateClientArgs
   proto_store_type = flows_pb2.UpdateClientStore
@@ -666,7 +656,7 @@ class ClientStartupHandler(message_handlers.MessageHandler):
     # We do the interrogate-needed check even if the startup info hasn't
     # changed. This is to accommodate for cases when an interrogation is
     # requested from the client by creating a temporary file.
-    if self._IsInterrogateNeeded(client_id, current_si, new_si):
+    if self._IsInterrogateNeeded(client_id, current_si, new_si, labels):
       flow.StartFlow(
           client_id=client_id,
           flow_cls=discovery.Interrogate,
@@ -678,18 +668,12 @@ class ClientStartupHandler(message_handlers.MessageHandler):
       client_id: str,
       current_si: Optional[rdf_client.StartupInfo],
       new_si: rdf_client.StartupInfo,
+      labels: list[str],
   ) -> bool:
     if exclude_labels := config.CONFIG["Interrogate.startup_exclude_labels"]:
       # We should not use `StartupInfo` to determine endpoint's labels as they
       # are provided by Fleetspeak now and written to the database.
-      #
-      # TODO - Currently we only update database tags during
-      # interrogation which obviously leads to a chicken-and-egg problem. We
-      # need to move it away from there to here.
-      if any(
-          label.name in exclude_labels
-          for label in data_store.REL_DB.ReadClientLabels(client_id)
-      ):
+      if any(label in exclude_labels for label in labels):
         return False
 
     # Interrogate the client immediately after its version has been
@@ -739,8 +723,6 @@ class LaunchBinary(
     ],
 ):
   """Launch a signed binary on a client."""
-
-  category = "/Administrative/"
 
   proto_args_type = flows_pb2.LaunchBinaryArgs
   proto_store_type = flows_pb2.LaunchBinaryStore
@@ -809,16 +791,14 @@ class LaunchBinary(
 class LaunchExecutable(
     flow_base.FlowBase[
         flows_pb2.LaunchExecutableArgs,
-        flows_pb2.DefaultFlowStore,
+        flows_pb2.LaunchExecutableStore,
         flows_pb2.DefaultFlowProgress,
     ]
 ):
   """Launch a server-hosted executable."""
 
-  category = "/Administrative/"
-
   proto_args_type = flows_pb2.LaunchExecutableArgs
-  proto_store_type = flows_pb2.DefaultFlowStore
+  proto_store_type = flows_pb2.LaunchExecutableStore
   proto_result_types = (flows_pb2.LaunchExecutableResult,)
   only_protos_allowed = True
 
@@ -856,9 +836,10 @@ class LaunchExecutable(
     rrg_command = rrg_execute_signed_command_pb2.Command()
     rrg_command.ParseFromString(command.command)
 
-    with open(command.server_executable_path, mode="rb") as file:
-      # pylint: enable=line-too-long
+    self.store.file_path = command.server_executable_path
+    self.store.file_sha256 = rrg_command.filestore_file_sha256
 
+    with open(command.server_executable_path, mode="rb") as file:
       file.seek(0, os.SEEK_END)
       file_size = file.tell()
       file.seek(0, os.SEEK_SET)

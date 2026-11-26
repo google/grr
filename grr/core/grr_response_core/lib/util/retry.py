@@ -123,7 +123,7 @@ class When(Generic[_E]):
 
       while True:
         try:
-          return func(*args, **kwargs)  # pyrefly: ignore[bad-return]
+          return func(*args, **kwargs)
         except self._exception as error:
           attempts += 1
           if attempts == opts.attempts:
@@ -143,4 +143,4 @@ class When(Generic[_E]):
           # unpredictable.
           delay = min(delay * opts.backoff, opts.max_delay)
 
-    return Wrapped  # pyrefly: ignore[bad-return]
+    return Wrapped

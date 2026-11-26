@@ -31,9 +31,9 @@ class AbortSinkTest(absltest.TestCase):
     ):
 
       def Start(self):
-        rrg_stubs.GetSystemMetadata().Call(self._ProcessSystemMetadata)  # pyrefly: ignore[bad-argument-type]
+        rrg_stubs.GetSystemMetadata().Call(self._ProcessSystemMetadata)
 
-      @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+      @flow_base.UseProto2AnyResponses
       def _ProcessSystemMetadata(
           self,
           responses: flow_responses.Responses[any_pb2.Any],

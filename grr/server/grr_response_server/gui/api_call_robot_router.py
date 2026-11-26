@@ -18,7 +18,6 @@ from grr_response_server import data_store
 from grr_response_server import throttle
 from grr_response_server.flows.general import collectors
 from grr_response_server.flows.general import file_finder
-from grr_response_server.flows.local import MITIGATION_FLOWS
 from grr_response_server.gui import api_call_context
 from grr_response_server.gui import api_call_handler_base
 from grr_response_server.gui import api_call_router
@@ -257,14 +256,6 @@ class ApiCallRobotRouter(api_call_router.ApiCallRouterStub):
         flow_args_type=timeline_pb2.TimelineArgs,
     )
 
-  def _CheckMitigationActionAccess(self):
-    mitigation_actions_params = self.params.mitigation_actions
-
-    if not mitigation_actions_params.enabled:
-      raise access_control.UnauthorizedAccess(
-          "Mitigation actions are not allowed by the configuration."
-      )
-
   def _CheckFlowRobotId(self, client_id, flow_id, context=None):
     # We don't use robot ids in REL_DB, but simply check that flow's creator is
     # equal to the user making the request.
@@ -356,11 +347,6 @@ class ApiCallRobotRouter(api_call_router.ApiCallRouterStub):
       override_flow_name = "TimelineFlow"
       override_flow_args = None
       throttler = self._GetTimelineFlowThrottler()
-    elif args.flow.name in [flow.__name__ for flow in MITIGATION_FLOWS]:
-      self._CheckMitigationActionAccess()
-      override_flow_name = args.flow.name
-      override_flow_args = args.flow.args
-      throttler = throttle.FlowThrottler()
     else:
       raise access_control.UnauthorizedAccess(
           "Creating arbitrary flows (%s) is not allowed." % args.flow.name

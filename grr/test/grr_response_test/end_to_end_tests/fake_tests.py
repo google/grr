@@ -8,7 +8,7 @@ from grr_response_test.end_to_end_tests import test_base
 
 class AbstractFakeE2ETest(test_base.EndToEndTest, metaclass=abc.ABCMeta):
 
-  def testCommon(self):
+  def testCommon(self) -> None:
     pass
 
 
@@ -22,14 +22,14 @@ class FakeE2ETestDarwinLinux(AbstractFakeE2ETest):
       test_base.EndToEndTest.Platform.LINUX
   ]
 
-  def testDarwinLinux(self):
+  def testDarwinLinux(self) -> None:
     pass
 
 
 class FakeE2ETestLinux(AbstractFakeE2ETest):
   platforms = [test_base.EndToEndTest.Platform.LINUX]
 
-  def testLinux(self):
+  def testLinux(self) -> None:
     pass
 
 

@@ -9,7 +9,6 @@ from grr_response_proto import objects_pb2
 from grr_response_proto.api import artifact_pb2 as api_artifact_pb2
 from grr_response_proto.api import client_pb2 as api_client_pb2
 from grr_response_proto.api import config_pb2 as api_config_pb2
-from grr_response_proto.api import cron_pb2 as api_cron_pb2
 from grr_response_proto.api import flow_pb2 as api_flow_pb2
 from grr_response_proto.api import hunt_pb2 as api_hunt_pb2
 from grr_response_proto.api import osquery_pb2 as api_osquery_pb2
@@ -159,7 +158,7 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
     # Only top-level hunt flows are allowed, which is what any user can see
     # as "hunt results" (child flows results are not available for anyone).
     if flow.parent_hunt_id != flow.flow_id:
-      self.approval_checker.CheckClientAccess(context, client_id)  # pyrefly: ignore[bad-argument-type]
+      self.approval_checker.CheckClientAccess(context, client_id)  # pyrefly: ignore[bad-argument-type, missing-attribute]
 
   def __init__(
       self,
@@ -242,7 +241,7 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
       args: api_client_pb2.ApiVerifyAccessArgs,
       context: Optional[api_call_context.ApiCallContext] = None,
   ):
-    self.approval_checker.CheckClientAccess(context, args.client_id)  # pyrefly: ignore[bad-argument-type]
+    self.approval_checker.CheckClientAccess(context, args.client_id)  # pyrefly: ignore[bad-argument-type, missing-attribute]
 
     return self.delegate.VerifyAccess(args, context=context)  # pyrefly: ignore[missing-attribute]
 
@@ -296,7 +295,7 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
       args: api_client_pb2.ApiInterrogateClientArgs,
       context: Optional[api_call_context.ApiCallContext] = None,
   ):
-    self.approval_checker.CheckClientAccess(context, args.client_id)  # pyrefly: ignore[bad-argument-type]
+    self.approval_checker.CheckClientAccess(context, args.client_id)  # pyrefly: ignore[bad-argument-type, missing-attribute]
 
     return self.delegate.InterrogateClient(args, context=context)  # pyrefly: ignore[missing-attribute]
 
@@ -305,7 +304,7 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
       args: api_client_pb2.ApiListClientCrashesArgs,
       context: Optional[api_call_context.ApiCallContext] = None,
   ):
-    self.approval_checker.CheckClientAccess(context, args.client_id)  # pyrefly: ignore[bad-argument-type]
+    self.approval_checker.CheckClientAccess(context, args.client_id)  # pyrefly: ignore[bad-argument-type, missing-attribute]
 
     return self.delegate.ListClientCrashes(args, context=context)  # pyrefly: ignore[missing-attribute]
 
@@ -314,7 +313,7 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
       args: api_client_pb2.ApiKillFleetspeakArgs,
       context: Optional[api_call_context.ApiCallContext] = None,
   ) -> api_client.ApiKillFleetspeakHandler:
-    self.approval_checker.CheckClientAccess(context, args.client_id)  # pyrefly: ignore[bad-argument-type]
+    self.approval_checker.CheckClientAccess(context, args.client_id)  # pyrefly: ignore[bad-argument-type, missing-attribute]
     return self.delegate.KillFleetspeak(args, context=context)  # pyrefly: ignore[missing-attribute]
 
   def RestartFleetspeakGrrService(
@@ -322,7 +321,7 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
       args: api_client_pb2.ApiRestartFleetspeakGrrServiceArgs,
       context: Optional[api_call_context.ApiCallContext] = None,
   ) -> api_client.ApiRestartFleetspeakGrrServiceHandler:
-    self.approval_checker.CheckClientAccess(context, args.client_id)  # pyrefly: ignore[bad-argument-type]
+    self.approval_checker.CheckClientAccess(context, args.client_id)  # pyrefly: ignore[bad-argument-type, missing-attribute]
     return self.delegate.RestartFleetspeakGrrService(args, context=context)  # pyrefly: ignore[missing-attribute]
 
   def DeleteFleetspeakPendingMessages(
@@ -330,7 +329,7 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
       args: api_client_pb2.ApiDeleteFleetspeakPendingMessagesArgs,
       context: Optional[api_call_context.ApiCallContext] = None,
   ) -> api_client.ApiDeleteFleetspeakPendingMessagesHandler:
-    self.approval_checker.CheckClientAccess(context, args.client_id)  # pyrefly: ignore[bad-argument-type]
+    self.approval_checker.CheckClientAccess(context, args.client_id)  # pyrefly: ignore[bad-argument-type, missing-attribute]
     return self.delegate.DeleteFleetspeakPendingMessages(args, context=context)  # pyrefly: ignore[missing-attribute]
 
   def GetFleetspeakPendingMessageCount(
@@ -338,7 +337,7 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
       args: api_client_pb2.ApiGetFleetspeakPendingMessageCountArgs,
       context: Optional[api_call_context.ApiCallContext] = None,
   ) -> api_client.ApiGetFleetspeakPendingMessageCountHandler:
-    self.approval_checker.CheckClientAccess(context, args.client_id)  # pyrefly: ignore[bad-argument-type]
+    self.approval_checker.CheckClientAccess(context, args.client_id)  # pyrefly: ignore[bad-argument-type, missing-attribute]
     return self.delegate.GetFleetspeakPendingMessageCount(args, context=context)  # pyrefly: ignore[missing-attribute]
 
   # Virtual file system methods.
@@ -349,7 +348,7 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
       args: api_vfs_pb2.ApiListFilesArgs,
       context: Optional[api_call_context.ApiCallContext] = None,
   ):
-    self.approval_checker.CheckClientAccess(context, args.client_id)  # pyrefly: ignore[bad-argument-type]
+    self.approval_checker.CheckClientAccess(context, args.client_id)  # pyrefly: ignore[bad-argument-type, missing-attribute]
 
     return self.delegate.ListFiles(args, context=context)  # pyrefly: ignore[missing-attribute]
 
@@ -358,7 +357,7 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
       args: api_vfs_pb2.ApiBrowseFilesystemArgs,
       context: Optional[api_call_context.ApiCallContext] = None,
   ):
-    self.approval_checker.CheckClientAccess(context, args.client_id)  # pyrefly: ignore[bad-argument-type]
+    self.approval_checker.CheckClientAccess(context, args.client_id)  # pyrefly: ignore[bad-argument-type, missing-attribute]
 
     return self.delegate.BrowseFilesystem(args, context=context)  # pyrefly: ignore[missing-attribute]
 
@@ -367,7 +366,7 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
       args: api_vfs_pb2.ApiGetVfsFilesArchiveArgs,
       context: Optional[api_call_context.ApiCallContext] = None,
   ):
-    self.approval_checker.CheckClientAccess(context, args.client_id)  # pyrefly: ignore[bad-argument-type]
+    self.approval_checker.CheckClientAccess(context, args.client_id)  # pyrefly: ignore[bad-argument-type, missing-attribute]
 
     return self.delegate.GetVfsFilesArchive(args, context=context)  # pyrefly: ignore[missing-attribute]
 
@@ -376,7 +375,7 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
       args: api_vfs_pb2.ApiGetFileDetailsArgs,
       context: Optional[api_call_context.ApiCallContext] = None,
   ):
-    self.approval_checker.CheckClientAccess(context, args.client_id)  # pyrefly: ignore[bad-argument-type]
+    self.approval_checker.CheckClientAccess(context, args.client_id)  # pyrefly: ignore[bad-argument-type, missing-attribute]
 
     return self.delegate.GetFileDetails(args, context=context)  # pyrefly: ignore[missing-attribute]
 
@@ -385,7 +384,7 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
       args: api_vfs_pb2.ApiGetFileTextArgs,
       context: Optional[api_call_context.ApiCallContext] = None,
   ):
-    self.approval_checker.CheckClientAccess(context, args.client_id)  # pyrefly: ignore[bad-argument-type]
+    self.approval_checker.CheckClientAccess(context, args.client_id)  # pyrefly: ignore[bad-argument-type, missing-attribute]
 
     return self.delegate.GetFileText(args, context=context)  # pyrefly: ignore[missing-attribute]
 
@@ -394,7 +393,7 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
       args: api_vfs_pb2.ApiGetFileBlobArgs,
       context: Optional[api_call_context.ApiCallContext] = None,
   ):
-    self.approval_checker.CheckClientAccess(context, args.client_id)  # pyrefly: ignore[bad-argument-type]
+    self.approval_checker.CheckClientAccess(context, args.client_id)  # pyrefly: ignore[bad-argument-type, missing-attribute]
 
     return self.delegate.GetFileBlob(args, context=context)  # pyrefly: ignore[missing-attribute]
 
@@ -403,7 +402,7 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
       args: api_vfs_pb2.ApiGetFileVersionTimesArgs,
       context: Optional[api_call_context.ApiCallContext] = None,
   ):
-    self.approval_checker.CheckClientAccess(context, args.client_id)  # pyrefly: ignore[bad-argument-type]
+    self.approval_checker.CheckClientAccess(context, args.client_id)  # pyrefly: ignore[bad-argument-type, missing-attribute]
 
     return self.delegate.GetFileVersionTimes(args, context=context)  # pyrefly: ignore[missing-attribute]
 
@@ -412,7 +411,7 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
       args: api_vfs_pb2.ApiGetFileDownloadCommandArgs,
       context: Optional[api_call_context.ApiCallContext] = None,
   ):
-    self.approval_checker.CheckClientAccess(context, args.client_id)  # pyrefly: ignore[bad-argument-type]
+    self.approval_checker.CheckClientAccess(context, args.client_id)  # pyrefly: ignore[bad-argument-type, missing-attribute]
 
     return self.delegate.GetFileDownloadCommand(args, context=context)  # pyrefly: ignore[missing-attribute]
 
@@ -421,7 +420,7 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
       args: api_vfs_pb2.ApiCreateVfsRefreshOperationArgs,
       context: Optional[api_call_context.ApiCallContext] = None,
   ):
-    self.approval_checker.CheckClientAccess(context, args.client_id)  # pyrefly: ignore[bad-argument-type]
+    self.approval_checker.CheckClientAccess(context, args.client_id)  # pyrefly: ignore[bad-argument-type, missing-attribute]
 
     return self.delegate.CreateVfsRefreshOperation(args, context=context)  # pyrefly: ignore[missing-attribute]
 
@@ -440,7 +439,7 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
       args: api_vfs_pb2.ApiGetVfsTimelineArgs,
       context: Optional[api_call_context.ApiCallContext] = None,
   ):
-    self.approval_checker.CheckClientAccess(context, args.client_id)  # pyrefly: ignore[bad-argument-type]
+    self.approval_checker.CheckClientAccess(context, args.client_id)  # pyrefly: ignore[bad-argument-type, missing-attribute]
 
     return self.delegate.GetVfsTimeline(args, context=context)  # pyrefly: ignore[missing-attribute]
 
@@ -449,7 +448,7 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
       args: api_vfs_pb2.ApiGetVfsTimelineAsCsvArgs,
       context: Optional[api_call_context.ApiCallContext] = None,
   ):
-    self.approval_checker.CheckClientAccess(context, args.client_id)  # pyrefly: ignore[bad-argument-type]
+    self.approval_checker.CheckClientAccess(context, args.client_id)  # pyrefly: ignore[bad-argument-type, missing-attribute]
 
     return self.delegate.GetVfsTimelineAsCsv(args, context=context)  # pyrefly: ignore[missing-attribute]
 
@@ -458,7 +457,7 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
       args: api_vfs_pb2.ApiUpdateVfsFileContentArgs,
       context: Optional[api_call_context.ApiCallContext] = None,
   ):
-    self.approval_checker.CheckClientAccess(context, args.client_id)  # pyrefly: ignore[bad-argument-type]
+    self.approval_checker.CheckClientAccess(context, args.client_id)  # pyrefly: ignore[bad-argument-type, missing-attribute]
 
     return self.delegate.UpdateVfsFileContent(args, context=context)  # pyrefly: ignore[missing-attribute]
 
@@ -508,7 +507,7 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
       args: api_flow_pb2.ApiListFlowsArgs,
       context: Optional[api_call_context.ApiCallContext] = None,
   ):
-    self.approval_checker.CheckClientAccess(context, args.client_id)  # pyrefly: ignore[bad-argument-type]
+    self.approval_checker.CheckClientAccess(context, args.client_id)  # pyrefly: ignore[bad-argument-type, missing-attribute]
 
     return self.delegate.ListFlows(args, context=context)  # pyrefly: ignore[missing-attribute]
 
@@ -526,7 +525,7 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
       args: api_flow_pb2.ApiCreateFlowArgs,
       context: Optional[api_call_context.ApiCallContext] = None,
   ):
-    self.approval_checker.CheckClientAccess(context, args.client_id)  # pyrefly: ignore[bad-argument-type]
+    self.approval_checker.CheckClientAccess(context, args.client_id)  # pyrefly: ignore[bad-argument-type, missing-attribute]
     self.admin_access_checker.CheckIfCanStartFlow(
         context.username, args.flow.name or args.flow.runner_args.flow_name  # pyrefly: ignore[missing-attribute]
     )
@@ -541,7 +540,7 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
       args: api_flow_pb2.ApiCancelFlowArgs,
       context: Optional[api_call_context.ApiCallContext] = None,
   ):
-    self.approval_checker.CheckClientAccess(context, args.client_id)  # pyrefly: ignore[bad-argument-type]
+    self.approval_checker.CheckClientAccess(context, args.client_id)  # pyrefly: ignore[bad-argument-type, missing-attribute]
 
     return self.delegate.CancelFlow(args, context=context)  # pyrefly: ignore[missing-attribute]
 
@@ -550,7 +549,7 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
       args: api_flow_pb2.ApiListFlowRequestsArgs,
       context: Optional[api_call_context.ApiCallContext] = None,
   ):
-    self.approval_checker.CheckClientAccess(context, args.client_id)  # pyrefly: ignore[bad-argument-type]
+    self.approval_checker.CheckClientAccess(context, args.client_id)  # pyrefly: ignore[bad-argument-type, missing-attribute]
 
     return self.delegate.ListFlowRequests(args, context=context)  # pyrefly: ignore[missing-attribute]
 
@@ -597,7 +596,7 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
       args: api_flow_pb2.ApiListFlowOutputPluginsArgs,
       context: Optional[api_call_context.ApiCallContext] = None,
   ):
-    self.approval_checker.CheckClientAccess(context, args.client_id)  # pyrefly: ignore[bad-argument-type]
+    self.approval_checker.CheckClientAccess(context, args.client_id)  # pyrefly: ignore[bad-argument-type, missing-attribute]
 
     return self.delegate.ListFlowOutputPlugins(args, context=context)  # pyrefly: ignore[missing-attribute]
 
@@ -606,7 +605,7 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
       args: api_flow_pb2.ApiListFlowOutputPluginLogsArgs,
       context: Optional[api_call_context.ApiCallContext] = None,
   ):
-    self.approval_checker.CheckClientAccess(context, args.client_id)  # pyrefly: ignore[bad-argument-type]
+    self.approval_checker.CheckClientAccess(context, args.client_id)  # pyrefly: ignore[bad-argument-type, missing-attribute]
 
     return self.delegate.ListFlowOutputPluginLogs(args, context=context)  # pyrefly: ignore[missing-attribute]
 
@@ -615,7 +614,7 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
       args: api_flow_pb2.ApiListFlowOutputPluginErrorsArgs,
       context: Optional[api_call_context.ApiCallContext] = None,
   ):
-    self.approval_checker.CheckClientAccess(context, args.client_id)  # pyrefly: ignore[bad-argument-type]
+    self.approval_checker.CheckClientAccess(context, args.client_id)  # pyrefly: ignore[bad-argument-type, missing-attribute]
 
     return self.delegate.ListFlowOutputPluginErrors(args, context=context)  # pyrefly: ignore[missing-attribute]
 
@@ -624,7 +623,7 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
       args: api_flow_pb2.ApiListAllFlowOutputPluginLogsArgs,
       context: Optional[api_call_context.ApiCallContext] = None,
   ):
-    self.approval_checker.CheckClientAccess(context, args.client_id)  # pyrefly: ignore[bad-argument-type]
+    self.approval_checker.CheckClientAccess(context, args.client_id)  # pyrefly: ignore[bad-argument-type, missing-attribute]
 
     return self.delegate.ListAllFlowOutputPluginLogs(args, context=context)  # pyrefly: ignore[missing-attribute]
 
@@ -633,7 +632,7 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
       args: api_flow_pb2.ApiListFlowLogsArgs,
       context: Optional[api_call_context.ApiCallContext] = None,
   ):
-    self.approval_checker.CheckClientAccess(context, args.client_id)  # pyrefly: ignore[bad-argument-type]
+    self.approval_checker.CheckClientAccess(context, args.client_id)  # pyrefly: ignore[bad-argument-type, missing-attribute]
 
     return self.delegate.ListFlowLogs(args, context=context)  # pyrefly: ignore[missing-attribute]
 
@@ -655,7 +654,7 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
 
     # Check for client access if this flow was not scheduled as part of a hunt.
     if flow.parent_hunt_id != flow.flow_id:
-      self.approval_checker.CheckClientAccess(context, args.client_id)  # pyrefly: ignore[bad-argument-type]
+      self.approval_checker.CheckClientAccess(context, args.client_id)  # pyrefly: ignore[bad-argument-type, missing-attribute]
 
     return self.delegate.GetCollectedTimeline(args, context=context)  # pyrefly: ignore[missing-attribute]
 
@@ -723,7 +722,7 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
 
     # Check for client access if this flow was not scheduled as part of a hunt.
     if flow.parent_hunt_id != flow.flow_id:
-      self.approval_checker.CheckClientAccess(context, str(args.client_id))  # pyrefly: ignore[bad-argument-type]
+      self.approval_checker.CheckClientAccess(context, str(args.client_id))  # pyrefly: ignore[bad-argument-type, missing-attribute]
 
     return self.delegate.GetOsqueryResults(args, context=context)  # pyrefly: ignore[missing-attribute]
 
@@ -738,72 +737,6 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
     # Everybody can retrieve signed commands.
 
     return self.delegate.ListSignedCommands(args, context=context)  # pyrefly: ignore[missing-attribute]
-
-  # Cron jobs methods.
-  # =================
-  #
-  def ListCronJobs(
-      self,
-      args: api_cron_pb2.ApiListCronJobsArgs,
-      context: Optional[api_call_context.ApiCallContext] = None,
-  ):
-    # Everybody can list cron jobs.
-
-    return self.delegate.ListCronJobs(args, context=context)  # pyrefly: ignore[missing-attribute]
-
-  def GetCronJob(
-      self,
-      args: api_cron_pb2.ApiGetCronJobArgs,
-      context: Optional[api_call_context.ApiCallContext] = None,
-  ):
-    # Everybody can retrieve a cron job.
-
-    return self.delegate.GetCronJob(args, context=context)  # pyrefly: ignore[missing-attribute]
-
-  def ForceRunCronJob(
-      self,
-      args: api_cron_pb2.ApiForceRunCronJobArgs,
-      context: Optional[api_call_context.ApiCallContext] = None,
-  ):
-    self.approval_checker.CheckCronJobAccess(context, str(args.cron_job_id))  # pyrefly: ignore[bad-argument-type]
-
-    return self.delegate.ForceRunCronJob(args, context=context)  # pyrefly: ignore[missing-attribute]
-
-  def ModifyCronJob(
-      self,
-      args: api_cron_pb2.ApiModifyCronJobArgs,
-      context: Optional[api_call_context.ApiCallContext] = None,
-  ):
-    self.approval_checker.CheckCronJobAccess(context, str(args.cron_job_id))  # pyrefly: ignore[bad-argument-type]
-
-    return self.delegate.ModifyCronJob(args, context=context)  # pyrefly: ignore[missing-attribute]
-
-  def ListCronJobRuns(
-      self,
-      args: api_cron_pb2.ApiListCronJobRunsArgs,
-      context: Optional[api_call_context.ApiCallContext] = None,
-  ):
-    # Everybody can list cron jobs' runs.
-
-    return self.delegate.ListCronJobRuns(args, context=context)  # pyrefly: ignore[missing-attribute]
-
-  def GetCronJobRun(
-      self,
-      args: api_cron_pb2.ApiGetCronJobRunArgs,
-      context: Optional[api_call_context.ApiCallContext] = None,
-  ):
-    # Everybody can get cron runs.
-
-    return self.delegate.GetCronJobRun(args, context=context)  # pyrefly: ignore[missing-attribute]
-
-  def DeleteCronJob(
-      self,
-      args: api_cron_pb2.ApiDeleteCronJobArgs,
-      context: Optional[api_call_context.ApiCallContext] = None,
-  ):
-    self.approval_checker.CheckCronJobAccess(context, str(args.cron_job_id))  # pyrefly: ignore[bad-argument-type]
-
-    return self.delegate.DeleteCronJob(args, context=context)  # pyrefly: ignore[missing-attribute]
 
   # Hunts methods.
   # =============
@@ -822,7 +755,7 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
       args: api_hunt_pb2.ApiVerifyHuntAccessArgs,
       context: Optional[api_call_context.ApiCallContext] = None,
   ):
-    self.approval_checker.CheckHuntAccess(context, str(args.hunt_id))  # pyrefly: ignore[bad-argument-type]
+    self.approval_checker.CheckHuntAccess(context, str(args.hunt_id))  # pyrefly: ignore[bad-argument-type, missing-attribute]
 
     return self.delegate.VerifyHuntAccess(args, context=context)  # pyrefly: ignore[missing-attribute]
 
@@ -980,7 +913,7 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
       context: Optional[api_call_context.ApiCallContext] = None,
   ):
     # Starting/stopping hunt or modifying its attributes requires an approval.
-    self.approval_checker.CheckHuntAccess(context, str(args.hunt_id))  # pyrefly: ignore[bad-argument-type]
+    self.approval_checker.CheckHuntAccess(context, str(args.hunt_id))  # pyrefly: ignore[bad-argument-type, missing-attribute]
 
     return self.delegate.ModifyHunt(args, context=context)  # pyrefly: ignore[missing-attribute]
 
@@ -1001,7 +934,7 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
 
     # Hunt's creator is allowed to delete the hunt.
     if context.username != hunt_obj.creator:  # pyrefly: ignore[missing-attribute]
-      self.approval_checker.CheckHuntAccess(context, str(args.hunt_id))  # pyrefly: ignore[bad-argument-type]
+      self.approval_checker.CheckHuntAccess(context, str(args.hunt_id))  # pyrefly: ignore[bad-argument-type, missing-attribute]
 
     return self.delegate.DeleteHunt(args, context=context)  # pyrefly: ignore[missing-attribute]
 
@@ -1010,7 +943,7 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
       args: api_hunt_pb2.ApiGetHuntFilesArchiveArgs,
       context: Optional[api_call_context.ApiCallContext] = None,
   ):
-    self.approval_checker.CheckHuntAccess(context, str(args.hunt_id))  # pyrefly: ignore[bad-argument-type]
+    self.approval_checker.CheckHuntAccess(context, str(args.hunt_id))  # pyrefly: ignore[bad-argument-type, missing-attribute]
 
     return self.delegate.GetHuntFilesArchive(args, context=context)  # pyrefly: ignore[missing-attribute]
 
@@ -1019,7 +952,7 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
       args: api_hunt_pb2.ApiGetHuntFileArgs,
       context: Optional[api_call_context.ApiCallContext] = None,
   ):
-    self.approval_checker.CheckHuntAccess(context, str(args.hunt_id))  # pyrefly: ignore[bad-argument-type]
+    self.approval_checker.CheckHuntAccess(context, str(args.hunt_id))  # pyrefly: ignore[bad-argument-type, missing-attribute]
 
     return self.delegate.GetHuntFile(args, context=context)  # pyrefly: ignore[missing-attribute]
 
@@ -1122,51 +1055,6 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
     # Everybody can list their own user hunt approvals.
 
     return api_user.ApiListHuntApprovalsHandler(self.approval_checker)
-
-  def CreateCronJobApproval(
-      self,
-      args: api_user_pb2.ApiCreateCronJobApprovalArgs,
-      context: Optional[api_call_context.ApiCallContext] = None,
-  ):
-    # Everybody can request a cron job approval.
-
-    return api_user.ApiCreateCronJobApprovalHandler(self.approval_checker)
-
-  def GetCronJobApproval(
-      self,
-      args: api_user_pb2.ApiGetCronJobApprovalArgs,
-      context: Optional[api_call_context.ApiCallContext] = None,
-  ):
-    # Everybody can have access to everybody's crons approvals, provided
-    # they know: a cron job id, a username of the requester and an approval id.
-
-    return api_user.ApiGetCronJobApprovalHandler(self.approval_checker)
-
-  def GrantCronJobApproval(
-      self,
-      args: api_user_pb2.ApiGrantCronJobApprovalArgs,
-      context: Optional[api_call_context.ApiCallContext] = None,
-  ):
-    # Everybody can have access to everybody's crons approvals, provided
-    # they know: a cron job id, a username of the requester and an approval id.
-    #
-    # NOTE: Granting an approval doesn't necessarily mean that corresponding
-    # approval request becomes fulfilled right away. Calling this method
-    # adds the caller to the approval's approvers list. Then it depends
-    # on a particular approval if this list is sufficient or not.
-    # Typical case: user can grant their own approval, but this won't make
-    # the approval valid.
-
-    return api_user.ApiGrantCronJobApprovalHandler(self.approval_checker)
-
-  def ListCronJobApprovals(
-      self,
-      args: api_user_pb2.ApiListCronJobApprovalsArgs,
-      context: Optional[api_call_context.ApiCallContext] = None,
-  ):
-    # Everybody can list their own user cron approvals.
-
-    return api_user.ApiListCronJobApprovalsHandler(self.approval_checker)
 
   def ListApproverSuggestions(
       self,
@@ -1332,4 +1220,3 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
     """Returns a description of the API following the OpenAPI specification."""
     # Everybody can get the OpenAPI description.
     return self.delegate.GetOpenApiDescription(args, context=context)  # pyrefly: ignore[missing-attribute]
-

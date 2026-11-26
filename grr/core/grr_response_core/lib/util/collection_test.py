@@ -1,4 +1,6 @@
 #!/usr/bin/env python
+from collections.abc import Iterator
+
 from absl.testing import absltest
 
 from grr_response_core.lib.util import collection
@@ -16,15 +18,15 @@ class FlattenTest(absltest.TestCase):
 
   def testGenerator(self):
 
-    def Foo():
+    def Foo() -> Iterator[str]:
       yield "foo"
       yield "bar"
 
-    def Quux():
+    def Quux() -> Iterator[str]:
       yield "baz"
       yield "quux"
 
-    def Norf():
+    def Norf() -> Iterator[Iterator[str]]:
       yield Foo()
       yield Quux()
 
@@ -84,7 +86,7 @@ class GroupTest(absltest.TestCase):
 
   def testGenerator(self):
 
-    def Generate():
+    def Generate() -> Iterator[int]:
       yield 4
       yield 8
       yield 15
@@ -161,7 +163,7 @@ class UnzipTest(absltest.TestCase):
 
   def testGenerator(self):
 
-    def Foo():
+    def Foo() -> Iterator[tuple[int, str]]:
       yield 1, "foo"
       yield 2, "bar"
       yield 3, "baz"

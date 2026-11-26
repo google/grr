@@ -1,10 +1,12 @@
 #!/usr/bin/env python
 """Functions for client logging."""
 
+from collections.abc import Iterator
 import logging
 from logging import handlers
 import os
 import socket
+from typing import Any
 
 from absl import flags
 
@@ -22,10 +24,10 @@ _VERBOSE = flags.DEFINE_bool(
 class PreLoggingMemoryHandler(handlers.BufferingHandler):
   """Handler used before logging subsystem is initialized."""
 
-  def shouldFlush(self, record):
+  def shouldFlush(self, record: logging.LogRecord) -> bool:
     return len(self.buffer) >= self.capacity
 
-  def flush(self):
+  def flush(self) -> None:
     """Flush the buffer.
 
     This is called when the buffer is really full, we just just drop one oldest
@@ -37,14 +39,14 @@ class PreLoggingMemoryHandler(handlers.BufferingHandler):
 class RobustSysLogHandler(handlers.SysLogHandler):
   """A handler which does not raise if it fails to connect."""
 
-  def __init__(self, *args, **kwargs):
+  def __init__(self, *args: Any, **kwargs: Any):
     self.formatter = None
     try:
       super().__init__(*args, **kwargs)
     except socket.error:
       pass
 
-  def handleError(self, record):
+  def handleError(self, record: logging.LogRecord) -> None:
     """Just ignore socket errors - the syslog server might come back."""
 
 
@@ -63,7 +65,7 @@ VERBOSE_LOG_LEVELS = {
 }
 
 
-def SetLogLevels():
+def SetLogLevels() -> None:
   logger = logging.getLogger()
 
   if config.CONFIG["Logging.verbose"] or _VERBOSE.value:
@@ -79,7 +81,8 @@ def SetLogLevels():
 LOG_FORMAT = "%(levelname)s:%(asctime)s %(module)s:%(lineno)s] %(message)s"
 
 
-def GetLogHandlers():
+def GetLogHandlers() -> Iterator[logging.Handler]:
+  """Yields configured logging handlers for this client."""
   formatter = logging.Formatter(LOG_FORMAT)
   engines = config.CONFIG["Logging.engines"]
   logging.debug("Will use logging engines %s", engines)
@@ -127,7 +130,7 @@ def GetLogHandlers():
       logging.exception("Unable to create logger %s", engine)
 
 
-def LogInit():
+def LogInit() -> None:
   """Configure the logging subsystem."""
   logging.debug("Initializing client logging subsystem.")
 
@@ -136,7 +139,8 @@ def LogInit():
   memory_handlers = [
       m
       for m in logger.handlers
-      if m.__class__.__name__ == "PreLoggingMemoryHandler"
+      if isinstance(m, handlers.BufferingHandler)
+      and m.__class__.__name__ == "PreLoggingMemoryHandler"
   ]
 
   # Clear all handers.

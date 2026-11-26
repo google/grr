@@ -192,20 +192,6 @@ def IntToOutputPluginID(output_plugin_id):
   return "%X" % output_plugin_id
 
 
-def CronJobRunIDToInt(cron_job_run_id):
-  if cron_job_run_id is None:
-    return None
-  else:
-    return int(cron_job_run_id, 16)
-
-
-def IntToCronJobRunID(cron_job_run_id):
-  if cron_job_run_id is None:
-    return None
-  else:
-    return "%08X" % cron_job_run_id
-
-
 def SecondsToMicros(seconds):
   return int(seconds * 1e6)
 
@@ -231,8 +217,8 @@ class BatchPlanner(Generic[_T]):
   # be replaced with a generic NamedTuple. Unfortunately, Python 3.6
   # has issues with NamedTuples and generics. See:
   # https://stackoverflow.com/questions/50530959/generic-namedtuple-in-python-3-6
-  BatchPart = tuple[_T, int, int]  # pylint: disable=invalid-name
-  Batch = Sequence[BatchPart]  # pylint: disable=invalid-name
+  BatchPart = tuple[_T, int, int]  # pylint: disable=invalid-name  # pyrefly: ignore[invalid-type-var]
+  Batch = Sequence[BatchPart]  # pylint: disable=invalid-name  # pyrefly: ignore[invalid-type-var]
 
   def __init__(self, limit: int):
     """Constructor.

@@ -275,10 +275,6 @@ class ApiLabelsRestrictedCallRouterTest(
         api_flow_pb2.ApiListFlowLogsArgs(client_id=self.client_id),
     )
 
-    # Cron jobs methods.
-    self.CheckMethod(c.ListCronJobs)
-    self.CheckMethod(c.DeleteCronJob)
-
     # Hunts methods.
     self.CheckMethod(c.ListHunts)
     self.CheckMethod(
@@ -349,7 +345,6 @@ class ApiLabelsRestrictedCallRouterTest(
         api_user_pb2.ApiListClientApprovalsArgs(client_id=self.client_id),
     )
     self.CheckMethod(c.ListHuntApprovals)
-    self.CheckMethod(c.ListCronJobApprovals)
 
     # User settings methods.
     self.CheckMethod(c.GetPendingUserNotificationsCount)

@@ -1,6 +1,9 @@
 #!/usr/bin/env python
 """Tests for the GCS Blobstore implementation."""
 
+from __future__ import annotations
+
+from collections.abc import Callable
 import os
 import unittest
 import uuid
@@ -8,6 +11,7 @@ import uuid
 from absl import app
 from google.cloud import storage
 
+from grr_response_server import blob_store
 from grr_response_server import blob_store_test_mixin
 from grr_response_server.blob_stores import gcs_blob_store
 from grr_response_server.models import blobs as models_blobs
@@ -18,6 +22,9 @@ class GCSBlobStoreTest(
     blob_store_test_mixin.BlobStoreTestMixin,
     test_lib.GRRBaseTest,
 ):
+
+  _gcs_bucket: storage.Bucket
+  _gcs_config_overrider: test_lib.ConfigOverrider
 
   @classmethod
   def setUpClass(cls):
@@ -51,15 +58,15 @@ class GCSBlobStoreTest(
     self.__class__._gcs_bucket.delete(force=True)
     super().tearDown()
 
-  def CreateBlobStore(self):
+  def CreateBlobStore(self) -> tuple[blob_store.BlobStore, Callable[[], None]]:
     return (gcs_blob_store.GCSBlobStore(), lambda: None)
 
   def testEmptyBlobPrefix(self):
     with test_lib.ConfigOverrider({"Blobstore.gcs.blob_prefix": ""}):
-      blob_store = gcs_blob_store.GCSBlobStore()
+      bs = gcs_blob_store.GCSBlobStore()
       blob_id = models_blobs.BlobID(b"0123" * 8)
       blob_data = b"abcdefgh"
-      blob_store.WriteBlobs({blob_id: blob_data})
+      bs.WriteBlobs({blob_id: blob_data})
       expected_blob_name = bytes(blob_id).hex()
       expected_blob = self.__class__._gcs_bucket.blob(expected_blob_name)
       self.assertTrue(expected_blob.exists())
@@ -67,10 +74,10 @@ class GCSBlobStoreTest(
   def testBlobPrefix(self):
     prefix = str(uuid.uuid4()) + "/"
     with test_lib.ConfigOverrider({"Blobstore.gcs.blob_prefix": prefix}):
-      blob_store = gcs_blob_store.GCSBlobStore()
+      bs = gcs_blob_store.GCSBlobStore()
       blob_id = models_blobs.BlobID(b"0123" * 8)
       blob_data = b"abcdefgh"
-      blob_store.WriteBlobs({blob_id: blob_data})
+      bs.WriteBlobs({blob_id: blob_data})
       expected_blob_name = f"{prefix}{bytes(blob_id).hex()}"
       expected_blob = self.__class__._gcs_bucket.blob(expected_blob_name)
       self.assertTrue(expected_blob.exists())

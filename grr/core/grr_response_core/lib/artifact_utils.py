@@ -198,16 +198,6 @@ class KnowledgeBaseInterpolation:
       # both user and non-user variables we have to then combine all possible
       # user-based interpolations with non-user-based ones.
       for user in kb.users:
-        # There might be cases in which username is not strictly necessary but
-        # scenario in which we do not have username but have other values is
-        # very unlikely. Assuming that users do have usernames makes the logic
-        # much simpler below.
-        if not (username := user.username):
-          self._logs.append(
-              f"user {user!r} without username",
-          )
-          continue
-
         user_result = pattern
 
         for attr in user_attrs:
@@ -224,10 +214,18 @@ class KnowledgeBaseInterpolation:
                 userprofile = user.userprofile
               elif user.homedir:
                 userprofile = user.homedir
-              elif kb.environ_systemdrive:
-                userprofile = f"{kb.environ_systemdrive}\\Users\\{username}"
+              elif user.username:
+                if kb.environ_systemdrive:
+                  userprofile = (
+                      f"{kb.environ_systemdrive}\\Users\\{user.username}"
+                  )
+                else:
+                  userprofile = f"C:\\Users\\{user.username}"
               else:
-                userprofile = f"C:\\Users\\{username}"
+                self._logs.append(
+                    f"user {user!r} without derivable userprofile",
+                )
+                break
 
               try:
                 value = {
@@ -248,19 +246,20 @@ class KnowledgeBaseInterpolation:
                 }[attr]
               except KeyError:
                 self._logs.append(
-                    f"user {username!r} is missing {attr!r} (no Windows "
-                    "default available)",
+                    f"user {user.username or user!r} is missing {attr!r} "
+                    "(no Windows default available)",
                 )
                 break
             else:
               self._logs.append(
-                  f"user {username!r} is missing {attr!r} (no fallback "
-                  "available)",
+                  f"user {user.username or user!r} is missing {attr!r} "
+                  "(no fallback available)",
               )
               break
 
             self._logs.append(
-                f"using default {value!r} for {attr!r} for user {username!r}",
+                f"using default {value!r} for {attr!r} "
+                f"for user {user.username or user!r}",
             )
 
           user_result = user_result.replace(f"%%users.{attr}%%", value)

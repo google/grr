@@ -73,7 +73,7 @@ def list_artifacts() -> Sequence[artifact_pb2.ArtifactDescriptor]:
   return [artifact.data for artifact in _api.get().ListArtifacts()]
 
 
-class Client(object):
+class Client:
   """Wrapper for a GRR Client.
 
   Offers easy to use methods to interact with GRR API
@@ -102,14 +102,14 @@ class Client(object):
 
   def __init__(self, client_: client.Client) -> None:
     self._client = client_
-    self._snapshot: objects_pb2.ClientSnapshot = None  # pyrefly: ignore[bad-assignment]
+    self._snapshot: Optional[objects_pb2.ClientSnapshot] = None
 
   @classmethod
   def with_id(cls, client_id: str) -> 'Client':
     try:
       return cls(_api.get().Client(client_id).Get())
     except api_errors.UnknownError as e:
-      raise errors.UnknownClientError(client_id, e)
+      raise errors.UnknownClientError(client_id) from e
 
   @classmethod
   def with_hostname(cls, hostname: str) -> 'Client':
@@ -277,7 +277,7 @@ class Client(object):
     try:
       interrogate = self._client.CreateFlow(name='Interrogate')
     except api_errors.AccessForbiddenError as e:
-      raise errors.ApprovalMissingError(self.id, e)
+      raise errors.ApprovalMissingError(self.id) from e
 
     _timeout.await_flow(interrogate)
 
@@ -295,7 +295,7 @@ class Client(object):
     try:
       ps = self._client.CreateFlow(name='ListProcesses', args=args)
     except api_errors.AccessForbiddenError as e:
-      raise errors.ApprovalMissingError(self.id, e)
+      raise errors.ApprovalMissingError(self.id) from e
 
     _timeout.await_flow(ps)
 
@@ -359,7 +359,7 @@ class Client(object):
     try:
       oq = self._client.CreateFlow(name='OsqueryFlow', args=args)
     except api_errors.AccessForbiddenError as e:
-      raise errors.ApprovalMissingError(self.id, e)
+      raise errors.ApprovalMissingError(self.id) from e
 
     _timeout.await_flow(oq)
 
@@ -403,7 +403,7 @@ class Client(object):
     try:
       ac = self._client.CreateFlow(name='ArtifactCollectorFlow', args=args)
     except api_errors.AccessForbiddenError as e:
-      raise errors.ApprovalMissingError(self.id, e)
+      raise errors.ApprovalMissingError(self.id) from e
 
     _timeout.await_flow(ac)
     return [_.payload for _ in ac.ListResults()]
@@ -439,7 +439,7 @@ class Client(object):
     try:
       yara = self._client.CreateFlow(name='YaraProcessScan', args=args)
     except api_errors.AccessForbiddenError as e:
-      raise errors.ApprovalMissingError(self.id, e)
+      raise errors.ApprovalMissingError(self.id) from e
 
     _timeout.await_flow(yara)
 

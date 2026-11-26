@@ -1,7 +1,10 @@
 #!/usr/bin/env python
+from __future__ import annotations
+
+from collections.abc import Iterable, Sequence
 import os
 import sys
-from typing import Optional
+from typing import Any
 import unittest
 from unittest import mock
 
@@ -10,10 +13,8 @@ import requests
 
 from grr_api_client import api
 from grr_api_client import client
-from grr_api_client import config as api_config
 from grr_api_client import context
 from grr_api_client import types
-from grr_api_client import utils as api_utils
 from grr_response_proto.api import client_pb2
 from grr_response_server.models import clients as models_clients
 from grr_response_test.end_to_end_tests import fake_tests
@@ -27,7 +28,7 @@ class FakeApi(object):
 
   def __init__(
       self,
-      client_data: Optional[client_pb2.ApiClient] = None,
+      client_data: client_pb2.ApiClient | None = None,
       raise_conn_error: bool = False,
   ):
     """Initializes the FakeApi.
@@ -48,18 +49,7 @@ class FakeApi(object):
     self.request_count = 0
     self.types = types.Types(mock.Mock(spec=context.GrrApiContext))
 
-  def ListGrrBinaries(self):
-    self.request_count += 1
-    if self._raise_conn_error and self.request_count == 1:
-      raise requests.ConnectionError("Fake Connection Error.")
-    linux_binary = mock.Mock(spec=api_config.GrrBinary)
-    linux_binary.path = runner.E2ETestRunner.LINUX_TEST_BINARY_PATH
-    windows_binary = mock.Mock(spec=api_config.GrrBinary)
-    windows_binary.path = runner.E2ETestRunner.WINDOWS_TEST_BINARY_PATH
-    return api_utils.ItemsIterator(
-        items=[linux_binary, windows_binary], total_count=2)
-
-  def Client(self, client_id):
+  def Client(self, client_id: str) -> mock.Mock:
     self.request_count += 1
     if client_id != self.client.client_id:
       raise ValueError("Client id (%s) does not match registered client (%s)." %
@@ -72,7 +62,11 @@ class FakeApi(object):
 class FakeUnittestRunner(object):
   """Stand-in for unittest.TextTestRunner."""
 
-  def __init__(self, tests_to_fail=None, flakiness=1):
+  def __init__(
+      self,
+      tests_to_fail: Iterable[type[test_base.EndToEndTest]] | None = None,
+      flakiness: int = 1,
+  ):
     """FakeUnittestRunner __init__.
 
     Args:
@@ -85,9 +79,9 @@ class FakeUnittestRunner(object):
     self._flakiness = flakiness
     self._flake_counter = 0
     self.run = self._Run
-    self.test_counts = {}
+    self.test_counts: dict[str, int] = {}
 
-  def _Run(self, test):
+  def _Run(self, test: unittest.TestCase) -> unittest.TestResult:
     result = unittest.TestResult()
     self._flake_counter = (self._flake_counter + 1) % self._flakiness
     if test.__class__ in self._tests_to_fail or self._flake_counter > 0:
@@ -142,23 +136,6 @@ class E2ETestRunnerTest(test_lib.GRRBaseTest):
       for platform in test_class.platforms:
         self.assertIn(platform, test_base.EndToEndTest.Platform.ALL,
                       "%s has an invalid platform" % test_class.__name__)
-
-  def testRetryInitialConnectionErrors(self):
-    """Tests retrying of requests to the GRR API on connection errors."""
-    grr_api = FakeApi(raise_conn_error=True)
-    self.api_init_http.return_value = grr_api
-    e2e_runner = self._CreateE2ETestRunner(api_retry_deadline_secs=5.0)
-    e2e_runner.Initialize()
-    # First request should fail with a connection error. Second request should
-    # be successful.
-    self.assertEqual(2, grr_api.request_count)
-
-  def testRetryDeadline(self):
-    """Tests enforcing of connection-retry deadlines."""
-    self.api_init_http.return_value = FakeApi(raise_conn_error=True)
-    e2e_runner = self._CreateE2ETestRunner(api_retry_deadline_secs=0.0)
-    with self.assertRaises(requests.ConnectionError):
-      e2e_runner.Initialize()
 
   def testStartsWithAnInterrogate(self):
     """Tests that an Interrogate flow is launched if the platform is unknown."""
@@ -350,10 +327,12 @@ class E2ETestRunnerTest(test_lib.GRRBaseTest):
     self.assertDictContainsSubset(expected_req0_json, req0_kwargs["json"])
     self.assertDictContainsSubset(expected_req1_json, req1_kwargs["json"])
 
-  def _CreateE2ETestRunner(self,
-                           api_retry_period_secs=0.0,
-                           api_retry_deadline_secs=0.0,
-                           **kwargs):
+  def _CreateE2ETestRunner(
+      self,
+      api_retry_period_secs: float = 0.0,
+      api_retry_deadline_secs: float = 0.0,
+      **kwargs: Any,
+  ) -> runner.E2ETestRunner:
     """Creates an E2ETestRunner that by default doesn't retry or wait."""
     return runner.E2ETestRunner(
         api_endpoint="http://grr",
@@ -368,7 +347,7 @@ class E2ETestRunnerTest(test_lib.GRRBaseTest):
     return api_client
 
 
-def main(argv):
+def main(argv: Sequence[str]) -> None:
   test_lib.main(argv)
 
 

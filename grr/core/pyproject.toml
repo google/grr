@@ -1,0 +1,79 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "grr-response-core"
+version = "4.0.0.post0"
+description = "GRR Rapid Response"
+license = "Apache-2.0"
+maintainers = [
+  {name = "GRR Development Team", email = "grr-dev@googlegroups.com"},
+]
+requires-python = ">=3.9"
+dependencies = [
+  "cryptography==3.4.8",
+  "distro==1.9.0",
+  "fleetspeak==0.1.18",
+  "grr-response-proto==4.0.0.post0",
+  "ipaddr==2.2.0",
+  "pexpect==4.8.0",
+  "pip>=21.0.1",
+  "psutil==5.8.0",
+  "python-dateutil==2.8.2",
+  "pytz==2022.7.1",
+  "PyYAML==6.0.1",
+  "requests==2.33.1",
+  "yara-python==4.5.1",
+]
+
+[project.urls]
+Homepage = "https://github.com/google/grr"
+
+[tool.setuptools]
+zip-safe = false
+include-package-data = true
+
+[tool.setuptools.packages.find]
+include = ["grr_response_core*"]
+namespaces = true
+
+# Data files used by GRR. Access these via the config_lib "resource" filter.
+[tool.setuptools.data-files]
+"" = ["version.ini"]
+"executables/python_hacks" = [
+  "executables/python_hacks/*.py",
+]
+"install_data" = [
+  "install_data/grr.ico",
+  "install_data/wrapper.sh.in",
+]
+"install_data/centos" = [
+  "install_data/centos/*",
+]
+"install_data/debian/dpkg_client/fleetspeak-debian" = [
+  "install_data/debian/dpkg_client/fleetspeak-debian/*",
+]
+"install_data/debian/manuals" = [
+  "install_data/debian/manuals/*",
+]
+"install_data/etc" = [
+  "install_data/etc/api_acls.yaml",
+  "install_data/etc/approvers.yaml",
+  "install_data/etc/grr-server.yaml",
+]
+"install_data/fleetspeak/darwin" = [
+  "install_data/fleetspeak/darwin/*",
+]
+"install_data/fleetspeak/linux" = [
+  "install_data/fleetspeak/linux/*",
+]
+"install_data/fleetspeak/windows" = [
+  "install_data/fleetspeak/windows/*",
+]
+"install_data/macosx/client/fleetspeak" = [
+  "install_data/macosx/client/fleetspeak/*",
+]
+"install_data/windows" = [
+  "install_data/windows/*",
+]

@@ -53,16 +53,6 @@ class FrontEndServer(object):
   - Bundles and encrypts the messages for the client.
   """
 
-  def __init__(
-      self,
-      max_queue_size=50,
-      message_expiry_time=120,
-      max_retransmission_time=10,
-  ):
-    self.message_expiry_time = message_expiry_time
-    self.max_retransmission_time = max_retransmission_time
-    self.max_queue_size = max_queue_size
-
   # TODO - Inline this function and simplify code.
   def EnrollFleetspeakClientIfNeeded(
       self,
@@ -206,6 +196,13 @@ class FrontEndServer(object):
       for message in unprocessed_msgs:
         try:
           response = rdf_flow_objects.FlowResponseForLegacyResponse(message)
+          if response.client_id != client_id:
+            logging.warning(
+                "Dropping response for %s from mismatched client %s",
+                response.client_id,
+                client_id,
+            )
+            continue
         except ValueError as e:
           logging.warning(
               "Failed to parse legacy FlowResponse:\n%s\n%s", e, message

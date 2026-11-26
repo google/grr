@@ -26,6 +26,6 @@ from grr_response_client import local
 # pylint: enable=g-import-not-at-top,unused-import,g-bad-import-order
 
 
-def RegisterPlugins():
+def RegisterPlugins() -> None:
   if sys.platform == "win32":
     windows_registry_init.RegisterPlugins()

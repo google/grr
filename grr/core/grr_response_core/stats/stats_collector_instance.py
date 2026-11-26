@@ -1,14 +1,17 @@
 #!/usr/bin/env python
 """Contains a stats-collector singleton shared across a GRR process."""
 
+from __future__ import annotations
+
 import logging
 import threading
 
+from grr_response_core.lib.rdfvalues import stats as rdf_stats
 from grr_response_core.stats import stats_collector
 
-_stats_singleton = None
+_stats_singleton: stats_collector.StatsCollector | None = None
 _init_lock = threading.Lock()
-_metadatas = []
+_metadatas: list[rdf_stats.MetricMetadata] = []
 
 
 class StatsNotInitializedError(Exception):
@@ -17,7 +20,7 @@ class StatsNotInitializedError(Exception):
     super().__init__("No StatsCollector has been initialized yet.")
 
 
-def Set(collector: stats_collector.StatsCollector):
+def Set(collector: stats_collector.StatsCollector) -> None:
   """Initializes the StatsCollector singleton and registers metrics with it."""
   global _stats_singleton
 
@@ -43,7 +46,7 @@ def Get() -> stats_collector.StatsCollector:
   return _stats_singleton
 
 
-def RegisterMetric(metadata):
+def RegisterMetric(metadata: rdf_stats.MetricMetadata) -> None:
   """Registers a Metric with the StatsCollector."""
   with _init_lock:
     _metadatas.append(metadata)

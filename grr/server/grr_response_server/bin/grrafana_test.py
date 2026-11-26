@@ -1,7 +1,9 @@
 #!/usr/bin/env python
 """Unittest for GRRafana HTTP server."""
 
+from collections.abc import Mapping, Sequence
 import copy
+from typing import Any
 from unittest import mock
 
 from absl.testing import absltest
@@ -88,12 +90,16 @@ _TEST_VALID_RUD_QUERY = {
     "adhocFilters": [],
 }
 
-_TEST_INVALID_TARGET_QUERY = copy.deepcopy(_TEST_VALID_RUD_QUERY)
+_TEST_INVALID_TARGET_QUERY: dict[str, Any] = copy.deepcopy(
+    _TEST_VALID_RUD_QUERY
+)
 
 _TEST_INVALID_TARGET_QUERY["targets"][0]["target"] = "unavailable_metric"
 
 
-def _MockConnReturningRecords(client_ruds):
+def _MockConnReturningRecords(
+    client_ruds: Sequence[Mapping[str, Any]],
+) -> mock.MagicMock:
   conn = mock.MagicMock()
   records = []
   for record in client_ruds:
@@ -160,6 +166,8 @@ class GrrafanaTest(absltest.TestCase):
         "Mean Resident Memory MB",
         "Max Resident Memory MB",
     ]
+    if response.json is None:
+      self.fail("Response JSON is None.")
     self.assertListEqual(response.json, expected_res)
 
   def testClientResourceUsageMetricQuery(self):

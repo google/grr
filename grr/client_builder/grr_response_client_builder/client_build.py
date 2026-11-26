@@ -1,6 +1,10 @@
 #!/usr/bin/env python
 """This tool builds or repacks the client binaries."""
 
+from __future__ import annotations
+
+import argparse
+from collections.abc import Sequence
 import getpass
 import glob
 import logging
@@ -15,6 +19,7 @@ from absl import flags
 from absl.flags import argparse_flags
 import distro
 
+from grr_response_client_builder import build
 from grr_response_client_builder import build_helpers
 from grr_response_client_builder import builders
 from grr_response_client_builder import repacking
@@ -163,7 +168,7 @@ parser_signer.add_argument(
 class TemplateBuilder(object):
   """Build client templates."""
 
-  def GetBuilder(self, context):
+  def GetBuilder(self, context: list[str]) -> build.ClientBuilder:
     """Get instance of builder class based on flags."""
     try:
       if "Target:Darwin" in context:
@@ -180,12 +185,12 @@ class TemplateBuilder(object):
       raise RuntimeError("Unable to build for platform %s when running "
                          "on current platform." % self.platform)
 
-  def GetArch(self):
+  def GetArch(self) -> str:
     if platform.architecture()[0] == "32bit":
       return "i386"
     return "amd64"
 
-  def GetPackageFormat(self):
+  def GetPackageFormat(self) -> str | None:
     if platform.system() == "Linux":
       distro_id = distro.id()
       if distro_id in ["ubuntu", "debian"]:
@@ -195,8 +200,11 @@ class TemplateBuilder(object):
       else:
         message = "Unknown distro '{}', can't determine package format"
         raise RuntimeError(message.format(distro_id))
+    return None
 
-  def BuildTemplate(self, context=None, output=None):
+  def BuildTemplate(
+      self, context: list[str] | None = None, output: str | None = None
+  ) -> None:
     """Find template builder and call it."""
     context = context or []
     context.append("Arch:%s" % self.GetArch())
@@ -206,7 +214,12 @@ class TemplateBuilder(object):
     context.append("Platform:%s" % self.platform)
     context.append("Target:%s" % self.platform)
     if "Target:Linux" in context:
-      context.append(self.GetPackageFormat())
+      package_format = self.GetPackageFormat()
+      if package_format is None:
+        raise RuntimeError(
+            f"Cannot determine Linux package format on {self.platform}."
+        )
+      context.append(package_format)
     if ("Target:Windows" in context and
         grr_config.CONFIG["ClientBuilder.build_msi"]):
       # Include an additional context in the MSI template.
@@ -243,7 +256,9 @@ class TemplateBuilder(object):
     builder_obj.MakeExecutableTemplate(template_path)
 
 
-def SpawnProcess(popen_args, passwd=None):
+def SpawnProcess(
+    popen_args: Sequence[str], passwd: bytes | None = None
+) -> None:
   """Spawns a process."""
   if passwd is not None:
     # We send the password via pipe to avoid creating a process with the
@@ -268,7 +283,7 @@ class MultiTemplateRepacker(object):
   customizations, such as many differently labelled clients.
   """
 
-  def GetOutputDir(self, base_dir, config_filename):
+  def GetOutputDir(self, base_dir: str, config_filename: str) -> str:
     """Add the repack config filename onto the base output directory.
 
     This allows us to repack lots of different configs to the same installer
@@ -284,7 +299,7 @@ class MultiTemplateRepacker(object):
     return os.path.join(base_dir,
                         os.path.basename(config_filename.replace(".yaml", "")))
 
-  def GetWindowsPassphrase(self):
+  def GetWindowsPassphrase(self) -> str:
     try:
       return self._windows_passphrase
     except AttributeError:
@@ -292,7 +307,7 @@ class MultiTemplateRepacker(object):
       self._windows_passphrase = getpass.getpass()
       return self._windows_passphrase
 
-  def GetRPMPassPhrase(self):
+  def GetRPMPassPhrase(self) -> str:
     try:
       return self._rpm_passphrase
     except AttributeError:
@@ -300,13 +315,15 @@ class MultiTemplateRepacker(object):
       self._rpm_passphrase = getpass.getpass()
       return self._rpm_passphrase
 
-  def RepackTemplates(self,
-                      repack_configs,
-                      templates,
-                      output_dir,
-                      config=None,
-                      sign=False,
-                      signed_template=False):
+  def RepackTemplates(
+      self,
+      repack_configs: Sequence[str],
+      templates: Sequence[str],
+      output_dir: str,
+      config: str | None = None,
+      sign: bool = False,
+      signed_template: bool = False,
+  ) -> None:
     """Call repacker in a subprocess."""
     pool = multiprocessing.Pool(processes=10)
     results = []
@@ -325,13 +342,13 @@ class MultiTemplateRepacker(object):
 
         # We only sign exes and rpms at the moment. The others will raise if we
         # try to ask for signing.
-        passwd = None
+        passwd: bytes | None = None
 
         if sign:
           if template.endswith(".exe.zip") or template.endswith(".msi.zip"):
             # This is for osslsigncode only.
             if platform.system() != "Windows":
-              passwd = self.GetWindowsPassphrase()
+              passwd = self.GetWindowsPassphrase().encode("utf-8")
               repack_args.append("--sign")
             else:
               if template.endswith(".msi.zip"):
@@ -373,7 +390,7 @@ class MultiTemplateRepacker(object):
       raise
 
     if bulk_sign_installers:
-      to_sign = {}
+      to_sign: dict[str, list[str]] = {}
       for root, _, files in os.walk(output_dir):
         for f in files:
           if f.endswith(".exe"):
@@ -394,7 +411,7 @@ class MultiTemplateRepacker(object):
         signer.AddSignatureToRPMs(to_sign.get("rpm"))
 
 
-def GetClientConfig(filename):
+def GetClientConfig(filename: str) -> None:
   """Write client config to filename."""
   config_lib.SetPlatformArchContext()
   config_lib.ParseConfigCommandLine()
@@ -408,7 +425,7 @@ def GetClientConfig(filename):
     build_helpers.WriteBuildYaml(fd, build_timestamp=False, context=context)
 
 
-def main(args):
+def main(args: argparse.Namespace) -> None:
   """Launch the appropriate builder."""
 
   grr_config.CONFIG.AddContext(contexts.CLIENT_BUILD_CONTEXT)
@@ -481,7 +498,7 @@ def main(args):
       raise RuntimeError("Signing failed: output not written")
 
 
-def Run():
+def Run() -> None:
   app.run(main, flags_parser=lambda argv: parser.parse_args(argv[1:]))
 
 

@@ -1,8 +1,11 @@
 #!/usr/bin/env python
 """ExportConverters base class."""
 
+from __future__ import annotations
+
 import abc
-from typing import Generic, Iterable, Optional, TypeVar
+from collections.abc import Iterable
+from typing import Generic, TypeVar
 
 from google.protobuf import message
 
@@ -34,13 +37,13 @@ class ExportConverterProto(Generic[_ProtoInputTypeT], metaclass=abc.ABCMeta):
   """
 
   # The input proto type that this converter accepts.
-  input_proto_type: type[_ProtoInputTypeT] = None
+  input_proto_type: type[_ProtoInputTypeT] | None = None
   # The output proto types that this converter can produce.
-  output_proto_types: tuple[message.Message, ...] = None
+  output_proto_types: tuple[type[message.Message], ...] | None = None
 
   options: export_pb2.ExportOptions
 
-  def __init__(self, options: Optional[export_pb2.ExportOptions] = None):
+  def __init__(self, options: export_pb2.ExportOptions | None = None):
     """Constructor.
 
     Args:

@@ -378,7 +378,7 @@ class UnprivilegedFileBase(vfs_base.VFSHandler):
       # conventions.
       for component in pathspec:
         if component.path:  # pyrefly: ignore[missing-attribute]
-          component.path = client_utils.LocalPathToCanonicalPath(component.path)  # pyrefly: ignore[missing-attribute]
+          component.path = client_utils.LocalPathToCanonicalPath(component.path)  # pyrefly: ignore[bad-argument-type, missing-attribute]
 
       # We have not actually opened anything in this iteration, but modified the
       # pathspec. Next time we should be able to open it properly.

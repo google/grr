@@ -13,7 +13,6 @@ from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import registry
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
-from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import flows_pb2
 from grr_response_proto import jobs_pb2
 from grr_response_proto import objects_pb2
@@ -32,10 +31,8 @@ from grr_response_server.databases import db
 from grr_response_server.gui import api_call_context
 from grr_response_server.gui import api_call_handler_base
 from grr_response_server.gui import archive_generator
-from grr_response_server.gui.api_plugins import client
 from grr_response_server.models import protobuf_utils as models_utils
 from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
-from grr_response_server.rdfvalues import mig_flow_runner
 
 
 class FlowNotFoundError(api_call_handler_base.ResourceNotFoundError):
@@ -194,9 +191,7 @@ def InitApiFlowFromFlowObject(
   if flow_obj.original_flow.flow_id:
     api_flow.original_flow.flow_id = flow_obj.original_flow.flow_id
     if flow_obj.original_flow.HasField("client_id"):
-      flow_obj.original_flow.client_id = str(
-          rdfvalue.RDFURN(flow_obj.original_flow.client_id)
-      )
+      api_flow.original_flow.client_id = flow_obj.original_flow.client_id
 
   if with_state_and_context:
     api_flow.context.CopyFrom(InitFlowContextFromFlowObject(flow_obj))
@@ -239,9 +234,6 @@ def InitApiFlowDescriptorFromFlowClass(
 
   flow_descriptor = flow_pb2.ApiFlowDescriptor()
   flow_descriptor.name = flow_cls.__name__
-  if flow_cls.friendly_name:
-    flow_descriptor.friendly_name = flow_cls.friendly_name
-  flow_descriptor.category = flow_cls.category.strip("/")
   flow_descriptor.args_type = flow_cls.proto_args_type.__name__
   flow_descriptor.default_args.Pack(flow_cls.GetDefaultArgs())
   flow_descriptor.block_hunt_creation = flow_cls.block_hunt_creation
@@ -489,15 +481,6 @@ class ApiGetFlowResultsExportCommandHandler(
     )
 
 
-# TODO - Check further usages and remove this RDFValue.
-class ApiGetFlowFilesArchiveArgs(rdf_structs.RDFProtoStruct):
-  protobuf = flow_pb2.ApiGetFlowFilesArchiveArgs
-  rdf_deps = [
-      client.ApiClientId,
-      ApiFlowId,
-  ]
-
-
 class ApiGetFlowFilesArchiveHandler(api_call_handler_base.ApiCallHandler):
   """Generates archive with all files referenced in flow's results."""
 
@@ -550,7 +533,7 @@ class ApiGetFlowFilesArchiveHandler(api_call_handler_base.ApiCallHandler):
       self,
       generator: archive_generator.CollectionArchiveGenerator,
       flow_results: list[flows_pb2.FlowResult],
-      args: ApiGetFlowFilesArchiveArgs,
+      args: flow_pb2.ApiGetFlowFilesArchiveArgs,
       context: Optional[api_call_context.ApiCallContext] = None,
   ) -> Iterator[flows_pb2.FlowResult]:
     assert context is not None
@@ -985,11 +968,10 @@ def _SanitizeApiCreateFlowArgs(
   #
   # TODO(user): Refactor the code to remove the HIDDEN label from
   # FlowRunnerArgs.output_plugins.
-  runner_args = mig_flow_runner.ToRDFFlowRunnerArgs(runner_args)
-  runner_args.ClearFieldsWithLabel(
-      rdf_structs.SemanticDescriptor.Labels.HIDDEN, exceptions="output_plugins"
-  )
-  runner_args = mig_flow_runner.ToProtoFlowRunnerArgs(runner_args)
+  runner_args.ClearField("client_id")
+  runner_args.ClearField("request_state")
+  runner_args.ClearField("flow_name")
+  runner_args.ClearField("original_flow")
 
   if args.HasField("original_flow"):
     runner_args.original_flow.flow_id = args.original_flow.flow_id
@@ -1081,10 +1063,6 @@ class ApiListFlowDescriptorsHandler(api_call_handler_base.ApiCallHandler):
 
     result: list[flow_pb2.ApiFlowDescriptor] = []
     for name, cls in sorted(registry.FlowRegistry.FLOW_REGISTRY.items()):
-
-      # Skip if it is not visible to GUI/API.
-      if not cls.CanUseViaAPI():
-        continue
 
       # Only show flows that the user is allowed to start.
       try:
@@ -1216,6 +1194,8 @@ class ApiListScheduledFlowsHandler(api_call_handler_base.ApiCallHandler):
       args: flow_pb2.ApiListScheduledFlowsArgs,
       context: Optional[api_call_context.ApiCallContext] = None,
   ) -> flow_pb2.ApiListScheduledFlowsResult:
+    assert context is not None
+
     results = flow.ListScheduledFlows(
         client_id=args.client_id, creator=context.username
     )

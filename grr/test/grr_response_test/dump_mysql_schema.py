@@ -1,7 +1,9 @@
 #!/usr/bin/env python
 """Program that generates golden regression data."""
 
+from collections.abc import Sequence
 import contextlib
+from typing import Any
 
 from absl import app
 
@@ -10,7 +12,7 @@ from grr_response_server.databases import mysql_test
 from grr.test_lib import testing_startup
 
 
-def main(argv):
+def main(argv: Sequence[str]) -> None:
   """Entry function."""
   del argv
   testing_startup.TestInit()
@@ -23,7 +25,7 @@ def main(argv):
     # `tearDownClass()`
     del cleanup_fn
 
-    def _DumpSchema(conn):
+    def _DumpSchema(conn: Any) -> str:
       with contextlib.closing(conn.cursor()) as cursor:
         return mysql_migration.DumpCurrentSchema(cursor)
 
@@ -33,7 +35,7 @@ def main(argv):
     test_db.__class__.tearDownClass()
 
 
-def DistEntry():
+def DistEntry() -> None:
   """The main entry point for packages."""
   app.run(main)
 

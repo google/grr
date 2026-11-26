@@ -1,8 +1,12 @@
 #!/usr/bin/env python
 """API handler for rendering descriptors of GRR data structures."""
 
+from typing import Optional
+
 from grr_response_proto.api import reflection_pb2
+from grr_response_server.gui import api_call_context
 from grr_response_server.gui import api_call_handler_base
+from grr_response_server.gui import api_call_router
 
 
 # TODO - Add tests for this handler.
@@ -11,17 +15,20 @@ class ApiListApiMethodsHandler(api_call_handler_base.ApiCallHandler):
 
   proto_result_type = reflection_pb2.ApiListApiMethodsResult
 
-  def __init__(self, router):
+  def __init__(self, router: api_call_router.ApiCallRouter):
     self.router = router
 
-  def Handle(self, unused_args, context=None):
+  def Handle(
+      self,
+      unused_args: Optional[None] = None,
+      context: Optional[api_call_context.ApiCallContext] = None,
+  ) -> reflection_pb2.ApiListApiMethodsResult:
     router_methods = self.router.__class__.GetAnnotatedMethods()
 
     result = reflection_pb2.ApiListApiMethodsResult()
     for router_method in router_methods.values():
       api_method = reflection_pb2.ApiMethod(
           name=router_method.name,
-          category=router_method.category,
           doc=router_method.doc,
           http_route=router_method.http_methods[-1][1],
           http_methods=[router_method.http_methods[-1][0]],

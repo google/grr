@@ -29,16 +29,13 @@ from grr.test_lib import test_lib
 from grr_response_proto import rrg_pb2
 
 
-MESSAGE_EXPIRY_TIME = 100
-
-
 def ReceiveMessages(client_id, messages):
   server = TestServer()
   server.ReceiveMessages(client_id, messages)
 
 
 def TestServer():
-  return frontend_lib.FrontEndServer(message_expiry_time=MESSAGE_EXPIRY_TIME)
+  return frontend_lib.FrontEndServer()
 
 
 class GRRFEServerTestRelational(flow_test_lib.FlowTestsBaseclass):
@@ -484,6 +481,44 @@ class FrontEndServerTest(absltest.TestCase):
 
     # Should not raise.
     self.server.ReceiveRRGParcels(client_id, [])
+
+  @db_test_lib.WithDatabase
+  def testCannotForgeLegacyResponseForDifferentClient(
+      self, db: abstract_db.Database
+  ):
+    attacker_id = db_test_utils.InitializeClient(db)
+    victim_id = db_test_utils.InitializeClient(db)
+
+    flow_id = db_test_utils.InitializeFlow(db, victim_id)
+    # Scenario: victim client has a pending flow request
+    db.WriteFlowRequests([
+        flows_pb2.FlowRequest(
+            client_id=victim_id, flow_id=flow_id, request_id=1
+        )
+    ])
+
+    # Attacker sends a legacy GRR agent message with a session_id claiming to
+    # be the victim before the victim can.
+    self.server.ReceiveMessages(
+        attacker_id,
+        [
+            rdf_flows.GrrMessage(
+                request_id=1,
+                response_id=1,
+                source=victim_id,
+                session_id="%s/%s" % (victim_id, flow_id),
+                auth_state="AUTHENTICATED",
+            )
+        ],
+    )
+
+    victim_state = db.ReadAllFlowRequestsAndResponses(victim_id, flow_id)
+    self.assertLen(victim_state, 1)
+    _, responses = victim_state[0]
+    self.assertEmpty(
+        responses,
+        "Attacker's forged response was written to victim's flow",
+    )
 
 
 def main(args):

@@ -29,248 +29,94 @@ from grr.test_lib import test_lib
 class TestStructWithManyFields(rdf_structs.RDFProtoStruct):
   """A test struct object."""
 
-  type_description = type_info.TypeDescriptorSet(*[
-      rdf_structs.ProtoString(
-          name="foobar_%d" % i,
-          field_number=i + 1,
-          default="string",
-          description="A string value",
-      )
-      for i in range(100)
-  ])
+  protobuf = tests_pb2.TestStructWithManyFields
 
 
 class TestStruct(rdf_structs.RDFProtoStruct):
   """A test struct object."""
 
-  type_description = type_info.TypeDescriptorSet(
-      rdf_structs.ProtoString(
-          name="foobar",
-          field_number=1,
-          default="string",
-          description="A string value",
-          labels=[rdf_structs.SemanticDescriptor.Labels.HIDDEN],
-      ),
-      rdf_structs.ProtoUnsignedInteger(
-          name="int", field_number=2, default=5, description="An integer value"
-      ),
-      rdf_structs.ProtoList(
-          rdf_structs.ProtoString(
-              name="repeated",
-              field_number=3,
-              description="A repeated string value",
-          )
-      ),
-      # We can serialize an arbitrary RDFValue. This will be serialized into a
-      # binary string and parsed on demand.
-      rdf_structs.ProtoRDFValue(
-          name="urn",
-          field_number=6,
-          default=rdfvalue.RDFURN("www.google.com"),
-          rdf_type="RDFURN",
-          description="An arbitrary RDFValue field.",
-      ),
-      rdf_structs.ProtoEnum(
-          name="type",
-          field_number=7,
-          enum_name="Type",
-          enum={"FIRST": 1, "SECOND": 2, "THIRD": 3},
-          default=3,
-          description="An enum field",
-      ),
-      rdf_structs.ProtoFloat(
-          name="float",
-          field_number=8,
-          description="A float number",
-          default=1.1,
-      ),
-  )
-
-
-# In order to define a recursive structure we must add it manually after the
-# class definition.
-TestStruct.AddDescriptor(
-    rdf_structs.ProtoEmbedded(name="nested", field_number=4, nested=TestStruct),
-)
-
-TestStruct.AddDescriptor(
-    rdf_structs.ProtoList(
-        rdf_structs.ProtoEmbedded(
-            name="repeat_nested", field_number=5, nested=TestStruct
-        )
-    ),
-)
+  protobuf = tests_pb2.TestStruct
+  rdf_deps = [
+      "TestStruct",
+      rdfvalue.RDFURN,
+  ]
 
 
 class VersionedTestStructV1(rdf_structs.RDFProtoStruct):
   """A test struct object."""
 
-  type_description = type_info.TypeDescriptorSet(
-      rdf_structs.ProtoBoolean(
-          name="bool1",
-          field_number=1,
-          default=False,
-      )
-  )
+  protobuf = tests_pb2.VersionedTestStructV1
 
 
 class VersionedTestStructV2(rdf_structs.RDFProtoStruct):
   """A test struct object."""
 
-  type_description = type_info.TypeDescriptorSet(
-      rdf_structs.ProtoBoolean(
-          name="bool1",
-          field_number=1,
-          default=False,
-      ),
-      rdf_structs.ProtoBoolean(
-          name="bool2",
-          field_number=2,
-          default=False,
-      ),
-  )
+  protobuf = tests_pb2.VersionedTestStructV2
 
 
 class TestStructWithBool(rdf_structs.RDFProtoStruct):
   """A test struct object."""
 
-  type_description = type_info.TypeDescriptorSet(
-      rdf_structs.ProtoBoolean(
-          name="foo",
-          field_number=1,
-          default=False,
-      )
-  )
+  protobuf = tests_pb2.TestStructWithBool
 
 
 class TestStructWithEnum(rdf_structs.RDFProtoStruct):
   """A test struct object."""
 
-  type_description = type_info.TypeDescriptorSet(
-      rdf_structs.ProtoEnum(
-          name="foo",
-          field_number=1,
-          enum_name="Foo",
-          enum={"ZERO": 0, "ONE": 1, "TWO": 2},
-          default=0,
-      )
-  )
+  protobuf = tests_pb2.TestStructWithEnum
 
 
 class PartialTest1(rdf_structs.RDFProtoStruct):
   """This is a protobuf with fewer fields than TestStruct."""
 
-  type_description = type_info.TypeDescriptorSet(
-      rdf_structs.ProtoUnsignedInteger(name="int", field_number=2),
-  )
+  protobuf = tests_pb2.PartialTest1
 
 
 class DynamicTypeTest(rdf_structs.RDFProtoStruct):
   """A protobuf with dynamic types."""
 
-  type_description = type_info.TypeDescriptorSet(
-      rdf_structs.ProtoString(
-          name="type",
-          field_number=1,
-          # By default return the TestStruct proto.
-          default="TestStruct",
-          description="A string value",
-      ),
-      rdf_structs.ProtoDynamicEmbedded(
-          name="dynamic",
-          # The callback here returns the type specified by the type member.
-          dynamic_cb=lambda x: rdf_structs.RDFProtoStruct.classes.get(x.type),
-          field_number=2,
-          description="A dynamic value based on another field.",
-      ),
-      rdf_structs.ProtoEmbedded(
-          name="nested", field_number=3, nested=rdf_client.User
-      ),
-  )
+  protobuf = tests_pb2.DynamicTypeTest
+  rdf_deps = [
+      rdf_client.User,
+  ]
+
+  def GetDynamicType(self):
+    return rdf_structs.RDFProtoStruct.classes.get(self.type)
 
 
 class DynamicAnyValueTypeTest(rdf_structs.RDFProtoStruct):
   """A protobuf with dynamic types stored in AnyValue messages."""
 
-  type_description = type_info.TypeDescriptorSet(
-      rdf_structs.ProtoString(
-          name="type", field_number=1, description="A string value"
-      ),
-      rdf_structs.ProtoDynamicAnyValueEmbedded(
-          name="dynamic",
-          # The callback here returns the type specified by the type member.
-          dynamic_cb=lambda x: rdf_structs.RDFProtoStruct.classes.get(x.type),
-          field_number=2,
-          description="A dynamic value based on another field.",
-      ),
-  )
+  protobuf = tests_pb2.DynamicAnyValueTypeTest
+
+  def GetDynamicType(self):
+    return rdf_structs.RDFProtoStruct.classes.get(self.type)
 
 
 class AnyValueWithoutTypeFunctionTest(rdf_structs.RDFProtoStruct):
   """A protobuf with dynamic types stored in AnyValue messages."""
 
-  type_description = type_info.TypeDescriptorSet(
-      rdf_structs.ProtoDynamicAnyValueEmbedded(
-          name="dynamic", field_number=1, description="A dynamic value."
-      ),
-  )
+  protobuf = tests_pb2.AnyValueWithoutTypeFunctionTest
 
 
 class LateBindingTest(rdf_structs.RDFProtoStruct):
-  type_description = type_info.TypeDescriptorSet(
-      # A nested protobuf referring to an undefined type.
-      rdf_structs.ProtoEmbedded(
-          name="nested", field_number=1, nested="UndefinedYet"
-      ),
-      rdf_structs.ProtoRDFValue(
-          name="rdfvalue",
-          field_number=6,
-          rdf_type="UndefinedRDFValue",
-          description="An undefined RDFValue field.",
-      ),
-      # A repeated late bound field.
-      rdf_structs.ProtoList(
-          rdf_structs.ProtoRDFValue(
-              name="repeated",
-              field_number=7,
-              rdf_type="UndefinedRDFValue2",
-              description="An undefined RDFValue field.",
-          )
-      ),
-  )
+  protobuf = tests_pb2.LateBindingTest
+  rdf_deps = [
+      "UndefinedYet",
+      "UndefinedRDFValue",
+      "UndefinedRDFValue2",
+  ]
 
 
 class UnionTest(rdf_structs.RDFProtoStruct):
-  union_field = "struct_flavor"
+  protobuf = tests_pb2.UnionTest
 
-  type_description = type_info.TypeDescriptorSet(
-      rdf_structs.ProtoEnum(
-          name="struct_flavor",
-          field_number=1,
-          enum_name="Type",
-          enum={"FIRST": 1, "SECOND": 2, "THIRD": 3},
-          default=3,
-          description="An union enum field",
-      ),
-      rdf_structs.ProtoFloat(
-          name="first",
-          field_number=2,
-          description="A float number",
-          default=1.1,
-      ),
-      rdf_structs.ProtoString(
-          name="second",
-          field_number=3,
-          default="string",
-          description="A string value",
-      ),
-      rdf_structs.ProtoUnsignedInteger(
-          name="third",
-          field_number=4,
-          default=5,
-          description="An integer value",
-      ),
-  )
+
+class TestStructWithRDFInteger(rdf_structs.RDFProtoStruct):
+  protobuf = tests_pb2.TestStructWithRDFInteger
+  rdf_deps = [
+      rdfvalue.RDFInteger,
+  ]
 
 
 class RDFStructsTest(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
@@ -281,23 +127,23 @@ class RDFStructsTest(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
   def CheckRDFValue(self, value, sample):
     # Verify that floats are almost equal, since serialization and conversion
     # of floats is not stable.
-    self.assertAlmostEqual(value.float, sample.float)
+    self.assertAlmostEqual(value.float_val, sample.float_val)
 
     # Verify that all other fields are exactly equal.
     value_copy = value.Copy()
-    value_copy.float = None
+    value_copy.float_val = None
 
     sample_copy = sample.Copy()
-    sample_copy.float = None
+    sample_copy.float_val = None
 
     super().CheckRDFValue(value_copy, sample_copy)
 
   def GenerateSample(self, number=1):
     return self.rdfvalue_class(
-        int=number,
+        int_val=number,
         foobar="foo%s" % number,
         urn="www.example.com",
-        float=2.3 + number,
+        float_val=2.3 + number,
     )
 
   def testDynamicType(self):
@@ -412,7 +258,7 @@ message DynamicTypeTest {{
     )
 
   def testRepeatedMember(self):
-    tested = TestStruct(int=5)
+    tested = TestStruct(int_val=5)
     tested.foobar = "Hello"
     tested.repeated.Append("Good")
     tested.repeated.Append("Bye")
@@ -464,7 +310,7 @@ message DynamicTypeTest {{
 
   def testUnknownFields(self):
     """Test that unknown fields are preserved across decode/encode cycle."""
-    tested = TestStruct(foobar="hello", int=5)
+    tested = TestStruct(foobar="hello", int_val=5)
     tested.nested.foobar = "goodbye"
 
     self.assertEqual(tested.foobar, "hello")
@@ -475,7 +321,7 @@ message DynamicTypeTest {{
     # Now unpack using a protobuf with less fields defined.
     reduced_tested = PartialTest1.FromSerializedBytes(data)
 
-    self.assertEqual(reduced_tested.int, 5)
+    self.assertEqual(reduced_tested.int_val, 5)
     self.assertRaises(AttributeError, getattr, reduced_tested, "foobar")
 
     # Re-Serialize using the simple protobuf.
@@ -507,7 +353,7 @@ message DynamicTypeTest {{
 
     # Not OK to use the wrong semantic type.
     self.assertRaises(
-        ValueError, setattr, tested, "nested", PartialTest1(int=1)
+        ValueError, setattr, tested, "nested", PartialTest1(int_val=1)
     )
 
     # Not OK to assign a serialized string - even if it is for the right type -
@@ -559,13 +405,8 @@ message DynamicTypeTest {{
     # unicode strings should be treated the same way.
     tested.type = "2"
     self.assertEqual(tested.type, 2)
-    # Out of range values are permitted and preserved through serialization.
-    tested.type = 4
-    self.assertEqual(tested.type, 4)
-    serialized_type = str(tested.type).encode("utf-8")
-    tested.type = 1
-    tested.type = serialized_type
-    self.assertEqual(tested.type, 4)
+    # Out of range enum values are rejected by standard proto2.
+    self.assertRaises(ValueError, setattr, tested, "type", 4)
 
   def testCacheInvalidation(self):
     path = rdf_paths.PathSpec(path="/", pathtype=rdf_paths.PathSpec.PathType.OS)
@@ -603,11 +444,7 @@ message DynamicTypeTest {{
     # Now define the class. This should resolve the late bound fields and re-add
     # them to their owner protobufs.
     class UndefinedYet(rdf_structs.RDFProtoStruct):
-      type_description = type_info.TypeDescriptorSet(
-          rdf_structs.ProtoString(
-              name="foobar", field_number=1, description="A string value"
-          ),
-      )
+      protobuf = tests_pb2.UndefinedYet
 
     # The field is now resolved.
     self.assertNotIn("UndefinedYet", rdfvalue._LATE_BINDING_STORE)
@@ -728,7 +565,7 @@ message DynamicTypeTest {{
 
     tested_union.struct_flavor = "FIRST"
     # Returns the default value of the selected flavor if it's not been changed.
-    self.assertEqual(tested_union.UnionCast(), 1.1)
+    self.assertAlmostEqual(tested_union.UnionCast(), 1.1)
 
     tested_union.struct_flavor = "SECOND"
     # Same as above.
@@ -747,49 +584,49 @@ message DynamicTypeTest {{
     self.assertRaises(ValueError, tested_union.UnionCast)
 
   def testClearFieldsWithLabelWorksCorrectly(self):
-    t = TestStruct(foobar="foo", int=42)
+    t = TestStruct(foobar="foo", int_val=42)
     t.ClearFieldsWithLabel(rdf_structs.SemanticDescriptor.Labels.HIDDEN)
     self.assertFalse(t.HasField("foobar"))
-    self.assertTrue(t.HasField("int"))
+    self.assertTrue(t.HasField("int_val"))
 
   def testClearFieldsWithLabelWorksCorrectlyOnNestedStructures(self):
-    t = TestStruct(foobar="foo", int=42)
-    t.nested = TestStruct(foobar="bar", int=43)
+    t = TestStruct(foobar="foo", int_val=42)
+    t.nested = TestStruct(foobar="bar", int_val=43)
     t.ClearFieldsWithLabel(rdf_structs.SemanticDescriptor.Labels.HIDDEN)
     self.assertFalse(t.nested.HasField("foobar"))
-    self.assertTrue(t.nested.HasField("int"))
+    self.assertTrue(t.nested.HasField("int_val"))
 
   def testConversionToPrimitiveDictNoSerialization(self):
     test_struct = TestStruct(
         foobar="foo",
-        int=2,
+        int_val=2,
         repeated=["value0", "value1"],
-        nested=TestStruct(int=567),
-        repeat_nested=[TestStruct(int=568)],
+        nested=TestStruct(int_val=567),
+        repeat_nested=[TestStruct(int_val=568)],
     )
     expected_dict = {
         "foobar": "foo",
-        "int": 2,
+        "int_val": 2,
         "repeated": ["value0", "value1"],
-        "nested": {"int": 567},
-        "repeat_nested": [{"int": 568}],
+        "nested": {"int_val": 567},
+        "repeat_nested": [{"int_val": 568}],
     }
     self.assertEqual(test_struct.ToPrimitiveDict(), expected_dict)
 
   def testConversionToPrimitiveDictWithSerialization(self):
     test_struct = TestStruct(
         foobar="foo",
-        int=2,
+        int_val=2,
         repeated=["value0", "value1"],
-        nested=TestStruct(int=567),
-        repeat_nested=[TestStruct(int=568)],
+        nested=TestStruct(int_val=567),
+        repeat_nested=[TestStruct(int_val=568)],
     )
     expected_dict = {
         "foobar": "foo",
-        "int": "2",  # Serialized
+        "int_val": "2",  # Serialized
         "repeated": ["value0", "value1"],
-        "nested": {"int": "567"},  # Serialized
-        "repeat_nested": [{"int": "568"}],  # Serialized
+        "nested": {"int_val": "567"},  # Serialized
+        "repeat_nested": [{"int_val": "568"}],  # Serialized
     }
     self.assertEqual(
         test_struct.ToPrimitiveDict(stringify_leaf_fields=True), expected_dict
@@ -800,10 +637,7 @@ message DynamicTypeTest {{
     encoded_data = base64.b64encode(data).decode("ascii")
 
     class FooStruct(rdf_structs.RDFProtoStruct):
-
-      type_description = type_info.TypeDescriptorSet(
-          rdf_structs.ProtoBinary(name="data", field_number=1)
-      )
+      protobuf = tests_pb2.FooStruct
 
     foo_struct = FooStruct(data=data)
     foo_dict = foo_struct.ToPrimitiveDict(stringify_leaf_fields=True)
@@ -816,12 +650,10 @@ message DynamicTypeTest {{
     encoded_data = base64.b64encode(data).decode("ascii")
 
     class BarStruct(rdf_structs.RDFProtoStruct):
-
-      type_description = type_info.TypeDescriptorSet(
-          rdf_structs.ProtoRDFValue(
-              name="data", field_number=1, rdf_type=rdfvalue.RDFBytes
-          )
-      )
+      protobuf = tests_pb2.BarStruct
+      rdf_deps = [
+          rdfvalue.RDFBytes,
+      ]
 
     bar_struct = BarStruct(data=data)
     bar_dict = bar_struct.ToPrimitiveDict(stringify_leaf_fields=True)
@@ -831,8 +663,8 @@ message DynamicTypeTest {{
 
   def _GenerateSampleWithManyFields(self):
     fields = {}
-    for _ in range(50):
-      key = "foobar_%d" % random.randrange(100)
+    for _ in range(25):
+      key = "foobar%d" % random.randrange(50)
       fields[key] = key
 
     sample = TestStructWithManyFields(**fields)
@@ -897,11 +729,11 @@ class BooleanToEnumMigrationTest(test_lib.GRRBaseTest):
   def testBooleansAreParsedAsEnums(self):
     a = TestStructWithBool()
     b = TestStructWithEnum.FromSerializedBytes(a.SerializeToBytes())
-    self.assertEqual(b.foo, "ZERO")
+    self.assertEqual(b.foo, "UNKNOWN")
 
     a = TestStructWithBool(foo=False)
     b = TestStructWithEnum.FromSerializedBytes(a.SerializeToBytes())
-    self.assertEqual(b.foo, "ZERO")
+    self.assertEqual(b.foo, "UNKNOWN")
 
     a = TestStructWithBool(foo=True)
     b = TestStructWithEnum.FromSerializedBytes(a.SerializeToBytes())
@@ -912,7 +744,7 @@ class BooleanToEnumMigrationTest(test_lib.GRRBaseTest):
     b = TestStructWithBool.FromSerializedBytes(a.SerializeToBytes())
     self.assertIs(b.foo, False)
 
-    a = TestStructWithEnum(foo="ZERO")
+    a = TestStructWithEnum(foo="UNKNOWN")
     b = TestStructWithBool.FromSerializedBytes(a.SerializeToBytes())
     self.assertIs(b.foo, False)
 
@@ -960,29 +792,22 @@ class GenericRDFProtoTest(test_lib.GRRBaseTest):
     self.assertFalse(container.HasField("pathspec"))
 
   def testSimpleTypeAssignment(self):
-    sample = rdf_client_fs.StatEntry()
-    sample.AddDescriptor(
-        rdf_structs.ProtoRDFValue(
-            name="test",
-            field_number=45,
-            default=rdfvalue.RDFInteger(0),
-            rdf_type=rdfvalue.RDFInteger,
-        )
-    )
+    int_sample = TestStructWithRDFInteger()
 
-    self.assertIsInstance(sample.test, rdfvalue.RDFInteger)
+    self.assertIsInstance(int_sample.test, rdfvalue.RDFInteger)
 
     # Can we assign an RDFValue instance?
-    sample.test = rdfvalue.RDFInteger(5)
+    int_sample.test = rdfvalue.RDFInteger(5)
 
-    self.assertEqual(sample.test, 5)
+    self.assertEqual(int_sample.test, 5)
 
     # Check that bare values can be coerced.
-    sample.test = 6
-    self.assertIsInstance(sample.test, rdfvalue.RDFInteger)
-    self.assertEqual(sample.test, 6)
+    int_sample.test = 6
+    self.assertIsInstance(int_sample.test, rdfvalue.RDFInteger)
+    self.assertEqual(int_sample.test, 6)
 
     # Assign an enum.
+    sample = rdf_client_fs.StatEntry()
     sample.registry_type = sample.RegistryType.REG_DWORD
     self.assertEqual(sample.registry_type, sample.RegistryType.REG_DWORD)
 
@@ -994,14 +819,14 @@ class GenericRDFProtoTest(test_lib.GRRBaseTest):
     self.assertEqual(sample.registry_type, sample.RegistryType.REG_QWORD)
 
     # Check that coercing works.
-    sample.test = "10"
-    self.assertEqual(sample.test, 10)
+    int_sample.test = "10"
+    self.assertEqual(int_sample.test, 10)
 
     # Assign an RDFValue which can not be coerced.
     self.assertRaises(
         type_info.TypeValueError,
         setattr,
-        sample,
+        int_sample,
         "test",
         rdfvalue.RDFString("hello"),
     )
@@ -1217,211 +1042,6 @@ class AnyValueTest(absltest.TestCase):
 
     unpacked_user = packed_user.Unpack(rdf_client.User)
     self.assertEqual(unpacked_user, user)
-
-
-class VarintTest(absltest.TestCase):
-  """Tests the VarintEncode and VarintReader implementations."""
-
-  _ENCODED_VARINTS = (
-      (1, b"\x01"),
-      (1 << 4, b"\x10"),
-      (1 << 8, b"\x80\x02"),
-      (1 << 12, b"\x80\x20"),
-      (1 << 16, b"\x80\x80\x04"),
-      (1 << 62, b"\x80\x80\x80\x80\x80\x80\x80\x80\x40"),
-      (1 << 63, b"\x80\x80\x80\x80\x80\x80\x80\x80\x80\x01"),
-  )
-
-  def testCorrectlyEncodesIntegers(self):
-    for val, b in self._ENCODED_VARINTS:
-      with self.subTest(value=val):
-        self.assertEqual(rdf_structs.VarintEncode(val), b)
-
-  def testEncodesOverflowIntegerAsZero(self):
-    self.assertEqual(rdf_structs.VarintEncode(1 << 66), b"\x00")
-
-  def testCorrectlyReadsEncodedIntegers(self):
-    for src_val, b in self._ENCODED_VARINTS:
-      with self.subTest(buffer=b):
-        self.assertEqual(rdf_structs.VarintReader(b, 0), (src_val, len(b)))
-
-  def testReaderCanReadWhatEncoderHasEncoded(self):
-    for v in [
-        0,
-        1,
-        2,
-        10,
-        20,
-        63,
-        64,
-        65,
-        127,
-        128,
-        129,
-        255,
-        256,
-        257,
-        1 << 63 - 1,
-        1 << 64 - 1,
-    ]:
-      with self.subTest(value=v):
-        buf = rdf_structs.VarintEncode(v)
-        r, p = rdf_structs.VarintReader(buf, 0)
-        self.assertEqual(v, r)
-        self.assertLen(buf, p)
-
-  def testDecodingZeroBufferRaises(self):
-    with self.assertRaisesRegex(
-        ValueError, "Too many bytes when decoding varint"
-    ):
-      rdf_structs.VarintReader(b"", 0)
-
-  def testDecodingValueLargerThan64BitReturnsTruncatedValue(self):
-    self.assertEqual(
-        rdf_structs.VarintReader(
-            b"\x80\x80\x80\x80\x80\x80\x80\x80\x80\x02", 0
-        ),
-        (0, 10),
-    )
-
-  def testRaisesWhenBufferIsTooLong(self):
-    with self.assertRaisesRegex(
-        ValueError, "Too many bytes when decoding varint"
-    ):
-      rdf_structs.VarintReader(
-          b"\x80\x80\x80\x80\x80\x80\x80\x80\x80\x80\x80\x80\x01\x00\x00", 0
-      )
-    with self.assertRaisesRegex(
-        ValueError, "Too many bytes when decoding varint"
-    ):
-      rdf_structs.VarintReader(
-          b"\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF", 0
-      )
-
-  def testNonCanonicalZeroDoesNotRaise(self):
-    self.assertEqual(rdf_structs.VarintReader(b"\x80\x80\x80\x00", 0), (0, 4))
-
-
-class SignedVarintTest(absltest.TestCase):
-  """Test the VarintReader implementation."""
-
-  _ENCODED_SIGNED_VARINTS = (
-      (-1, b"\xff\xff\xff\xff\xff\xff\xff\xff\xff\x01"),
-      (-(1 << 4), b"\xf0\xff\xff\xff\xff\xff\xff\xff\xff\x01"),
-      (-(1 << 8), b"\x80\xfe\xff\xff\xff\xff\xff\xff\xff\x01"),
-      (-(1 << 12), b"\x80\xe0\xff\xff\xff\xff\xff\xff\xff\x01"),
-      (-(1 << 16), b"\x80\x80\xfc\xff\xff\xff\xff\xff\xff\x01"),
-      (-(1 << 62), b"\x80\x80\x80\x80\x80\x80\x80\x80\xc0\x01"),
-      (-(1 << 63), b"\x80\x80\x80\x80\x80\x80\x80\x80\x80\x01"),
-  )
-
-  def testCorrectlyEncodesSignedIntegers(self):
-    for val, b in self._ENCODED_SIGNED_VARINTS:
-      with self.subTest(value=val):
-        self.assertEqual(rdf_structs.SignedVarintEncode(val), b)
-
-  def testEncodesOverflowIntegerAsZero(self):
-    self.assertEqual(rdf_structs.SignedVarintEncode(-(1 << 66)), b"\x00")
-
-  def testCorrectlyReadsEncodedSignedIntegers(self):
-    for src_val, b in self._ENCODED_SIGNED_VARINTS:
-      with self.subTest(buffer=b):
-        self.assertEqual(
-            rdf_structs.SignedVarintReader(b, 0), (src_val, len(b))
-        )
-
-
-class SplitBufferTest(absltest.TestCase):
-  """Test the SplitBuffer function."""
-
-  def testRaisesIfIndexOrLengthIncorrect(self):
-    buf = b"\x00\x00"
-    with self.assertRaises(ValueError):
-      rdf_structs.SplitBuffer(buf, -1, 2)
-    with self.assertRaises(ValueError):
-      rdf_structs.SplitBuffer(buf, 0, -1)
-    with self.assertRaises(ValueError):
-      rdf_structs.SplitBuffer(buf, -1, -1)
-    with self.assertRaises(ValueError):
-      rdf_structs.SplitBuffer(buf, 3, 2)
-
-  def testReturnsNothingOnEmptyBuffer(self):
-    self.assertEqual(rdf_structs.SplitBuffer(b"", 0, 0), [])
-    self.assertEqual(rdf_structs.SplitBuffer(b"\x00\x00", 2, 2), [])
-
-  def testRaisesOnBrokenTag(self):
-    with self.assertRaisesRegex(ValueError, "Broken tag encountered"):
-      rdf_structs.SplitBuffer(b"\xff", 0, 1)
-
-  def testRaisesOnBrokenVarintTag(self):
-    # This used to trigger an infinite loop in the accelerated.c implementation.
-    with self.assertRaisesRegex(ValueError, "Broken varint tag encountered"):
-      rdf_structs.SplitBuffer(b"\x00", 0, 1)
-
-    with self.assertRaisesRegex(ValueError, "Broken varint tag encountered"):
-      rdf_structs.SplitBuffer(b"\x00\xff", 0, 2)
-
-  def testCorrectlyProcessesVarintTag(self):
-    self.assertEqual(
-        rdf_structs.SplitBuffer("\x00\x01", 0, 2), [(b"\x00", b"", b"\x01")]
-    )
-
-  def testRaisesOnOversizedFixed64Tag(self):
-    for l in range(8):
-      with self.subTest(l=l):
-        with self.assertRaisesRegex(
-            ValueError, "Fixed64 tag exceeds available buffer"
-        ):
-          buf = b"\x01" + b"\x00" * l
-          rdf_structs.SplitBuffer(buf, 0, len(buf))
-
-  def testCorrectlyProcessesFixed64Tag(self):
-    self.assertEqual(
-        rdf_structs.SplitBuffer("\x01\x00\x01\x02\x03\x04\x05\0x6\0x7", 0, 9),
-        [(b"\x01", b"", b"\x00\x01\x02\x03\x04\x05\x00x")],
-    )
-
-  def testRaisesOnOversizedFixed32Tag(self):
-    for l in range(4):
-      with self.subTest(l=l):
-        with self.assertRaisesRegex(
-            ValueError, "Fixed32 tag exceeds available buffer"
-        ):
-          buf = b"\x05" + b"\x00" * l
-          rdf_structs.SplitBuffer(buf, 0, len(buf))
-
-  def testCorrectlyProcessesFixed32Tag(self):
-    self.assertEqual(
-        rdf_structs.SplitBuffer("\x05\x00\x01\x02\x03", 0, 5),
-        [(b"\x05", b"", b"\x00\x01\x02\x03")],
-    )
-
-  def testRaisesOnBrokenLengthDelimitedTag(self):
-    with self.assertRaisesRegex(
-        ValueError, "Broken length_delimited tag encountered"
-    ):
-      rdf_structs.SplitBuffer(b"\x02\xff", 0, 2)
-
-  def testRaisesOnLengthDelimitedTagExceedingMaxInt(self):
-    with self.assertRaisesRegex(ValueError, "Length delimited exceeds limits"):
-      buf = b"\x0a\xff\xff\xff\xff\xff\xff\xff\xff\xff\x01\x02\xff\xff\xff\xff\xff\xff\x27"
-      rdf_structs.SplitBuffer(buf, 0, len(buf))
-
-  def testRaisesOnOversizedLengthDelimitedTag(self):
-    with self.assertRaisesRegex(
-        ValueError, "Length tag exceeds available buffer"
-    ):
-      rdf_structs.SplitBuffer(b"\x02\x02", 0, 2)
-
-  def testCorrectlyProcessesLengthDelimitedTag(self):
-    self.assertEqual(
-        rdf_structs.SplitBuffer("\x02\x02\x00\x01", 0, 4),
-        [(b"\x02", b"\x02", b"\x00\x01")],
-    )
-
-  def testRaisesOnUnknownTag(self):
-    with self.assertRaisesRegex(ValueError, "Unexpected Tag"):
-      rdf_structs.SplitBuffer(b"\x03", 0, 1)
 
 
 def main(argv):

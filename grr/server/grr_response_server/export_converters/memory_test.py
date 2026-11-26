@@ -1,4 +1,6 @@
 #!/usr/bin/env python
+from unittest import mock
+
 from absl import app
 from absl.testing import absltest
 
@@ -7,6 +9,7 @@ from grr_response_proto import export_pb2
 from grr_response_proto import flows_pb2
 from grr_response_proto import sysinfo_pb2
 from grr_response_server.export_converters import memory
+from grr_response_server.export_converters import process
 from grr.test_lib import test_lib
 
 
@@ -148,6 +151,24 @@ class YaraProcessScanMatchConverterProtoTest(absltest.TestCase):
     self.assertEqual(converted[2].string_id, "bar3")
     self.assertEqual(converted[2].offset, 15)
 
+  def testRaisesValueErrorOnMultipleConvertedProcesses(self):
+    sample = flows_pb2.YaraProcessScanMatch(process=sysinfo_pb2.Process(pid=2))
+    converter = memory.YaraProcessScanMatchConverterProto()
+    with mock.patch.object(
+        process.ProcessToExportedProcessConverterProto,
+        "Convert",
+        autospec=True,
+        spec_set=True,
+        return_value=[
+            export_pb2.ExportedProcess(pid=2),
+            export_pb2.ExportedProcess(pid=3),
+        ],
+    ):
+      with self.assertRaisesRegex(
+          ValueError, "Expected exactly one process, got 2"
+      ):
+        list(converter.Convert(self.metadata_proto, sample))
+
 
 class ProcessMemoryErrorConverterProtoTest(absltest.TestCase):
   """Tests for ProcessMemoryErrorConverterProto."""
@@ -180,6 +201,26 @@ class ProcessMemoryErrorConverterProtoTest(absltest.TestCase):
     self.assertEqual(converted[0].metadata, self.metadata_proto)
     self.assertEqual(converted[0].process.cmdline, "cmd.exe")
     self.assertEqual(converted[0].error, "foo bar")
+
+  def testRaisesValueErrorOnMultipleConvertedProcesses(self):
+    sample = flows_pb2.ProcessMemoryError(
+        process=sysinfo_pb2.Process(pid=2), error="foo bar"
+    )
+    converter = memory.ProcessMemoryErrorConverterProto()
+    with mock.patch.object(
+        process.ProcessToExportedProcessConverterProto,
+        "Convert",
+        autospec=True,
+        spec_set=True,
+        return_value=[
+            export_pb2.ExportedProcess(pid=2),
+            export_pb2.ExportedProcess(pid=3),
+        ],
+    ):
+      with self.assertRaisesRegex(
+          ValueError, "Expected exactly one process, got 2"
+      ):
+        list(converter.Convert(self.metadata_proto, sample))
 
 
 def main(argv):

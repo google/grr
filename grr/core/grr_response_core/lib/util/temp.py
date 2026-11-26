@@ -1,10 +1,13 @@
 #!/usr/bin/env python
 """A module with utilities for dealing with temporary files and directories."""
 
+from __future__ import annotations
+
 import os
 import platform
 import shutil
 import tempfile
+import types
 from typing import Optional
 
 from absl import flags
@@ -139,7 +142,12 @@ class AutoTempDirPath:
     self.path = TempDirPath(suffix=self.suffix, prefix=self.prefix)
     return self.path
 
-  def __exit__(self, exc_type, exc_value, traceback):
+  def __exit__(
+      self,
+      exc_type: type[BaseException] | None,
+      exc_value: BaseException | None,
+      traceback: types.TracebackType | None,
+  ) -> None:
     del exc_type  # Unused.
     del exc_value  # Unused.
     del traceback  # Unused.
@@ -199,7 +207,12 @@ class AutoTempFilePath:
     )
     return self.path
 
-  def __exit__(self, exc_type, exc_value, traceback):
+  def __exit__(
+      self,
+      exc_type: type[BaseException] | None,
+      exc_value: BaseException | None,
+      traceback: types.TracebackType | None,
+  ) -> None:
     del exc_type  # Unused.
     del exc_value  # Unused.
     del traceback  # Unused.

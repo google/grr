@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """A module with API handlers related to the timeline colllection."""
 from collections.abc import Iterator
+import re
 from typing import Optional
 
 from grr_response_core.lib import utils
@@ -172,11 +173,20 @@ def _GetHuntTimelineFilename(
   """Computes a timeline filename for the given client snapshot."""
   client_id = snapshot.client_id
   fqdn = snapshot.knowledge_base.fqdn
+  # Because FQDN comes from the endpoint and can contain arbitrary characters,
+  # we strip everything outside of the basic set to avoid filenames that could
+  # generate arbitrary paths (e.g. by including bits like `/..`).
+  #
+  # We also cap it to a certain length to avoid tripping any filesystem length
+  # limits and ZIP header constraints which use 2 bytes for name length [1].
+  #
+  # [1]: https://en.wikipedia.org/wiki/ZIP_(file_format)#Local_file_header
+  fqdn_sanitized = re.sub("[^a-zA-Z0-9._-]", "+", fqdn)[:64]
 
   if fmt == timeline_pb2.ApiGetCollectedTimelineArgs.RAW_GZCHUNKED:
-    return f"{client_id}_{fqdn}.gzchunked"
+    return f"{client_id}_{fqdn_sanitized}.gzchunked"
   if fmt == timeline_pb2.ApiGetCollectedTimelineArgs.BODY:
-    return f"{client_id}_{fqdn}.body"
+    return f"{client_id}_{fqdn_sanitized}.body"
 
   raise ValueError(f"Unsupported file format: '{fmt}'")
 

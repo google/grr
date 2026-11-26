@@ -501,7 +501,7 @@ class KnowledgeBaseInterpolationTest(absltest.TestCase):
     self.assertLen(interpolation.results, 1)
     self.assertEqual(interpolation.results[0], "X:\\Users\\foo")
 
-  def testUserWithoutUsername(self):
+  def testUsernamePatternWithoutUsername(self):
     kb = knowledge_base_pb2.KnowledgeBase()
     kb.users.add(sid="S-0-X-X-770")
 
@@ -510,7 +510,31 @@ class KnowledgeBaseInterpolationTest(absltest.TestCase):
         kb=kb,
     )
     self.assertEmpty(interpolation.results)
-    self.assertIn("without username", interpolation.logs[0])
+    self.assertIn("missing 'username'", interpolation.logs[0])
+
+  def testNonUsernamePatternWithoutUsername(self):
+    kb = knowledge_base_pb2.KnowledgeBase()
+    kb.users.add(sid="S-0-X-X-770")
+
+    interpolation = artifact_utils.KnowledgeBaseInterpolation(
+        pattern="HKEY_USERS\\%%users.sid%%",
+        kb=kb,
+    )
+    self.assertLen(interpolation.results, 1)
+    self.assertEqual(interpolation.results[0], "HKEY_USERS\\S-0-X-X-770")
+
+  def testUnderivableUserprofile(self):
+    kb = knowledge_base_pb2.KnowledgeBase()
+    kb.os = "Windows"
+    kb.users.add(sid="S-0-X-X-770")
+
+    interpolation = artifact_utils.KnowledgeBaseInterpolation(
+        pattern="HKEY_USERS\\%%users.homedir%%",
+        kb=kb,
+    )
+    self.assertEmpty(interpolation.results)
+    self.assertLen(interpolation.logs, 1)
+    self.assertIn("without derivable userprofile", interpolation.logs[0])
 
   def testWindowsSingleUserMissingAttribute(self):
     kb = knowledge_base_pb2.KnowledgeBase()

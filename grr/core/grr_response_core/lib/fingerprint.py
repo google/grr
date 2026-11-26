@@ -22,12 +22,14 @@ are meant for exploration and debugging. Intended use is through the
 Fingerprinter, as exemplified in main.
 """
 
+from __future__ import annotations
 
 import collections
+from collections.abc import Callable, Collection, Iterable, Mapping
 import hashlib
 import os
 import struct
-
+from typing import Any, IO
 
 # pylint: disable=g-bad-name
 # Two classes given named tupes for ranges and relative ranges.
@@ -48,18 +50,23 @@ class Finger:
   fed the same ranges of the file.
   """
 
-  def __init__(self, hashers, ranges, metadata_dict):
+  def __init__(
+      self,
+      hashers: Collection[Any],
+      ranges: list[Range],
+      metadata_dict: Mapping[str, Any],
+  ):
     self.hashers = hashers
     self.ranges = ranges
     self.metadata = metadata_dict
 
-  def CurrentRange(self):
+  def CurrentRange(self) -> Range | None:
     """The working range of this Finger. Returns None if there is none."""
     if self.ranges:
       return self.ranges[0]
     return None
 
-  def ConsumeRange(self, start, end):
+  def ConsumeRange(self, start: int, end: int) -> None:
     """Consumes an entire range, or part thereof.
 
     If the finger has no ranges left, or the current range start is higher
@@ -94,7 +101,7 @@ class Finger:
     else:
       raise RuntimeError('Block length exceeds range.')
 
-  def HashBlock(self, block):
+  def HashBlock(self, block: bytes) -> None:
     """Given a data block, feed it to all the registered hashers."""
     for hasher in self.hashers:
       hasher.update(block)
@@ -127,13 +134,13 @@ class Fingerprinter:
   )
   AUTHENTICODE_HASH_CLASSES = (hashlib.md5, hashlib.sha1)
 
-  def __init__(self, file_obj):
-    self.fingers = []
+  def __init__(self, file_obj: IO[bytes]):
+    self.fingers: list[Finger] = []
     self.file = file_obj
     self.file.seek(0, os.SEEK_END)
     self.filelength = self.file.tell()
 
-  def _GetNextInterval(self):
+  def _GetNextInterval(self) -> Range | None:
     """Returns the next Range of the file that is to be hashed.
 
     For all fingers, inspect their next expected range, and return the
@@ -141,7 +148,7 @@ class Fingerprinter:
     BLOCK_SIZE, truncate it.
 
     Returns:
-      Next range of interest in a Range namedtuple.
+      Next range of interest in a Range namedtuple, or None if no ranges remain.
     """
     ranges = [x.CurrentRange() for x in self.fingers]
     starts = set([r.start for r in ranges if r])
@@ -156,11 +163,11 @@ class Fingerprinter:
       min_end = min_start + self.BLOCK_SIZE
     return Range(min_start, min_end)
 
-  def _AdjustIntervals(self, start, end):
+  def _AdjustIntervals(self, start: int, end: int) -> None:
     for finger in self.fingers:
       finger.ConsumeRange(start, end)
 
-  def _HashBlock(self, block, start, end):
+  def _HashBlock(self, block: bytes, start: int, end: int) -> None:
     """_HashBlock feeds data blocks into the hashers of fingers.
 
     This function must be called before adjusting fingers for next
@@ -191,7 +198,7 @@ class Fingerprinter:
       if start == expected_range.start:
         finger.HashBlock(block)
 
-  def HashIt(self):
+  def HashIt(self) -> list[dict[str, Any]]:
     """Finalizing function for the Fingerprint class.
 
     This method applies all the different hash functions over the
@@ -221,9 +228,9 @@ class Fingerprinter:
       self._HashBlock(block, interval.start, interval.end)
       self._AdjustIntervals(interval.start, interval.end)
 
-    results = []
+    results: list[dict[str, Any]] = []
     for finger in self.fingers:
-      res = {}
+      res: dict[str, Any] = {}
       leftover = finger.CurrentRange()
       if leftover:
         if (
@@ -244,7 +251,9 @@ class Fingerprinter:
     # order in which fingers were added. Helps with reproducing test results.
     return sorted(results, key=lambda r: r['name'])
 
-  def EvalGeneric(self, hashers=None):
+  def EvalGeneric(
+      self, hashers: Iterable[Callable[[], Any]] | None = None
+  ) -> bool:
     """Causes the entire file to be hashed by the given hash functions.
 
     This sets up a 'finger' for fingerprinting, where the entire file
@@ -266,7 +275,7 @@ class Fingerprinter:
     self.fingers.append(finger)
     return True
 
-  def _PecoffHeaderParser(self):
+  def _PecoffHeaderParser(self) -> dict[str, RelRange] | None:
     """Parses PECOFF headers.
 
     Reads header magic and some data structures in a file to determine if
@@ -280,7 +289,7 @@ class Fingerprinter:
       A dict with offsets and lengths for CheckSum, CertTable, and SignedData
       fields in the PECOFF binary, for those that are present.
     """
-    extents = {}
+    extents: dict[str, RelRange] = {}
     self.file.seek(0, os.SEEK_SET)
     buf = self.file.read(2)
     if buf != b'MZ':
@@ -345,13 +354,15 @@ class Fingerprinter:
     extents['SignedData'] = RelRange(start, length)
     return extents
 
-  def _CollectSignedData(self, extent):
+  def _CollectSignedData(
+      self, extent: RelRange
+  ) -> list[tuple[int, int, bytes]]:
     """Extracts signedData blob from PECOFF binary and parses first layer."""
     start, length = extent
 
     self.file.seek(start, os.SEEK_SET)
     buf = self.file.read(length)
-    signed_data = []
+    signed_data: list[tuple[int, int, bytes]] = []
     # This loop ignores trailing cruft, or too-short signedData chunks.
     while len(buf) >= 8:
       dw_length, w_revision, w_cert_type = struct.unpack('<IHH', buf[:8])
@@ -363,7 +374,9 @@ class Fingerprinter:
       signed_data.append((w_revision, w_cert_type, b_cert))
     return signed_data
 
-  def EvalPecoff(self, hashers=None):
+  def EvalPecoff(
+      self, hashers: Iterable[Callable[[], Any]] | None = None
+  ) -> bool:
     """If the file is a PE/COFF file, computes authenticode hashes on it.
 
     This checks if the input file is a valid PE/COFF image file (e.g. a
@@ -416,7 +429,7 @@ class Fingerprinter:
     if hashers is None:
       hashers = Fingerprinter.AUTHENTICODE_HASH_CLASSES
     hashfuncs = [x() for x in hashers]
-    metadata = {'name': 'pecoff'}
+    metadata: dict[str, Any] = {'name': 'pecoff'}
     if signed_data:
       metadata['SignedData'] = signed_data
     finger = Finger(hashfuncs, ranges, metadata)

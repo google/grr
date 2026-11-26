@@ -337,8 +337,6 @@ describe('HttpApiService', () => {
         items: [
           {
             name: 'FileFinder',
-            friendlyName: 'Client Side File Finder',
-            category: 'b',
             defaultArgs: {
               '@type': 'type.googleapis.com/foo.bar.FileFinderArgs',
             },
@@ -667,8 +665,6 @@ describe('HttpApiService', () => {
         items: [
           {
             name: 'FileFinder',
-            friendlyName: 'Client Side File Finder',
-            category: 'b',
             defaultArgs: {
               '@type': 'type.googleapis.com/foo.bar.FileFinderArgs',
             },

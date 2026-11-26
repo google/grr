@@ -43,10 +43,15 @@ to ensure that every field used in particular metric has a finite number of
 possible values.
 """
 
+from __future__ import annotations
+
 import abc
+from collections.abc import Callable, Sequence
 import threading
+from typing import Any
 
 from grr_response_core.lib import utils
+from grr_response_core.lib.rdfvalues import stats as rdf_stats
 
 
 class StatsCollector(metaclass=abc.ABCMeta):
@@ -66,18 +71,18 @@ class StatsCollector(metaclass=abc.ABCMeta):
   """
 
   def __init__(self):
-    self._metadata_dict = {}
+    self._metadata_dict: dict[str, rdf_stats.MetricMetadata] = {}
     self.lock = threading.RLock()
 
   @utils.Synchronized
-  def RegisterMetric(self, metadata):
+  def RegisterMetric(self, metadata: Any) -> None:
     if metadata.varname in self._metadata_dict:
       raise ValueError("Duplicate metadata for metric %s." % metadata.varname)
     self._InitializeMetric(metadata)
     self._metadata_dict[metadata.varname] = metadata
 
   @abc.abstractmethod
-  def _InitializeMetric(self, metadata):
+  def _InitializeMetric(self, metadata: Any) -> None:
     """Initializes a metric with the given metadata.
 
     Args:
@@ -86,7 +91,12 @@ class StatsCollector(metaclass=abc.ABCMeta):
     raise NotImplementedError()
 
   @abc.abstractmethod
-  def IncrementCounter(self, metric_name, delta=1, fields=None):
+  def IncrementCounter(
+      self,
+      metric_name: str,
+      delta: int = 1,
+      fields: Sequence[Any] | None = None,
+  ) -> None:
     """Increments a counter metric by a given delta.
 
     Args:
@@ -101,7 +111,12 @@ class StatsCollector(metaclass=abc.ABCMeta):
     raise NotImplementedError()
 
   @abc.abstractmethod
-  def RecordEvent(self, metric_name, value, fields=None):
+  def RecordEvent(
+      self,
+      metric_name: str,
+      value: float,
+      fields: Sequence[Any] | None = None,
+  ) -> None:
     """Records value corresponding to the given event metric.
 
     Args:
@@ -113,7 +128,12 @@ class StatsCollector(metaclass=abc.ABCMeta):
     raise NotImplementedError()
 
   @abc.abstractmethod
-  def SetGaugeValue(self, metric_name, value, fields=None):
+  def SetGaugeValue(
+      self,
+      metric_name: str,
+      value: Any,
+      fields: Sequence[Any] | None = None,
+  ) -> None:
     """Sets value of a given gauge metric.
 
     Args:
@@ -125,7 +145,12 @@ class StatsCollector(metaclass=abc.ABCMeta):
     raise NotImplementedError()
 
   @abc.abstractmethod
-  def SetGaugeCallback(self, metric_name, callback, fields=None):
+  def SetGaugeCallback(
+      self,
+      metric_name: str,
+      callback: Callable[[], Any],
+      fields: Sequence[Any] | None = None,
+  ) -> None:
     """Attaches a callback to the given gauge metric.
 
     Args:
@@ -138,7 +163,7 @@ class StatsCollector(metaclass=abc.ABCMeta):
     """
     raise NotImplementedError()
 
-  def GetMetricMetadata(self, metric_name):
+  def GetMetricMetadata(self, metric_name: str) -> rdf_stats.MetricMetadata:
     """Returns the MetricMetadata for the given metric.
 
     Args:
@@ -152,12 +177,12 @@ class StatsCollector(metaclass=abc.ABCMeta):
     """
     return self._metadata_dict[metric_name]
 
-  def GetAllMetricsMetadata(self):
+  def GetAllMetricsMetadata(self) -> dict[str, rdf_stats.MetricMetadata]:
     """Returns a dict mapping all metric names to their MetricMetadata."""
     return self._metadata_dict
 
   @abc.abstractmethod
-  def GetMetricFields(self, metric_name):
+  def GetMetricFields(self, metric_name: str) -> list[tuple[Any, ...]]:
     """Returns all field values for the given metric.
 
     Args:
@@ -174,7 +199,9 @@ class StatsCollector(metaclass=abc.ABCMeta):
     raise NotImplementedError()
 
   @abc.abstractmethod
-  def GetMetricValue(self, metric_name, fields=None):
+  def GetMetricValue(
+      self, metric_name: str, fields: Sequence[Any] | None = None
+  ) -> Any:
     """Returns the value of a given metric for given field values.
 
     Args:

@@ -37,7 +37,7 @@ class TimeOutWhileWaitingForFlowsToBeProcessedError(Error):
   """Raised by WaitUntilNoFlowsToProcess when waiting longer than time limit."""
 
 
-class InMemoryDBFlowMixin(object):
+class InMemoryDBFlowMixin:
   """InMemoryDB mixin for flow handling."""
 
   flows: dict[tuple[ClientID, FlowID], flows_pb2.Flow]
@@ -800,7 +800,7 @@ class InMemoryDBFlowMixin(object):
     for request in self._GetFlowRequestsReadyForProcessing():
       handler(request)
       with self.lock:
-        self.flow_processing_requests.pop(  # pyrefly: ignore[no-matching-overload]
+        self.flow_processing_requests.pop(
             (request.client_id, request.flow_id), None
         )
 
@@ -901,7 +901,7 @@ class InMemoryDBFlowMixin(object):
         for request in todo:
           self.flow_handler_num_being_processed += 1
           del self.flow_processing_requests[
-              (request.client_id, request.flow_id)  # pyrefly: ignore[unsupported-operation]
+              (request.client_id, request.flow_id)
           ]
           self.flow_processing_requests_done.add(
               (request.client_id, request.flow_id)

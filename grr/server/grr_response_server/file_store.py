@@ -536,7 +536,7 @@ def StreamFilesChunks(
       total_size += ref.size
 
     cur_size = 0
-    for i, ref in enumerate(blob_refs):  # pyrefly: ignore[bad-argument-type, not-iterable]
+    for i, ref in enumerate(blob_refs):  # pyrefly: ignore[not-iterable]
       blob_id = models_blob.BlobID(ref.blob_id)
       all_chunks.append((cp, blob_id, i, num_blobs, ref.offset, total_size))
 
