@@ -17,7 +17,6 @@ from grr_response_core.lib.rdfvalues import mig_client_fs
 from grr_response_core.lib.rdfvalues import mig_paths
 from grr_response_proto import flows_pb2
 from grr_response_proto import jobs_pb2
-from grr_response_proto import knowledge_base_pb2
 from grr_response_proto import objects_pb2
 from grr_response_server import data_store
 from grr_response_server import file_store
@@ -107,10 +106,6 @@ class ClientFileFinder(
 ):
   """A client side file finder flow."""
 
-  friendly_name = "Client Side File Finder"
-  category = "/Filesystem/"
-  behaviours = flow_base.BEHAVIOUR_BASIC
-
   BLOB_CHECK_DELAY = rdfvalue.Duration("60s")
   MAX_BLOB_CHECKS = 60
 
@@ -122,6 +117,12 @@ class ClientFileFinder(
   @classmethod
   def ValidateArgs(cls, args: flows_pb2.FileFinderArgs) -> None:
     """Validates the flow args. Should raise if they are not valid."""
+    if args.pathtype == jobs_pb2.PathSpec.REGISTRY:
+      raise flow_base.FlowError(
+          "`REGISTRY` type used with `FileFinder` "
+          "(use `RegistryFinder` instead)"
+      )
+
     for condition in args.conditions:
       _ValidateCondition(condition)
 
@@ -148,18 +149,19 @@ class ClientFileFinder(
             or self.rrg_version >= (0, 0, 7)
         )
         and (
-            self.proto_args.pathtype
-            in [
+            self.proto_args.pathtype in [
                 jobs_pb2.PathSpec.PathType.OS,
                 jobs_pb2.PathSpec.PathType.TMPFILE,
             ]
             or (
-                # We support raw filesystem access only for the `DOWNLOAD`
-                # action. For the `STAT` action filesystem locking should not be
+                # We support raw filesystem access only for the `DOWNLOAD` and
+                # `STAT` actions. For colecting metadata locking should not be
                 # an issue and nobody really uses `HASH` so it is not worth the
                 # hassle.
-                self.proto_args.action.action_type
-                == flows_pb2.FileFinderAction.DOWNLOAD
+                self.proto_args.action.action_type in [
+                    flows_pb2.FileFinderAction.STAT,
+                    flows_pb2.FileFinderAction.DOWNLOAD,
+                ]
                 and self.proto_args.pathtype == jobs_pb2.PathSpec.PathType.NTFS
                 and
                 # Volume path inference in `get_file_contents_kmx` was added in
@@ -171,8 +173,7 @@ class ClientFileFinder(
         )
         and all(
             (
-                _.condition_type
-                in [
+                _.condition_type in [
                     flows_pb2.FileFinderCondition.MODIFICATION_TIME,
                     flows_pb2.FileFinderCondition.ACCESS_TIME,
                     flows_pb2.FileFinderCondition.SIZE,
@@ -182,8 +183,7 @@ class ClientFileFinder(
                 # `get_file_metadata` support for content regex matching was
                 # introduced in version 0.0.6.
                 self.rrg_version >= (0, 0, 6)
-                and _.condition_type
-                in [
+                and _.condition_type in [
                     flows_pb2.FileFinderCondition.CONTENTS_LITERAL_MATCH,
                     flows_pb2.FileFinderCondition.CONTENTS_REGEX_MATCH,
                 ]
@@ -212,8 +212,7 @@ class ClientFileFinder(
     if (paths := self._InterpolatePaths(self.proto_args.paths)) is not None:
       interpolated_args = flows_pb2.FileFinderArgs()
       interpolated_args.CopyFrom(self.proto_args)
-      # TODO - Replace with `clear()` once upgraded.
-      del interpolated_args.paths[:]
+      interpolated_args.paths.clear()
       interpolated_args.paths.extend(paths)
       self.CallClientProto(
           stub,
@@ -226,6 +225,14 @@ class ClientFileFinder(
     paths = self._InterpolatePaths(self.proto_args.paths)
     if not paths:
       return
+
+    # TODO - Consider migrating metadata collection to Keramics as
+    # well. For now we don't do that because it should not be a problem in
+    # practice (we use it to avoid issues with filesystem locking which is not
+    # an issue for metadata) and if *really* necessary we do have support for
+    # listing directories with it).
+    if self.proto_args.pathtype == jobs_pb2.PathSpec.PathType.NTFS:
+      self.Log("NOTE: Keramics is used only for file content collection")
 
     action = rrg_stubs.GetFileMetadata()
     path_regexes = []
@@ -374,9 +381,9 @@ class ClientFileFinder(
           "contents condition used with no `max_file_size` specified",
       )
 
-    action.Call(self._ProcessGetFileMetadata)  # pyrefly: ignore[bad-argument-type]
+    action.Call(self._ProcessGetFileMetadata)
 
-  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+  @flow_base.UseProto2AnyResponses
   def _ProcessGetFileMetadata(
       self,
       responses: flow_responses.Responses[any_pb2.Any],
@@ -516,7 +523,7 @@ class ClientFileFinder(
     )
 
     if get_file_metadata.args.paths:
-      get_file_metadata.Call(self._ProcessGetFileMetadataHash)  # pyrefly: ignore[bad-argument-type]
+      get_file_metadata.Call(self._ProcessGetFileMetadataHash)
     if action_type == flows_pb2.FileFinderAction.DOWNLOAD:
       if self.proto_args.pathtype in [
           jobs_pb2.PathSpec.PathType.OS,
@@ -534,7 +541,7 @@ class ClientFileFinder(
         for path in get_file_contents_paths:
           get_file_contents.args.paths.add().raw_bytes = bytes(path)
 
-        get_file_contents.Call(self._ProcessGetFileContents)  # pyrefly: ignore[bad-argument-type]
+        get_file_contents.Call(self._ProcessGetFileContents)
       elif self.proto_args.pathtype == jobs_pb2.PathSpec.PathType.NTFS:
         if self.rrg_os_type != rrg_os_pb2.WINDOWS:
           raise flow_base.FlowError(
@@ -565,7 +572,7 @@ class ClientFileFinder(
             )
 
           get_file_contents_kmx.context["anchor"] = anchor
-          get_file_contents_kmx.Call(self._ProcessGetFileContentsKmx)  # pyrefly: ignore[bad-argument-type]
+          get_file_contents_kmx.Call(self._ProcessGetFileContentsKmx)
       else:
         raise flow_base.FlowError(
             f"Unexpected path type: {self.proto_args.pathtype}"
@@ -596,7 +603,7 @@ class ClientFileFinder(
           ),
       )
 
-  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+  @flow_base.UseProto2AnyResponses
   def _ProcessGetFileMetadataHash(
       self,
       responses: flow_responses.Responses[any_pb2.Any],
@@ -642,7 +649,7 @@ class ClientFileFinder(
         path_infos=list(path_infos_by_path.values()),
     )
 
-  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+  @flow_base.UseProto2AnyResponses
   def _ProcessGetFileContents(
       self,
       responses_any: flow_responses.Responses[any_pb2.Any],
@@ -670,7 +677,7 @@ class ClientFileFinder(
 
     self._ProcessGetFileContentsResponses(responses)
 
-  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+  @flow_base.UseProto2AnyResponses
   def _ProcessGetFileContentsKmx(
       self,
       responses_any: flow_responses.Responses[any_pb2.Any],
@@ -686,7 +693,7 @@ class ClientFileFinder(
       response_kmx = rrg_get_file_contents_kmx_pb2.Result()
       response_kmx.ParseFromString(response_any.value)
 
-      anchor = responses_any.request_data["anchor"]  # pyrefly: ignore[bad-argument-type, unsupported-operation]
+      anchor = responses_any.request_data["anchor"]  # pyrefly: ignore[unsupported-operation]
       path = rrg_path.PurePath.For(self.rrg_os_type, response_kmx.path)
 
       if response_kmx.error:
@@ -859,20 +866,15 @@ class ClientFileFinder(
       # blobs arrived. We could do it more granularly as blobs can arrive part-
       # ially but deleting from a repeated Protocl Buffers field is not trivial
       # so we skip it for now.
-      # TODO - Replace with `clear()` once upgraded.
-      del self.store.results_pending_content[:]
+      self.store.results_pending_content.clear()
 
   def _InterpolatePaths(self, globs: Sequence[str]) -> Optional[Sequence[str]]:
-    kb: knowledge_base_pb2.KnowledgeBase = (
-        self.client_knowledge_base or knowledge_base_pb2.KnowledgeBase()
-    )
-
     paths = list()
 
     for glob in globs:
       interpolation = artifact_utils.KnowledgeBaseInterpolation(
           pattern=str(glob),
-          kb=kb,
+          kb=self.client_knowledge_base,
       )
 
       for log in interpolation.logs:
@@ -889,7 +891,7 @@ class ClientFileFinder(
 
     return paths
 
-  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+  @flow_base.UseProto2AnyResponses
   def StoreResultsWithoutBlobs(
       self,
       responses: flow_responses.Responses[any_pb2.Any],
@@ -922,7 +924,7 @@ class ClientFileFinder(
           messages=transferred_file_responses,
       )
 
-  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+  @flow_base.UseProto2AnyResponses
   def StoreResultsWithBlobs(
       self,
       responses: flow_responses.Responses[any_pb2.Any],
@@ -1067,6 +1069,3 @@ class ClientFileFinder(
 # TODO(user) decide on the FileFinder name and remove the legacy alias.
 class FileFinder(ClientFileFinder):
   """An alias for ClientFileFinder."""
-
-  friendly_name = "File Finder"
-  behaviours = flow_base.BEHAVIOUR_BASIC

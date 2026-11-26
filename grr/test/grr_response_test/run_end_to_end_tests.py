@@ -56,12 +56,6 @@ _FILENAMES_EXCLUDED_FROM_LOG = flags.DEFINE_list(
     "Files whose log messages won't get printed.",
 )
 
-_UPLOAD_TEST_BINARIES = flags.DEFINE_bool(
-    "upload_test_binaries",
-    True,
-    "Whether to upload executables needed by some e2e tests.",
-)
-
 
 class E2ELogFilter(logging.Filter):
   """Logging filter that excludes log messages for particular files."""
@@ -85,7 +79,6 @@ def main(argv):
       run_only_tests=_RUN_ONLY_TESTS.value,
       skip_tests=_SKIP_TESTS.value,
       manual_tests=flags.FLAGS.manual_tests,
-      upload_test_binaries=_UPLOAD_TEST_BINARIES.value,
   )
   test_runner.Initialize()
 

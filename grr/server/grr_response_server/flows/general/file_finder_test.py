@@ -454,6 +454,8 @@ class TestFileFinderFlow(
       self.assertLen(results, 1)
 
   def testLiteralMatchConditionWithHexEncodedValue(self):
+    tempfile = self.create_tempfile(content=b"\xFF\x00\x4D\x5A\x90\x00\xFF")
+
     match = flows_pb2.FileFinderContentsLiteralMatchCondition(
         literal=b"\x4D\x5A\x90",
     )
@@ -462,11 +464,11 @@ class TestFileFinderFlow(
         contents_literal_match=match,
     )
 
-    paths = [os.path.join(os.path.dirname(self.fixture_path), "win_hello.exe")]
+    results = self.RunFlow(
+        paths=[tempfile.full_path],
+        conditions=[literal_condition],
+    )
 
-    results = self.RunFlow(paths=paths, conditions=[literal_condition])
-
-    # Expecting a match from win_hello.exe
     self.assertLen(results, 1)
 
   def testRegexMatchConditionWithDifferentActions(self):

@@ -7,6 +7,7 @@ from absl import app
 
 from grr_response_proto import flows_pb2
 from grr_response_proto import jobs_pb2
+from grr_response_proto import objects_pb2
 from grr_response_server.databases import db as abstract_db
 from grr_response_server.databases import db_test_utils
 from grr_response_server.flows.general import registry_finder as flow_registry_finder
@@ -460,6 +461,64 @@ class TestStubbedRegistryFinderFlow(flow_test_lib.FlowTestsBaseclass):
     self.assertIn(r"HKEY_LOCAL_MACHINE\SOFTWARE\BarBytes", results_by_path)
     self.assertIn(r"HKEY_LOCAL_MACHINE\SOFTWARE\BazStr", results_by_path)
     self.assertIn(r"HKEY_LOCAL_MACHINE\SOFTWARE\BazBytes", results_by_path)
+
+  @db_test_lib.WithDatabase
+  def testRRG_KnowledgebaseInterpolation(self, db: abstract_db.Database):
+    client_id = db_test_utils.InitializeRRGClient(
+        db,
+        os_type=rrg_os_pb2.WINDOWS,
+    )
+
+    snapshot = objects_pb2.ClientSnapshot()
+    snapshot.client_id = client_id
+    snapshot.knowledge_base.users.add().sid = "S-1-5-20"
+    db.WriteClientSnapshot(snapshot)
+
+    args = flows_pb2.RegistryFinderArgs()
+    args.keys_paths.append(r"HKEY_USERS\%%users.sid%%\Software\*")
+
+    flow_id = rrg_test_lib.ExecuteFlow(
+        client_id=client_id,
+        flow_cls=flow_registry_finder.RegistryFinder,
+        flow_args=args,
+        handlers=rrg_test_lib.FakeWinregHandlers({
+            rrg_winreg_pb2.USERS: {
+                "S-1-5-20": {
+                    "Software": {
+                        "Foo": "FOO",
+                    },
+                },
+                "S-111": {
+                    "Software": {
+                        "Bar": "BAR",
+                    },
+                },
+                "S-222": {
+                    "Software": {
+                        "Baz": "BAZ",
+                    },
+                },
+            },
+        }),
+    )
+
+    flow_obj = db.ReadFlowObject(client_id, flow_id)
+    self.assertEqual(flow_obj.backtrace, "")
+    self.assertEqual(flow_obj.error_message, "")
+    self.assertEqual(flow_obj.flow_state, flows_pb2.Flow.FlowState.FINISHED)
+
+    flow_results = db.ReadFlowResults(client_id, flow_id, offset=0, count=128)
+
+    results_by_path = {}
+    for flow_result in flow_results:
+      result = flows_pb2.FileFinderResult()
+      self.assertTrue(flow_result.payload.Unpack(result))
+
+      results_by_path[result.stat_entry.pathspec.path] = result
+
+    self.assertIn(r"HKEY_USERS\S-1-5-20\Software\Foo", results_by_path)
+    self.assertNotIn(r"HKEY_USERS\S-111\Software\Bar", results_by_path)
+    self.assertNotIn(r"HKEY_USERS\S-222\Software\Baz", results_by_path)
 
 
 def main(argv):

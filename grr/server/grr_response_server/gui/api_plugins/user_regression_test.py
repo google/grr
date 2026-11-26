@@ -3,8 +3,6 @@
 
 from absl import app
 
-from grr_response_core.lib import rdfvalue
-from grr_response_core.lib.util import random
 from grr_response_proto import flows_pb2
 from grr_response_proto import objects_pb2
 from grr_response_proto import user_pb2
@@ -14,7 +12,6 @@ from grr_response_server import notification
 from grr_response_server.flows.general import discovery
 from grr_response_server.gui import api_regression_test_lib
 from grr_response_server.gui.api_plugins import user as user_plugin
-from grr_response_server.models import hunts as models_hunts
 from grr.test_lib import acl_test_lib
 from grr.test_lib import flow_test_lib
 from grr.test_lib import hunt_test_lib
@@ -454,182 +451,6 @@ class ApiListHuntApprovalsHandlerRegressionTest(
       self.Check(
           "ListHuntApprovals",
           replace={hunt_id: "H:123456", approval_id: "approval:112233"},
-      )
-
-
-class ApiGetCronJobApprovalHandlerRegressionTest(
-    api_regression_test_lib.ApiRegressionTest,
-    acl_test_lib.AclTestMixin,
-):
-  """Regression test for ApiGetCronJobApprovalHandler."""
-
-  api_method = "GetCronJobApproval"
-  handler = user_plugin.ApiGetCronJobApprovalHandler
-
-  def CreateInterrogateJob(self):
-    job_id = f"Interrogate_{random.UInt16()}"
-    args = flows_pb2.CronJobAction(
-        action_type=flows_pb2.CronJobAction.ActionType.HUNT_CRON_ACTION,
-        hunt_cron_action=flows_pb2.HuntCronAction(
-            flow_name=discovery.Interrogate.__name__,
-            hunt_runner_args=models_hunts.CreateDefaultHuntRunnerArgs(),
-        ),
-    )
-    job = flows_pb2.CronJob(
-        cron_job_id=job_id,
-        enabled=True,
-        frequency=rdfvalue.DurationSeconds.FromHumanReadable(
-            "1d"
-        ).SerializeToWireFormat(),
-        allow_overruns=False,
-        created_at=int(rdfvalue.RDFDatetime.Now()),
-        args=args,
-    )
-    data_store.REL_DB.WriteCronJob(job)
-
-    return job_id
-
-  def Run(self):
-    with test_lib.FakeTime(42):
-      self.CreateAdminUser("approver")
-      cron1_id = self.CreateInterrogateJob()
-      cron2_id = self.CreateInterrogateJob()
-
-    with test_lib.FakeTime(44):
-      approval1_id = self.RequestCronJobApproval(
-          cron1_id, reason="foo", approver="approver"
-      )
-
-    with test_lib.FakeTime(45):
-      approval2_id = self.RequestCronJobApproval(
-          cron2_id, reason="bar", approver="approver"
-      )
-
-    with test_lib.FakeTime(84):
-      self.GrantCronJobApproval(
-          cron2_id, approval_id=approval2_id, approver="approver"
-      )
-
-    with test_lib.FakeTime(126):
-      self.Check(
-          "GetCronJobApproval",
-          args=api_user_pb2.ApiGetCronJobApprovalArgs(
-              username=self.test_username,
-              cron_job_id=cron1_id,
-              approval_id=approval1_id,
-          ),
-          replace={cron1_id: "CronJob_123456", approval1_id: "approval:111111"},
-      )
-      self.Check(
-          "GetCronJobApproval",
-          args=api_user_pb2.ApiGetCronJobApprovalArgs(
-              username=self.test_username,
-              cron_job_id=cron2_id,
-              approval_id=approval2_id,
-          ),
-          replace={cron2_id: "CronJob_567890", approval2_id: "approval:222222"},
-      )
-
-
-class ApiGrantCronJobApprovalHandlerRegressionTest(
-    api_regression_test_lib.ApiRegressionTest, acl_test_lib.AclTestMixin
-):
-  """Regression test for ApiGrantCronJobApprovalHandler."""
-
-  api_method = "GrantCronJobApproval"
-  handler = user_plugin.ApiGrantCronJobApprovalHandler
-
-  def Run(self):
-    with test_lib.FakeTime(42):
-      self.CreateAdminUser("requestor")
-
-      cron_id = "CollectFilesByKnownPath_Cron"
-      args = flows_pb2.CronJobAction(
-          action_type=flows_pb2.CronJobAction.ActionType.HUNT_CRON_ACTION,
-          hunt_cron_action=flows_pb2.HuntCronAction(
-              flow_name=discovery.Interrogate.__name__,
-              hunt_runner_args=models_hunts.CreateDefaultHuntRunnerArgs(),
-          ),
-      )
-      job = flows_pb2.CronJob(
-          cron_job_id=cron_id,
-          enabled=True,
-          frequency=rdfvalue.DurationSeconds.FromHumanReadable(
-              "1d"
-          ).SerializeToWireFormat(),
-          allow_overruns=False,
-          created_at=int(rdfvalue.RDFDatetime.Now()),
-          args=args,
-      )
-      data_store.REL_DB.WriteCronJob(job)
-
-    with test_lib.FakeTime(44):
-      approval_id = self.RequestCronJobApproval(
-          cron_id,
-          approver=self.test_username,
-          requestor="requestor",
-          reason="foo",
-      )
-
-    with test_lib.FakeTime(126):
-      self.Check(
-          "GrantCronJobApproval",
-          args=api_user_pb2.ApiGrantCronJobApprovalArgs(
-              cron_job_id=cron_id, approval_id=approval_id, username="requestor"
-          ),
-          replace={cron_id: "CronJob_123456", approval_id: "approval:111111"},
-      )
-
-
-class ApiCreateCronJobApprovalHandlerRegressionTest(
-    api_regression_test_lib.ApiRegressionTest, acl_test_lib.AclTestMixin
-):
-  """Regression test for ApiCreateCronJobApprovalHandler."""
-
-  api_method = "CreateCronJobApproval"
-  handler = user_plugin.ApiCreateCronJobApprovalHandler
-
-  def Run(self):
-    with test_lib.FakeTime(42):
-      self.CreateUser("approver1")
-      self.CreateUser("approver2")
-
-    cron_id = "CollectFilesByKnownPath_Cron"
-    args = flows_pb2.CronJobAction(
-        action_type=flows_pb2.CronJobAction.ActionType.HUNT_CRON_ACTION,
-        hunt_cron_action=flows_pb2.HuntCronAction(
-            flow_name=discovery.Interrogate.__name__,
-            hunt_runner_args=models_hunts.CreateDefaultHuntRunnerArgs(),
-        ),
-    )
-    job = flows_pb2.CronJob(
-        cron_job_id=cron_id,
-        enabled=True,
-        frequency=rdfvalue.DurationSeconds.FromHumanReadable(
-            "1d"
-        ).SerializeToWireFormat(),
-        allow_overruns=False,
-        created_at=int(rdfvalue.RDFDatetime.Now()),
-        args=args,
-    )
-    data_store.REL_DB.WriteCronJob(job)
-
-    def ReplaceCronAndApprovalIds():
-      approvals = self.ListCronJobApprovals()
-      return {approvals[0].id: "approval:112233", cron_id: "CronJob_123456"}
-
-    with test_lib.FakeTime(126):
-      self.Check(
-          "CreateCronJobApproval",
-          args=api_user_pb2.ApiCreateCronJobApprovalArgs(
-              cron_job_id=cron_id,
-              approval=api_user_pb2.ApiCronJobApproval(
-                  reason="really important reason!",
-                  notified_users=["approver1", "approver2"],
-                  email_cc_addresses=["test@example.com"],
-              ),
-          ),
-          replace=ReplaceCronAndApprovalIds,
       )
 
 

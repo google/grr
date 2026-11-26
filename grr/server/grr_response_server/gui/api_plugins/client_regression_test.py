@@ -167,11 +167,11 @@ class ApiGetClientStartupInfosRegressionTest(
       client_id = self.SetupClient(0, memory_size=4294967296)
 
     with test_lib.FakeTime(45):
-      self.SetupClientStartupInfo(0, boot_time=1)
+      self.SetupClientStartupInfo(0, boot_time=rdfvalue.RDFDatetime(1))
 
     with test_lib.FakeTime(46):
       # A client startup is written as part of the Client Snapshot.
-      self.SetupClient(0, last_boot_time=2)
+      self.SetupClient(0, last_boot_time=rdfvalue.RDFDatetime(2))
 
     return client_id
 

@@ -11,7 +11,7 @@ class PortInUseError(Exception):
     port: The port being used.
   """
 
-  def __init__(self, port):
+  def __init__(self, port: int):
     """Instantiates a new PortInUseError.
 
     Args:
@@ -29,7 +29,7 @@ class BaseStatsServer(metaclass=abc.ABCMeta):
     port: The TCP port that the server should listen to.
   """
 
-  def __init__(self, address, port):
+  def __init__(self, address: str, port: int):
     """Instantiates a new BaseStatsServer.
 
     Args:
@@ -40,7 +40,7 @@ class BaseStatsServer(metaclass=abc.ABCMeta):
     self.port = port
 
   @abc.abstractmethod
-  def Start(self):
+  def Start(self) -> None:
     """Starts serving statistics.
 
     Raises:
@@ -49,6 +49,6 @@ class BaseStatsServer(metaclass=abc.ABCMeta):
     raise NotImplementedError()
 
   @abc.abstractmethod
-  def Stop(self):
+  def Stop(self) -> None:
     """Stops serving statistics."""
     raise NotImplementedError()

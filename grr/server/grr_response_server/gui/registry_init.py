@@ -10,7 +10,7 @@ from grr_response_server.gui import api_labels_restricted_call_router
 from grr_response_server.gui.root import api_root_router
 
 
-def RegisterApiCallRouters():
+def RegisterApiCallRouters() -> None:
   """Registers all API call routers."""
 
   # keep-sorted start block=yes

@@ -140,8 +140,6 @@ export function newFlowDescriptor(
 ): FlowDescriptor {
   return {
     name: 'FileFinder',
-    friendlyName: 'Collect Files',
-    category: 'Filesystem',
     blockHuntCreation: false,
     defaultArgs: {},
     ...args,

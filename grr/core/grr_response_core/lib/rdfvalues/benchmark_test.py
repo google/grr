@@ -3,11 +3,11 @@
 
 from absl import app
 
-from grr_response_core.lib import type_info
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import jobs_pb2
 from grr_response_proto import knowledge_base_pb2
+from grr_response_proto import tests_pb2
 from grr.test_lib import benchmark_test_lib
 from grr.test_lib import test_lib
 
@@ -15,57 +15,16 @@ from grr.test_lib import test_lib
 class StructGrrMessage(rdf_structs.RDFProtoStruct):
   """A serialization agnostic GrrMessage."""
 
-  type_description = type_info.TypeDescriptorSet(
-      rdf_structs.ProtoString(
-          name="session_id",
-          field_number=1,
-          description="Every Flow has a unique session id.",
-      ),
-      rdf_structs.ProtoUnsignedInteger(
-          name="request_id",
-          field_number=2,
-          description="This message is in response to this request number",
-      ),
-      rdf_structs.ProtoUnsignedInteger(
-          name="response_id",
-          field_number=3,
-          description="Responses for each request.",
-      ),
-      rdf_structs.ProtoString(
-          name="name",
-          field_number=4,
-          description=(
-              "This is the name of the client action that will be "
-              "executed. It is set by the flow and is executed by "
-              "the client."
-          ),
-      ),
-      rdf_structs.ProtoBinary(
-          name="args",
-          field_number=5,
-          description="This field contains an encoded rdfvalue.",
-      ),
-      rdf_structs.ProtoString(
-          name="source",
-          field_number=6,
-          description=(
-              "Client name where the message came from (This is "
-              "copied from the MessageList)"
-          ),
-      ),
-  )
+  protobuf = tests_pb2.StructGrrMessage
 
 
 class FastGrrMessageList(rdf_structs.RDFProtoStruct):
   """A Faster implementation of GrrMessageList."""
 
-  type_description = type_info.TypeDescriptorSet(
-      rdf_structs.ProtoList(
-          rdf_structs.ProtoEmbedded(
-              name="job", field_number=1, nested=StructGrrMessage
-          )
-      )
-  )
+  protobuf = tests_pb2.FastGrrMessageList
+  rdf_deps = [
+      StructGrrMessage,
+  ]
 
 
 class RDFValueBenchmark(benchmark_test_lib.AverageMicroBenchmarks):

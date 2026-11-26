@@ -21,11 +21,15 @@ Example usage:
 >>> SharedPool().Join()
 """
 
+from __future__ import annotations
+
+from collections.abc import Callable, Collection
 import itertools
 import logging
 import queue
 import threading
 import time
+from typing import Any
 
 import psutil
 
@@ -72,7 +76,12 @@ class Full(Error):
 class _WorkerThread(threading.Thread):
   """The workers used in the ThreadPool class."""
 
-  def __init__(self, message_queue, pool, name):
+  def __init__(
+      self,
+      message_queue: queue.Queue[Any],
+      pool: ThreadPool,
+      name: str,
+  ):
     # fmt: off
     """Initializer.
 
@@ -107,9 +116,16 @@ class _WorkerThread(threading.Thread):
     self.idle = True
     self.started = time.time()
 
-  def ProcessTask(self, target, args, name, queueing_time):
+  def ProcessTask(
+      self,
+      target: Callable[..., Any],
+      args: tuple[Any, ...],
+      name: str,
+      queueing_time: float,
+  ) -> None:
     """Processes the tasks."""
 
+    start_time = 0.0
     if self.pool.name:
       time_in_queue = time.time() - queueing_time
       THREADPOOL_QUEUEING_TIME.RecordEvent(
@@ -131,7 +147,7 @@ class _WorkerThread(threading.Thread):
       total_time = time.time() - start_time
       THREADPOOL_WORKING_TIME.RecordEvent(total_time, fields=[self.pool.name])
 
-  def _RemoveFromPool(self):
+  def _RemoveFromPool(self) -> bool:
     """Remove ourselves from the pool.
 
     Returns:
@@ -152,7 +168,7 @@ class _WorkerThread(threading.Thread):
 
       return True
 
-  def run(self):
+  def run(self) -> None:
     """This overrides the Thread.run method.
 
     This method checks in an endless loop if new tasks are available
@@ -192,7 +208,7 @@ class _WorkerThread(threading.Thread):
         return
 
 
-THREADPOOL = None
+THREADPOOL: ThreadPool | None = None
 
 
 class ThreadPool(object):
@@ -214,13 +230,15 @@ class ThreadPool(object):
   """
 
   # A global dictionary of pools, keyed by pool name.
-  POOLS = {}
+  POOLS: dict[str, ThreadPool] = {}
   factory_lock = threading.Lock()
 
   JOIN_TIMEOUT_DECISECONDS = 600
 
   @classmethod
-  def Factory(cls, name, min_threads, max_threads=None):
+  def Factory(
+      cls, name: str, min_threads: int, max_threads: int | None = None
+  ) -> ThreadPool:
     """Creates a new thread pool with the given name.
 
     If the thread pool of this name already exist, we just return the existing
@@ -245,7 +263,9 @@ class ThreadPool(object):
 
       return result
 
-  def __init__(self, name, min_threads, max_threads=None):
+  def __init__(
+      self, name: str, min_threads: int, max_threads: int | None = None
+  ):
     """This creates a new thread pool using min_threads workers.
 
     Args:
@@ -265,16 +285,16 @@ class ThreadPool(object):
       max_threads = min_threads
 
     self.max_threads = max_threads
-    self._queue = queue.Queue(maxsize=max_threads)
+    self._queue: queue.Queue[Any] = queue.Queue(maxsize=max_threads)
     self.name = name
     self.started = False
     self.process = psutil.Process()
 
     # A reference for all our workers. Keys are thread names, and values are the
     # _WorkerThread instance.
-    self._workers = {}
+    self._workers: dict[str, _WorkerThread] = {}
     # Read-only copy of self._workers that is thread-safe for reading.
-    self._workers_ro_copy = {}
+    self._workers_ro_copy: dict[str, _WorkerThread] = {}
     self.lock = threading.RLock()
 
     if not self.name:
@@ -290,24 +310,24 @@ class ThreadPool(object):
     )
     THREADPOOL_THREADS.SetCallback(lambda: len(self), fields=[self.name])
 
-  def __del__(self):
+  def __del__(self) -> None:
     if self.started:
       self.Stop()
 
   @property
-  def pending_tasks(self):
+  def pending_tasks(self) -> int:
     # This is thread safe as self._queue is thread safe.
     return self._queue.qsize()
 
   @property
-  def busy_threads(self):
+  def busy_threads(self) -> int:
     return len([x for x in self._workers_ro_copy.values() if not x.idle])
 
-  def __len__(self):
+  def __len__(self) -> int:
     return len(self._workers_ro_copy)
 
   @utils.Synchronized
-  def Start(self):
+  def Start(self) -> None:
     """This starts the worker threads."""
     if not self.started:
       self.started = True
@@ -315,7 +335,7 @@ class ThreadPool(object):
         self._AddWorker()
 
   @utils.Synchronized
-  def _AddWorker(self):
+  def _AddWorker(self) -> None:
     worker_name = self.name + "-%d" % random.UInt32()
     worker = _WorkerThread(self._queue, self, worker_name)
     worker.start()
@@ -324,12 +344,12 @@ class ThreadPool(object):
     self._workers_ro_copy = self._workers.copy()
 
   @utils.Synchronized
-  def _RemoveWorker(self, key):
+  def _RemoveWorker(self, key: str) -> None:
     self._workers.pop(key, None)
     self._workers_ro_copy = self._workers.copy()
 
   @utils.Synchronized
-  def Stop(self, join_timeout=600):
+  def Stop(self, join_timeout: float = 600) -> None:
     """This stops all the worker threads."""
     if not self.started:
       logging.warning("Tried to stop a thread pool that was not running.")
@@ -363,12 +383,12 @@ class ThreadPool(object):
 
   def AddTask(
       self,
-      target,
-      args=(),
-      name="Unnamed task",
-      blocking=True,
-      inline=True,
-  ):
+      target: Callable[..., Any],
+      args: tuple[Any, ...] = (),
+      name: str = "Unnamed task",
+      blocking: bool = True,
+      inline: bool = True,
+  ) -> None:
     """Adds a task to be processed later.
 
     Args:
@@ -455,10 +475,10 @@ class ThreadPool(object):
     if inline:
       target(*args)
 
-  def CPUUsage(self):
+  def CPUUsage(self) -> float:
     return self.process.cpu_percent(0)
 
-  def Join(self):
+  def Join(self) -> None:
     """Waits until all outstanding tasks are completed."""
 
     for _ in range(self.JOIN_TIMEOUT_DECISECONDS):
@@ -472,13 +492,25 @@ class ThreadPool(object):
 class MockThreadPool(object):
   """A mock thread pool which runs all jobs serially."""
 
-  def __init__(self, name, min_threads, max_threads=None, ignore_errors=True):
+  def __init__(
+      self,
+      name: str,
+      min_threads: int,
+      max_threads: int | None = None,
+      ignore_errors: bool = True,
+  ):
     _ = name
     _ = min_threads
     _ = max_threads
     self.ignore_errors = ignore_errors
 
-  def AddTask(self, target, args, name="Unnamed task"):
+  def AddTask(
+      self,
+      target: Callable[..., Any],
+      args: tuple[Any, ...],
+      name: str = "Unnamed task",
+  ) -> None:
+    """Runs a task synchronously in the mock thread pool."""
     _ = name
     try:
       target(*args)
@@ -489,16 +521,18 @@ class MockThreadPool(object):
         raise
 
   @classmethod
-  def Factory(cls, name, min_threads, max_threads=None):
+  def Factory(
+      cls, name: str, min_threads: int, max_threads: int | None = None
+  ) -> MockThreadPool:
     return cls(name, min_threads, max_threads=max_threads)
 
-  def Start(self):
+  def Start(self) -> None:
     pass
 
-  def Stop(self):
+  def Stop(self) -> None:
     pass
 
-  def Join(self):
+  def Join(self) -> None:
     pass
 
 
@@ -511,9 +545,9 @@ class BatchConverter(object):
 
   def __init__(
       self,
-      batch_size=1000,
-      threadpool_prefix="batch_processor",
-      threadpool_size=10,
+      batch_size: int = 1000,
+      threadpool_prefix: str = "batch_processor",
+      threadpool_size: int = 10,
   ):
     """BatchProcessor constructor.
 
@@ -530,7 +564,7 @@ class BatchConverter(object):
     self.threadpool_prefix = threadpool_prefix
     self.threadpool_size = threadpool_size
 
-  def ConvertBatch(self, batch):
+  def ConvertBatch(self, batch: list[Any]) -> Any:
     """ConvertBatch is called for every batch to do the conversion.
 
     Args:
@@ -541,7 +575,12 @@ class BatchConverter(object):
     """
     raise NotImplementedError()
 
-  def Convert(self, values, start_index=0, end_index=None):
+  def Convert(
+      self,
+      values: Collection[Any],
+      start_index: int = 0,
+      end_index: int | None = None,
+  ) -> None:
     """Converts given collection to exported values.
 
     This method uses a threadpool to do the conversion in parallel. It

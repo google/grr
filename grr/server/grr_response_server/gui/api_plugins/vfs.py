@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """API handlers for dealing with files in a client's virtual file system."""
 
-from collections.abc import Collection, Iterable, Iterator
+from collections.abc import Iterable, Iterator, Sequence
 import csv
 import io
 import itertools
@@ -59,7 +59,12 @@ class FileNotFoundError(api_call_handler_base.ResourceNotFoundError):  # pylint:
     components: Components of the path for which the file was not found.
   """
 
-  def __init__(self, client_id, path_type, components):
+  def __init__(
+      self,
+      client_id: str,
+      path_type: "objects_pb2.PathInfo.PathType",
+      components: Sequence[str],
+  ):
     self.client_id = client_id
     self.path_type = path_type
     self.components = components
@@ -83,7 +88,13 @@ class FileContentNotFoundError(api_call_handler_base.ResourceNotFoundError):
     timestamp: A timestamp of the file which content was not found.
   """
 
-  def __init__(self, client_id, path_type, components, timestamp=None):
+  def __init__(
+      self,
+      client_id: str,
+      path_type: "objects_pb2.PathInfo.PathType",
+      components: Sequence[str],
+      timestamp: Optional[rdfvalue.RDFDatetime] = None,
+  ):
     self.client_id = client_id
     self.path_type = path_type
     self.components = components
@@ -368,7 +379,7 @@ class ApiBrowseFilesystemHandler(api_call_handler_base.ApiCallHandler):
         else None
     )
 
-    last_components = rdf_objects.ParsePath(args.path)
+    last_components = list(rdf_objects.ParsePath(args.path))
 
     path_types_to_query = {
         objects_pb2.PathInfo.PathType.OS,
@@ -378,6 +389,7 @@ class ApiBrowseFilesystemHandler(api_call_handler_base.ApiCallHandler):
 
     result = vfs_pb2.ApiBrowseFilesystemResult()
 
+    all_components: list[Sequence[str]]
     if args.include_directory_tree:
       all_components = self._GetDirectoryTree(last_components)
     else:
@@ -417,10 +429,8 @@ class ApiBrowseFilesystemHandler(api_call_handler_base.ApiCallHandler):
 
     return result
 
-  def _GetDirectoryTree(
-      self, components: Collection[str]
-  ) -> Iterable[Collection[str]]:
-    result = [[]]  # First, include the root folder "/".
+  def _GetDirectoryTree(self, components: Sequence[str]) -> list[Sequence[str]]:
+    result: list[Sequence[str]] = [[]]  # First, include the root folder "/".
     for i in range(len(components)):
       result.append(components[: i + 1])
     return result
@@ -428,7 +438,7 @@ class ApiBrowseFilesystemHandler(api_call_handler_base.ApiCallHandler):
   def _MergePathInfos(
       self,
       path_infos: dict[str, objects_pb2.PathInfo],
-      cur_path_infos: Collection[objects_pb2.PathInfo],
+      cur_path_infos: Sequence[objects_pb2.PathInfo],
   ) -> None:
     """Merges PathInfos from different PathTypes (OS, TSK, NTFS)."""
 
@@ -447,8 +457,8 @@ class ApiBrowseFilesystemHandler(api_call_handler_base.ApiCallHandler):
   def _GetDirectory(
       self,
       client_id: str,
-      path_types: Collection["objects_pb2.PathInfo.PathType"],
-      components: Collection[str],
+      path_types: set["objects_pb2.PathInfo.PathType"],
+      components: Sequence[str],
       timestamp: Optional[rdfvalue.RDFDatetime] = None,
   ) -> Optional[vfs_pb2.ApiFile]:
     path_infos: dict[str, objects_pb2.PathInfo] = {}
@@ -472,12 +482,12 @@ class ApiBrowseFilesystemHandler(api_call_handler_base.ApiCallHandler):
   def _ListDirectory(
       self,
       client_id: str,
-      path_types: Collection["objects_pb2.PathInfo.PathType"],
-      components: Collection[str],
+      path_types: set["objects_pb2.PathInfo.PathType"],
+      components: Sequence[str],
       timestamp: Optional[rdfvalue.RDFDatetime] = None,
   ) -> tuple[
       set["objects_pb2.PathInfo.PathType"],
-      Optional[Collection[vfs_pb2.ApiFile]],
+      Optional[Sequence[vfs_pb2.ApiFile]],
   ]:
     path_infos: dict[str, objects_pb2.PathInfo] = {}
     existing_path_types = set(path_types)
@@ -514,7 +524,7 @@ class ApiGetFileTextHandler(api_call_handler_base.ApiCallHandler):
   proto_args_type = vfs_pb2.ApiGetFileTextArgs
   proto_result_type = vfs_pb2.ApiGetFileTextResult
 
-  def _Decode(self, codec_name, data):
+  def _Decode(self, codec_name: str, data: bytes) -> str:
     """Decode data with the given codec name."""
     try:
       return data.decode(codec_name, "replace")
@@ -571,7 +581,9 @@ class ApiGetFileBlobHandler(api_call_handler_base.ApiCallHandler):
 
   CHUNK_SIZE = 1024 * 1024 * 4
 
-  def _GenerateFile(self, file_obj, offset, length):
+  def _GenerateFile(
+      self, file_obj: file_store.BlobStream, offset: int, length: int
+  ) -> Iterator[bytes]:
     file_obj.seek(offset)
     for start in range(offset, offset + length, self.CHUNK_SIZE):
       yield file_obj.read(min(self.CHUNK_SIZE, offset + length - start))
@@ -717,7 +729,9 @@ class ApiCreateVfsRefreshOperationHandler(api_call_handler_base.ApiCallHandler):
   proto_args_type = vfs_pb2.ApiCreateVfsRefreshOperationArgs
   proto_result_type = vfs_pb2.ApiCreateVfsRefreshOperationResult
 
-  def _FindPathspec(self, args: vfs_pb2.ApiCreateVfsRefreshOperationArgs):
+  def _FindPathspec(
+      self, args: vfs_pb2.ApiCreateVfsRefreshOperationArgs
+  ) -> jobs_pb2.PathSpec:
     path_type, components = rdf_objects.ParseCategorizedPath(
         args.file_path.rstrip("/")
     )
@@ -848,7 +862,9 @@ def _GetTimelineStatEntries(
     client_id: str,
     file_path: str,
     with_history: bool = True,
-) -> Iterable[tuple[str, jobs_pb2.StatEntry, jobs_pb2.Hash]]:
+) -> Iterator[
+    tuple[str, Optional[jobs_pb2.StatEntry], Optional[jobs_pb2.Hash]]
+]:
   """Gets timeline entries from REL_DB."""
   path_type, components = rdf_objects.ParseCategorizedPath(file_path)
 
@@ -903,7 +919,7 @@ def _GetTimelineStatEntries(
 
 def _GetTimelineItems(
     client_id: str, file_path: str
-) -> Iterable[vfs_pb2.ApiVfsTimelineItem]:
+) -> list[vfs_pb2.ApiVfsTimelineItem]:
   """Gets timeline items for a given client id and path."""
 
   items = []
@@ -983,7 +999,7 @@ class ApiGetVfsTimelineAsCsvHandler(api_call_handler_base.ApiCallHandler):
 
   def _GenerateDefaultExport(
       self, items: list[vfs_pb2.ApiVfsTimelineItem]
-  ) -> Iterable[bytes]:
+  ) -> Iterator[bytes]:
     buffer = io.StringIO()
     writer = csv.writer(buffer, lineterminator="\n")
 
@@ -1019,8 +1035,10 @@ class ApiGetVfsTimelineAsCsvHandler(api_call_handler_base.ApiCallHandler):
 
   def _GenerateBodyExport(
       self,
-      file_infos: Iterable[tuple[str, jobs_pb2.StatEntry, jobs_pb2.Hash]],
-  ) -> Iterable[bytes]:
+      file_infos: Iterable[
+          tuple[str, Optional[jobs_pb2.StatEntry], Optional[jobs_pb2.Hash]]
+      ],
+  ) -> Iterator[bytes]:
     for path, st, hash_v in file_infos:
       if st is None:
         continue
@@ -1179,7 +1197,7 @@ class ApiGetVfsFilesArchiveHandler(api_call_handler_base.ApiCallHandler):
       start_paths: list[str],
       path_prefix: str,
       timestamp: Optional[rdfvalue.RDFDatetime] = None,
-  ) -> Iterator[utils.StreamingZipGenerator]:
+  ) -> Iterator[bytes]:
     client_paths = []
     for start_path in start_paths:
       path_type, components = rdf_objects.ParseCategorizedPath(start_path)
@@ -1212,10 +1230,10 @@ class ApiGetVfsFilesArchiveHandler(api_call_handler_base.ApiCallHandler):
 
   def _WrapContentGenerator(
       self,
-      generator: Iterator[utils.StreamingZipGenerator],
+      generator: Iterator[bytes],
       args: vfs_pb2.ApiGetVfsFilesArchiveArgs,
       username: str,
-  ) -> Iterator[utils.StreamingZipGenerator]:
+  ) -> Iterator[bytes]:
     if args.file_path:
       path_type, components = rdf_objects.ParseCategorizedPath(args.file_path)
       vfs_file_ref = objects_pb2.VfsFileReference(

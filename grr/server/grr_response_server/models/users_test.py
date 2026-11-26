@@ -1,4 +1,6 @@
 #!/usr/bin/env python
+from collections.abc import Sequence
+
 from absl import app
 from absl.testing import absltest
 
@@ -33,7 +35,7 @@ class UsersTest(absltest.TestCase):
       self.assertEqual("bar@baz.org", models_users.GetEmail(u))
 
 
-def main(argv):
+def main(argv: Sequence[str]) -> None:
   # Initializes `config.CONFIG`.
   test_lib.main(argv)
 

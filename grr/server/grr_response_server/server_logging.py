@@ -1,17 +1,24 @@
 #!/usr/bin/env python
 """Functions for server logging."""
 
+from __future__ import annotations
+
+from collections.abc import Iterator
 import logging
 from logging import handlers
 import os
 import socket
 import time
+from typing import Any
 
 from absl import flags
 
 from grr_response_core import config
 from grr_response_core.stats import metrics
+from grr_response_proto import jobs_pb2
 from grr_response_server import data_store
+from grr_response_server.gui import http_request
+from grr_response_server.gui import http_response
 from grr_response_server.models import events as models_events
 
 try:
@@ -22,7 +29,7 @@ except ImportError:
   local_log = None
 
 # Global Application Logger.
-LOGGER = None
+LOGGER: Any = None
 
 _VERBOSE = flags.DEFINE_bool(
     "verbose",
@@ -41,14 +48,18 @@ class GrrApplicationLogger(object):
   critical events.
   """
 
-  def GetNewEventId(self, event_time=None):
+  def GetNewEventId(self, event_time: int | None = None) -> str:
     """Return a unique Event ID string."""
     if event_time is None:
       event_time = int(time.time() * 1e6)
 
     return "%s:%s:%s" % (event_time, socket.gethostname(), os.getpid())
 
-  def LogHttpAdminUIAccess(self, request, response):
+  def LogHttpAdminUIAccess(
+      self,
+      request: http_request.HttpRequest,
+      response: http_response.HttpResponse,
+  ) -> None:
     """Log an http based api call.
 
     Args:
@@ -82,7 +93,12 @@ class GrrApplicationLogger(object):
       )
       data_store.REL_DB.WriteAPIAuditEntry(entry)
 
-  def LogHttpFrontendAccess(self, request, source=None, message_count=None):
+  def LogHttpFrontendAccess(
+      self,
+      request: jobs_pb2.HttpRequest,
+      source: str | None = None,
+      message_count: int | None = None,
+  ) -> None:
     """Write a log entry for a Frontend or UI Request.
 
     Args:
@@ -110,10 +126,10 @@ class GrrApplicationLogger(object):
 class PreLoggingMemoryHandler(handlers.BufferingHandler):
   """Handler used before logging subsystem is initialized."""
 
-  def shouldFlush(self, record):
+  def shouldFlush(self, record: logging.LogRecord) -> bool:
     return len(self.buffer) >= self.capacity
 
-  def flush(self):
+  def flush(self) -> None:
     """Flush the buffer.
 
     This is called when the buffer is really full, we just just drop one oldest
@@ -125,27 +141,27 @@ class PreLoggingMemoryHandler(handlers.BufferingHandler):
 class RobustSysLogHandler(handlers.SysLogHandler):
   """A handler which does not raise if it fails to connect."""
 
-  def __init__(self, *args, **kwargs):
+  def __init__(self, *args: Any, **kwargs: Any):
     self.formatter = None
     try:
       super().__init__(*args, **kwargs)
     except socket.error:
       pass
 
-  def handleError(self, record):
+  def handleError(self, record: logging.LogRecord) -> None:
     """Just ignore socket errors - the syslog server might come back."""
 
 
 class ErrorLogsHandler(logging.Handler):
   """Logging Handler that exposes error log count in metrics."""
 
-  def __init__(self, *args, **kwargs):
+  def __init__(self, *args: Any, **kwargs: Any):
     """Initializes LogMetricsHandler."""
     super().__init__(*args, **kwargs)
 
     self.setLevel(logging.ERROR)
 
-  def emit(self, record: logging.LogRecord):
+  def emit(self, record: logging.LogRecord) -> None:
     """Overrides Handler.emit()."""
     # From https://docs.python.org/3/library/logging.html#logging.Logger
     # logging.error() and logging.exception() log with level ERROR.
@@ -156,7 +172,7 @@ class ErrorLogsHandler(logging.Handler):
       LOG_CALLS_COUNTER.Increment(fields=["CRITICAL"])
 
 
-def InitErrorLogsMonitoring():
+def InitErrorLogsMonitoring() -> None:
   """Sets up error logs monitoring."""
   logging.root.addHandler(ErrorLogsHandler())
   logging.info("Initialized ErrorLogsHandler.")
@@ -177,7 +193,7 @@ VERBOSE_LOG_LEVELS = {
 }
 
 
-def SetLogLevels():
+def SetLogLevels() -> None:
   """Initializes logging levels."""
   logger = logging.getLogger()
 
@@ -193,6 +209,7 @@ def SetLogLevels():
     handler.setLevel(levels[handler.__class__.__name__])
     logging.info("Logging handler %s level set to %s", handler, handler.level)
 
+
 LOG_FORMAT = (
     "%(levelname)s:%(asctime)s %(process)d "
     "%(processName)s %(thread)d %(threadName)s "
@@ -200,13 +217,15 @@ LOG_FORMAT = (
 )
 
 
-def GetLogHandlers():
+def GetLogHandlers() -> Iterator[logging.Handler]:
+  """Yields configured Python logging handlers."""
   formatter = logging.Formatter(LOG_FORMAT)
   engines = config.CONFIG["Logging.engines"]
   logging.debug("Will use logging engines %s", engines)
 
   for engine in engines:
     try:
+      handler: logging.Handler
       if engine == "stderr":
         handler = logging.StreamHandler()
         handler.setFormatter(formatter)
@@ -231,7 +250,7 @@ def GetLogHandlers():
 
       elif engine == "file":
         # Create a logfile if needed.
-        path = config.CONFIG["Logging.filename"]
+        path: str = config.CONFIG["Logging.filename"]
         logging.info("Writing log file to %s", path)
 
         if not os.path.isdir(os.path.dirname(path)):
@@ -248,7 +267,7 @@ def GetLogHandlers():
       logging.exception("Unable to create logger %s", engine)
 
 
-def LogInit():
+def LogInit() -> None:
   """Configure the logging subsystem."""
   logging.debug("Initializing Logging subsystem.")
 
@@ -257,7 +276,8 @@ def LogInit():
   memory_handlers = [
       m
       for m in logger.handlers
-      if m.__class__.__name__ == "PreLoggingMemoryHandler"
+      if isinstance(m, handlers.BufferingHandler)
+      and m.__class__.__name__ == "PreLoggingMemoryHandler"
   ]
 
   # Clear all handers.
@@ -270,7 +290,7 @@ def LogInit():
       logger.handle(record)
 
 
-def AppLogInit():
+def AppLogInit() -> GrrApplicationLogger:
   """Initialize the Application Log.
 
   This log is what will be used whenever someone does a log.LOGGER call. These
@@ -283,7 +303,7 @@ def AppLogInit():
   return GrrApplicationLogger()
 
 
-def ServerLoggingStartupInit():
+def ServerLoggingStartupInit() -> None:
   """Initialize the server logging configuration."""
   global LOGGER
   # `local_log` requires `Logging.path` configuration variable to be set. If it
@@ -300,7 +320,7 @@ def ServerLoggingStartupInit():
   InitErrorLogsMonitoring()
 
 
-def SetTestVerbosity():
+def SetTestVerbosity() -> None:
   if local_log:
     local_log.SetTestVerbosity()
     return

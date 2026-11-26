@@ -107,59 +107,6 @@ class RRGVersion(NamedTuple):
   patch: int
 
 
-# TODO(hanuszczak): Consider refactoring the interface of this class.
-class FlowBehaviour(object):
-  """A Behaviour is a property of a flow.
-
-  Behaviours advertise what kind of flow this is. The flow can only advertise
-  predefined behaviours.
-  """
-
-  # A constant which defines all the allowed behaviours and their descriptions.
-  LEXICON = {
-      # What GUI mode should this flow appear in?
-      "BASIC": (
-          "Include in the simple UI. This flow is designed for simpler use."
-      ),
-      "ADVANCED": (
-          "Include in advanced UI. This flow takes more experience to use."
-      ),
-      "DEBUG": "This flow only appears in debug mode.",
-  }
-
-  def __init__(self, *args):
-    self.set = set()
-    for arg in args:
-      if arg not in self.LEXICON:
-        raise ValueError("Behaviour %s not known." % arg)
-
-      self.set.add(str(arg))
-
-  def __add__(self, other):
-    other = str(other)
-
-    if other not in self.LEXICON:
-      raise ValueError("Behaviour %s not known." % other)
-
-    return self.__class__(other, *list(self.set))
-
-  def __sub__(self, other):
-    other = str(other)
-
-    result = self.set.copy()
-    result.discard(other)
-
-    return self.__class__(*list(result))
-
-  def __iter__(self):
-    return iter(self.set)
-
-
-BEHAVIOUR_ADVANCED = FlowBehaviour("ADVANCED")
-BEHAVIOUR_BASIC = FlowBehaviour("ADVANCED", "BASIC")
-BEHAVIOUR_DEBUG = FlowBehaviour("DEBUG")
-
-
 # This is a mypy-friendly way of defining named tuples:
 # https://mypy.readthedocs.io/en/stable/kinds_of_types.html#named-tuples
 class ClientPathArchiveMapping(NamedTuple):
@@ -207,15 +154,7 @@ class FlowBase(
   proto_progress_type: Type[_ProtoProgressT] = flows_pb2.DefaultFlowProgress  # pyrefly: ignore[bad-assignment]
   _progress: Optional[_ProtoProgressT]
 
-  # This is used to arrange flows into a tree view
-  category = ""
-  friendly_name = None
-
   block_hunt_creation = False
-
-  # Behaviors set attributes of this flow. See FlowBehavior() in
-  # grr_response_server/flow.py.
-  behaviours = BEHAVIOUR_ADVANCED
 
   # Tuple, containing the union of all possible types this flow might
   # return.
@@ -621,7 +560,7 @@ class FlowBase(
 
   def CallFlowProto(
       self,
-      flow_name: Optional[str] = None,
+      flow_name: str,
       next_state: Optional[str] = None,
       request_data: Optional[dict[str, Any]] = None,
       proto_output_plugins: Optional[
@@ -1698,10 +1637,11 @@ class FlowBase(
     return self._client_os
 
   @property
-  def client_knowledge_base(self) -> Optional[knowledge_base_pb2.KnowledgeBase]:
+  def client_knowledge_base(self) -> knowledge_base_pb2.KnowledgeBase:
     if self._client_knowledge_base is None:
-      self._client_knowledge_base = data_store_utils.GetClientKnowledgeBase(
-          self.client_id
+      self._client_knowledge_base = (
+          data_store_utils.GetClientKnowledgeBase(self.client_id)
+          or knowledge_base_pb2.KnowledgeBase()
       )
 
     return self._client_knowledge_base
@@ -1818,16 +1758,12 @@ class FlowBase(
   @classmethod
   def GetDefaultArgs(cls, username: Optional[str] = None) -> _ProtoArgsT:
     del username  # Unused.
-    return cls.proto_args_type()  # pyrefly: ignore[missing-attribute]
+    return cls.proto_args_type()
 
   @classmethod
   def CreateFlowInstance(cls, flow_object: flows_pb2.Flow) -> "FlowBase":
     flow_cls = FlowRegistry.FlowClassByName(flow_object.flow_class_name)
     return flow_cls(proto_flow=flow_object)
-
-  @classmethod
-  def CanUseViaAPI(cls) -> bool:
-    return bool(cls.category)
 
   def _CheckMethodExpectsProtos(
       self, method: types.MethodType, rdf_alternative: str
@@ -2012,11 +1948,12 @@ def FindCompletedRequestsToProcess(
   return sorted(completed_requests, key=lambda x: x[0].request_id)
 
 
+_F = TypeVar("_F", bound=FlowBase)
+
+
 def UseProto2AnyResponses(
-    state_method: Callable[
-        [FlowBase, flow_responses.Responses[any_pb2.Any]], None
-    ],
-) -> Callable[[FlowBase, flow_responses.Responses[any_pb2.Any]], None]:
+    state_method: Callable[[_F, flow_responses.Responses[any_pb2.Any]], None],
+) -> Callable[[_F, flow_responses.Responses[any_pb2.Any]], None]:
   """Instructs flow execution not to use RDF magic for unpacking responses.
 
   The current default behaviour of the flow execution is to do type lookup and
@@ -2042,9 +1979,9 @@ def UseProto2AnyResponses(
 
 def UseProto2AnyResponsesCallback(
     callback_state_method: Callable[
-        [FlowBase, flow_responses.Responses[any_pb2.Any]], None
+        [_F, flow_responses.Responses[any_pb2.Any]], None
     ],
-) -> Callable[[FlowBase, flow_responses.Responses[any_pb2.Any]], None]:
+) -> Callable[[_F, flow_responses.Responses[any_pb2.Any]], None]:
   """Instructs flow execution not to use RDF magic for unpacking responses.
 
   Unlike `UseProto2AnyResponses`, this method allows for partial responses

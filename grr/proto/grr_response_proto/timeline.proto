@@ -63,7 +63,7 @@ message TimelineEntry {
   optional uint64 size = 3;
 
   // An identifier of the device containing the file.
-  optional int64 dev = 4;
+  optional uint64 dev = 4;
 
   // A serial number of the file.
   optional uint64 ino = 5;

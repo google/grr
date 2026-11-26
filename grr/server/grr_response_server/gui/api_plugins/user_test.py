@@ -25,7 +25,6 @@ from grr_response_server.gui import api_call_context
 from grr_response_server.gui import api_call_handler_base
 from grr_response_server.gui import api_test_lib
 from grr_response_server.gui.api_plugins import user as user_plugin
-from grr_response_server.models import hunts as models_hunts
 from grr.test_lib import acl_test_lib
 from grr.test_lib import hunt_test_lib
 from grr.test_lib import test_lib
@@ -97,20 +96,6 @@ class ApiNotificationTest(
         n.reference.type, api_user_pb2.ApiNotificationReference.Type.HUNT
     )
     self.assertEqual(n.reference.hunt.hunt_id, "H:123456")
-
-  def testCronNotificationIsParsedCorrectly(self):
-    n = self.InitFromObj_(
-        objects_pb2.UserNotification.Type.TYPE_CRON_JOB_APPROVAL_GRANTED,
-        objects_pb2.ObjectReference(
-            reference_type=objects_pb2.ObjectReference.Type.CRON_JOB,
-            cron_job=objects_pb2.CronJobReference(cron_job_id="FooBar"),
-        ),
-    )
-
-    self.assertEqual(
-        n.reference.type, api_user_pb2.ApiNotificationReference.Type.CRON
-    )
-    self.assertEqual(n.reference.cron.cron_job_id, "FooBar")
 
   def testFlowSuccessNotificationIsParsedCorrectly(self):
     n = self.InitFromObj_(
@@ -229,30 +214,6 @@ class ApiNotificationTest(
     self.assertEqual(n.reference.hunt_approval.hunt_id, "H:123456")
     self.assertEqual(n.reference.hunt_approval.username, self.context.username)
     self.assertEqual(n.reference.hunt_approval.approval_id, "foo-bar")
-
-  def testCronJobApprovalNotificationIsParsedCorrectly(self):
-    n = self.InitFromObj_(
-        objects_pb2.UserNotification.Type.TYPE_CRON_JOB_APPROVAL_REQUESTED,
-        objects_pb2.ObjectReference(
-            reference_type=objects_pb2.ObjectReference.Type.APPROVAL_REQUEST,
-            approval_request=objects_pb2.ApprovalRequestReference(
-                approval_type=objects_pb2.ApprovalRequest.ApprovalType.APPROVAL_TYPE_CRON_JOB,
-                approval_id="foo-bar",
-                subject_id="FooBar",
-                requestor_username=self.context.username,
-            ),
-        ),
-    )
-
-    self.assertEqual(
-        n.reference.type,
-        api_user_pb2.ApiNotificationReference.Type.CRON_JOB_APPROVAL,
-    )
-    self.assertEqual(n.reference.cron_job_approval.cron_job_id, "FooBar")
-    self.assertEqual(
-        n.reference.cron_job_approval.username, self.context.username
-    )
-    self.assertEqual(n.reference.cron_job_approval.approval_id, "foo-bar")
 
   def testFileArchiveGenerationFailedNotificationIsParsedAsUnknownOrUnset(self):
     n = self.InitFromObj_(
@@ -843,94 +804,6 @@ class ApiListHuntApprovalsHandlerTest(
     )
 
     args = api_user_pb2.ApiListHuntApprovalsArgs()
-    result = self.handler.Handle(args, context=self.context)
-
-    self.assertLen(result.items, 1)
-
-
-class ApiCreateCronJobApprovalHandlerTest(
-    ApiCreateApprovalHandlerTestMixin,
-    api_test_lib.ApiCallHandlerTest,
-):
-  """Test for ApiCreateCronJobApprovalHandler."""
-
-  def ReadApproval(self, approval_id):
-    approvals = self.ListCronJobApprovals(requestor=self.context.username)
-    self.assertLen(approvals, 1)
-    self.assertEqual(approvals[0].id, approval_id)
-    return approvals[0]
-
-  def setUp(self):
-    super().setUp()
-
-    self.SetUpApprovalTest()
-
-    cron_id = "CollectFilesByKnownPath_Cron"
-    args = flows_pb2.CronJobAction(
-        action_type=flows_pb2.CronJobAction.ActionType.HUNT_CRON_ACTION,
-        hunt_cron_action=flows_pb2.HuntCronAction(
-            flow_name=file.CollectFilesByKnownPath.__name__,
-            hunt_runner_args=models_hunts.CreateDefaultHuntRunnerArgs(),
-        ),
-    )
-    job = flows_pb2.CronJob(
-        cron_job_id=cron_id,
-        enabled=True,
-        frequency=rdfvalue.DurationSeconds.FromHumanReadable(
-            "1d"
-        ).SerializeToWireFormat(),
-        allow_overruns=False,
-        created_at=int(rdfvalue.RDFDatetime.Now()),
-        args=args,
-    )
-    data_store.REL_DB.WriteCronJob(job)
-
-    self.handler = user_plugin.ApiCreateCronJobApprovalHandler()
-
-    self.args = api_user_pb2.ApiCreateCronJobApprovalArgs(cron_job_id=cron_id)
-    self.args.approval.reason = "Running tests"
-    self.args.approval.notified_users.append("approver")
-    self.args.approval.email_cc_addresses.append("test@example.com")
-
-
-class ApiListCronJobApprovalsHandlerTest(
-    acl_test_lib.AclTestMixin, api_test_lib.ApiCallHandlerTest
-):
-  """Test for ApiListCronJobApprovalsHandler."""
-
-  def setUp(self):
-    super().setUp()
-    self.handler = user_plugin.ApiListCronJobApprovalsHandler()
-
-  def testRendersRequestedCronJobApproval(self):
-    cron_job_id = "CollectFilesByKnownPath_Cron"
-    args = flows_pb2.CronJobAction(
-        action_type=flows_pb2.CronJobAction.ActionType.HUNT_CRON_ACTION,
-        hunt_cron_action=flows_pb2.HuntCronAction(
-            flow_name=file.CollectFilesByKnownPath.__name__,
-            hunt_runner_args=models_hunts.CreateDefaultHuntRunnerArgs(),
-        ),
-    )
-    job = flows_pb2.CronJob(
-        cron_job_id=cron_job_id,
-        enabled=True,
-        frequency=rdfvalue.DurationSeconds.FromHumanReadable(
-            "1d"
-        ).SerializeToWireFormat(),
-        allow_overruns=False,
-        created_at=int(rdfvalue.RDFDatetime.Now()),
-        args=args,
-    )
-    data_store.REL_DB.WriteCronJob(job)
-
-    self.RequestCronJobApproval(
-        cron_job_id,
-        reason="Running tests",
-        approver="approver",
-        requestor=self.context.username,
-    )
-
-    args = api_user_pb2.ApiListCronJobApprovalsArgs()
     result = self.handler.Handle(args, context=self.context)
 
     self.assertLen(result.items, 1)

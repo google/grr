@@ -11,6 +11,7 @@ Requirements for running this script:
  * Fleetspeak has been enabled.
 """
 
+from collections.abc import Sequence
 import os
 import subprocess
 
@@ -23,7 +24,8 @@ class Error(Exception):
   pass
 
 
-def main(argv):
+def main(argv: Sequence[str]) -> None:
+  del argv  # Unused.
   config_dir = package.ResourcePath(
       "fleetspeak-server-bin", "fleetspeak-server-bin/etc/fleetspeak-server"
   )

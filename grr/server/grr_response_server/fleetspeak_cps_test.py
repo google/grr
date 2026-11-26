@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 """Unit tests for GCP Pub/Sub subscriber for fleetspeak messages."""
 
+from collections.abc import Callable
 import os
 import time
-from typing import Callable
 import unittest
 
 from absl import app
@@ -22,7 +22,7 @@ _TEST_SUB = "test-sub"
 class FleetspeakCPSTest(test_lib.GRRBaseTest):
 
   @classmethod
-  def setUpClass(cls):
+  def setUpClass(cls) -> None:
     super().setUpClass()
 
     if not os.getenv("PUBSUB_EMULATOR_HOST"):
@@ -39,11 +39,11 @@ class FleetspeakCPSTest(test_lib.GRRBaseTest):
     cls._cps_config_overrider.Start()
 
   @classmethod
-  def tearDownClass(cls):
+  def tearDownClass(cls) -> None:
     cls._cps_config_overrider.Stop()
     super().tearDownClass()
 
-  def setUp(self):
+  def setUp(self) -> None:
     super().setUp()
     self._topic = f"projects/{_TEST_PROJECT}/topics/{_TEST_TOPIC}"
     self._sub = f"projects/{_TEST_PROJECT}/subscriptions/{_TEST_SUB}"
@@ -52,7 +52,7 @@ class FleetspeakCPSTest(test_lib.GRRBaseTest):
         name=self._sub, topic=self._topic
     )
 
-  def tearDown(self):
+  def tearDown(self) -> None:
     pubsub_v1.SubscriberClient().delete_subscription(subscription=self._sub)
     pubsub_v1.PublisherClient().delete_topic(topic=self._topic)
     super().tearDown()
@@ -60,8 +60,8 @@ class FleetspeakCPSTest(test_lib.GRRBaseTest):
   def _publishAndProcess(
       self,
       fs_msg: common_pb2.Message,
-      process_fn: Callable[common_pb2.Message, None],
-  ):
+      process_fn: Callable[[common_pb2.Message], None],
+  ) -> None:
     subscriber = fleetspeak_cps.Subscriber()
     subscriber.Start(process_fn)
     pubsub_v1.PublisherClient().publish(
@@ -73,7 +73,7 @@ class FleetspeakCPSTest(test_lib.GRRBaseTest):
   def testSuccessfulMessageProcessing(self):
     delivered = False
 
-    def _Process(fs_msg: common_pb2.Message):
+    def _Process(fs_msg: common_pb2.Message) -> None:
       del fs_msg
       nonlocal delivered
       delivered = True
@@ -86,7 +86,7 @@ class FleetspeakCPSTest(test_lib.GRRBaseTest):
   def testMessageRedeliveryOnFailure(self):
     delivery_count = 0
 
-    def _Process(fs_msg: common_pb2.Message):
+    def _Process(fs_msg: common_pb2.Message) -> None:
       del fs_msg
       nonlocal delivery_count
       delivery_count += 1

@@ -7,6 +7,10 @@ import ctypes
 from grr_response_proto.rrg.action import query_wmi_pb2 as rrg_query_wmi_pb2
 
 
+def Null() -> rrg_query_wmi_pb2.Value:
+  return rrg_query_wmi_pb2.Value()
+
+
 class Type(abc.ABC):
   """Abstract base class for WMI wrappers of _"Automation"_ types.
 

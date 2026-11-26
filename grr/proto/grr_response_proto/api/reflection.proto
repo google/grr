@@ -85,7 +85,7 @@ message ApiMethod {
   reserved 6, 7, 8;
 
   optional string name = 1;
-  optional string category = 2;
+  reserved 2;
   optional string doc = 3;
 
   optional string http_route = 4;

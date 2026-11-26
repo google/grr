@@ -6,6 +6,9 @@ the ServiceManagement framework.  It's close enough to the pyobjc object that we
 can use it to test the parsing code without needing to run on OS X.
 """
 
+from __future__ import annotations
+
+from typing import Any
 
 # Disable some lint warnings to avoid tedious fixing of test data
 # pylint: disable=g-line-too-long
@@ -17,17 +20,17 @@ FILTERED_COUNT = 84
 class FakeCFDict(object):
   """Fake out the CFDictionary python wrapper."""
 
-  def __init__(self, value):
+  def __init__(self, value: dict[str, Any]):
     self.value = value
 
-  def __contains__(self, key):
+  def __contains__(self, key: str) -> bool:
     return key in self.value
 
-  def __getitem__(self, key):
+  def __getitem__(self, key: str) -> Any:
     return self.value[key]
 
   # pylint: disable=g-bad-name
-  def get(self, key, default='', stringify=False):
+  def get(self, key: str, default: Any = '', stringify: bool = False) -> Any:
     if key in self.value:
       if stringify:
         obj = str(self.value[key])
@@ -43,10 +46,10 @@ class FakeCFDict(object):
 class FakeCFObject(object):
   """Fake CFString and other wrapped objects."""
 
-  def __init__(self, value):
+  def __init__(self, value: int | str):
     self.value = value
 
-  def __int__(self):
+  def __int__(self) -> int:
     return int(self.value)
 
 

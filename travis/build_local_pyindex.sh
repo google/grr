@@ -2,16 +2,16 @@
 
 set -ex
 
-readonly GRR_PKGS=(\
-  'grr-response-proto' \
-  'grr-response-core' \
-  'grr-response-client' \
-  'grr-response-client-builder' \
-  'grr-api-client' \
-  'grr-response-server' \
-  'grr-response-test' \
-  'grr-response-templates' \
-  'grr-colab' \
+readonly GRR_PKGS=(
+  'grr_response_proto'
+  'grr_response_core'
+  'grr_response_client'
+  'grr_response_client_builder'
+  'grr_api_client'
+  'grr_response_server'
+  'grr_response_test'
+  'grr_response_templates'
+  'grr_colab'
 )
 
 function fatal() {
@@ -25,24 +25,20 @@ function build_sdists() {
     rm -rf sdists
   fi
 
-  python grr/proto/setup.py --quiet sdist \
-      --formats=zip --dist-dir="${PWD}/sdists"
-  python grr/core/setup.py --quiet sdist --formats=zip \
-      --dist-dir="${PWD}/sdists" --no-sync-artifacts
-  python grr/client/setup.py --quiet sdist \
-      --formats=zip --dist-dir="${PWD}/sdists"
-  python grr/client_builder/setup.py --quiet sdist \
-      --formats=zip --dist-dir="${PWD}/sdists"
-  python api_client/python/setup.py --quiet sdist \
-      --formats=zip --dist-dir="${PWD}/sdists"
-  python grr/server/setup.py --quiet sdist \
-      --formats=zip --dist-dir="${PWD}/sdists"
-  python grr/test/setup.py --quiet sdist \
-      --formats=zip --dist-dir="${PWD}/sdists"
-  python grr/config/grr_response_templates/setup.py sdist \
-      --formats=zip --dist-dir="${PWD}/sdists"
-  python colab/setup.py --quiet sdist \
-      --formats=zip --dist-dir="${PWD}/sdists"
+  pip install --upgrade pip setuptools wheel build
+
+  python -m build --sdist --outdir "${PWD}/sdists" grr/proto
+  python -m build --sdist --no-isolation --outdir "${PWD}/sdists" grr/core
+  python -m build --sdist --outdir "${PWD}/sdists" grr/client
+  python -m build --sdist --no-isolation --outdir "${PWD}/sdists" \
+    grr/client_builder
+  python -m build --sdist --no-isolation --outdir "${PWD}/sdists" \
+    api_client/python
+  python -m build --sdist --no-isolation --outdir "${PWD}/sdists" grr/server
+  python -m build --sdist --no-isolation --outdir "${PWD}/sdists" grr/test
+  python -m build --sdist --no-isolation --outdir "${PWD}/sdists" \
+    grr/config/grr_response_templates
+  python -m build --sdist --no-isolation --outdir "${PWD}/sdists" colab
 }
 
 function download_packages() {
@@ -54,7 +50,7 @@ function download_packages() {
   # Get the name of a file in the sdists directory.
   first_sdist="$(ls sdists | sort | head -1)"
   # Truncate the name of the package from the filename; for instance,
-  # 'grr-api-client-3.2.4.post9.zip' becomes '3.2.4.post9.zip'.
+  # 'grr_api_client-3.2.4.post9.tar.gz' becomes '3.2.4.post9.tar.gz'.
   version_extension="${first_sdist##*-}"
 
   for pkg in "${GRR_PKGS[@]}"; do
@@ -68,12 +64,15 @@ function download_packages() {
   pip download --find-links=local_pypi --dest=local_pypi idna==2.7
 
   # This is needed to build some of the wheels.
-  pip download --find-links=local_pypi --dest=local_pypi wheel setuptools Cython
+
+  pip download --find-links=local_pypi --dest=local_pypi wheel setuptools Cython \
+    grpcio==1.78.0 grpcio-tools==1.78.0 protobuf==6.33.6
+
 }
 
 function verify_packages() {
   for pkg in "${GRR_PKGS[@]}"; do
-    pkg_regex="^${pkg}-[^\-]+\.zip$"
+    pkg_regex="^${pkg}-[^\-]+\.tar\.gz$"
     # shellcheck disable=SC2086
     pkg_count="$(ls local_pypi | grep -P ${pkg_regex} 2>/dev/null | wc -l)"
     if [[ "${pkg_count}" -eq 0 ]]; then
@@ -82,9 +81,9 @@ function verify_packages() {
       fatal "Found multiple versions for ${pkg} in local_pypi."
     fi
     # shellcheck disable=SC2086
-    actual_sum=($(md5sum local_pypi/${pkg}-*.zip))
+    actual_sum=($(md5sum local_pypi/${pkg}-*.tar.gz))
     # shellcheck disable=SC2086
-    expected_sum=($(md5sum sdists/${pkg}-*.zip))
+    expected_sum=($(md5sum sdists/${pkg}-*.tar.gz))
     if [[ "${actual_sum[0]}" != "${expected_sum[0]}" ]]; then
       fatal "sdist for ${pkg} in local_pypi is different from the sdist that has just been built."
     fi

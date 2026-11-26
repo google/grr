@@ -655,7 +655,7 @@ class FlowBaseTest(
     # inventive here.
     class FakeStateMethodFlow(flow_base.FlowBase):
 
-      @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+      @flow_base.UseProto2AnyResponses
       def FakeState(
           self,
           responses: flow_responses.Responses[any_pb2.Any],
@@ -703,7 +703,7 @@ class FlowBaseTest(
 
     class FakeStateMethodFlowWillFail(flow_base.FlowBase):
 
-      @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+      @flow_base.UseProto2AnyResponses
       def FakeStateFails(
           self,
           responses: flow_responses.Responses[any_pb2.Any],
@@ -751,7 +751,7 @@ class FlowBaseTest(
 
     class FakeStateCallbackMethodFlow(flow_base.FlowBase):
 
-      @flow_base.UseProto2AnyResponsesCallback  # pyrefly: ignore[bad-argument-type]
+      @flow_base.UseProto2AnyResponsesCallback
       def FakeCallback(
           self,
           responses: flow_responses.Responses[any_pb2.Any],
@@ -1495,7 +1495,7 @@ class FlowBaseImplementationTest(flow_test_lib.FlowTestsBaseclass):
         self.store.msg = "Hello from Start!"
         self.CallStateInlineProto(next_state="AfterCallStateInlineProto")
 
-      @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+      @flow_base.UseProto2AnyResponses
       def AfterCallStateInlineProto(self, responses=None):
         del responses
         assert self.store.msg == "Hello from Start!"
@@ -1527,7 +1527,7 @@ class FlowBaseImplementationTest(flow_test_lib.FlowTestsBaseclass):
             next_state="AfterCallStateInlineProtoWithResponses"
         )
 
-      @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+      @flow_base.UseProto2AnyResponses
       def AfterCallStateInlineProtoWithResponses(self, responses=None):
         del responses
         assert self.store.msg == "Hello from Start!"
@@ -1724,7 +1724,7 @@ class FlowBaseImplementationTest(flow_test_lib.FlowTestsBaseclass):
             ),
         )
 
-      @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+      @flow_base.UseProto2AnyResponses
       def ReceiveInlineResponses(self, responses):
         assert responses.success
         assert len(responses) == 3
@@ -1774,7 +1774,7 @@ class FlowBaseImplementationTest(flow_test_lib.FlowTestsBaseclass):
             ),
         )
 
-      @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+      @flow_base.UseProto2AnyResponses
       def UnpackedResponsesShouldFail(self, responses):
         raise NotImplementedError  # should not get here
 
@@ -1808,7 +1808,7 @@ class FlowBaseImplementationTest(flow_test_lib.FlowTestsBaseclass):
             messages=[r1, r2, r3],
         )
 
-      @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+      @flow_base.UseProto2AnyResponses
       def AnyShouldFail(self, responses):
         raise NotImplementedError  # should not get here
 
@@ -1842,7 +1842,7 @@ class FlowBaseImplementationTest(flow_test_lib.FlowTestsBaseclass):
             request_data={"hello": "world"},
         )
 
-      @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+      @flow_base.UseProto2AnyResponses
       def ReceiveInlineResponses(self, responses):
         assert responses.success
         assert len(responses) == 3
@@ -1945,7 +1945,7 @@ class FlowBaseImplementationTest(flow_test_lib.FlowTestsBaseclass):
             },
         )
 
-      @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+      @flow_base.UseProto2AnyResponses
       def AfterCallStateProto(
           self,
           responses: flow_responses.Responses[any_pb2.Any],

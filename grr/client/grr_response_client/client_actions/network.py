@@ -2,6 +2,7 @@
 """Get Information about network states."""
 
 import logging
+import socket
 
 import psutil
 
@@ -32,8 +33,21 @@ def ListNetworkConnectionsFromClient(args):
       res = rdf_client_network.NetworkConnection()
       res.pid = proc.pid
       res.process_name = proc.name()
-      res.family = conn.family
-      res.type = conn.type
+      if conn.family == socket.AF_INET:
+        res.family = rdf_client_network.NetworkConnection.Family.INET
+      elif conn.family == socket.AF_INET6:
+        res.family = rdf_client_network.NetworkConnection.Family.INET6
+      else:
+        logging.warning(
+            "Encountered unknown connection family (%s).", conn.family
+        )
+
+      if conn.type == socket.SOCK_STREAM:
+        res.type = rdf_client_network.NetworkConnection.Type.SOCK_STREAM
+      elif conn.type == socket.SOCK_DGRAM:
+        res.type = rdf_client_network.NetworkConnection.Type.SOCK_DGRAM
+      else:
+        res.type = rdf_client_network.NetworkConnection.Type.UNKNOWN_SOCKET
       try:
         if conn.status:
           res.state = conn.status

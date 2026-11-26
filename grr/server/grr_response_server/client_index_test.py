@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 import binascii
+from collections.abc import Sequence
 import ipaddress
 
 from absl import app
@@ -57,8 +58,8 @@ class ClientIndexTest(test_lib.GRRBaseTest):
     self.assertIn("serial_number:123abc", keywords)
     self.assertIn("system_uuid:a-b-c-1-2-3", keywords)
 
-  def _SetupClients(self, n):
-    res = {}
+  def _SetupClients(self, n: int) -> dict[str, objects_pb2.ClientSnapshot]:
+    res: dict[str, objects_pb2.ClientSnapshot] = {}
     for i in range(1, n + 1):
       client_id = "C.100000000000000%d" % i
       client = objects_pb2.ClientSnapshot(client_id=client_id)
@@ -204,10 +205,15 @@ class ClientIndexTest(test_lib.GRRBaseTest):
     self.assertIn(client_id_1, label_bar_clients)
     self.assertIn(client_id_2, label_bar_clients)
 
-  def _HostsHaveLabel(self, expected_hosts, label, index):
+  def _HostsHaveLabel(
+      self,
+      expected_hosts: Sequence[str],
+      label: str,
+      index: client_index.ClientIndex,
+  ) -> None:
     client_ids = index.LookupClients(["label:%s" % label])
     client_data = data_store.REL_DB.MultiReadClientSnapshot(client_ids)
-    labelled_hosts = []
+    labelled_hosts: list[str] = []
 
     for client_id in client_ids:
       data = client_data[client_id]
@@ -217,7 +223,7 @@ class ClientIndexTest(test_lib.GRRBaseTest):
     self.assertCountEqual(expected_hosts, labelled_hosts)
 
 
-def main(argv):
+def main(argv: Sequence[str]) -> None:
   test_lib.main(argv)
 
 

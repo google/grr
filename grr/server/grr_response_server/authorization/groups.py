@@ -10,10 +10,12 @@ from grr_response_core.lib.registry import MetaclassRegistry
 class GroupAccessManager(metaclass=MetaclassRegistry):
   __abstract = True  # pylint: disable=g-bad-name
 
-  def AuthorizeGroup(self, group, subject):
+  def AuthorizeGroup(self, group: str, subject: str) -> None:
     raise NotImplementedError()
 
-  def MemberOfAuthorizedGroup(self, unused_username, unused_subject):
+  def MemberOfAuthorizedGroup(
+      self, unused_username: str, unused_subject: str
+  ) -> bool:
     raise NotImplementedError()
 
 
@@ -26,14 +28,16 @@ class NoGroupAccess(GroupAccessManager):
   system you use: LDAP/AD/etc.
   """
 
-  def AuthorizeGroup(self, group, subject):
+  def AuthorizeGroup(self, group: str, subject: str) -> None:
     raise NotImplementedError("Replace this class to use group authorizations.")
 
-  def MemberOfAuthorizedGroup(self, unused_username, unused_subject):
+  def MemberOfAuthorizedGroup(
+      self, unused_username: str, unused_subject: str
+  ) -> bool:
     return False
 
 
-def CreateGroupAccessManager():
+def CreateGroupAccessManager() -> GroupAccessManager:
   group_mgr_cls = config.CONFIG["ACL.group_access_manager_class"]
   logging.debug("Using group access manager: %s", group_mgr_cls)
   return GroupAccessManager.classes[group_mgr_cls]()

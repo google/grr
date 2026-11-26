@@ -1,7 +1,11 @@
 #!/usr/bin/env python
 """A module with utilities for dealing with context managers."""
+
+from __future__ import annotations
+
 from collections.abc import Sequence
 import contextlib
+import types
 from typing import Generic, TypeVar
 
 _T = TypeVar("_T")
@@ -32,6 +36,11 @@ class MultiContext(
       values.append(value)
     return values
 
-  def __exit__(self, exc_type, exc_value, traceback):
+  def __exit__(
+      self,
+      exc_type: type[BaseException] | None,
+      exc_value: BaseException | None,
+      traceback: types.TracebackType | None,
+  ) -> None:
     for manager in self._managers:
       manager.__exit__(exc_type, exc_value, traceback)

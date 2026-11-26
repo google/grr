@@ -34,9 +34,6 @@ class CollectCloudVMMetadata(
 ):
   """Flows that collects metadata about the endpoint's cloud VM."""
 
-  category = "/Collectors/"
-  behaviours = flow_base.BEHAVIOUR_DEBUG
-
   proto_result_types = [cloud_pb2.CollectCloudVMMetadataResult]
 
   proto_store_type = cloud_pb2.CollectCloudVMMetadataStore
@@ -52,7 +49,7 @@ class CollectCloudVMMetadata(
       action.args.command = signed_command.command
       action.args.command_ed25519_signature = signed_command.ed25519_signature
       action.args.timeout.seconds = 10
-      action.Call(self._ProcessRRGDmidecodeBIOSVersion)  # pyrefly: ignore[bad-argument-type]
+      action.Call(self._ProcessRRGDmidecodeBIOSVersion)
     elif self.rrg_support and self.rrg_os_type == rrg_os_pb2.WINDOWS:
       action = rrg_stubs.QueryWmi()
       action.args.query = """
@@ -61,7 +58,7 @@ class CollectCloudVMMetadata(
        WHERE Name = 'GCEAgent'
           OR Name = 'AWSLiteAgent'
       """
-      action.Call(self._ProcessRRGWin32Service)  # pyrefly: ignore[bad-argument-type]
+      action.Call(self._ProcessRRGWin32Service)
     elif self.client_os in ["Linux", "Windows"]:
       args = mig_cloud.ToProtoCloudMetadataRequests(
           rdf_cloud.BuildCloudMetadataRequests()
@@ -75,7 +72,7 @@ class CollectCloudVMMetadata(
     else:
       raise flow_base.FlowError(f"Unsupported system: {self.client_os}")
 
-  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+  @flow_base.UseProto2AnyResponses
   def _ProcessRRGDmidecodeBIOSVersion(
       self,
       responses: flow_responses.Responses[any_pb2.Any],
@@ -102,7 +99,7 @@ class CollectCloudVMMetadata(
     else:
       self.Log("Non-cloud BIOS version string: %s", bios_version)
 
-  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+  @flow_base.UseProto2AnyResponses
   def _ProcessRRGWin32Service(
       self,
       responses: flow_responses.Responses[any_pb2.Any],
@@ -137,19 +134,19 @@ class CollectCloudVMMetadata(
     action.args.read_timeout.seconds = 1
 
     action.args.data = _HTTPGoogle("/computeMetadata/v1/instance/id")
-    action.Call(self._ProcessRRGGoogleInstanceID)  # pyrefly: ignore[bad-argument-type]
+    action.Call(self._ProcessRRGGoogleInstanceID)
 
     action.args.data = _HTTPGoogle("/computeMetadata/v1/instance/zone")
-    action.Call(self._ProcessRRGGoogleInstanceZone)  # pyrefly: ignore[bad-argument-type]
+    action.Call(self._ProcessRRGGoogleInstanceZone)
 
     action.args.data = _HTTPGoogle("/computeMetadata/v1/instance/hostname")
-    action.Call(self._ProcessRRGGoogleInstanceHostname)  # pyrefly: ignore[bad-argument-type]
+    action.Call(self._ProcessRRGGoogleInstanceHostname)
 
     action.args.data = _HTTPGoogle("/computeMetadata/v1/instance/machine-type")
-    action.Call(self._ProcessRRGGoogleInstanceMachineType)  # pyrefly: ignore[bad-argument-type]
+    action.Call(self._ProcessRRGGoogleInstanceMachineType)
 
     action.args.data = _HTTPGoogle("/computeMetadata/v1/project/project-id")
-    action.Call(self._ProcessRRGGoogleProjectID)  # pyrefly: ignore[bad-argument-type]
+    action.Call(self._ProcessRRGGoogleProjectID)
 
   def _CollectAmazonMetadata(self) -> None:
     self.store.vm_metadata.cloud_type = jobs_pb2.CloudInstance.AMAZON
@@ -167,9 +164,9 @@ class CollectCloudVMMetadata(
         "",
         "",
     ]).encode("ascii")
-    action.Call(self._ProcessRRGAmazonAPIToken)  # pyrefly: ignore[bad-argument-type]
+    action.Call(self._ProcessRRGAmazonAPIToken)
 
-  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+  @flow_base.UseProto2AnyResponses
   def _ProcessRRGAmazonAPIToken(
       self,
       responses: flow_responses.Responses[any_pb2.Any],
@@ -207,33 +204,33 @@ class CollectCloudVMMetadata(
         "/latest/meta-data/instance-id",
         token=token,
     )
-    action.Call(self._ProcessRRGAmazonInstanceID)  # pyrefly: ignore[bad-argument-type]
+    action.Call(self._ProcessRRGAmazonInstanceID)
 
     action.args.data = _HTTPAmazon(
         "/latest/meta-data/instance-type",
         token=token,
     )
-    action.Call(self._ProcessRRGAmazonInstanceType)  # pyrefly: ignore[bad-argument-type]
+    action.Call(self._ProcessRRGAmazonInstanceType)
 
     action.args.data = _HTTPAmazon(
         "/latest/meta-data/ami-id",
         token=token,
     )
-    action.Call(self._ProcessRRGAmazonAMIID)  # pyrefly: ignore[bad-argument-type]
+    action.Call(self._ProcessRRGAmazonAMIID)
 
     action.args.data = _HTTPAmazon(
         "/latest/meta-data/hostname",
         token=token,
     )
-    action.Call(self._ProcessRRGAmazonHostname)  # pyrefly: ignore[bad-argument-type]
+    action.Call(self._ProcessRRGAmazonHostname)
 
     action.args.data = _HTTPAmazon(
         "/latest/meta-data/public-hostname",
         token=token,
     )
-    action.Call(self._ProcessRRGAmazonPublicHostname)  # pyrefly: ignore[bad-argument-type]
+    action.Call(self._ProcessRRGAmazonPublicHostname)
 
-  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+  @flow_base.UseProto2AnyResponses
   def _ProcessRRGGoogleInstanceID(
       self,
       responses: flow_responses.Responses[any_pb2.Any],
@@ -256,7 +253,7 @@ class CollectCloudVMMetadata(
         http_response.read().decode("ascii").strip()
     )
 
-  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+  @flow_base.UseProto2AnyResponses
   def _ProcessRRGGoogleInstanceZone(
       self,
       responses: flow_responses.Responses[any_pb2.Any],
@@ -279,7 +276,7 @@ class CollectCloudVMMetadata(
         http_response.read().decode("ascii").strip()
     )
 
-  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+  @flow_base.UseProto2AnyResponses
   def _ProcessRRGGoogleInstanceHostname(
       self,
       responses: flow_responses.Responses[any_pb2.Any],
@@ -302,7 +299,7 @@ class CollectCloudVMMetadata(
         http_response.read().decode("ascii").strip()
     )
 
-  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+  @flow_base.UseProto2AnyResponses
   def _ProcessRRGGoogleInstanceMachineType(
       self,
       responses: flow_responses.Responses[any_pb2.Any],
@@ -325,7 +322,7 @@ class CollectCloudVMMetadata(
         http_response.read().decode("ascii").strip()
     )
 
-  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+  @flow_base.UseProto2AnyResponses
   def _ProcessRRGGoogleProjectID(
       self,
       responses: flow_responses.Responses[any_pb2.Any],
@@ -348,7 +345,7 @@ class CollectCloudVMMetadata(
         http_response.read().decode("ascii").strip()
     )
 
-  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+  @flow_base.UseProto2AnyResponses
   def _ProcessRRGAmazonInstanceID(
       self,
       responses: flow_responses.Responses[any_pb2.Any],
@@ -371,7 +368,7 @@ class CollectCloudVMMetadata(
         http_response.read().decode("ascii").strip()
     )
 
-  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+  @flow_base.UseProto2AnyResponses
   def _ProcessRRGAmazonInstanceType(
       self,
       responses: flow_responses.Responses[any_pb2.Any],
@@ -394,7 +391,7 @@ class CollectCloudVMMetadata(
         http_response.read().decode("ascii").strip()
     )
 
-  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+  @flow_base.UseProto2AnyResponses
   def _ProcessRRGAmazonAMIID(
       self,
       responses: flow_responses.Responses[any_pb2.Any],
@@ -417,7 +414,7 @@ class CollectCloudVMMetadata(
         http_response.read().decode("ascii").strip()
     )
 
-  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+  @flow_base.UseProto2AnyResponses
   def _ProcessRRGAmazonHostname(
       self,
       responses: flow_responses.Responses[any_pb2.Any],
@@ -440,7 +437,7 @@ class CollectCloudVMMetadata(
         http_response.read().decode("ascii").strip()
     )
 
-  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+  @flow_base.UseProto2AnyResponses
   def _ProcessRRGAmazonPublicHostname(
       self,
       responses: flow_responses.Responses[any_pb2.Any],
@@ -468,7 +465,7 @@ class CollectCloudVMMetadata(
         http_response.read().decode("ascii").strip()
     )
 
-  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+  @flow_base.UseProto2AnyResponses
   def _ProcessGetCloudVMMetadata(
       self,
       responses: flow_responses.Responses[any_pb2.Any],

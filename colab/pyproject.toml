@@ -1,0 +1,31 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "grr-colab"
+version = "4.0.0.post0"
+description = "GRR Colab library"
+license = "Apache-2.0"
+maintainers = [
+  {name = "GRR Development Team", email = "grr-dev@googlegroups.com"},
+]
+requires-python = ">=3.9"
+dependencies = [
+  "grr-api-client==4.0.0.post0",
+  "grr-response-proto==4.0.0.post0",
+  "humanize==2.6.0",
+  "ipython==7.15.0",
+  "numpy==1.24.2",
+  "pandas==1.5.3",
+]
+
+[project.urls]
+Homepage = "https://github.com/google/grr/tree/master/colab"
+
+[tool.setuptools]
+include-package-data = true
+
+[tool.setuptools.packages.find]
+include = ["grr_colab*"]
+namespaces = true

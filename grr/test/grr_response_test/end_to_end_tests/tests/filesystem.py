@@ -1,6 +1,9 @@
 #!/usr/bin/env python
 """End to end tests for GRR filesystem-related flows."""
 
+import pathlib
+
+from grr_response_proto import flows_pb2
 from grr_response_test.end_to_end_tests import test_base
 
 ####################
@@ -98,21 +101,29 @@ class TestListDirectoryNTFSWindows(test_base.EndToEndTest):
   platforms = [test_base.EndToEndTest.Platform.WINDOWS]
 
   def runTest(self):
+    # TODO - Remove once Keramics is enabled by default.
+    runner_args = flows_pb2.FlowRunnerArgs()
+    runner_args.rrg_mode = flows_pb2.FlowRunnerArgs.RrgMode.FORCED
+
     args = self.grr_api.types.CreateFlowArgs("ListDirectory")  # pyrefly: ignore[missing-attribute]
     args.pathspec.path = "C:\\Windows"
     args.pathspec.pathtype = args.pathspec.NTFS
 
-    f = self.RunFlowAndWait("ListDirectory", args=args)
+    f = self.RunFlowAndWait("ListDirectory", args=args, runner_args=runner_args)
 
     results = list(f.ListResults())
     self.assertNotEmpty(results)
 
+    # TODO - Simplify to testing with a literal once the old agent
+    # is no longer there.
     regedit_path = None
     for r in results:
       path = "fs/ntfs"
       pathspec = r.payload.pathspec
       while pathspec.path:
-        path += pathspec.path
+        # One agent has a leading forward slash, the other does not so we need
+        # to normalize here.
+        path += f"/{pathspec.path.removeprefix('/')}"
         pathspec = pathspec.nested_path
 
       if path.endswith("/regedit.exe"):
@@ -122,7 +133,7 @@ class TestListDirectoryNTFSWindows(test_base.EndToEndTest):
     self.assertTrue(regedit_path)
 
     with self.WaitForFileRefresh(regedit_path):
-      self.RunFlowAndWait("ListDirectory", args=args)
+      self.RunFlowAndWait("ListDirectory", args=args, runner_args=runner_args)
 
 
 class TestListDirectoryRootNTFSWindows(test_base.EndToEndTest):
@@ -131,17 +142,33 @@ class TestListDirectoryRootNTFSWindows(test_base.EndToEndTest):
   platforms = [test_base.EndToEndTest.Platform.WINDOWS]
 
   def runTest(self):
+    # TODO - Remove once Keramics is enabled by default.
+    runner_args = flows_pb2.FlowRunnerArgs()
+    runner_args.rrg_mode = flows_pb2.FlowRunnerArgs.RrgMode.FORCED
+
     args = self.grr_api.types.CreateFlowArgs("ListDirectory")  # pyrefly: ignore[missing-attribute]
     args.pathspec.path = "C:\\"
     args.pathspec.pathtype = args.pathspec.NTFS
 
-    flow = self.RunFlowAndWait("ListDirectory", args=args)
+    flow = self.RunFlowAndWait(
+        "ListDirectory",
+        args=args,
+        runner_args=runner_args,
+    )
 
-    def IsWindowsDirPath(pathspec):
-      return (pathspec.pathtype == args.pathspec.OS and
-              pathspec.mount_point == "C:" and
-              pathspec.nested_path.pathtype == args.pathspec.NTFS and
-              pathspec.nested_path.path.upper().endswith("WINDOWS"))
+    # TODO - Simplify to testing with a literal once the old agent
+    # is no longer there.
+    # TODO - Revert back to testing for the "Windows" folder once
+    # Keramics is fixed.
+    def IsMFTPath(pathspec):
+      # One agent works with nested paths and mount points, the other does not.
+      if pathspec.mount_point:
+        path = pathlib.PureWindowsPath(f"{pathspec.mount_point}\\")
+        path = path / pathspec.nested_path.path.removeprefix("/")
+      else:
+        path = pathlib.PureWindowsPath(pathspec.path)
+
+      return path == pathlib.PureWindowsPath("C:/$MFT")
 
     pathspecs = [result.payload.pathspec for result in flow.ListResults()]
-    self.assertTrue(any(map(IsWindowsDirPath, pathspecs)))
+    self.assertTrue(any(map(IsMFTPath, pathspecs)))

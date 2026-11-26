@@ -21,9 +21,6 @@ from grr_response_proto.rrg.action import query_wmi_pb2 as rrg_query_wmi_pb2
 class CollectHardwareInfo(flow_base.FlowBase):
   """Flow that collects information about the hardware of the endpoint."""
 
-  category = "/Collectors/"
-  behaviours = flow_base.BEHAVIOUR_DEBUG
-
   proto_result_types = [sysinfo_pb2.HardwareInfo]
 
   def Start(self) -> None:
@@ -38,14 +35,14 @@ class CollectHardwareInfo(flow_base.FlowBase):
         action.args.command = signed_command.command
         action.args.command_ed25519_signature = signed_command.ed25519_signature
         action.args.timeout.seconds = 10
-        action.Call(self._ProcessRRGDmidecodeResults)  # pyrefly: ignore[bad-argument-type]
+        action.Call(self._ProcessRRGDmidecodeResults)
       elif self.rrg_os_type == rrg_os_pb2.WINDOWS:
         action = rrg_stubs.QueryWmi()
         action.args.query = """
         SELECT *
           FROM Win32_ComputerSystemProduct
         """
-        action.Call(self._ProcessRRGComputerSystemProductResults)  # pyrefly: ignore[bad-argument-type]
+        action.Call(self._ProcessRRGComputerSystemProductResults)
       elif self.rrg_os_type == rrg_os_pb2.MACOS:
         signed_command = data_store.REL_DB.ReadSignedCommand(
             "system_profiler_xml_sphardware",
@@ -56,7 +53,7 @@ class CollectHardwareInfo(flow_base.FlowBase):
         action.args.command = signed_command.command
         action.args.command_ed25519_signature = signed_command.ed25519_signature
         action.args.timeout.seconds = 10
-        action.Call(self._ProcessRRGSystemProfilerResults)  # pyrefly: ignore[bad-argument-type]
+        action.Call(self._ProcessRRGSystemProfilerResults)
       else:
         raise flow_base.FlowError(
             f"Unsupported operating system: {self.rrg_os_type}",
@@ -100,7 +97,7 @@ class CollectHardwareInfo(flow_base.FlowBase):
             f"Unsupported operating system: {self.client_os}",
         )
 
-  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+  @flow_base.UseProto2AnyResponses
   def _ProcessRRGDmidecodeResults(
       self,
       responses: flow_responses.Responses[any_pb2.Any],
@@ -129,7 +126,7 @@ class CollectHardwareInfo(flow_base.FlowBase):
 
     self.SendReplyProto(_ParseDmidecodeStdout(response.stdout))
 
-  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+  @flow_base.UseProto2AnyResponses
   def _ProcessDmidecodeResults(
       self,
       responses: flow_responses.Responses[any_pb2.Any],
@@ -151,7 +148,7 @@ class CollectHardwareInfo(flow_base.FlowBase):
       result = _ParseDmidecodeStdout(response.stdout)
       self.SendReplyProto(result)
 
-  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+  @flow_base.UseProto2AnyResponses
   def _ProcessRRGComputerSystemProductResults(
       self,
       responses: flow_responses.Responses[any_pb2.Any],
@@ -179,7 +176,7 @@ class CollectHardwareInfo(flow_base.FlowBase):
 
     self.SendReplyProto(result)
 
-  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+  @flow_base.UseProto2AnyResponses
   def _ProcessWin32ComputerSystemProductResults(
       self,
       responses: flow_responses.Responses[any_pb2.Any],
@@ -209,7 +206,7 @@ class CollectHardwareInfo(flow_base.FlowBase):
 
     self.SendReplyProto(result)
 
-  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+  @flow_base.UseProto2AnyResponses
   def _ProcessRRGSystemProfilerResults(
       self,
       responses: flow_responses.Responses[any_pb2.Any],
@@ -232,7 +229,7 @@ class CollectHardwareInfo(flow_base.FlowBase):
 
       self.SendReplyProto(_ParseSystemProfilerStdout(response.stdout))
 
-  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+  @flow_base.UseProto2AnyResponses
   def _ProcessSystemProfilerResults(
       self,
       responses: flow_responses.Responses[any_pb2.Any],

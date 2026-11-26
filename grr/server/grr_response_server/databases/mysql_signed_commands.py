@@ -24,7 +24,7 @@ class MySQLDBSignedCommandsMixin:
       self,
       signed_commands: Sequence[signed_commands_pb2.SignedCommand],
       cursor: Optional[cursors.Cursor] = None,
-  ):
+  ) -> None:
     """Writes a signed command to the database."""
     assert cursor is not None
 

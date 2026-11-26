@@ -255,6 +255,17 @@ describe('Form Validation', () => {
         [Validators.MAX_VALUE]: {value: 11, note: 'Maximum value is 10.'},
       });
     });
+
+    it('should format the maximum value when formatValue is provided', () => {
+      const validator: ValidatorFn = maxValue(10, (v) => `${v} units`);
+      const control = createControl(11);
+      expect(validator(control)).toEqual({
+        [Validators.MAX_VALUE]: {
+          value: 11,
+          note: 'Maximum value is 10 units.',
+        },
+      });
+    });
   });
 
   describe('At Least One Control Must Be Set Validator', () => {

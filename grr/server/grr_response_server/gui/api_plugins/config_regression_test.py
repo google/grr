@@ -93,8 +93,6 @@ class ApiGetConfigOptionHandlerRegressionTest(
         "Source.version_major": 42,
         "Hunt.default_client_rate": 42.0,
         "Email.enable_custom_email_address": True,
-        "Cron.disabled_cron_jobs": ["Job1", "Job2"],
-        "Cron.interrogate_duration": "1d",
         "ClientBuilder.build_type": "Debug",
         "ClientBuilder.target_platforms": [
             "darwin_amd64_dmg",
@@ -151,18 +149,6 @@ class ApiGetConfigOptionHandlerRegressionTest(
           "GetConfigOption",
           args=api_config_pb2.ApiGetConfigOptionArgs(
               name="Email.enable_custom_email_address"
-          ),
-      )
-      self.Check(
-          "GetConfigOption",
-          args=api_config_pb2.ApiGetConfigOptionArgs(
-              name="Cron.disabled_cron_jobs"
-          ),
-      )
-      self.Check(
-          "GetConfigOption",
-          args=api_config_pb2.ApiGetConfigOptionArgs(
-              name="Cron.interrogate_duration"
           ),
       )
       self.Check(

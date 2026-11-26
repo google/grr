@@ -39,6 +39,12 @@ message Args {
 }
 
 message Result {
+  // Absolute path to the raw volume on which the file is located.
+  //
+  // This will be the original volume path specified in the arguments, if avail-
+  // lable or the inferred path if only volume mount path is given.
+  rrg.fs.Path volume_path = 6;
+
   // Path to the file this result corresponds to.
   rrg.fs.Path path = 4;
 

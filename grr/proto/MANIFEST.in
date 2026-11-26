@@ -1,0 +1,3 @@
+include _build_backend.py
+recursive-include grr_response_proto *.proto *.pyi py.typed
+recursive-exclude * *.pyc

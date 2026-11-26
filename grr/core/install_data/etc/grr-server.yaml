@@ -254,7 +254,6 @@ Platform:Windows:
 
 
 Worker Context:
-  Cron.active: True
   Logging.filename: "%(Logging.path)/grr-worker.log"
 
 FleetspeakFrontend Context:

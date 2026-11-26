@@ -1,6 +1,9 @@
 #!/usr/bin/env python
 """Tests for the hunt database api."""
 
+from __future__ import annotations
+
+from collections.abc import Sequence
 import re
 
 from absl.testing import absltest
@@ -24,7 +27,7 @@ class TestOffsetAndCountTest(
   def testRaisesWhenDoesNotWorkAsExpected(self):
     items = range(10)
 
-    def FetchRangeFn(offset, count):
+    def FetchRangeFn(offset: int, count: int) -> Sequence[int]:
       # Deliberate bug for offset > 5.
       if offset > 5:
         return []
@@ -46,8 +49,12 @@ class TestFilterCombinations(
 
   def testDoesNotRaiseWhenWorkingAsExpected(self):
 
-    def FetchFn(bigger_than_3_only=None, less_than_7_only=None, even_only=None):
-      result = []
+    def FetchFn(
+        bigger_than_3_only: bool | None = None,
+        less_than_7_only: bool | None = None,
+        even_only: bool | None = None,
+    ) -> list[int]:
+      result: list[int] = []
       for i in range(10):
         if bigger_than_3_only and i <= 3:
           continue
@@ -70,8 +77,12 @@ class TestFilterCombinations(
 
   def testRaisesWhenDoesNotWorkAsExpected(self):
 
-    def FetchFn(bigger_than_3_only=None, less_than_7_only=None, even_only=None):
-      result = []
+    def FetchFn(
+        bigger_than_3_only: bool | None = None,
+        less_than_7_only: bool | None = None,
+        even_only: bool | None = None,
+    ) -> list[int]:
+      result: list[int] = []
       for i in range(10):
         # This line introduces a bug.
         if bigger_than_3_only and less_than_7_only and i == 4:
@@ -112,13 +123,13 @@ class TestFilterCombinationsAndOffsetCountTest(
   def testDoesNotRaiseWhenWorksAsExpected(self):
 
     def FetchFn(
-        offset,
-        count,
-        bigger_than_3_only=None,
-        less_than_7_only=None,
-        even_only=None,
-    ):
-      result = []
+        offset: int,
+        count: int,
+        bigger_than_3_only: bool | None = None,
+        less_than_7_only: bool | None = None,
+        even_only: bool | None = None,
+    ) -> list[int]:
+      result: list[int] = []
       for i in range(10):
         if bigger_than_3_only and i <= 3:
           continue
@@ -142,15 +153,15 @@ class TestFilterCombinationsAndOffsetCountTest(
   def testRaisesWhenDoesNotWorkAsExpected(self):
 
     def FetchFn(
-        offset,
-        count,
-        bigger_than_3_only=None,
-        less_than_7_only=None,
-        even_only=None,
-    ):
+        offset: int,
+        count: int,
+        bigger_than_3_only: bool | None = None,
+        less_than_7_only: bool | None = None,
+        even_only: bool | None = None,
+    ) -> list[int]:
       del offset  # Unused.
 
-      result = []
+      result: list[int] = []
       for i in range(10):
         if bigger_than_3_only and i <= 3:
           continue
@@ -319,22 +330,6 @@ class InitializeHuntTest(absltest.TestCase):
     hunt_id = db_test_utils.InitializeHunt(db, hunt_id="ABCDEF42")
     self.assertEqual(hunt_id, "ABCDEF42")
     self.assertIsNotNone(db.ReadHuntObject(hunt_id))
-
-
-class InitializeCronJobTest(absltest.TestCase):
-
-  def testRandom(self):
-    db = mem_db.InMemoryDB()
-
-    cron_job_id = db_test_utils.InitializeCronJob(db)
-    self.assertIsNotNone(db.ReadCronJob(cron_job_id))
-
-  def testSupplied(self):
-    db = mem_db.InMemoryDB()
-
-    cron_job_id = db_test_utils.InitializeCronJob(db, cron_job_id="QUUX1337")
-    self.assertEqual(cron_job_id, "QUUX1337")
-    self.assertIsNotNone(db.ReadCronJob(cron_job_id))
 
 
 if __name__ == "__main__":

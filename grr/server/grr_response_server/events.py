@@ -1,6 +1,11 @@
 #!/usr/bin/env python
 """The GRR event publishing classes."""
 
+from __future__ import annotations
+
+from collections.abc import Mapping, Sequence
+from typing import Any
+
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.registry import EventRegistry
 
@@ -12,12 +17,20 @@ class EventListener(metaclass=EventRegistry):
   name in the EVENTS constant.
   """
 
-  EVENTS = []
+  EVENTS: Sequence[str] = []
 
-  def ProcessEvents(self, msgs=None, publisher_username=None):
+  def ProcessEvents(
+      self,
+      msgs: Sequence[Any] | None = None,
+      publisher_username: str | None = None,
+  ) -> None:
     """Processes a message for the event."""
 
-  def ProcessEvent(self, event=None, publisher_username=None):
+  def ProcessEvent(
+      self,
+      event: rdfvalue.RDFValue | None = None,
+      publisher_username: str | None = None,
+  ) -> None:
     return self.ProcessEvents([event], publisher_username=publisher_username)
 
 
@@ -25,7 +38,12 @@ class Events(object):
   """A class that provides event publishing methods."""
 
   @classmethod
-  def PublishEvent(cls, event_name, event, username=None):
+  def PublishEvent(
+      cls,
+      event_name: str,
+      event: rdfvalue.RDFValue,
+      username: str | None = None,
+  ) -> None:
     """Publish the message into all listeners of the event.
 
     We send the message to all event handlers which contain this
@@ -44,7 +62,11 @@ class Events(object):
     cls.PublishMultipleEvents({event_name: [event]}, username=username)
 
   @classmethod
-  def PublishMultipleEvents(cls, events, username=None):
+  def PublishMultipleEvents(
+      cls,
+      events: Mapping[str, Sequence[rdfvalue.RDFValue]],
+      username: str | None = None,
+  ) -> None:
     """Publishes multiple messages at once.
 
     Args:

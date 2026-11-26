@@ -142,64 +142,6 @@
       "url": "/api/v2/users/me/approvals/client/C.1000000000000000"
     }
   ],
-  "ApiCreateCronJobApprovalHandler": [
-    {
-      "api_method": "CreateCronJobApproval",
-      "method": "POST",
-      "request_payload": {
-        "approval": {
-          "emailCcAddresses": [
-            "test@example.com"
-          ],
-          "notifiedUsers": [
-            "approver1",
-            "approver2"
-          ],
-          "reason": "really important reason!"
-        }
-      },
-      "response": {
-        "approvers": [
-          "api_test_user"
-        ],
-        "emailCcAddresses": [
-          "test@example.com"
-        ],
-        "emailMessageId": "<message id stub>",
-        "id": "approval:112233",
-        "isValid": false,
-        "isValidMessage": "Need at least 1 additional approver for access.",
-        "notifiedUsers": [
-          "approver1",
-          "approver2"
-        ],
-        "reason": "really important reason!",
-        "requestor": "api_test_user",
-        "subject": {
-          "allowOverruns": false,
-          "args": {
-            "actionType": "HUNT_CRON_ACTION",
-            "huntCronAction": {
-              "flowName": "Interrogate",
-              "huntRunnerArgs": {
-                "avgCpuSecondsPerClientLimit": "60",
-                "avgNetworkBytesPerClientLimit": "10485760",
-                "avgResultsPerClientLimit": "1000",
-                "clientRate": 20.0,
-                "crashLimit": "100"
-              }
-            }
-          },
-          "cronJobId": "CronJob_123456",
-          "enabled": true,
-          "frequency": "86400",
-          "isFailing": false
-        }
-      },
-      "test_class": "ApiCreateCronJobApprovalHandlerRegressionTest_http_v2",
-      "url": "/api/v2/users/me/approvals/cron-job/CronJob_123456"
-    }
-  ],
   "ApiCreateFlowHandler": [
     {
       "api_method": "CreateFlow",
@@ -397,17 +339,6 @@
       },
       "test_class": "ApiExplainGlobExpressionHandlerTest_http_v2",
       "url": "/api/v2/clients/C.1000000000000000/glob-expressions:explain"
-    }
-  ],
-  "ApiForceRunCronJobHandler": [
-    {
-      "api_method": "ForceRunCronJob",
-      "method": "POST",
-      "response": {
-        "status": "OK"
-      },
-      "test_class": "ApiForceRunCronJobRegressionTest_http_v2",
-      "url": "/api/v2/cron-jobs/FileFinder/actions/force-run"
     }
   ],
   "ApiGetClientApprovalHandler": [
@@ -1444,31 +1375,6 @@
       "api_method": "GetConfigOption",
       "method": "GET",
       "response": {
-        "isInvalid": true,
-        "name": "Cron.disabled_cron_jobs"
-      },
-      "test_class": "ApiGetConfigOptionHandlerRegressionTest_http_v2",
-      "url": "/api/v2/config/Cron.disabled_cron_jobs"
-    },
-    {
-      "api_method": "GetConfigOption",
-      "method": "GET",
-      "response": {
-        "isInvalid": false,
-        "name": "Cron.interrogate_duration",
-        "type": "Int64Value",
-        "value": {
-          "@type": "type.googleapis.com/grr.Int64Value",
-          "value": "86400000000"
-        }
-      },
-      "test_class": "ApiGetConfigOptionHandlerRegressionTest_http_v2",
-      "url": "/api/v2/config/Cron.interrogate_duration"
-    },
-    {
-      "api_method": "GetConfigOption",
-      "method": "GET",
-      "response": {
         "isInvalid": false,
         "name": "ClientBuilder.build_type",
         "type": "StringValue",
@@ -1514,104 +1420,6 @@
       },
       "test_class": "ApiGetConfigOptionHandlerRegressionTest_http_v2",
       "url": "/api/v2/config/Mysql.password"
-    }
-  ],
-  "ApiGetCronJobApprovalHandler": [
-    {
-      "api_method": "GetCronJobApproval",
-      "method": "GET",
-      "response": {
-        "approvers": [
-          "api_test_user"
-        ],
-        "emailMessageId": "<message id stub>",
-        "id": "approval:111111",
-        "isValid": false,
-        "isValidMessage": "Need at least 1 additional approver for access.",
-        "notifiedUsers": [
-          "approver"
-        ],
-        "reason": "foo",
-        "requestor": "api_test_user",
-        "subject": {
-          "allowOverruns": false,
-          "args": {
-            "actionType": "HUNT_CRON_ACTION",
-            "huntCronAction": {
-              "flowName": "Interrogate",
-              "huntRunnerArgs": {
-                "avgCpuSecondsPerClientLimit": "60",
-                "avgNetworkBytesPerClientLimit": "10485760",
-                "avgResultsPerClientLimit": "1000",
-                "clientRate": 20.0,
-                "crashLimit": "100"
-              }
-            }
-          },
-          "cronJobId": "CronJob_123456",
-          "enabled": true,
-          "frequency": "86400",
-          "isFailing": false
-        }
-      },
-      "test_class": "ApiGetCronJobApprovalHandlerRegressionTest_http_v2",
-      "url": "/api/v2/users/api_test_user/approvals/cron-job/CronJob_123456/approval:111111"
-    },
-    {
-      "api_method": "GetCronJobApproval",
-      "method": "GET",
-      "response": {
-        "approvers": [
-          "api_test_user",
-          "approver"
-        ],
-        "emailMessageId": "<message id stub>",
-        "id": "approval:222222",
-        "isValid": true,
-        "notifiedUsers": [
-          "approver"
-        ],
-        "reason": "bar",
-        "requestor": "api_test_user",
-        "subject": {
-          "allowOverruns": false,
-          "args": {
-            "actionType": "HUNT_CRON_ACTION",
-            "huntCronAction": {
-              "flowName": "Interrogate",
-              "huntRunnerArgs": {
-                "avgCpuSecondsPerClientLimit": "60",
-                "avgNetworkBytesPerClientLimit": "10485760",
-                "avgResultsPerClientLimit": "1000",
-                "clientRate": 20.0,
-                "crashLimit": "100"
-              }
-            }
-          },
-          "cronJobId": "CronJob_567890",
-          "enabled": true,
-          "frequency": "86400",
-          "isFailing": false
-        }
-      },
-      "test_class": "ApiGetCronJobApprovalHandlerRegressionTest_http_v2",
-      "url": "/api/v2/users/api_test_user/approvals/cron-job/CronJob_567890/approval:222222"
-    }
-  ],
-  "ApiGetCronJobRunHandler": [
-    {
-      "api_method": "GetCronJobRun",
-      "method": "GET",
-      "response": {
-        "cronJobId": "InterrogateClientsCronJob",
-        "finishedAt": "44000000",
-        "logMessage": "Started hunt ABCDEFGH12.",
-        "runId": "F:ABCDEF11",
-        "startedAt": "44000000",
-        "status": "FINISHED"
-      },
-      "test_class": "ApiGetCronJobRunHandlerRegressionTest_http_v2",
-      "url": "/api/v2/cron-jobs/InterrogateClientsCronJob/runs/F:ABCDEF11"
     }
   ],
   "ApiGetFileDownloadCommandHandler": [
@@ -5600,48 +5408,6 @@
       "url": "/api/v2/users/requestor/approvals/client/C.1000000000000000/approval:111111/actions/grant"
     }
   ],
-  "ApiGrantCronJobApprovalHandler": [
-    {
-      "api_method": "GrantCronJobApproval",
-      "method": "POST",
-      "response": {
-        "approvers": [
-          "api_test_user",
-          "requestor"
-        ],
-        "emailMessageId": "<message id stub>",
-        "id": "approval:111111",
-        "isValid": true,
-        "notifiedUsers": [
-          "api_test_user"
-        ],
-        "reason": "foo",
-        "requestor": "requestor",
-        "subject": {
-          "allowOverruns": false,
-          "args": {
-            "actionType": "HUNT_CRON_ACTION",
-            "huntCronAction": {
-              "flowName": "Interrogate",
-              "huntRunnerArgs": {
-                "avgCpuSecondsPerClientLimit": "60",
-                "avgNetworkBytesPerClientLimit": "10485760",
-                "avgResultsPerClientLimit": "1000",
-                "clientRate": 20.0,
-                "crashLimit": "100"
-              }
-            }
-          },
-          "cronJobId": "CronJob_123456",
-          "enabled": true,
-          "frequency": "86400",
-          "isFailing": false
-        }
-      },
-      "test_class": "ApiGrantCronJobApprovalHandlerRegressionTest_http_v2",
-      "url": "/api/v2/users/requestor/approvals/cron-job/CronJob_123456/approval:111111/actions/grant"
-    }
-  ],
   "ApiGrantHuntApprovalHandler": [
     {
       "api_method": "GrantHuntApproval",
@@ -6236,107 +6002,6 @@
       "url": "/api/v2/clients/labels"
     }
   ],
-  "ApiListCronJobRunsHandler": [
-    {
-      "api_method": "ListCronJobRuns",
-      "method": "GET",
-      "response": {
-        "items": [
-          {
-            "cronJobId": "InterrogateClientsCronJob",
-            "finishedAt": "44000000",
-            "logMessage": "Started hunt ABCDEFGH12.",
-            "runId": "F:ABCDEF11",
-            "startedAt": "44000000",
-            "status": "FINISHED"
-          }
-        ]
-      },
-      "test_class": "ApiListCronJobRunsHandlerRegressionTest_http_v2",
-      "url": "/api/v2/cron-jobs/InterrogateClientsCronJob/runs"
-    }
-  ],
-  "ApiListCronJobsHandler": [
-    {
-      "api_method": "ListCronJobs",
-      "method": "GET",
-      "response": {
-        "items": [
-          {
-            "allowOverruns": false,
-            "args": {
-              "actionType": "HUNT_CRON_ACTION",
-              "huntCronAction": {
-                "flowName": "ClientFileFinder",
-                "huntRunnerArgs": {
-                  "avgCpuSecondsPerClientLimit": "60",
-                  "avgNetworkBytesPerClientLimit": "10485760",
-                  "avgResultsPerClientLimit": "1000",
-                  "clientRate": 20.0,
-                  "crashLimit": "100"
-                }
-              }
-            },
-            "cronJobId": "ClientFileFinder",
-            "description": "bar",
-            "enabled": true,
-            "frequency": "604800",
-            "isFailing": false,
-            "lifetime": "86400"
-          },
-          {
-            "allowOverruns": false,
-            "args": {
-              "actionType": "HUNT_CRON_ACTION",
-              "huntCronAction": {
-                "flowName": "FileFinder",
-                "huntRunnerArgs": {
-                  "avgCpuSecondsPerClientLimit": "60",
-                  "avgNetworkBytesPerClientLimit": "10485760",
-                  "avgResultsPerClientLimit": "1000",
-                  "clientRate": 20.0,
-                  "crashLimit": "100"
-                }
-              }
-            },
-            "cronJobId": "FileFinder",
-            "description": "foo",
-            "enabled": false,
-            "frequency": "86400",
-            "isFailing": false,
-            "lifetime": "7200"
-          },
-          {
-            "allowOverruns": false,
-            "args": {
-              "actionType": "HUNT_CRON_ACTION",
-              "huntCronAction": {
-                "flowName": "ListDirectory",
-                "huntRunnerArgs": {
-                  "avgCpuSecondsPerClientLimit": "60",
-                  "avgNetworkBytesPerClientLimit": "10485760",
-                  "avgResultsPerClientLimit": "1000",
-                  "clientRate": 20.0,
-                  "crashLimit": "100"
-                }
-              }
-            },
-            "cronJobId": "ListDirectory",
-            "description": "",
-            "enabled": true,
-            "frequency": "604800",
-            "isFailing": true,
-            "lastRunStatus": "ERROR",
-            "lastRunTime": "230000000",
-            "lifetime": "86400"
-          }
-        ],
-        "totalCount": "3"
-      },
-      "test_class": "ApiListCronJobsHandlerRegressionTest_http_v2",
-      "url": "/api/v2/cron-jobs"
-    }
-  ],
   "ApiListFilesHandler": [
     {
       "api_method": "ListFiles",
@@ -6400,17 +6065,14 @@
           {
             "argsType": "FileFinderArgs",
             "blockHuntCreation": false,
-            "category": "Filesystem",
             "defaultArgs": {
               "@type": "type.googleapis.com/grr.FileFinderArgs"
             },
-            "friendlyName": "File Finder",
             "name": "FileFinder"
           },
           {
             "argsType": "ListProcessesArgs",
             "blockHuntCreation": false,
-            "category": "Processes",
             "defaultArgs": {
               "@type": "type.googleapis.com/grr.ListProcessesArgs"
             },
@@ -7839,7 +7501,6 @@
           "users.localappdata",
           "users.localappdata_low",
           "users.personal",
-          "users.pw_entry",
           "users.recent",
           "users.shell",
           "users.sid",
@@ -7939,70 +7600,6 @@
       "response": {},
       "test_class": "ApiListPendingUserNotificationsHandlerRegressionTest_http_v2",
       "url": "/api/v2/users/me/notifications/pending?timestamp=44000000"
-    }
-  ],
-  "ApiModifyCronJobHandler": [
-    {
-      "api_method": "ModifyCronJob",
-      "method": "PATCH",
-      "request_payload": {
-        "enabled": true
-      },
-      "response": {
-        "allowOverruns": false,
-        "args": {
-          "actionType": "HUNT_CRON_ACTION",
-          "huntCronAction": {
-            "flowName": "FileFinder",
-            "huntRunnerArgs": {
-              "avgCpuSecondsPerClientLimit": "60",
-              "avgNetworkBytesPerClientLimit": "10485760",
-              "avgResultsPerClientLimit": "1000",
-              "clientRate": 20.0,
-              "crashLimit": "100"
-            }
-          }
-        },
-        "cronJobId": "FileFinder",
-        "description": "",
-        "enabled": true,
-        "frequency": "86400",
-        "isFailing": false,
-        "lifetime": "604800"
-      },
-      "test_class": "ApiModifyCronJobRegressionTest_http_v2",
-      "url": "/api/v2/cron-jobs/FileFinder"
-    },
-    {
-      "api_method": "ModifyCronJob",
-      "method": "PATCH",
-      "request_payload": {
-        "enabled": false
-      },
-      "response": {
-        "allowOverruns": false,
-        "args": {
-          "actionType": "HUNT_CRON_ACTION",
-          "huntCronAction": {
-            "flowName": "ClientFileFinder",
-            "huntRunnerArgs": {
-              "avgCpuSecondsPerClientLimit": "60",
-              "avgNetworkBytesPerClientLimit": "10485760",
-              "avgResultsPerClientLimit": "1000",
-              "clientRate": 20.0,
-              "crashLimit": "100"
-            }
-          }
-        },
-        "cronJobId": "ClientFileFinder",
-        "description": "",
-        "enabled": false,
-        "frequency": "86400",
-        "isFailing": false,
-        "lifetime": "604800"
-      },
-      "test_class": "ApiModifyCronJobRegressionTest_http_v2",
-      "url": "/api/v2/cron-jobs/ClientFileFinder"
     }
   ],
   "ApiModifyHuntHandler": [

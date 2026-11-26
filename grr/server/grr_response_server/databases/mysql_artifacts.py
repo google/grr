@@ -14,7 +14,7 @@ from grr_response_server.databases import db_utils
 from grr_response_server.databases import mysql_utils
 
 
-def _RowToArtifact(row):
+def _RowToArtifact(row: Sequence[bytes]) -> artifact_pb2.Artifact:
   return artifact_pb2.Artifact.FromString(row[0])
 
 
@@ -28,7 +28,7 @@ class MySQLDBArtifactsMixin(object):
       self,
       artifact: artifact_pb2.Artifact,
       cursor: Optional[MySQLdb.cursors.Cursor] = None,
-  ):
+  ) -> None:
     """Writes a new artifact to the database."""
     assert cursor is not None
 

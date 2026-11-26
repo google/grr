@@ -32,7 +32,6 @@ class DatabaseTestUsersMixin(object):
     expected.user_type = objects_pb2.GRRUser.UserType.USER_TYPE_ADMIN
     expected.email = EXAMPLE_EMAIL
 
-    # TODO - Stop using `rdf_crypto.Password`
     # TODO(hanuszczak): Passwords should be required to be unicode strings.
     password_proto = jobs_pb2.Password()
     rdf_crypto.SetPassword(password_proto, "blah")
@@ -398,12 +397,10 @@ class DatabaseTestUsersMixin(object):
 
     client_id = db_test_utils.InitializeClient(self.db)
     hunt_id = db_test_utils.InitializeHunt(self.db)
-    cron_job_id = db_test_utils.InitializeCronJob(self.db)
 
     subject_ids = {
         ApprovalRequest.APPROVAL_TYPE_CLIENT: client_id,
         ApprovalRequest.APPROVAL_TYPE_HUNT: hunt_id,
-        ApprovalRequest.APPROVAL_TYPE_CRON_JOB: cron_job_id,
     }
 
     # We iterate over all possible approval types. This will make the test fail
@@ -411,6 +408,9 @@ class DatabaseTestUsersMixin(object):
     # for it.
     approval_types = set(_.number for _ in ApprovalType.DESCRIPTOR.values)
     approval_types.remove(ApprovalType.APPROVAL_TYPE_NONE)
+    # Cron jobs have been removed, but we keep the enum value for backward
+    # compatibility.
+    approval_types.remove(ApprovalType.APPROVAL_TYPE_CRON_JOB)
 
     for approval_type in approval_types:
       subject_id = subject_ids[approval_type]

@@ -4,7 +4,6 @@
 
 from grr_response_core import version
 from grr_response_core.lib import config_lib
-from grr_response_core.lib import rdfvalue
 
 VERSION = version.Version()
 
@@ -57,49 +56,8 @@ config_lib.DEFINE_string("Worker.smtp_password", None,
 config_lib.DEFINE_integer("Server.rsa_key_length", 2048,
                           "The length of the server rsa key in bits.")
 
-config_lib.DEFINE_bool("Cron.active", False,
-                       "Set to true to run a cron thread on this binary.")
-
-config_lib.DEFINE_list(
-    "Cron.disabled_cron_jobs",
-    [],
-    "Cron jobs listed here will not be run. Many system jobs are "
-    "important. Leave empty unless you are sure that you "
-    "know what you are doing.",
-)
-
-config_lib.DEFINE_integer(
-    "Cron.interrogate_crash_limit", 500,
-    "Maximum number of client crashes to allow for an Interrogate cron hunt "
-    "before stopping the hunt.")
-
-config_lib.DEFINE_integer(
-    "Cron.interrogate_client_rate", 50,
-    "Client rate setting for the periodical Interrogate cron hunt.")
-
-config_lib.DEFINE_semantic_value(
-    rdfvalue.Duration, "Cron.interrogate_duration",
-    rdfvalue.Duration.From(1, rdfvalue.WEEKS),
-    "Duration of the Interrogate cron hunt. The hunt is run weekly, so "
-    "default duration is 1w. In certain cases the duration might be extended "
-    "to accommodate for the clients that rarely show up online.")
-
 config_lib.DEFINE_string("Frontend.bind_address", "::",
                          "The ip address to bind.")
-
-config_lib.DEFINE_integer(
-    "Frontend.max_queue_size", 500,
-    "Maximum number of messages to queue for the client.")
-
-config_lib.DEFINE_integer(
-    "Frontend.max_retransmission_time", 10,
-    "Maximum number of times we are allowed to "
-    "retransmit a request until it fails.")
-
-config_lib.DEFINE_integer(
-    "Frontend.message_expiry_time", 600,
-    "Maximum time messages remain valid within the "
-    "system.")
 
 config_lib.DEFINE_bool(
     "Server.initialized", False, "True once config_updater initialize has been "

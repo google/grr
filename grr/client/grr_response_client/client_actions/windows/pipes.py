@@ -88,14 +88,14 @@ def ListNamedPipes() -> Iterator[rdf_client.NamedPipe]:
         logging.error("Failed to get info about pipe '%s': '%s'", name, error)
 
       try:
-        pipe.server_pid = win32pipe.GetNamedPipeServerProcessId(handle)  # pyrefly: ignore[missing-attribute]
+        pipe.server_pid = win32pipe.GetNamedPipeServerProcessId(handle)  # pyrefly: ignore[bad-argument-type, missing-attribute]
       except win32pipe.error as error:
         # See similar comment for `GetNamedPipeInfo` for more information.
         message = "Failed to get server pid of pipe '%s': '%s'"
         logging.error(message, name, error)
 
       try:
-        pipe.client_pid = win32pipe.GetNamedPipeClientProcessId(handle)  # pyrefly: ignore[missing-attribute]
+        pipe.client_pid = win32pipe.GetNamedPipeClientProcessId(handle)  # pyrefly: ignore[bad-argument-type, missing-attribute]
       except win32pipe.error as error:
         # See similar comment for `GetNamedPipeInfo` for more information.
         message = "Failed to get client pid of pipe '%s': '%s'"

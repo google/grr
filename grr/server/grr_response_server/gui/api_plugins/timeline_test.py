@@ -3,6 +3,7 @@ import csv
 import io
 import random
 import stat
+from unittest import mock
 import zipfile
 
 from absl.testing import absltest
@@ -606,6 +607,116 @@ class ApiGetCollectedHuntTimelinesHandlerTest(api_test_lib.ApiCallHandlerTest):
     self.assertLen(rows, 1)
     self.assertEqual(rows[0][1], "/foo/bar/baz")
     self.assertEqual(rows[0][10], "1337.42")
+
+  def testBodyAboveZip64Limit(self):
+    # Exporting timelines above 2 GiB would make the test too slow, so it lowers
+    # the limit of the `zipfile` module instead.
+    zip64_limit = 1024
+
+    client_id = db_test_utils.InitializeClient(data_store.REL_DB)
+    hunt_id = "C0D1E2F3"
+
+    snapshot = objects_pb2.ClientSnapshot()
+    snapshot.client_id = client_id
+    snapshot.knowledge_base.fqdn = "foo.bar.quux"
+    data_store.REL_DB.WriteClientSnapshot(snapshot)
+
+    hunt_obj = hunts_pb2.Hunt()
+    hunt_obj.hunt_id = hunt_id
+    hunt_obj.args.standard.flow_name = timeline.TimelineFlow.__name__
+    hunt_obj.hunt_state = hunts_pb2.Hunt.HuntState.PAUSED
+    data_store.REL_DB.WriteHuntObject(hunt_obj)
+
+    paths = [f"/foo/bar/{i}" for i in range(100)]
+    entries = []
+    for path in paths:
+      entry = timeline_pb2.TimelineEntry()
+      entry.path = path.encode("utf-8")
+      entries.append(entry)
+
+    timeline_test_lib.WriteTimeline(client_id, entries, hunt_id=hunt_id)
+
+    args = api_timeline_pb2.ApiGetCollectedHuntTimelinesArgs()
+    args.hunt_id = hunt_id
+    args.format = api_timeline_pb2.ApiGetCollectedTimelineArgs.Format.BODY
+
+    with mock.patch.object(zipfile, "ZIP64_LIMIT", zip64_limit):
+      content = b"".join(self.handler.Handle(args).GenerateContent())
+
+    with zipfile.ZipFile(io.BytesIO(content), mode="r") as archive:
+      filename = f"{client_id}_foo.bar.quux.body"
+      self.assertGreater(archive.getinfo(filename).file_size, zip64_limit)
+      content_file = archive.read(filename).decode("utf-8")
+
+    rows = list(csv.reader(io.StringIO(content_file), delimiter="|"))
+    self.assertEqual([row[1] for row in rows], paths)
+
+  def testMaliciousFQDN(self):
+    client_id = db_test_utils.InitializeClient(data_store.REL_DB)
+
+    snapshot = objects_pb2.ClientSnapshot()
+    snapshot.client_id = client_id
+    snapshot.knowledge_base.fqdn = "foo.bar/../../../etc/hosts"
+    data_store.REL_DB.WriteClientSnapshot(snapshot)
+
+    hunt_obj = hunts_pb2.Hunt()
+    hunt_obj.hunt_id = "A1B2C3D4"
+    hunt_obj.args.standard.flow_name = timeline.TimelineFlow.__name__
+    hunt_obj.hunt_state = hunts_pb2.Hunt.HuntState.PAUSED
+    data_store.REL_DB.WriteHuntObject(hunt_obj)
+
+    timeline_test_lib.WriteTimeline(client_id, [], hunt_id=hunt_obj.hunt_id)
+
+    args = api_timeline_pb2.ApiGetCollectedHuntTimelinesArgs()
+    args.hunt_id = hunt_obj.hunt_id
+
+    with self.subTest("BODY"):
+      args.format = api_timeline_pb2.ApiGetCollectedTimelineArgs.BODY
+
+      content = b"".join(self.handler.Handle(args).GenerateContent())
+      with zipfile.ZipFile(io.BytesIO(content), mode="r") as archive:
+        self.assertEqual(
+            archive.namelist(),
+            [f"{client_id}_foo.bar+..+..+..+etc+hosts.body"],
+        )
+
+    with self.subTest("RAW_GZCHUNKED"):
+      args.format = api_timeline_pb2.ApiGetCollectedTimelineArgs.RAW_GZCHUNKED
+
+      content = b"".join(self.handler.Handle(args).GenerateContent())
+      with zipfile.ZipFile(io.BytesIO(content), mode="r") as archive:
+        self.assertEqual(
+            archive.namelist(),
+            [f"{client_id}_foo.bar+..+..+..+etc+hosts.gzchunked"],
+        )
+
+  def testLongFQDN(self):
+    client_id = db_test_utils.InitializeClient(data_store.REL_DB)
+
+    snapshot = objects_pb2.ClientSnapshot()
+    snapshot.client_id = client_id
+    snapshot.knowledge_base.fqdn = ".".join(["abcd"] * (2**16))
+    data_store.REL_DB.WriteClientSnapshot(snapshot)
+
+    hunt_obj = hunts_pb2.Hunt()
+    hunt_obj.hunt_id = "A1B2C3D4"
+    hunt_obj.args.standard.flow_name = timeline.TimelineFlow.__name__
+    hunt_obj.hunt_state = hunts_pb2.Hunt.HuntState.PAUSED
+    data_store.REL_DB.WriteHuntObject(hunt_obj)
+
+    timeline_test_lib.WriteTimeline(client_id, [], hunt_id=hunt_obj.hunt_id)
+
+    args = api_timeline_pb2.ApiGetCollectedHuntTimelinesArgs()
+    args.hunt_id = hunt_obj.hunt_id
+    args.format = api_timeline_pb2.ApiGetCollectedTimelineArgs.BODY
+
+    content = b"".join(self.handler.Handle(args).GenerateContent())
+    with zipfile.ZipFile(io.BytesIO(content), mode="r") as archive:
+      filenames = archive.namelist()
+
+    self.assertLen(filenames, 1)
+    self.assertStartsWith(filenames[0], f"{client_id}_abcd.abcd.abcd.")
+    self.assertEndsWith(filenames[0], ".abcd.abcd.abcd.body")
 
 
 if __name__ == "__main__":

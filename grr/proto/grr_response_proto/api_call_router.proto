@@ -145,10 +145,6 @@ message RobotRouterGetCollectedTimelineParams {
   optional bool enabled = 1;
 }
 
-message RobotRouterMitigationActionsParams {
-  optional bool enabled = 1;
-}
-
 message RobotRouterGetFlowParams {
   optional bool enabled = 1;
 }
@@ -180,7 +176,7 @@ message RobotRouterGetFlowFilesArchiveParams {
   optional bool skip_glob_checks_for_artifact_collector = 4;
 }
 
-// Next message id: 13
+// Next message id: 14
 message ApiCallRobotRouterParams {
   optional RobotRouterSearchClientsParams search_clients = 1;
 
@@ -195,7 +191,8 @@ message ApiCallRobotRouterParams {
 
   optional RobotRouterTimelineFlowParams timeline_flow = 9;
   optional RobotRouterGetCollectedTimelineParams get_collected_timeline = 11;
-  optional RobotRouterMitigationActionsParams mitigation_actions = 12;
+  reserved 12;
+  reserved 13;
 
   // DEPRECATED, don't use.
   // Note: this field wasn't renamed to DEPRECATED_robot_id, since router params

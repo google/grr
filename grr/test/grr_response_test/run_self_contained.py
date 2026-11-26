@@ -159,6 +159,21 @@ def main(argv):
       check=True,
   )
 
+  # TODO - Below we wait for the client to enroll by searching for
+  # clients with a query like `.`. For this to work though the client has to
+  # have at least one keyword and these are assigned during interrogation.
+  #
+  # There are two ways to fix this properly:
+  # * Determine the identifier of the started client and wait until we can see
+  #   see it in the database (no keywords required).
+  # * Wait for the automatic interrogation triggered by the agent startup. This
+  #   does not currently work for RRG.
+  #
+  # As a temporary measure we just create a hunt (which is how it worked before
+  # we disabled the cronjobs that spawned it).
+  interrogate = grrapi.CreateHunt("Interrogate")
+  interrogate.Start()
+
   # Start the client.
   preliminary_client_p = self_contained_components.StartClientProcess(
       fleetspeak_configs

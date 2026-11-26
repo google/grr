@@ -96,7 +96,7 @@ class ApiFlowTest(test_lib.GRRBaseTest):
     flow_api_obj = flow_plugin.InitApiFlowFromFlowObject(
         flow_obj, with_progress=True
     )
-    self.assertTrue(flow_api_obj.progress)
+    self.assertTrue(flow_api_obj.HasField("progress"))
     self.assertTrue(
         flow_api_obj.progress.Is(flows_pb2.DefaultFlowProgress.DESCRIPTOR)
     )
@@ -138,19 +138,33 @@ class ApiFlowTest(test_lib.GRRBaseTest):
     flow_obj = data_store.REL_DB.ReadFlowObject(client_id, flow_id)
 
     flow_api_obj = flow_plugin.InitApiFlowFromFlowObject(flow_obj)
-    self.assertTrue(flow_api_obj.progress)
-    progress = tests_pb2.DummyFlowProgress()
-    flow_api_obj.progress.Unpack(progress)
-    # An empty proto is created by default.
-    self.assertFalse(progress.HasField("status"))
+    self.assertFalse(flow_api_obj.HasField("progress"))
 
     flow_api_obj = flow_plugin.InitApiFlowFromFlowObject(
         flow_obj, with_progress=True
     )
-    self.assertTrue(flow_api_obj.progress)
+    self.assertTrue(flow_api_obj.HasField("progress"))
     progress = tests_pb2.DummyFlowProgress()
-    flow_api_obj.progress.Unpack(progress)
+    self.assertTrue(flow_api_obj.progress.Unpack(progress))
     self.assertEqual(progress.status, "Progress.")
+
+  def testInitApiFlowFromFlowObjectPopulatesOriginalFlow(self):
+    client_id = db_test_utils.InitializeClient(data_store.REL_DB)
+    original_client_id = db_test_utils.InitializeClient(data_store.REL_DB)
+    flow_obj = flows_pb2.Flow(
+        client_id=client_id,
+        flow_id="ABCDEF01",
+        original_flow=objects_pb2.FlowReference(
+            client_id=original_client_id,
+            flow_id="12345678",
+        ),
+    )
+
+    flow_api_obj = flow_plugin.InitApiFlowFromFlowObject(flow_obj)
+
+    self.assertEqual(flow_api_obj.original_flow.client_id, original_client_id)
+    self.assertEqual(flow_api_obj.original_flow.flow_id, "12345678")
+    self.assertEqual(flow_obj.original_flow.client_id, original_client_id)
 
   def testInitApiFlowFromFlowObjectwithStore(self):
     client_id = self.SetupClient(0)
@@ -845,6 +859,32 @@ class ApiCreateFlowTest(absltest.TestCase):
         flow_obj.rrg_mode,
         flows_pb2.FlowRunnerArgs.RrgMode.DISABLED,
     )
+
+  @db_test_lib.WithDatabase
+  def testHiddenFieldsAreCleared(self, db: abstract_db.Database):
+    handler = flow_plugin.ApiScheduleFlowHandler()
+    client_id = db_test_utils.InitializeClient(db)
+
+    args = flow_pb2.ApiCreateFlowArgs(
+        client_id=client_id,
+        flow=flow_pb2.ApiFlow(
+            name=processes.ListProcesses.__name__,
+            runner_args=flows_pb2.FlowRunnerArgs(
+                client_id="C.0000000000000000",
+                request_state=jobs_pb2.RequestState(id=42),
+                flow_name="OtherFlow",
+                original_flow=objects_pb2.FlowReference(
+                    flow_id="12345678", client_id="C.0000000000000000"
+                ),
+            ),
+        ),
+    )
+
+    result = handler.Handle(args, context=_CreateContext(db))
+    self.assertFalse(result.runner_args.client_id)
+    self.assertFalse(result.runner_args.HasField("request_state"))
+    self.assertFalse(result.runner_args.flow_name)
+    self.assertFalse(result.runner_args.HasField("original_flow"))
 
 
 class ApiScheduleFlowsTest(absltest.TestCase):

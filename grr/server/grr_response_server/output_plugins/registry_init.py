@@ -9,7 +9,7 @@ from grr_response_server.instant_output_plugins import yaml_instant_plugin
 from grr_response_server.output_plugins import email_plugin
 
 
-def RegisterInstantOutputPlugins():
+def RegisterInstantOutputPlugins() -> None:
   """Registers all instant output plugins."""
   instant_output_plugin_registry.RegisterInstantOutputPluginProto(
       csv_instant_plugin.CSVInstantOutputPluginProto
@@ -22,7 +22,7 @@ def RegisterInstantOutputPlugins():
   )
 
 
-def RegisterOutputPluginProtos():
+def RegisterOutputPluginProtos() -> None:
   """Registers all output plugins."""
   output_plugin_registry.RegisterOutputPluginProto(
       email_plugin.EmailOutputPlugin

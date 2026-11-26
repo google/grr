@@ -196,7 +196,6 @@ class IAPWebAuthManagerTest(test_lib.GRRBaseTest):
 
 class BasicWebAuthManagerTest(test_lib.GRRBaseTest):
 
-  # TODO - Stop using `rdf_crypto.Password`.
   def _SetupUser(self, user: str, password: str) -> None:
     password_proto = jobs_pb2.Password()
     rdf_crypto.SetPassword(password_proto, password)

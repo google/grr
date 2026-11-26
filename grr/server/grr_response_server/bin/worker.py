@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 """This is a backend analysis worker which will be deployed on the server."""
 
+from collections.abc import Sequence
+
 from absl import app
 from absl import flags
 
@@ -20,7 +22,7 @@ _VERSION = flags.DEFINE_bool(
 )
 
 
-def main(argv):
+def main(argv: Sequence[str]) -> None:
   """Main."""
   del argv  # Unused.
 

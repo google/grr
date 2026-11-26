@@ -89,8 +89,7 @@ class InMemoryDBUsersMixin(object):
       for approval in approvals.values():
         grants = [g for g in approval.grants if g.grantor_username != username]
         if len(grants) != len(approval.grants):
-          # TODO - Replace with `clear()` once upgraded.
-          del approval.grants[:]
+          approval.grants.clear()
           for g in grants:
             approval.grants.add().CopyFrom(g)
 

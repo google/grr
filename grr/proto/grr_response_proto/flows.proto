@@ -416,6 +416,13 @@ message LaunchExecutableArgs {
   optional google.protobuf.Duration timeout = 2;
 }
 
+message LaunchExecutableStore {
+  // Path to the executable file (on the server) sent to the endpoint.
+  optional string file_path = 1;
+  // SHA-256 of the executable file sent to the endpoint.
+  optional bytes file_sha256 = 2;
+}
+
 message LaunchExecutableResult {
   // Exit code of the launched process.
   optional int32 exit_code = 1;

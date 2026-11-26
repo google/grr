@@ -59,7 +59,7 @@ class RDFValueMetaclass(registry.MetaclassRegistry):
   """A metaclass for managing semantic values."""
 
   def __init__(cls, name, bases, env_dict):  # pylint: disable=no-self-argument
-    super(RDFValueMetaclass, cls).__init__(name, bases, env_dict)
+    super().__init__(name, bases, env_dict)
 
     # Run and clear any late binding callbacks registered for this class.
     for callback, kwargs in _LATE_BINDING_STORE.pop(name, []):
@@ -425,9 +425,6 @@ class RDFInteger(RDFPrimitive):
     """Use varint to store the integer."""
     return self._value
 
-  def __long__(self):
-    return self._value
-
   def __int__(self):
     return self._value
 
@@ -469,9 +466,6 @@ class RDFInteger(RDFPrimitive):
 
   def __rmul__(self, other):
     return self._value * other
-
-  def __div__(self, other):
-    return self._value.__div__(other)
 
   def __truediv__(self, other):
     return self._value.__truediv__(other)
@@ -545,11 +539,13 @@ class RDFDatetime(RDFPrimitive):
 
   def AsDatetime(self) -> datetime.datetime:
     """Returns the datetime as Python `datetime` without any timezone set."""
-    return datetime.datetime.utcfromtimestamp(self._value / self.converter)
+    return self.AsDatetimeUTC().replace(tzinfo=None)
 
   def AsDatetimeUTC(self) -> datetime.datetime:
     """Returns the datetime as a Python `datetime` with UTC timezone."""
-    return self.AsDatetime().replace(tzinfo=datetime.timezone.utc)
+    return datetime.datetime.fromtimestamp(
+        self._value / self.converter, datetime.timezone.utc
+    )
 
   def AsProtoTimestamp(self) -> timestamp_pb2.Timestamp:
     """Returns the datetime as standard Protocol Buffers timestamp message."""

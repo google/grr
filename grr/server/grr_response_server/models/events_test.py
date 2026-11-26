@@ -13,6 +13,7 @@ class APIAuditEntryFromHttpRequestResponseTest(absltest.TestCase):
     request = http_request.HttpRequest.from_values(
         "/bar?foo=baz", "http://example.com/test"
     )
+    self.assertIsInstance(request, http_request.HttpRequest)
     request.user = "testuser"
 
     response = http_response.HttpResponse(

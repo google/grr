@@ -10,11 +10,11 @@ import logging
 import math
 import random
 import time
-from typing import Union
+from typing import TypeVar, Union
 import warnings
 
-# Note: Please refer to server/setup.py for the MySQLdb version that is used.
-# It is most likely not up-to-date because of our support for older OS.
+# Note: Please refer to server/pyproject.toml for the MySQLdb version that is
+# used. It is most likely not up-to-date because of our support for older OS.
 import MySQLdb
 from MySQLdb.constants import CR as mysql_conn_errors
 from MySQLdb.constants import ER as mysql_errors
@@ -28,7 +28,6 @@ from grr_response_server.databases import mysql_artifacts
 from grr_response_server.databases import mysql_blob_keys
 from grr_response_server.databases import mysql_blobs
 from grr_response_server.databases import mysql_clients
-from grr_response_server.databases import mysql_cronjobs
 from grr_response_server.databases import mysql_events
 from grr_response_server.databases import mysql_flows
 from grr_response_server.databases import mysql_foreman_rules
@@ -47,6 +46,8 @@ MAX_PACKET_SIZE = 20 << 21
 
 # Maximum retry count:
 _MAX_RETRY_COUNT = 5
+
+_T = TypeVar("_T")
 
 # MySQL error codes:
 _RETRYABLE_ERRORS = frozenset([
@@ -466,7 +467,6 @@ class MysqlDB(  # pyrefly: ignore[inconsistent-inheritance]
     mysql_blobs.MySQLDBBlobsMixin,  # Implements BlobStore.
     mysql_blob_keys.MySQLDBBlobKeysMixin,
     mysql_clients.MySQLDBClientMixin,
-    mysql_cronjobs.MySQLDBCronJobMixin,
     mysql_events.MySQLDBEventMixin,
     mysql_flows.MySQLDBFlowMixin,
     mysql_foreman_rules.MySQLDBForemanRulesMixin,
@@ -563,10 +563,10 @@ class MysqlDB(  # pyrefly: ignore[inconsistent-inheritance]
       self,
       function: Callable[
           [Union[MySQLdb.connections.Connection, mysql_pool._ConnectionProxy]],
-          None,
+          _T,
       ],
       readonly: bool = False,
-  ) -> None:
+  ) -> _T:
     """Runs function within a transaction.
 
     Allocates a connection, begins a transaction on it and passes the connection

@@ -1,70 +1,24 @@
 #!/usr/bin/env python
 """This file contains utility functions used in ApiCallHandler classes."""
 
+from __future__ import annotations
+
+from collections.abc import Sequence
 import re
 import sys
+from typing import TypeVar
 
-from grr_response_core.lib import rdfvalue
-from grr_response_core.lib.rdfvalues import structs as rdf_structs
-from grr_response_proto import api_utils_pb2
+from google.protobuf import message
 
-
-class ApiDataObjectKeyValuePair(rdf_structs.RDFProtoStruct):
-  """Defines a proto for returning key value pairs of data objects."""
-
-  protobuf = api_utils_pb2.ApiDataObjectKeyValuePair
-
-  def InitFromKeyValue(self, key, value):
-    self.key = key
-
-    # Convert primitive types to rdf values so they can be serialized.
-    if isinstance(value, float) and not value.is_integer():
-      # TODO(user): Do not convert float values here and mark them invalid
-      # later. ATM, we do not have means to properly represent floats. Change
-      # this part once we have a RDFFloat implementation.
-      pass
-    elif rdfvalue.RDFInteger.IsNumeric(value):
-      value = rdfvalue.RDFInteger(value)
-    elif isinstance(value, str):
-      value = rdfvalue.RDFString(value)
-    elif isinstance(value, bytes):
-      value = rdfvalue.RDFBytes(value)
-
-    if isinstance(value, rdfvalue.RDFValue):
-      self.type = value.__class__.__name__
-      self.value = value
-    elif isinstance(value, bool):
-      self.type = "bool"
-      self.value = value
-    else:
-      self.invalid = True
-
-    return self
-
-  def GetArgsClass(self):
-    try:
-      return rdfvalue.RDFValue.GetPlugin(self.type)
-    except KeyError:
-      raise ValueError("No class found for type %s." % self.type)
+_MessageT = TypeVar("_MessageT", bound=message.Message)
 
 
-class ApiDataObject(rdf_structs.RDFProtoStruct):
-  """Defines a proto for returning Data Objects over the API."""
-
-  protobuf = api_utils_pb2.ApiDataObject
-  rdf_deps = [
-      ApiDataObjectKeyValuePair,
-  ]
-
-  def InitFromDataObject(self, data_object):
-    for key, value in sorted(data_object.items()):
-      item = ApiDataObjectKeyValuePair().InitFromKeyValue(key, value)
-      self.items.append(item)
-
-    return self
-
-
-def FilterList(l, offset, count=0, filter_value=None):
+def FilterList(
+    l: Sequence[_MessageT],
+    offset: int,
+    count: int = 0,
+    filter_value: str | None = None,
+) -> Sequence[_MessageT]:
   """Filters a list, getting count elements, starting at offset."""
 
   if offset < 0:
@@ -78,7 +32,7 @@ def FilterList(l, offset, count=0, filter_value=None):
     return l[offset : offset + count]
 
   index = 0
-  items = []
+  items: list[_MessageT] = []
   for item in l:
     serialized_item = item.SerializeToString()
     regex = re.escape(filter_value).encode("utf-8")

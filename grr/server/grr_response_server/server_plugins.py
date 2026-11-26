@@ -20,7 +20,6 @@ from grr_response_server import output_plugin
 from grr_response_server import output_plugins
 from grr_response_server import stats_server
 from grr_response_server.blob_stores import registry_init
-from grr_response_server.flows.cron import registry_init
 from grr_response_server.flows.general import registry_init
 from grr_response_server.flows.local import registry_init
 from grr_response_server.local import registry_init

@@ -53,6 +53,14 @@ message ApiCommand {
     string path_on_server_template = 14;
   }
 
+  // Hex-encoded SHA-256 of the file pointed by `path_on_server_template` (if
+  // set).
+  //
+  // When the file is read during the signing process, its digest is verified
+  // against this signature. This is used to ensure the file has not been
+  // tampered with after it has been initially added.
+  optional string path_on_server_sha256 = 15;
+
   // The arguments passed to the command.
   reserved 4;
   repeated ApiArg args = 10;

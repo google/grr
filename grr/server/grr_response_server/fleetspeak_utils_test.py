@@ -147,6 +147,21 @@ class FleetspeakUtilsTest(test_lib.GRRBaseTest):
     self.assertEqual(grr_message, unpacked_message)
 
   @mock.patch.object(fleetspeak_connector, "CONN")
+  def testSendGrrMessageProtoWithoutSessionOrRequestId(self, mock_conn):
+    client_id = "C.0123456789abcdef"
+    grr_message = jobs_pb2.GrrMessage(name="TestClientAction")
+    fleetspeak_utils.SendGrrMessageProtoThroughFleetspeak(
+        client_id, grr_message, []
+    )
+    mock_conn.outgoing.InsertMessage.assert_called_once()
+    insert_args, _ = mock_conn.outgoing.InsertMessage.call_args
+    fs_message = insert_args[0]
+    self.assertEmpty(fs_message.annotations.entries)
+    unpacked_message = jobs_pb2.GrrMessage()
+    self.assertTrue(fs_message.data.Unpack(unpacked_message))
+    self.assertEqual(grr_message, unpacked_message)
+
+  @mock.patch.object(fleetspeak_connector, "CONN")
   def testKillFleetspeak(self, mock_conn):
     fleetspeak_utils.KillFleetspeak("C.1000000000000000", True)
     mock_conn.outgoing.InsertMessage.assert_called_once()
@@ -164,9 +179,8 @@ class FleetspeakUtilsTest(test_lib.GRRBaseTest):
   @mock.patch.object(fleetspeak_connector, "CONN")
   def testRestartFleetspeakGrrService(self, mock_conn):
     fleetspeak_utils.RestartFleetspeakGrrService("C.2000000000000000")
-    mock_conn.outgoing.InsertMessage.assert_called_once()
-    insert_args, _ = mock_conn.outgoing.InsertMessage.call_args
-    fs_message = insert_args[0]
+    self.assertEqual(mock_conn.outgoing.InsertMessage.call_count, 2)
+    fs_message = mock_conn.outgoing.InsertMessage.call_args_list[0][0][0]
     self.assertEqual(fs_message.message_type, "RestartService")
     self.assertEqual(
         fs_message.destination.client_id, b"\x20\x00\x00\x00\x00\x00\x00\x00"
@@ -175,6 +189,11 @@ class FleetspeakUtilsTest(test_lib.GRRBaseTest):
     restart_req = fs_system_pb2.RestartServiceRequest()
     fs_message.data.Unpack(restart_req)
     self.assertEqual(restart_req.name, "GRR")
+
+    message = mock_conn.outgoing.InsertMessage.call_args_list[1][0][0]
+    restart_request = fs_system_pb2.RestartServiceRequest()
+    self.assertTrue(message.data.Unpack(restart_request))
+    self.assertEqual(restart_request.name, "RRG")
 
   @mock.patch.object(fleetspeak_connector, "CONN")
   def testDeleteFleetspeakPendingMessages(self, mock_conn):

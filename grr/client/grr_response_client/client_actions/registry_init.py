@@ -24,7 +24,7 @@ from grr_response_client.client_actions.windows import dummy as win_dummy
 from grr_response_client.client_actions.windows import pipes
 
 
-def RegisterClientActions():
+def RegisterClientActions() -> None:
   """Registers all client actions."""
 
   client_actions.Register(

@@ -1,6 +1,9 @@
 #!/usr/bin/env python
 """An implementation of an OSX client builder."""
 
+from __future__ import annotations
+
+from collections.abc import Sequence
 import io
 import logging
 import os
@@ -20,7 +23,7 @@ class DarwinClientBuilder(build.ClientBuilder):
 
   BUILDER_CONTEXT = "Target:Darwin"
 
-  def _SetBuildVars(self, fleetspeak_bundled=False):
+  def _SetBuildVars(self, fleetspeak_bundled: bool = False) -> None:
     self.build_dir = config.CONFIG.Get(
         "PyInstaller.build_dir", context=self.context)
     self.fleetspeak_bundled = fleetspeak_bundled
@@ -63,20 +66,20 @@ class DarwinClientBuilder(build.ClientBuilder):
 
     self.zip_out_dir = os.path.join(self.build_root, "zip-out")
 
-  def _MakeBuildDirectory(self):
+  def _MakeBuildDirectory(self) -> None:
     build_helpers.CleanDirectory(self.pkg_root)
     build_helpers.CleanDirectory(self.pkgbuild_out_dir)
     build_helpers.CleanDirectory(self.prodbuild_out_dir)
     self.script_dir = os.path.join(self.build_dir, "scripts")
     build_helpers.CleanDirectory(self.script_dir)
 
-  def _WriteBuildYaml(self):
+  def _WriteBuildYaml(self) -> None:
     build_yaml = io.StringIO()
     build_helpers.WriteBuildYaml(build_yaml, context=self.context)
     with open(os.path.join(self.universal_root, "build.yaml"), "w") as f:
       f.write(build_yaml.getvalue())
 
-  def _MakeZip(self, output_path):
+  def _MakeZip(self, output_path: str) -> None:
     """Creates a ZIP archive of the universal_root."""
     logging.info("Generating zip template file at %s", output_path)
     build_helpers.CleanDirectory(self.zip_out_dir)
@@ -89,7 +92,7 @@ class DarwinClientBuilder(build.ClientBuilder):
     shutil.copy(
         os.path.join(self.zip_out_dir, f"{self.pkg_name}.zip"), output_path)
 
-  def _InterpolateFiles(self):
+  def _InterpolateFiles(self) -> None:
     fleetspeak_template = config.CONFIG.Get(
         "ClientBuilder.fleetspeak_config_path", context=self.context)
     dest_fleetspeak_config = os.path.join(
@@ -118,7 +121,7 @@ class DarwinClientBuilder(build.ClientBuilder):
         output_filename=os.path.join(self.build_dir, "Distribution.xml"),
         context=self.context)
 
-  def _CopyGRRPyinstallerBinaries(self):
+  def _CopyGRRPyinstallerBinaries(self) -> None:
     if self.template_binary_dir == self.target_binary_dir:
       raise ValueError(
           "template_binary_dir and target_binary dir must be different.")
@@ -129,7 +132,7 @@ class DarwinClientBuilder(build.ClientBuilder):
             self.target_binary_dir,
             config.CONFIG.Get("Client.binary_name", context=self.context)))
 
-  def _CopyBundledFleetspeak(self):
+  def _CopyBundledFleetspeak(self) -> None:
     files = [
         "usr/local/bin/fleetspeak-client",
         "etc/fleetspeak-client/communicator.txt",
@@ -141,7 +144,7 @@ class DarwinClientBuilder(build.ClientBuilder):
       utils.EnsureDirExists(os.path.dirname(dst))
       shutil.copy(src, dst)
 
-  def _SignGRRPyinstallerBinaries(self):
+  def _SignGRRPyinstallerBinaries(self) -> None:
     cert_name = config.CONFIG.Get(
         "ClientBuilder.signing_cert_name", context=self.context)
     keychain_file = config.CONFIG.Get(
@@ -168,7 +171,7 @@ class DarwinClientBuilder(build.ClientBuilder):
       ])
       shutil.move(bundle_dir, self.target_binary_dir)
 
-  def _CreateInstallDirs(self):
+  def _CreateInstallDirs(self) -> None:
     utils.EnsureDirExists(self.build_dir)
     utils.EnsureDirExists(self.script_dir)
     utils.EnsureDirExists(self.pkg_root)
@@ -177,7 +180,7 @@ class DarwinClientBuilder(build.ClientBuilder):
     utils.EnsureDirExists(self.pkgbuild_out_dir)
     utils.EnsureDirExists(self.prodbuild_out_dir)
 
-  def _WriteClientConfig(self):
+  def _WriteClientConfig(self) -> None:
     # Generate a config file.
     with io.open(
         os.path.join(
@@ -189,17 +192,17 @@ class DarwinClientBuilder(build.ClientBuilder):
           build_helpers.GetClientConfig(
               ["Client Context"] + self.context, validate=False))
 
-  def _RunCmd(self, command, cwd=None):
+  def _RunCmd(self, command: Sequence[str], cwd: str | None = None) -> None:
     print("Running: %s" % " ".join(command))
     subprocess.check_call(command, cwd=cwd)
 
-  def _Set755Permissions(self):
+  def _Set755Permissions(self) -> None:
     command = ["/bin/chmod", "-R", "755", self.script_dir]
     self._RunCmd(command)
     command = ["/bin/chmod", "-R", "755", self.pkg_root]
     self._RunCmd(command)
 
-  def _RunPkgBuild(self):
+  def _RunPkgBuild(self) -> None:
     pkg_id = "%s.%s" % (self.pkg_org, self.client_name)
     command = [
         "pkgbuild",
@@ -208,7 +211,7 @@ class DarwinClientBuilder(build.ClientBuilder):
     ]
     self._RunCmd(command)
 
-  def _RunProductBuild(self):
+  def _RunProductBuild(self) -> None:
     command = [
         "productbuild", "--distribution",
         os.path.join(self.build_dir, "distribution.xml"), "--package-path",
@@ -216,7 +219,7 @@ class DarwinClientBuilder(build.ClientBuilder):
     ]
     self._RunCmd(command)
 
-  def _BuildInstallerPkg(self, fleetspeak_bundled):
+  def _BuildInstallerPkg(self, fleetspeak_bundled: bool) -> None:
     """Builds a package (.pkg) using PackageMaker."""
     self._SetBuildVars(fleetspeak_bundled)
     self._MakeBuildDirectory()
@@ -231,12 +234,12 @@ class DarwinClientBuilder(build.ClientBuilder):
     self._RunPkgBuild()
     self._RunProductBuild()
 
-  def _ExtractInstallerPkg(self, variant):
+  def _ExtractInstallerPkg(self, variant: str) -> None:
     variant_root = os.path.join(self.universal_root, variant)
     blocks_dir = os.path.join(self.universal_root, "blocks")
     pkg_utils.SplitPkg(self.prodbuild_out_binary, variant_root, blocks_dir)
 
-  def MakeExecutableTemplate(self, output_path):
+  def MakeExecutableTemplate(self, output_path: str) -> None:
     """Create the executable template."""
     build_helpers.MakeBuildDirectory(context=self.context)
     build_helpers.BuildWithPyInstaller(context=self.context)

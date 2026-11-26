@@ -1,0 +1,36 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "grr-response-test"
+version = "4.0.0.post0"
+description = "The GRR Rapid Response test suite."
+license = "Apache-2.0"
+requires-python = ">=3.9"
+dependencies = [
+  "absl-py==1.4.0",
+  "flaky==3.7.0",
+  "google-api-python-client==1.12.11",
+  "grr-api-client==4.0.0.post0",
+  "grr-response-client==4.0.0.post0",
+  "grr-response-server==4.0.0.post0",
+  "pytest==7.2.1",
+  "responses==0.22.0",
+  "selenium==4.41.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/google/grr"
+
+[project.scripts]
+grr_end_to_end_tests = "grr_response_test.distro_entry:EndToEndTests"
+grr_api_regression_generate = "grr_response_test.distro_entry:ApiRegressionTestsGenerate"
+grr_dump_mysql_schema = "grr_response_test.distro_entry:DumpMySQLSchema"
+
+[tool.setuptools]
+include-package-data = true
+
+[tool.setuptools.packages.find]
+include = ["grr_response_test*"]
+namespaces = true

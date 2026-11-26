@@ -1,0 +1,49 @@
+[build-system]
+requires = [
+
+  "grpcio==1.78.0",
+  "grpcio-tools==1.78.0",
+  "protobuf==6.33.6",
+
+  "setuptools>=77",
+]
+build-backend = "_build_backend"
+backend-path = ["."]
+
+[project]
+name = "grr-response-client"
+version = "4.0.0.post0"
+description = "The GRR Rapid Response client."
+license = "Apache-2.0"
+maintainers = [
+  {name = "GRR Development Team", email = "grr-dev@googlegroups.com"},
+]
+requires-python = ">=3.9"
+dependencies = [
+  "absl-py==1.4.0",
+  "fleetspeak-client-bin==0.1.13",
+  "grr-response-core==4.0.0.post0",
+  "libfsntfs-python==20240119",
+  "pytsk3==20230125",
+  'pywin32==311; sys_platform == "win32"',
+  'WMI==1.5.1; sys_platform == "win32"',
+  # Extended attributes support for POSIX platforms.
+  'xattr==0.9.7; sys_platform != "win32"',
+]
+
+[project.urls]
+Homepage = "https://github.com/google/grr"
+
+[project.scripts]
+grr_fleetspeak_client = "grr_response_client.distro_entry:FleetspeakClient"
+fleetspeak_client = "grr_response_client.distro_entry:FleetspeakClientWrapper"
+
+[tool.setuptools]
+include-package-data = true
+
+[tool.setuptools.packages.find]
+include = ["grr_response_client*"]
+namespaces = true
+
+[tool.setuptools.package-data]
+"*" = ["*.proto"]

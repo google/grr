@@ -6,7 +6,7 @@ from absl.testing import absltest
 from absl.testing import flagsaver
 import requests
 
-
+from grr_api_client import client as api_client_lib
 from grr_api_client import errors as api_errors
 import grr_colab
 from grr_colab import _api
@@ -467,7 +467,7 @@ class VfsTest(testing.ColabE2ETest):
       self.assertEqual(requests.get(link).content, content)
 
   @classmethod
-  def _get_fake_api_client(cls):
+  def _get_fake_api_client(cls) -> api_client_lib.Client:
     return _api.get().Client(cls.FAKE_CLIENT_ID).Get()
 
 

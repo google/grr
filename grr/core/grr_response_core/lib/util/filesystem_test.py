@@ -6,6 +6,7 @@ import platform
 import shutil
 import socket
 import subprocess
+from typing import Any
 import unittest
 from unittest import mock
 
@@ -185,12 +186,12 @@ class StatTest(absltest.TestCase):
       finally:
         sock.close()
 
-  def _Touch(self, path, mode, date):
+  def _Touch(self, path: str, mode: str, date: datetime.datetime) -> None:
     fmt_date = date.strftime("%Y%m%d%H%M")
     subprocess.check_call(["touch", mode, "-t", fmt_date, path])
 
-  @staticmethod
-  def _EpochMicros(date):
+  @classmethod
+  def _EpochMicros(cls, date: datetime.datetime) -> int:
     return int(date.strftime("%s")) * 1000000
 
 
@@ -201,7 +202,7 @@ class StatCacheTest(absltest.TestCase):
     self.temp_dir = temp.TempDirPath()
     self.addCleanup(shutil.rmtree, self.temp_dir)
 
-  def Path(self, *args):
+  def Path(self, *args: str) -> str:
     return os.path.join(self.temp_dir, *args)
 
   def testBasicUsage(self):
@@ -282,7 +283,7 @@ class StatCacheTest(absltest.TestCase):
       self.assertFalse(stat_mock.FromPath.called)
 
 
-def MockStat():
+def MockStat() -> Any:
   return mock.patch.object(filesystem, "Stat", wraps=filesystem.Stat)
 
 

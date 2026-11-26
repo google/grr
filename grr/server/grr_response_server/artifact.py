@@ -50,9 +50,6 @@ class KnowledgeBaseInitializationFlow(
   knowledgebase.
   """
 
-  category = "/Collectors/"
-  behaviours = flow_base.BEHAVIOUR_ADVANCED
-
   proto_args_type = flows_pb2.KnowledgeBaseInitializationArgs
   proto_result_types = [knowledge_base_pb2.KnowledgeBase]
   proto_store_type = flows_pb2.KnowledgeBaseInitializationStore
@@ -69,7 +66,7 @@ class KnowledgeBaseInitializationFlow(
       if self.rrg_support:
         action = rrg_stubs.ListUtmpUsers()
         action.args.path.raw_bytes = "/var/log/wtmp".encode("utf-8")
-        action.Call(self._ProcessRRGLinuxWtmpUsers)  # pyrefly: ignore[bad-argument-type]
+        action.Call(self._ProcessRRGLinuxWtmpUsers)
       else:
         self.CallClientProto(
             server_stubs.EnumerateUsers,
@@ -80,7 +77,7 @@ class KnowledgeBaseInitializationFlow(
         action = rrg_stubs.GetFileMetadata()
         action.args.paths.add().raw_bytes = "/Users".encode("utf-8")
         action.args.max_depth = 1
-        action.Call(self._ProcessRRGMacosUsers)  # pyrefly: ignore[bad-argument-type]
+        action.Call(self._ProcessRRGMacosUsers)
       else:
         list_users_dir_request = jobs_pb2.ListDirRequest()
         list_users_dir_request.pathspec.pathtype = jobs_pb2.PathSpec.PathType.OS
@@ -99,108 +96,108 @@ class KnowledgeBaseInitializationFlow(
         action.args.root = rrg_winreg_pb2.LOCAL_MACHINE
         action.args.key = r"SOFTWARE\Microsoft\Windows NT\CurrentVersion"
         action.args.name = "SystemRoot"
-        action.Call(self._ProcessRRGWindowsEnvSystemRoot)  # pyrefly: ignore[bad-argument-type]
+        action.Call(self._ProcessRRGWindowsEnvSystemRoot)
 
         action = rrg_stubs.GetWinregValue()
         action.args.root = rrg_winreg_pb2.LOCAL_MACHINE
         action.args.key = r"SOFTWARE\Microsoft\Windows\CurrentVersion"
         action.args.name = "ProgramFilesDir"
-        action.Call(self._ProcessRRGWindowsEnvProgramFilesDir)  # pyrefly: ignore[bad-argument-type]
+        action.Call(self._ProcessRRGWindowsEnvProgramFilesDir)
 
         action = rrg_stubs.GetWinregValue()
         action.args.root = rrg_winreg_pb2.LOCAL_MACHINE
         action.args.key = r"SOFTWARE\Microsoft\Windows\CurrentVersion"
         action.args.name = "ProgramFilesDir (x86)"
-        action.Call(self._ProcessRRGWindowsEnvProgramFilesDirX86)  # pyrefly: ignore[bad-argument-type]
+        action.Call(self._ProcessRRGWindowsEnvProgramFilesDirX86)
 
         action = rrg_stubs.GetWinregValue()
         action.args.root = rrg_winreg_pb2.LOCAL_MACHINE
         action.args.key = r"SOFTWARE\Microsoft\Windows\CurrentVersion"
         action.args.name = "CommonFilesDir"
-        action.Call(self._ProcessRRGWindowsEnvCommonFilesDir)  # pyrefly: ignore[bad-argument-type]
+        action.Call(self._ProcessRRGWindowsEnvCommonFilesDir)
 
         action = rrg_stubs.GetWinregValue()
         action.args.root = rrg_winreg_pb2.LOCAL_MACHINE
         action.args.key = r"SOFTWARE\Microsoft\Windows\CurrentVersion"
         action.args.name = "CommonFilesDir (x86)"
-        action.Call(self._ProcessRRGWindowsEnvCommonFilesDirX86)  # pyrefly: ignore[bad-argument-type]
+        action.Call(self._ProcessRRGWindowsEnvCommonFilesDirX86)
 
         action = rrg_stubs.GetWinregValue()
         action.args.root = rrg_winreg_pb2.LOCAL_MACHINE
         action.args.key = r"SOFTWARE\Microsoft\Windows NT\CurrentVersion\ProfileList"
         action.args.name = "ProgramData"
-        action.Call(self._ProcessRRGWindowsEnvProgramData)  # pyrefly: ignore[bad-argument-type]
+        action.Call(self._ProcessRRGWindowsEnvProgramData)
 
         action = rrg_stubs.GetWinregValue()
         action.args.root = rrg_winreg_pb2.LOCAL_MACHINE
         action.args.key = r"SYSTEM\CurrentControlSet\Control\Session Manager\Environment"
         action.args.name = "DriverData"
-        action.Call(self._ProcessRRGWindowsEnvDriverData)  # pyrefly: ignore[bad-argument-type]
+        action.Call(self._ProcessRRGWindowsEnvDriverData)
 
         action = rrg_stubs.GetWinregValue()
         action.args.root = rrg_winreg_pb2.LOCAL_MACHINE
         action.args.key = r"SYSTEM\Select"
         action.args.name = "Current"
-        action.Call(self._ProcessRRGWindowsCurrentControlSet)  # pyrefly: ignore[bad-argument-type]
+        action.Call(self._ProcessRRGWindowsCurrentControlSet)
 
         action = rrg_stubs.GetWinregValue()
         action.args.root = rrg_winreg_pb2.LOCAL_MACHINE
         action.args.key = r"SYSTEM\CurrentControlSet\Control\Nls\CodePage"
         action.args.name = "ACP"
-        action.Call(self._ProcessRRGWindowsCodePage)  # pyrefly: ignore[bad-argument-type]
+        action.Call(self._ProcessRRGWindowsCodePage)
 
         action = rrg_stubs.GetWinregValue()
         action.args.root = rrg_winreg_pb2.LOCAL_MACHINE
         action.args.key = r"SYSTEM\CurrentControlSet\Services\Tcpip\Parameters"
         action.args.name = "Domain"
-        action.Call(self._ProcessRRGWindowsDomain)  # pyrefly: ignore[bad-argument-type]
+        action.Call(self._ProcessRRGWindowsDomain)
 
         action = rrg_stubs.GetWinregValue()
         action.args.root = rrg_winreg_pb2.LOCAL_MACHINE
         action.args.key = r"SYSTEM\CurrentControlSet\Control\TimeZoneInformation"
         action.args.name = "TimeZoneKeyName"
-        action.Call(self._ProcessRRGWindowsTimeZoneKeyName)  # pyrefly: ignore[bad-argument-type]
+        action.Call(self._ProcessRRGWindowsTimeZoneKeyName)
 
         action = rrg_stubs.GetWinregValue()
         action.args.root = rrg_winreg_pb2.LOCAL_MACHINE
         action.args.key = r"SYSTEM\CurrentControlSet\Control\Session Manager\Environment"
         action.args.name = "TEMP"
-        action.Call(self._ProcessRRGWindowsEnvTemp)  # pyrefly: ignore[bad-argument-type]
+        action.Call(self._ProcessRRGWindowsEnvTemp)
 
         action = rrg_stubs.GetWinregValue()
         action.args.root = rrg_winreg_pb2.LOCAL_MACHINE
         action.args.key = r"SYSTEM\CurrentControlSet\Control\Session Manager\Environment"
         action.args.name = "Path"
-        action.Call(self._ProcessRRGWindowsEnvPath)  # pyrefly: ignore[bad-argument-type]
+        action.Call(self._ProcessRRGWindowsEnvPath)
 
         action = rrg_stubs.GetWinregValue()
         action.args.root = rrg_winreg_pb2.LOCAL_MACHINE
         action.args.key = r"SYSTEM\CurrentControlSet\Control\Session Manager\Environment"
         action.args.name = "ComSpec"
-        action.Call(self._ProcessRRGWindowsEnvComSpec)  # pyrefly: ignore[bad-argument-type]
+        action.Call(self._ProcessRRGWindowsEnvComSpec)
 
         action = rrg_stubs.GetWinregValue()
         action.args.root = rrg_winreg_pb2.LOCAL_MACHINE
         action.args.key = r"SYSTEM\CurrentControlSet\Control\Session Manager\Environment"
         action.args.name = "windir"
-        action.Call(self._ProcessRRGWindowsEnvWindir)  # pyrefly: ignore[bad-argument-type]
+        action.Call(self._ProcessRRGWindowsEnvWindir)
 
         action = rrg_stubs.GetWinregValue()
         action.args.root = rrg_winreg_pb2.LOCAL_MACHINE
         action.args.key = r"SOFTWARE\Microsoft\Windows NT\CurrentVersion\ProfileList"
         action.args.name = "ProfilesDirectory"
-        action.Call(self._ProcessRRGWindowsProfilesDirectory)  # pyrefly: ignore[bad-argument-type]
+        action.Call(self._ProcessRRGWindowsProfilesDirectory)
 
         action = rrg_stubs.GetWinregValue()
         action.args.root = rrg_winreg_pb2.LOCAL_MACHINE
         action.args.key = r"SOFTWARE\Microsoft\Windows NT\CurrentVersion\ProfileList"
         action.args.name = "AllUsersProfile"
-        action.Call(self._ProcessRRGWindowsEnvAllUsersProfile)  # pyrefly: ignore[bad-argument-type]
+        action.Call(self._ProcessRRGWindowsEnvAllUsersProfile)
 
         action = rrg_stubs.ListWinregKeys()
         action.args.root = rrg_winreg_pb2.LOCAL_MACHINE
         action.args.key = r"SOFTWARE\Microsoft\Windows NT\CurrentVersion\ProfileList"
-        action.Call(self._ProcessRRGWindowsProfileList)  # pyrefly: ignore[bad-argument-type]
+        action.Call(self._ProcessRRGWindowsProfileList)
 
         # WMI queries are slow, so we consider them "heavyweight".
         if not self.proto_args.lightweight:
@@ -213,7 +210,7 @@ class KnowledgeBaseInitializationFlow(
            WHERE LocalAccount = TRUE
              AND ({" OR ".join(f"SID = '{user.sid}'" for user in users)})
           """
-          action.Call(self._ProcessRRGWindowsWMIUserAccount)  # pyrefly: ignore[bad-argument-type]
+          action.Call(self._ProcessRRGWindowsWMIUserAccount)
       else:
         # TODO - There is no dedicated action for obtaining registry
         # values. The existing artifact collector uses `GetFileStat` action for
@@ -356,7 +353,7 @@ class KnowledgeBaseInitializationFlow(
             next_state=self._ProcessWindowsProfiles.__name__,
         )
 
-  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+  @flow_base.UseProto2AnyResponses
   def _ProcessLinuxDistroInfo(
       self,
       responses: flow_responses.Responses[any_pb2.Any],
@@ -376,7 +373,7 @@ class KnowledgeBaseInitializationFlow(
       if response.version_minor:
         self.store.knowledge_base.os_minor_version = response.version_minor
 
-  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+  @flow_base.UseProto2AnyResponses
   def _ProcessRRGLinuxWtmpUsers(
       self,
       responses: flow_responses.Responses[any_pb2.Any],
@@ -415,12 +412,12 @@ class KnowledgeBaseInitializationFlow(
     )
 
     action.args.path.raw_bytes = "/etc/passwd".encode("utf-8")
-    action.Call(self._ProcessRRGLinuxPasswd)  # pyrefly: ignore[bad-argument-type]
+    action.Call(self._ProcessRRGLinuxPasswd)
 
     action.args.path.raw_bytes = "/etc/passwd.cache".encode("utf-8")
-    action.Call(self._ProcessRRGLinuxPasswd)  # pyrefly: ignore[bad-argument-type]
+    action.Call(self._ProcessRRGLinuxPasswd)
 
-  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+  @flow_base.UseProto2AnyResponses
   def _ProcessRRGLinuxPasswd(
       self,
       responses: flow_responses.Responses[any_pb2.Any],
@@ -458,7 +455,7 @@ class KnowledgeBaseInitializationFlow(
 
       models_knowledge_base.MergeOrAddUser(self.store.knowledge_base, user)
 
-  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+  @flow_base.UseProto2AnyResponses
   def _ProcessLinuxEnumerateUsers(
       self,
       responses: flow_responses.Responses[any_pb2.Any],
@@ -477,7 +474,7 @@ class KnowledgeBaseInitializationFlow(
 
       models_knowledge_base.MergeOrAddUser(self.store.knowledge_base, response)
 
-  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+  @flow_base.UseProto2AnyResponses
   def _ProcessRRGMacosUsers(
       self,
       responses: flow_responses.Responses[any_pb2.Any],
@@ -518,7 +515,7 @@ class KnowledgeBaseInitializationFlow(
 
       models_knowledge_base.MergeOrAddUser(self.store.knowledge_base, user)
 
-  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+  @flow_base.UseProto2AnyResponses
   def _ProcessMacosListUsersDirectory(
       self,
       responses: flow_responses.Responses[any_pb2.Any],
@@ -550,7 +547,7 @@ class KnowledgeBaseInitializationFlow(
       user.homedir = response.pathspec.path
       models_knowledge_base.MergeOrAddUser(self.store.knowledge_base, user)
 
-  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+  @flow_base.UseProto2AnyResponses
   def _ProcessWindowsEnvSystemRoot(
       self,
       responses: flow_responses.Responses[any_pb2.Any],
@@ -586,7 +583,7 @@ class KnowledgeBaseInitializationFlow(
         next_state=self._ProcessWindowsListUsersDir.__name__,
     )
 
-  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+  @flow_base.UseProto2AnyResponses
   def _ProcessRRGWindowsEnvSystemRoot(
       self,
       responses: flow_responses.Responses[any_pb2.Any],
@@ -611,9 +608,9 @@ class KnowledgeBaseInitializationFlow(
     action = rrg_stubs.GetFileMetadata()
     action.args.paths.add().raw_bytes = f"{system_drive}\\Users".encode("utf-8")
     action.args.max_depth = 1
-    action.Call(self._ProcessRRGWindowsUsers)  # pyrefly: ignore[bad-argument-type]
+    action.Call(self._ProcessRRGWindowsUsers)
 
-  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+  @flow_base.UseProto2AnyResponses
   def _ProcessWindowsEnvProgramFilesDir(
       self,
       responses: flow_responses.Responses[any_pb2.Any],
@@ -634,7 +631,7 @@ class KnowledgeBaseInitializationFlow(
 
     self.store.knowledge_base.environ_programfiles = program_files
 
-  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+  @flow_base.UseProto2AnyResponses
   def _ProcessRRGWindowsEnvProgramFilesDir(
       self,
       responses: flow_responses.Responses[any_pb2.Any],
@@ -652,7 +649,7 @@ class KnowledgeBaseInitializationFlow(
 
     self.store.knowledge_base.environ_programfiles = result.value.string
 
-  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+  @flow_base.UseProto2AnyResponses
   def _ProcessWindowsEnvProgramFilesDirX86(
       self,
       responses: flow_responses.Responses[any_pb2.Any],
@@ -677,7 +674,7 @@ class KnowledgeBaseInitializationFlow(
 
     self.store.knowledge_base.environ_programfilesx86 = program_files_x86
 
-  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+  @flow_base.UseProto2AnyResponses
   def _ProcessRRGWindowsEnvProgramFilesDirX86(
       self,
       responses: flow_responses.Responses[any_pb2.Any],
@@ -695,7 +692,7 @@ class KnowledgeBaseInitializationFlow(
 
     self.store.knowledge_base.environ_programfilesx86 = result.value.string
 
-  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+  @flow_base.UseProto2AnyResponses
   def _ProcessWindowsEnvCommonFilesDir(
       self,
       responses: flow_responses.Responses[any_pb2.Any],
@@ -721,7 +718,7 @@ class KnowledgeBaseInitializationFlow(
 
     self.store.knowledge_base.environ_commonprogramfiles = common_files
 
-  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+  @flow_base.UseProto2AnyResponses
   def _ProcessRRGWindowsEnvCommonFilesDir(
       self,
       responses: flow_responses.Responses[any_pb2.Any],
@@ -740,7 +737,7 @@ class KnowledgeBaseInitializationFlow(
 
     self.store.knowledge_base.environ_commonprogramfiles = result.value.string
 
-  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+  @flow_base.UseProto2AnyResponses
   def _ProcessWindowsEnvCommonFilesDirX86(
       self,
       responses: flow_responses.Responses[any_pb2.Any],
@@ -766,7 +763,7 @@ class KnowledgeBaseInitializationFlow(
 
     self.store.knowledge_base.environ_commonprogramfilesx86 = common_files_x86
 
-  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+  @flow_base.UseProto2AnyResponses
   def _ProcessRRGWindowsEnvCommonFilesDirX86(
       self,
       responses: flow_responses.Responses[any_pb2.Any],
@@ -787,7 +784,7 @@ class KnowledgeBaseInitializationFlow(
         result.value.string
     )
 
-  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+  @flow_base.UseProto2AnyResponses
   def _ProcessWindowsEnvProgramData(
       self,
       responses: flow_responses.Responses[any_pb2.Any],
@@ -812,7 +809,7 @@ class KnowledgeBaseInitializationFlow(
         response.registry_data.string
     )
 
-  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+  @flow_base.UseProto2AnyResponses
   def _ProcessRRGWindowsEnvProgramData(
       self,
       responses: flow_responses.Responses[any_pb2.Any],
@@ -830,7 +827,7 @@ class KnowledgeBaseInitializationFlow(
 
     self.store.knowledge_base.environ_programdata = result.value.expand_string
 
-  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+  @flow_base.UseProto2AnyResponses
   def _ProcessWindowsEnvDriverData(
       self,
       responses: flow_responses.Responses[any_pb2.Any],
@@ -855,7 +852,7 @@ class KnowledgeBaseInitializationFlow(
 
     self.store.knowledge_base.environ_driverdata = driver_data
 
-  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+  @flow_base.UseProto2AnyResponses
   def _ProcessRRGWindowsEnvDriverData(
       self,
       responses: flow_responses.Responses[any_pb2.Any],
@@ -873,7 +870,7 @@ class KnowledgeBaseInitializationFlow(
 
     self.store.knowledge_base.environ_driverdata = result.value.string
 
-  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+  @flow_base.UseProto2AnyResponses
   def _ProcessWindowsCurrentControlSet(
       self,
       responses: flow_responses.Responses[any_pb2.Any],
@@ -902,7 +899,7 @@ class KnowledgeBaseInitializationFlow(
 
     self.store.knowledge_base.current_control_set = current_control_set
 
-  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+  @flow_base.UseProto2AnyResponses
   def _ProcessRRGWindowsCurrentControlSet(
       self,
       responses: flow_responses.Responses[any_pb2.Any],
@@ -927,7 +924,7 @@ class KnowledgeBaseInitializationFlow(
         rf"HKEY_LOCAL_MACHINE\SYSTEM\ControlSet{csi:03}"
     )
 
-  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+  @flow_base.UseProto2AnyResponses
   def _ProcessWindowsCodePage(
       self,
       responses: flow_responses.Responses[any_pb2.Any],
@@ -952,7 +949,7 @@ class KnowledgeBaseInitializationFlow(
 
     self.store.knowledge_base.code_page = code_page
 
-  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+  @flow_base.UseProto2AnyResponses
   def _ProcessRRGWindowsCodePage(
       self,
       responses: flow_responses.Responses[any_pb2.Any],
@@ -970,7 +967,7 @@ class KnowledgeBaseInitializationFlow(
 
     self.store.knowledge_base.code_page = f"cp_{result.value.string}"
 
-  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+  @flow_base.UseProto2AnyResponses
   def _ProcessWindowsDomain(
       self,
       responses: flow_responses.Responses[any_pb2.Any],
@@ -993,7 +990,7 @@ class KnowledgeBaseInitializationFlow(
 
     self.store.knowledge_base.domain = response.registry_data.string
 
-  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+  @flow_base.UseProto2AnyResponses
   def _ProcessRRGWindowsDomain(
       self,
       responses: flow_responses.Responses[any_pb2.Any],
@@ -1011,7 +1008,7 @@ class KnowledgeBaseInitializationFlow(
 
     self.store.knowledge_base.domain = result.value.string
 
-  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+  @flow_base.UseProto2AnyResponses
   def _ProcessWindowsTimeZoneKeyName(
       self,
       responses: flow_responses.Responses[any_pb2.Any],
@@ -1064,7 +1061,7 @@ class KnowledgeBaseInitializationFlow(
 
     self.store.knowledge_base.time_zone = time_zone
 
-  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+  @flow_base.UseProto2AnyResponses
   def _ProcessRRGWindowsTimeZoneKeyName(
       self,
       responses: flow_responses.Responses[any_pb2.Any],
@@ -1074,7 +1071,7 @@ class KnowledgeBaseInitializationFlow(
       action.args.root = rrg_winreg_pb2.LOCAL_MACHINE
       action.args.key = r"SYSTEM\CurrentControlSet\Control\TimeZoneInformation"
       action.args.name = "StandardName"
-      action.Call(self._ProcessRRGWindowsTimeZoneStandardName)  # pyrefly: ignore[bad-argument-type]
+      action.Call(self._ProcessRRGWindowsTimeZoneStandardName)
 
     if not responses.success:
       self.Log("Failed to obtain time zone key name: %s", responses.status)
@@ -1099,7 +1096,7 @@ class KnowledgeBaseInitializationFlow(
       self.store.knowledge_base.time_zone = f"Unknown ({result.value.string!r})"
       CollectWindowsTimeZoneStandardName()
 
-  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+  @flow_base.UseProto2AnyResponses
   def _ProcessWindowsTimeZoneStandardName(
       self,
       responses: flow_responses.Responses[any_pb2.Any],
@@ -1141,7 +1138,7 @@ class KnowledgeBaseInitializationFlow(
 
     self.store.knowledge_base.time_zone = time_zone
 
-  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+  @flow_base.UseProto2AnyResponses
   def _ProcessRRGWindowsTimeZoneStandardName(
       self,
       responses: flow_responses.Responses[any_pb2.Any],
@@ -1174,7 +1171,7 @@ class KnowledgeBaseInitializationFlow(
       # readable.
       self.store.knowledge_base.time_zone = f"Unknown ({result.value.string!r})"
 
-  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+  @flow_base.UseProto2AnyResponses
   def _ProcessWindowsEnvTemp(
       self,
       responses: flow_responses.Responses[any_pb2.Any],
@@ -1197,7 +1194,7 @@ class KnowledgeBaseInitializationFlow(
 
     self.store.knowledge_base.environ_temp = response.registry_data.string
 
-  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+  @flow_base.UseProto2AnyResponses
   def _ProcessRRGWindowsEnvTemp(
       self,
       responses: flow_responses.Responses[any_pb2.Any],
@@ -1215,7 +1212,7 @@ class KnowledgeBaseInitializationFlow(
 
     self.store.knowledge_base.environ_temp = result.value.expand_string
 
-  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+  @flow_base.UseProto2AnyResponses
   def _ProcessWindowsEnvPath(
       self,
       responses: flow_responses.Responses[any_pb2.Any],
@@ -1238,7 +1235,7 @@ class KnowledgeBaseInitializationFlow(
 
     self.store.knowledge_base.environ_path = response.registry_data.string
 
-  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+  @flow_base.UseProto2AnyResponses
   def _ProcessRRGWindowsEnvPath(
       self,
       responses: flow_responses.Responses[any_pb2.Any],
@@ -1262,7 +1259,7 @@ class KnowledgeBaseInitializationFlow(
         or result.value.expand_string
     )
 
-  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+  @flow_base.UseProto2AnyResponses
   def _ProcessWindowsEnvComSpec(
       self,
       responses: flow_responses.Responses[any_pb2.Any],
@@ -1285,7 +1282,7 @@ class KnowledgeBaseInitializationFlow(
 
     self.store.knowledge_base.environ_comspec = response.registry_data.string
 
-  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+  @flow_base.UseProto2AnyResponses
   def _ProcessRRGWindowsEnvComSpec(
       self,
       responses: flow_responses.Responses[any_pb2.Any],
@@ -1303,7 +1300,7 @@ class KnowledgeBaseInitializationFlow(
 
     self.store.knowledge_base.environ_comspec = result.value.expand_string
 
-  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+  @flow_base.UseProto2AnyResponses
   def _ProcessWindowsEnvWindir(
       self,
       responses: flow_responses.Responses[any_pb2.Any],
@@ -1326,7 +1323,7 @@ class KnowledgeBaseInitializationFlow(
 
     self.store.knowledge_base.environ_windir = response.registry_data.string
 
-  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+  @flow_base.UseProto2AnyResponses
   def _ProcessRRGWindowsEnvWindir(
       self,
       responses: flow_responses.Responses[any_pb2.Any],
@@ -1344,7 +1341,7 @@ class KnowledgeBaseInitializationFlow(
 
     self.store.knowledge_base.environ_windir = result.value.expand_string
 
-  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+  @flow_base.UseProto2AnyResponses
   def _ProcessWindowsProfilesDirectory(
       self,
       responses: flow_responses.Responses[any_pb2.Any],
@@ -1369,7 +1366,7 @@ class KnowledgeBaseInitializationFlow(
         response.registry_data.string
     )
 
-  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+  @flow_base.UseProto2AnyResponses
   def _ProcessRRGWindowsProfilesDirectory(
       self,
       responses: flow_responses.Responses[any_pb2.Any],
@@ -1389,7 +1386,7 @@ class KnowledgeBaseInitializationFlow(
         result.value.expand_string
     )
 
-  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+  @flow_base.UseProto2AnyResponses
   def _ProcessWindowsEnvAllUsersProfile(
       self,
       responses: flow_responses.Responses[any_pb2.Any],
@@ -1418,7 +1415,7 @@ class KnowledgeBaseInitializationFlow(
         response.registry_data.string
     )
 
-  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+  @flow_base.UseProto2AnyResponses
   def _ProcessRRGWindowsEnvAllUsersProfile(
       self,
       responses: flow_responses.Responses[any_pb2.Any],
@@ -1446,7 +1443,7 @@ class KnowledgeBaseInitializationFlow(
         or result.value.string
     )
 
-  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+  @flow_base.UseProto2AnyResponses
   def _ProcessWindowsProfiles(
       self,
       responses: flow_responses.Responses[any_pb2.Any],
@@ -1530,7 +1527,7 @@ class KnowledgeBaseInitializationFlow(
           next_state=self._ProcessWindowsWMIUserAccounts.__name__,
       )
 
-  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+  @flow_base.UseProto2AnyResponses
   def _ProcessRRGWindowsProfileList(
       self,
       responses: flow_responses.Responses[any_pb2.Any],
@@ -1559,77 +1556,77 @@ class KnowledgeBaseInitializationFlow(
       action.args.root = rrg_winreg_pb2.LOCAL_MACHINE
       action.args.key = rf"SOFTWARE\Microsoft\Windows NT\CurrentVersion\ProfileList\{user.sid}"
       action.args.name = "ProfileImagePath"
-      action.Call(self._ProcessRRGWindowsProfileImagePath)  # pyrefly: ignore[bad-argument-type]
+      action.Call(self._ProcessRRGWindowsProfileImagePath)
 
       action = rrg_stubs.GetWinregValue()
       action.args.root = rrg_winreg_pb2.USERS
       action.args.key = rf"{user.sid}\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders"
       action.args.name = "{A520A1A4-1780-4FF6-BD18-167343C5AF16}"
-      action.Call(self._ProcessRRGWindowsProfileShellFolders)  # pyrefly: ignore[bad-argument-type]
+      action.Call(self._ProcessRRGWindowsProfileShellFolders)
 
       action = rrg_stubs.GetWinregValue()
       action.args.root = rrg_winreg_pb2.USERS
       action.args.key = rf"{user.sid}\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders"
       action.args.name = "Desktop"
-      action.Call(self._ProcessRRGWindowsProfileShellFolders)  # pyrefly: ignore[bad-argument-type]
+      action.Call(self._ProcessRRGWindowsProfileShellFolders)
 
       action = rrg_stubs.GetWinregValue()
       action.args.root = rrg_winreg_pb2.USERS
       action.args.key = rf"{user.sid}\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders"
       action.args.name = "AppData"
-      action.Call(self._ProcessRRGWindowsProfileShellFolders)  # pyrefly: ignore[bad-argument-type]
+      action.Call(self._ProcessRRGWindowsProfileShellFolders)
 
       action = rrg_stubs.GetWinregValue()
       action.args.root = rrg_winreg_pb2.USERS
       action.args.key = rf"{user.sid}\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders"
       action.args.name = "Local AppData"
-      action.Call(self._ProcessRRGWindowsProfileShellFolders)  # pyrefly: ignore[bad-argument-type]
+      action.Call(self._ProcessRRGWindowsProfileShellFolders)
 
       action = rrg_stubs.GetWinregValue()
       action.args.root = rrg_winreg_pb2.USERS
       action.args.key = rf"{user.sid}\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders"
       action.args.name = "Cookies"
-      action.Call(self._ProcessRRGWindowsProfileShellFolders)  # pyrefly: ignore[bad-argument-type]
+      action.Call(self._ProcessRRGWindowsProfileShellFolders)
 
       action = rrg_stubs.GetWinregValue()
       action.args.root = rrg_winreg_pb2.USERS
       action.args.key = rf"{user.sid}\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders"
       action.args.name = "Cache"
-      action.Call(self._ProcessRRGWindowsProfileShellFolders)  # pyrefly: ignore[bad-argument-type]
+      action.Call(self._ProcessRRGWindowsProfileShellFolders)
 
       action = rrg_stubs.GetWinregValue()
       action.args.root = rrg_winreg_pb2.USERS
       action.args.key = rf"{user.sid}\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders"
       action.args.name = "Recent"
-      action.Call(self._ProcessRRGWindowsProfileShellFolders)  # pyrefly: ignore[bad-argument-type]
+      action.Call(self._ProcessRRGWindowsProfileShellFolders)
 
       action = rrg_stubs.GetWinregValue()
       action.args.root = rrg_winreg_pb2.USERS
       action.args.key = rf"{user.sid}\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders"
       action.args.name = "Startup"
-      action.Call(self._ProcessRRGWindowsProfileShellFolders)  # pyrefly: ignore[bad-argument-type]
+      action.Call(self._ProcessRRGWindowsProfileShellFolders)
 
       action = rrg_stubs.GetWinregValue()
       action.args.root = rrg_winreg_pb2.USERS
       action.args.key = rf"{user.sid}\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders"
       action.args.name = "Personal"
-      action.Call(self._ProcessRRGWindowsProfileShellFolders)  # pyrefly: ignore[bad-argument-type]
+      action.Call(self._ProcessRRGWindowsProfileShellFolders)
 
       action = rrg_stubs.GetWinregValue()
       action.args.root = rrg_winreg_pb2.USERS
       action.args.key = rf"{user.sid}\Environment"
       action.args.name = "TEMP"
-      action.Call(self._ProcessRRGWindowsProfileEnvironmentTemp)  # pyrefly: ignore[bad-argument-type]
+      action.Call(self._ProcessRRGWindowsProfileEnvironmentTemp)
 
       action = rrg_stubs.GetWinregValue()
       action.args.root = rrg_winreg_pb2.USERS
       action.args.key = rf"{user.sid}\Volatile Environment"
       action.args.name = "USERDOMAIN"
-      action.Call(self._ProcessRRGWindowsProfileEnvironmentUserdomain)  # pyrefly: ignore[bad-argument-type]
+      action.Call(self._ProcessRRGWindowsProfileEnvironmentUserdomain)
       # pylint: enable=line-too-long
       # fmt: on
 
-  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+  @flow_base.UseProto2AnyResponses
   def _ProcessRRGWindowsWMIUserAccount(
       self,
       responses: flow_responses.Responses[any_pb2.Any],
@@ -1658,7 +1655,7 @@ class KnowledgeBaseInitializationFlow(
       user.userdomain = result.row["Domain"].string
       models_knowledge_base.MergeOrAddUser(self.store.knowledge_base, user)
 
-  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+  @flow_base.UseProto2AnyResponses
   def _ProcessRRGWindowsProfileImagePath(
       self,
       responses: flow_responses.Responses[any_pb2.Any],
@@ -1682,7 +1679,7 @@ class KnowledgeBaseInitializationFlow(
 
     models_knowledge_base.MergeOrAddUser(self.store.knowledge_base, user)
 
-  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+  @flow_base.UseProto2AnyResponses
   def _ProcessWindowsProfileExtras(
       self,
       responses: flow_responses.Responses[any_pb2.Any],
@@ -1759,7 +1756,7 @@ class KnowledgeBaseInitializationFlow(
         self.Log("Invalid registry value for %r", path)
         continue
 
-  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+  @flow_base.UseProto2AnyResponses
   def _ProcessRRGWindowsProfileShellFolders(
       self,
       responses: flow_responses.Responses[any_pb2.Any],
@@ -1808,7 +1805,7 @@ class KnowledgeBaseInitializationFlow(
 
     models_knowledge_base.MergeOrAddUser(self.store.knowledge_base, user)
 
-  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+  @flow_base.UseProto2AnyResponses
   def _ProcessRRGWindowsProfileEnvironmentTemp(
       self,
       responses: flow_responses.Responses[any_pb2.Any],
@@ -1836,7 +1833,7 @@ class KnowledgeBaseInitializationFlow(
 
     models_knowledge_base.MergeOrAddUser(self.store.knowledge_base, user)
 
-  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+  @flow_base.UseProto2AnyResponses
   def _ProcessRRGWindowsProfileEnvironmentUserdomain(
       self,
       responses: flow_responses.Responses[any_pb2.Any],
@@ -1864,7 +1861,7 @@ class KnowledgeBaseInitializationFlow(
 
     models_knowledge_base.MergeOrAddUser(self.store.knowledge_base, user)
 
-  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+  @flow_base.UseProto2AnyResponses
   def _ProcessWindowsWMIUserAccounts(
       self,
       responses: flow_responses.Responses[any_pb2.Any],
@@ -1909,7 +1906,7 @@ class KnowledgeBaseInitializationFlow(
 
       user.userdomain = domain
 
-  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+  @flow_base.UseProto2AnyResponses
   def _ProcessWindowsListUsersDir(
       self,
       responses: flow_responses.Responses[any_pb2.Any],
@@ -1955,7 +1952,7 @@ class KnowledgeBaseInitializationFlow(
 
       models_knowledge_base.MergeOrAddUser(self.store.knowledge_base, user)
 
-  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+  @flow_base.UseProto2AnyResponses
   def _ProcessRRGWindowsUsers(
       self,
       responses: flow_responses.Responses[any_pb2.Any],

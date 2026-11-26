@@ -23,6 +23,7 @@ APPROVAL_SEARCHES = metrics.Counter(
 RESTRICTED_FLOWS = [
     administrative.ExecutePythonHack,
     administrative.LaunchBinary,
+    administrative.LaunchExecutable,
     administrative.UpdateClient,
 ]
 
@@ -47,7 +48,7 @@ class AdminAccessChecker:
     """Checks whether a given user can start a given flow."""
     flow_cls = registry.FlowRegistry.FLOW_REGISTRY.get(flow_name)
 
-    if flow_cls is None or not flow_cls.CanUseViaAPI():
+    if flow_cls is None:
       raise access_control.UnauthorizedAccess(
           "Flow %s can't be started via the API." % flow_name
       )
@@ -230,33 +231,6 @@ class ApprovalChecker:
         [_CheckExpired, _CheckHasEnoughGrants, _CheckApprovalFromClientLabel],
     )
 
-  def CheckCronJobApprovals(
-      self, cron_job_id: str, approvals: Sequence[objects_pb2.ApprovalRequest]
-  ) -> Optional[objects_pb2.ApprovalRequest]:
-    return self.CheckApprovals(
-        approvals,
-        approval_checks=[
-            _CheckExpired,
-            _CheckHasEnoughGrants,
-            self._CheckHasAdminApprovers,
-        ],
-        error_subject=_BuildLegacySubject(
-            cron_job_id,
-            objects_pb2.ApprovalRequest.ApprovalType.APPROVAL_TYPE_CRON_JOB,
-        ),
-    )
-
-  def CheckCronJobAccess(
-      self, context: api_call_context.ApiCallContext, cron_job_id: str
-  ) -> None:
-    """Checks whether a given user can access given cron job."""
-    context.approval = self.GetAndCheckApproval(
-        context.username,
-        cron_job_id,
-        objects_pb2.ApprovalRequest.ApprovalType.APPROVAL_TYPE_CRON_JOB,
-        [_CheckExpired, _CheckHasEnoughGrants, self._CheckHasAdminApprovers],
-    )
-
   def CheckHuntApprovals(
       self, hunt_id: str, approvals: Sequence[objects_pb2.ApprovalRequest]
   ) -> Optional[objects_pb2.ApprovalRequest]:
@@ -328,7 +302,10 @@ def _CheckApprovalFromClientLabel(
     )
 
 
-def _CheckHasEnoughGrants(approval_request: objects_pb2.ApprovalRequest):
+def _CheckHasEnoughGrants(
+    approval_request: objects_pb2.ApprovalRequest,
+) -> None:
+  """Checks that an approval request has enough grants."""
   num_approvers_required = config.CONFIG["ACL.approvers_required"]
   approvers = set(g.grantor_username for g in approval_request.grants)
 
@@ -372,10 +349,5 @@ def _BuildLegacySubject(
       == objects_pb2.ApprovalRequest.ApprovalType.APPROVAL_TYPE_HUNT
   ):
     return "aff4:/hunts/%s" % subject_id
-  elif (
-      approval_type
-      == objects_pb2.ApprovalRequest.ApprovalType.APPROVAL_TYPE_CRON_JOB
-  ):
-    return "aff4:/cron/%s" % subject_id
 
   raise ValueError("Invalid approval type.")

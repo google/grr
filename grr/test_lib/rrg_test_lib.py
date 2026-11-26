@@ -43,6 +43,7 @@ from grr_response_proto.rrg import winreg_pb2 as rrg_winreg_pb2
 from grr_response_proto.rrg.action import execute_signed_command_pb2 as rrg_execute_signed_command_pb2
 from grr_response_proto.rrg.action import get_file_contents_kmx_pb2 as rrg_get_file_contents_kmx_pb2
 from grr_response_proto.rrg.action import get_file_contents_pb2 as rrg_get_file_contents_pb2
+from grr_response_proto.rrg.action import get_file_metadata_kmx_pb2 as rrg_get_file_metadata_kmx_pb2
 from grr_response_proto.rrg.action import get_file_metadata_pb2 as rrg_get_file_metadata_pb2
 from grr_response_proto.rrg.action import get_file_sha256_kmx_pb2 as rrg_get_file_sha256_kmx_pb2
 from grr_response_proto.rrg.action import get_file_sha256_pb2 as rrg_get_file_sha256_pb2
@@ -364,6 +365,69 @@ def FakeWindowsFileHandlers(
     A handlers that can be supplied to the `ExecuteFlow` helper.
   """
 
+  def GetFileMetadataKmxHandler(session: Session) -> None:
+    args = rrg_get_file_metadata_kmx_pb2.Args()
+    if not session.args.Unpack(args):
+      raise RuntimeError(f"Invalid session arguments: {session.args}")
+
+    volume_mount_path_str = args.volume_mount_path.raw_bytes.decode("utf-8")
+    if not re.search(r"^[A-Z]\:\\$", volume_mount_path_str):
+      raise RuntimeError(f"Invalid volume mount path: {volume_mount_path_str}")
+
+    path_str = args.path.raw_bytes.decode("utf-8")
+    # Keramics expects paths to have a leading `\` (e.g. to look like
+    # `\Users\foo\bar.txt`).
+    if not path_str.startswith("\\"):
+      raise RuntimeError(f"Invalid path (within volume): {path_str}")
+
+    timestamp = timestamp_pb2.Timestamp()
+    timestamp.GetCurrentTime()
+
+    def Walk(trie_node: Any, path: pathlib.PurePath, depth: int) -> None:
+      if depth > args.max_depth:
+        return
+
+      result = rrg_get_file_metadata_kmx_pb2.Result()
+      result.path.raw_bytes = b"\\" + bytes(path)
+      result.metadata.access_time.CopyFrom(timestamp)
+      result.metadata.modification_time.CopyFrom(timestamp)
+      result.metadata.creation_time.CopyFrom(timestamp)
+
+      if isinstance(trie_node, bytes):
+        result.metadata.type = rrg_fs_pb2.FileMetadata.FILE
+        result.metadata.size = len(trie_node)
+
+      elif isinstance(trie_node, str):
+        result.metadata.type = rrg_fs_pb2.FileMetadata.SYMLINK
+        # TODO - Symlink target is not supported in Keramics well at
+        # the moment so we do not fill it as well.
+
+      elif isinstance(trie_node, dict):
+        result.metadata.type = rrg_fs_pb2.FileMetadata.DIR
+
+        for part in trie_node:
+          Walk(trie_node=trie_node[part], path=path / part, depth=depth + 1)
+      else:
+        raise RuntimeError(f"Unexpected trie node type: {type(trie_node)}")
+
+      session.Reply(result)
+
+    volume_mount_path = pathlib.PureWindowsPath(volume_mount_path_str)
+    path = pathlib.PureWindowsPath(path_str.removeprefix("\\"))
+
+    # `lambda` below is needed because otherwise the type checker sees it as
+    # type, not a callable.
+    trie = _FilesystemTrie(lambda _: pathlib.PureWindowsPath(_), filesystem)  # pylint: disable=unnecessary-lambda
+    trie_node = trie[str(volume_mount_path)]
+    try:
+      for part in path.parts:
+        trie_node = trie_node[part]
+    except KeyError:
+      logging.error("File does not exist: %r", path)
+      return
+
+    Walk(trie_node, path, depth=0)
+
   def GetFileContentsKmxHandler(session: Session) -> None:
     args = rrg_get_file_contents_kmx_pb2.Args()
     if not session.args.Unpack(args):
@@ -459,6 +523,7 @@ def FakeWindowsFileHandlers(
   # We need lambda as otherwise pytype sees it as type, not callable.
   path_cls = lambda path: pathlib.PureWindowsPath(path)  # pylint: disable=unnecessary-lambda
   return dict(FakeFileHandlers(path_cls, filesystem)) | {  # pyrefly: ignore[bad-argument-type]
+      rrg_pb2.Action.GET_FILE_METADATA_KMX: GetFileMetadataKmxHandler,
       rrg_pb2.Action.GET_FILE_CONTENTS_KMX: GetFileContentsKmxHandler,
       rrg_pb2.Action.GET_FILE_SHA256_KMX: GetFileSha256KmxHandler,
   }
@@ -477,23 +542,7 @@ def FakeFileHandlers(
   Returns:
     A handlers that can be supplied to the `ExecuteFlow` helper.
   """
-  trie = {}
-
-  for path, content in filesystem.items():
-    path = path_cls(path)
-    if not path.is_absolute():
-      raise ValueError(f"Relative path: '{path}'")
-
-    trie_node = trie
-    for part in path.parent.parts:
-      if part not in trie_node:
-        trie_node[part] = dict()
-      if not isinstance(trie_node[part], dict):
-        raise ValueError(f"'{part}' of '{path}' not a directory")
-
-      trie_node = trie_node[part]
-
-    trie_node[path.name] = content
+  trie = _FilesystemTrie(path_cls, filesystem)
 
   timestamp = timestamp_pb2.Timestamp()
   timestamp.GetCurrentTime()
@@ -817,6 +866,8 @@ def FakeWinregHandlers(
 
     key = winreg[args.root]
     for key_part in args.key.split("\\"):
+      if not key_part:
+        continue
       key = key[key_part]
 
     if not isinstance(key, dict):
@@ -850,6 +901,8 @@ def FakeWinregHandlers(
 
     key = winreg[args.root]
     for key_part in args.key.split("\\"):
+      if not key_part:
+        continue
       key = key[key_part]
 
     if not isinstance(key, dict):
@@ -886,6 +939,7 @@ def FakeWinregHandlers(
 def FakeWmiHandlers(
     # pyformat: disable
     tables: dict[str, list[dict[str, Union[
+        None,
         bool,
         rrg_wmi_test_lib.Type,
         str,
@@ -923,6 +977,8 @@ def FakeWmiHandlers(
           result.row[column].CopyFrom(value.value)
         elif isinstance(value, str):
           result.row[column].string = value
+        elif value is None:
+          result.row[column].SetInParent()
         else:
           raise ValueError(f"Unsupported value type: {type(value)}")
 
@@ -954,50 +1010,53 @@ def _EvalCondition(
     raise RuntimeError("No field")
 
   field_value = item
-  field_desc: descriptor_pb2.FieldDescriptor
+  field_desc: Optional[descriptor_pb2.FieldDescriptor] = None
 
   for field in item_cond.field:
+    field_desc: descriptor_pb2.FieldDescriptor
     field_desc = field_value.DESCRIPTOR.fields_by_number[field]
     field_value = getattr(field_value, field_desc.name)
+
+  assert field_desc is not None
 
   result: bool
 
   if item_cond.HasField("bool_equal"):
-    assert field_desc.type == descriptor_pb2.FieldDescriptor.TYPE_BOOL  # pyrefly: ignore[unbound-name]
+    assert field_desc.type == descriptor_pb2.FieldDescriptor.TYPE_BOOL
     assert isinstance(field_value, bool)
     result = field_value == item_cond.bool_equal
   elif item_cond.HasField("string_equal"):
-    assert field_desc.type == descriptor_pb2.FieldDescriptor.TYPE_STRING  # pyrefly: ignore[unbound-name]
+    assert field_desc.type == descriptor_pb2.FieldDescriptor.TYPE_STRING
     assert isinstance(field_value, str)
     result = field_value == item_cond.string_equal
   elif item_cond.HasField("string_match"):
     assert isinstance(field_value, str)
-    assert field_desc.type == descriptor_pb2.FieldDescriptor.TYPE_STRING  # pyrefly: ignore[unbound-name]
+    assert field_desc.type == descriptor_pb2.FieldDescriptor.TYPE_STRING
     result = re.match(item_cond.string_match, field_value) is not None
   elif item_cond.HasField("bytes_equal"):
-    assert field_desc.type == descriptor_pb2.FieldDescriptor.TYPE_BYTES  # pyrefly: ignore[unbound-name]
+    assert field_desc.type == descriptor_pb2.FieldDescriptor.TYPE_BYTES
     assert isinstance(field_value, bytes)
     result = field_value == item_cond.bytes_equal
   elif item_cond.HasField("bytes_match"):
-    assert field_desc.type == descriptor_pb2.FieldDescriptor.TYPE_BYTES  # pyrefly: ignore[unbound-name]
+    assert field_desc.type == descriptor_pb2.FieldDescriptor.TYPE_BYTES
     assert isinstance(field_value, bytes)
     result = re.match(item_cond.bytes_match.encode(), field_value) is not None
   elif item_cond.HasField("uint64_equal"):
-    assert field_desc.type in [  # pyrefly: ignore[unbound-name]
+    assert field_desc.type in [
         descriptor_pb2.FieldDescriptor.TYPE_UINT32,
         descriptor_pb2.FieldDescriptor.TYPE_UINT64,
     ]
     assert isinstance(field_value, int)
     result = field_value == item_cond.uint64_equal
   elif item_cond.HasField("uint64_less"):
-    assert field_desc.type in [  # pyrefly: ignore[unbound-name]
+    assert field_desc.type in [
         descriptor_pb2.FieldDescriptor.TYPE_UINT32,
         descriptor_pb2.FieldDescriptor.TYPE_UINT64,
     ]
     assert isinstance(field_value, int)
     result = field_value < item_cond.uint64_less
   elif item_cond.HasField("int64_equal"):
-    assert field_desc.type in [  # pyrefly: ignore[unbound-name]
+    assert field_desc.type in [
         descriptor_pb2.FieldDescriptor.TYPE_INT32,
         descriptor_pb2.FieldDescriptor.TYPE_INT64,
         descriptor_pb2.FieldDescriptor.TYPE_ENUM,
@@ -1005,7 +1064,7 @@ def _EvalCondition(
     assert isinstance(field_value, int)
     result = field_value == item_cond.int64_equal
   elif item_cond.HasField("int64_less"):
-    assert field_desc.type in [  # pyrefly: ignore[unbound-name]
+    assert field_desc.type in [
         descriptor_pb2.FieldDescriptor.TYPE_INT32,
         descriptor_pb2.FieldDescriptor.TYPE_INT64,
     ]
@@ -1018,6 +1077,41 @@ def _EvalCondition(
     result = not result
 
   return result
+
+
+def _FilesystemTrie(
+    path_cls: Callable[[str], pathlib.PurePath],
+    filesystem: dict[str, Union[bytes, str, dict[None, None], None]],
+) -> dict[str, Any]:
+  """Constructs a trie from the given "flat" filesystem representation.
+
+  The "flat" representation maps a fully absolute file path to its content. The
+  trie representation builds a tree where individual dictionary keys are path
+  components.
+
+  Args:
+    path_cls: Path type to use (POSIX or Windows).
+    filesystem: "Flat" filesystem representation.
+
+  Returns:
+    A trie representation of the filesystem.
+  """
+  trie = {}
+
+  for path, content in filesystem.items():
+    path = path_cls(path)
+    if not path.is_absolute():
+      raise ValueError(f"Relative path: '{path}'")
+
+    trie_node = trie
+    for part in path.parent.parts:
+      trie_node = trie_node.setdefault(part, {})
+      if not isinstance(trie_node, dict):
+        raise ValueError(f"'{part}' of '{path}' not a directory")
+
+    trie_node[path.name] = content
+
+  return trie
 
 
 # Value used by RRG.

@@ -1,6 +1,9 @@
 #!/usr/bin/env python
 """An implementation of linux client builder."""
 
+from __future__ import annotations
+
+from collections.abc import Sequence
 import fnmatch
 import logging
 import os
@@ -16,7 +19,7 @@ from grr_response_core.lib import package
 from grr_response_core.lib import utils
 
 
-def _StripLibraries(directory):
+def _StripLibraries(directory: str) -> None:
   """Strips symbols from libraries bundled with the client."""
 
   # TODO(user): this is essentially "dh_strip --exclude=ffi" for deb
@@ -33,7 +36,9 @@ def _StripLibraries(directory):
   subprocess.check_call(cmd)
 
 
-def _CopyFleetspeakDpkgFiles(package_dir, context=None):
+def _CopyFleetspeakDpkgFiles(
+    package_dir: str, context: Sequence[str] | None = None
+) -> None:
   """Copies Fleetspeak-enabled DPKG files to template directory."""
   if context is None:
     raise ValueError("context can't be None")
@@ -53,7 +58,7 @@ def _CopyFleetspeakDpkgFiles(package_dir, context=None):
       fleetspeak_dir)
 
 
-def _CopyNonFleetspeakDpkgFiles(dist_dir):
+def _CopyNonFleetspeakDpkgFiles(dist_dir: str) -> None:
   """Copies non-Fleetspeak DPKG files to template directory."""
 
   # Copy the wrapper script.
@@ -63,7 +68,7 @@ def _CopyNonFleetspeakDpkgFiles(dist_dir):
   )
 
 
-def _CopyBundledFleetspeakFiles(src_dir, package_dir):
+def _CopyBundledFleetspeakFiles(src_dir: str, package_dir: str) -> None:
   """Copies the bundled fleetspeak installation into the package dir."""
   files = [
       "etc/fleetspeak-client/communicator.txt",
@@ -77,7 +82,7 @@ def _CopyBundledFleetspeakFiles(src_dir, package_dir):
     shutil.copy(src, dst)
 
 
-def _MakeZip(input_dir, output_file):
+def _MakeZip(input_dir: str, output_file: str) -> None:
   """Creates a ZIP archive of the files in the input directory.
 
   Args:
@@ -97,6 +102,7 @@ def _MakeZip(input_dir, output_file):
         zf.write(os.path.join(root, f))
   zf.close()
   os.chdir(oldwd)
+
 
 # Layout:
 #
@@ -118,15 +124,15 @@ class DebianClientBuilder(build.ClientBuilder):
   BUILDER_CONTEXT = "Target:Linux"
 
   @property
-  def package_dir(self):
+  def package_dir(self) -> str:
     return config.CONFIG.Get("PyInstaller.dpkg_root", context=self.context)
 
   @property
-  def fleetspeak_install_dir(self):
+  def fleetspeak_install_dir(self) -> str:
     return config.CONFIG.Get(
         "ClientBuilder.fleetspeak_install_dir", context=self.context)
 
-  def MakeExecutableTemplate(self, output_file):
+  def MakeExecutableTemplate(self, output_path: str) -> None:
     build_helpers.MakeBuildDirectory(context=self.context)
     build_helpers.CleanDirectory(self.package_dir)
     output_dir = build_helpers.BuildWithPyInstaller(context=self.context)
@@ -137,10 +143,10 @@ class DebianClientBuilder(build.ClientBuilder):
     _CopyNonFleetspeakDpkgFiles(output_dir)
     _CopyBundledFleetspeakFiles(self.fleetspeak_install_dir, self.package_dir)
 
-    _MakeZip(self.package_dir, output_file)
+    _MakeZip(self.package_dir, output_path)
 
 
-def _CopyCommonRpmFiles(package_dir, dist_dir):
+def _CopyCommonRpmFiles(package_dir: str, dist_dir: str) -> None:
   """Copies common (fleetspeak and legacy) files into the template folder."""
   # Copy the wrapper script.
   shutil.copy(
@@ -158,7 +164,9 @@ def _CopyCommonRpmFiles(package_dir, dist_dir):
       os.path.join(package_dir, "rpmbuild/prelink_blacklist.conf.in"))
 
 
-def _CopyFleetspeakRpmFiles(package_dir, context=None):
+def _CopyFleetspeakRpmFiles(
+    package_dir: str, context: Sequence[str] | None = None
+) -> None:
   """Copies Fleetspeak-enabled RPM files into the template folder."""
   if context is None:
     raise ValueError("context can't be None")
@@ -185,15 +193,15 @@ class CentosClientBuilder(build.ClientBuilder):
   BUILDER_CONTEXT = "Target:Linux"
 
   @property
-  def package_dir(self):
+  def package_dir(self) -> str:
     return config.CONFIG.Get("PyInstaller.dpkg_root", context=self.context)
 
   @property
-  def fleetspeak_install_dir(self):
+  def fleetspeak_install_dir(self) -> str:
     return config.CONFIG.Get(
         "ClientBuilder.fleetspeak_install_dir", context=self.context)
 
-  def MakeExecutableTemplate(self, output_file):
+  def MakeExecutableTemplate(self, output_path: str) -> None:
     build_helpers.MakeBuildDirectory(context=self.context)
     build_helpers.CleanDirectory(self.package_dir)
     output_dir = build_helpers.BuildWithPyInstaller(context=self.context)
@@ -203,4 +211,4 @@ class CentosClientBuilder(build.ClientBuilder):
     _CopyFleetspeakRpmFiles(self.package_dir, context=self.context)
     _CopyBundledFleetspeakFiles(self.fleetspeak_install_dir, self.package_dir)
 
-    _MakeZip(self.package_dir, output_file)
+    _MakeZip(self.package_dir, output_path)

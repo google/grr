@@ -1,7 +1,8 @@
 #!/usr/bin/env python
 """End to end tests for GRR artifacts."""
 
-from grr_response_core.lib.rdfvalues import paths as rdf_paths
+from grr_response_proto import flows_pb2
+from grr_response_proto import jobs_pb2
 from grr_response_test.end_to_end_tests import test_base
 
 
@@ -13,19 +14,30 @@ class TestRawFilesystemAccessUsesNtfsOnWindows(test_base.EndToEndTest):
   ]
 
   def runTest(self):
+    # TODO - Remove once Keramics is enabled by default.
+    runner_args = flows_pb2.FlowRunnerArgs()
+    runner_args.rrg_mode = flows_pb2.FlowRunnerArgs.RrgMode.FORCED
+
     args = self.grr_api.types.CreateFlowArgs("ArtifactCollectorFlow")  # pyrefly: ignore[missing-attribute]
     args.use_raw_filesystem_access = True
+    args.artifact_list.append("WindowsSystemIniFiles")
     args.artifact_list.append("WindowsEventLogApplication")
     args.artifact_list.append("WindowsEventLogSecurity")
     args.artifact_list.append("WindowsEventLogSystem")
     args.artifact_list.append("WindowsXMLEventLogApplication")
     args.artifact_list.append("WindowsXMLEventLogSecurity")
     args.artifact_list.append("WindowsXMLEventLogSystem")
-    f = self.RunFlowAndWait("ArtifactCollectorFlow", args=args)
+    f = self.RunFlowAndWait(
+        "ArtifactCollectorFlow",
+        args=args,
+        runner_args=runner_args,
+    )
 
     results = list(f.ListResults())
-    self.assertEqual(results[0].payload.pathspec.nested_path.pathtype,
-                     rdf_paths.PathSpec.PathType.NTFS)  # pyrefly: ignore[missing-attribute]
+    self.assertEqual(
+        results[0].payload.pathspec.pathtype,
+        jobs_pb2.PathSpec.PathType.NTFS,
+    )
 
 
 class TestParserDependency(test_base.EndToEndTest):

@@ -5,6 +5,7 @@ syntax = "proto2";
 import "google/protobuf/any.proto";
 import "grr_response_proto/export.proto";
 import "grr_response_proto/jobs.proto";
+import "grr_response_proto/knowledge_base.proto";
 import "grr_response_proto/semantic.proto";
 
 package grr;
@@ -303,4 +304,260 @@ message DummyOutValueProto1 {
 }
 message DummyOutValueProto2 {
   optional string value = 1;
+}
+
+// For benchmark_test.py.
+message StructGrrMessage {
+  optional string session_id = 1 [(sem_type) = {
+    description: "Every Flow has a unique session id.",
+  }];
+  optional int64 request_id = 2 [(sem_type) = {
+    description: "This message is in response to this request number",
+  }];
+  optional int64 response_id = 3 [(sem_type) = {
+    description: "Responses for each request.",
+  }];
+  optional string name = 4 [(sem_type) = {
+    description: "This is the name of the client action that will be executed. It is set by the flow and is executed by the client.",
+  }];
+  optional bytes args = 5 [(sem_type) = {
+    description: "This field contains an encoded rdfvalue.",
+  }];
+  optional string source = 6 [(sem_type) = {
+    description: "Client name where the message came from (This is copied from the MessageList)",
+  }];
+}
+
+message FastGrrMessageList {
+  repeated StructGrrMessage job = 1;
+}
+
+// For structs_test.py.
+message TestStruct {
+  optional string foobar = 1 [
+    default = "string",
+    (sem_type) = {
+      description: "A string value",
+      label: HIDDEN,
+    }
+  ];
+  optional int64 int_val = 2 [
+    default = 5,
+    (sem_type) = {
+      description: "An integer value",
+    }
+  ];
+  repeated string repeated = 3 [(sem_type) = {
+    description: "A repeated string value",
+  }];
+  optional TestStruct nested = 4;
+  repeated TestStruct repeat_nested = 5;
+  optional string urn = 6 [
+    default = "www.google.com",
+    (sem_type) = {
+      type: "RDFURN",
+      description: "An arbitrary RDFValue field.",
+    }
+  ];
+  enum Type {
+    UNSPECIFIED = 0;
+    FIRST = 1;
+    SECOND = 2;
+    THIRD = 3;
+  }
+  optional Type type = 7 [
+    default = THIRD,
+    (sem_type) = {
+      description: "An enum field",
+    }
+  ];
+  optional float float_val = 8 [
+    default = 1.1,
+    (sem_type) = {
+      description: "A float number",
+    }
+  ];
+}
+
+message TestStructWithManyFields {
+  optional string foobar0 = 1 [default = "string"];
+  optional string foobar1 = 2 [default = "string"];
+  optional string foobar2 = 3 [default = "string"];
+  optional string foobar3 = 4 [default = "string"];
+  optional string foobar4 = 5 [default = "string"];
+  optional string foobar5 = 6 [default = "string"];
+  optional string foobar6 = 7 [default = "string"];
+  optional string foobar7 = 8 [default = "string"];
+  optional string foobar8 = 9 [default = "string"];
+  optional string foobar9 = 10 [default = "string"];
+  optional string foobar10 = 11 [default = "string"];
+  optional string foobar11 = 12 [default = "string"];
+  optional string foobar12 = 13 [default = "string"];
+  optional string foobar13 = 14 [default = "string"];
+  optional string foobar14 = 15 [default = "string"];
+  optional string foobar15 = 16 [default = "string"];
+  optional string foobar16 = 17 [default = "string"];
+  optional string foobar17 = 18 [default = "string"];
+  optional string foobar18 = 19 [default = "string"];
+  optional string foobar19 = 20 [default = "string"];
+  optional string foobar20 = 21 [default = "string"];
+  optional string foobar21 = 22 [default = "string"];
+  optional string foobar22 = 23 [default = "string"];
+  optional string foobar23 = 24 [default = "string"];
+  optional string foobar24 = 25 [default = "string"];
+  optional string foobar25 = 26 [default = "string"];
+  optional string foobar26 = 27 [default = "string"];
+  optional string foobar27 = 28 [default = "string"];
+  optional string foobar28 = 29 [default = "string"];
+  optional string foobar29 = 30 [default = "string"];
+  optional string foobar30 = 31 [default = "string"];
+  optional string foobar31 = 32 [default = "string"];
+  optional string foobar32 = 33 [default = "string"];
+  optional string foobar33 = 34 [default = "string"];
+  optional string foobar34 = 35 [default = "string"];
+  optional string foobar35 = 36 [default = "string"];
+  optional string foobar36 = 37 [default = "string"];
+  optional string foobar37 = 38 [default = "string"];
+  optional string foobar38 = 39 [default = "string"];
+  optional string foobar39 = 40 [default = "string"];
+  optional string foobar40 = 41 [default = "string"];
+  optional string foobar41 = 42 [default = "string"];
+  optional string foobar42 = 43 [default = "string"];
+  optional string foobar43 = 44 [default = "string"];
+  optional string foobar44 = 45 [default = "string"];
+  optional string foobar45 = 46 [default = "string"];
+  optional string foobar46 = 47 [default = "string"];
+  optional string foobar47 = 48 [default = "string"];
+  optional string foobar48 = 49 [default = "string"];
+  optional string foobar49 = 50 [default = "string"];
+}
+
+message VersionedTestStructV1 {
+  optional bool bool1 = 1 [default = false];
+}
+
+message VersionedTestStructV2 {
+  optional bool bool1 = 1 [default = false];
+  optional bool bool2 = 2 [default = false];
+}
+
+message TestStructWithBool {
+  optional bool foo = 1 [default = false];
+}
+
+message TestStructWithEnum {
+  enum Foo {
+    UNKNOWN = 0;
+    ONE = 1;
+    TWO = 2;
+  }
+  optional Foo foo = 1 [default = UNKNOWN];
+}
+
+message PartialTest1 {
+  optional int64 int_val = 2;
+}
+
+message DynamicTypeTest {
+  optional string type = 1 [
+    default = "TestStruct",
+    (sem_type) = {
+      description: "A string value",
+    }
+  ];
+  optional bytes dynamic = 2 [(sem_type) = {
+    dynamic_type: "GetDynamicType",
+    description: "A dynamic value based on another field.",
+  }];
+  optional User nested = 3;
+}
+
+message DynamicAnyValueTypeTest {
+  optional string type = 1 [(sem_type) = {
+    description: "A string value",
+  }];
+  optional google.protobuf.Any dynamic = 2 [(sem_type) = {
+    dynamic_type: "GetDynamicType",
+    description: "A dynamic value based on another field.",
+  }];
+}
+
+message AnyValueWithoutTypeFunctionTest {
+  optional google.protobuf.Any dynamic = 1 [(sem_type) = {
+    description: "A dynamic value.",
+  }];
+}
+
+message UndefinedYet {
+  optional string foobar = 1 [(sem_type) = {
+    description: "A string value",
+  }];
+}
+
+message LateBindingTest {
+  optional UndefinedYet nested = 1;
+  optional string rdfvalue = 6 [(sem_type) = {
+    type: "UndefinedRDFValue",
+    description: "An undefined RDFValue field.",
+  }];
+  repeated string repeated = 7 [(sem_type) = {
+    type: "UndefinedRDFValue2",
+    description: "An undefined RDFValue field.",
+  }];
+}
+
+message UnionTest {
+  option (semantic) = {
+    union_field: "struct_flavor",
+  };
+
+  enum Type {
+    UNSPECIFIED = 0;
+    FIRST = 1;
+    SECOND = 2;
+    THIRD = 3;
+  }
+  optional Type struct_flavor = 1 [
+    default = THIRD,
+    (sem_type) = {
+      description: "An union enum field",
+    }
+  ];
+  optional float first = 2 [
+    default = 1.1,
+    (sem_type) = {
+      description: "A float number",
+    }
+  ];
+  optional string second = 3 [
+    default = "string",
+    (sem_type) = {
+      description: "A string value",
+    }
+  ];
+  optional int64 third = 4 [
+    default = 5,
+    (sem_type) = {
+      description: "An integer value",
+    }
+  ];
+}
+
+message FooStruct {
+  optional bytes data = 1;
+}
+
+message BarStruct {
+  optional bytes data = 1 [(sem_type) = {
+    type: "RDFBytes",
+  }];
+}
+
+message TestStructWithRDFInteger {
+  optional int64 test = 1 [
+    default = 0,
+    (sem_type) = {
+      type: "RDFInteger",
+    }
+  ];
 }

@@ -1,9 +1,11 @@
 #!/usr/bin/env python
 """Tests for validating the configs we have."""
 
+from collections.abc import Sequence
 import glob
 import logging
 import os
+from typing import Any
 
 from absl import app
 
@@ -17,7 +19,7 @@ class BuildConfigTests(config_testing_lib.BuildConfigTestsBase):
   def testAllConfigs(self):
     """Go through all our config files looking for errors."""
     # Test the current loaded configuration.
-    configs = [config.CONFIG]
+    configs: list[Any] = [config.CONFIG]
 
     # Test all the other configs in the server config dir (/etc/grr by default)
     glob_path = os.path.join(config.CONFIG["Config.directory"], "*.yaml")
@@ -32,7 +34,7 @@ class BuildConfigTests(config_testing_lib.BuildConfigTestsBase):
     self.ValidateConfigs(configs)
 
 
-def main(argv):
+def main(argv: Sequence[str]) -> None:
   test_lib.main(argv)
 
 

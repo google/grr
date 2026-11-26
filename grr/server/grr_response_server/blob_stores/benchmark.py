@@ -1,9 +1,12 @@
 #!/usr/bin/env python
 """Benchmark to compare different BlobStore implementations."""
 
+from __future__ import annotations
+
+from collections.abc import Callable, Sequence
 import io
 import time
-from typing import IO
+from typing import Any, IO, TypeVar
 
 from absl import app
 from absl import flags
@@ -13,6 +16,8 @@ from grr_response_core.lib import rdfvalue
 from grr_response_server import blob_store
 from grr_response_server import server_startup
 from grr_response_server.models import blobs as models_blobs
+
+_R = TypeVar("_R")
 
 
 _TARGET = flags.DEFINE_list(
@@ -37,7 +42,9 @@ _PER_SIZE_DURATION_SECONDS = flags.DEFINE_integer(
 )
 
 
-def _MakeBlobStore(blobstore_name):
+def _MakeBlobStore(
+    blobstore_name: str,
+) -> blob_store.BlobStoreValidationWrapper:
   try:
     cls = blob_store.REGISTRY[blobstore_name]
   except KeyError:
@@ -54,13 +61,17 @@ def _MakeRandomBlob(
   return blob_id, blob_data
 
 
-def _Timed(fn, *args, **kwargs):
+def _Timed(
+    fn: Callable[..., _R], *args: Any, **kwargs: Any
+) -> tuple[_R, float]:
   start = time.time()
   result = fn(*args, **kwargs)
   return result, time.time() - start
 
 
-def _PrintStats(size, size_b, durations):
+def _PrintStats(
+    size: str, size_b: rdfvalue.ByteSize, durations: Sequence[float]
+) -> None:
   durations_ms = np.array(durations) * 1000
   total_s = sum(durations)
   qps = len(durations) / total_s
@@ -80,7 +91,12 @@ def _PrintStats(size, size_b, durations):
   )
 
 
-def _RunBenchmark(bs, size_b, duration_sec, random_fd):
+def _RunBenchmark(
+    bs: blob_store.BlobStore,
+    size_b: rdfvalue.ByteSize,
+    duration_sec: int,
+    random_fd: IO[bytes],
+) -> list[float]:
   """Returns a list of runtimes for writes of the given size."""
   start_timestamp = time.time()
   durations = []
@@ -93,7 +109,7 @@ def _RunBenchmark(bs, size_b, duration_sec, random_fd):
   return durations
 
 
-def main(argv):
+def main(argv: Sequence[str]) -> None:
   """Main."""
   del argv  # Unused.
 

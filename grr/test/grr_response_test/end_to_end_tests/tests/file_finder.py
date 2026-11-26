@@ -57,12 +57,16 @@ class TestFileFinderNTFSWindows(test_base.AbstractFileTransferTest):
     return path
 
   def testListing(self):
+    # TODO - Remove once Keramics is enabled by default.
+    runner_args = flows_pb2.FlowRunnerArgs()
+    runner_args.rrg_mode = flows_pb2.FlowRunnerArgs.RrgMode.FORCED
+
     args = self.grr_api.types.CreateFlowArgs("FileFinder")  # pyrefly: ignore[missing-attribute]
     args.paths.append("C:\\*")
     args.action.action_type = args.action.STAT
     args.pathtype = jobs_pb2.PathSpec.NTFS
 
-    f = self.RunFlowAndWait("FileFinder", args=args)
+    f = self.RunFlowAndWait("FileFinder", args=args, runner_args=runner_args)
     results = list(f.ListResults())
     self.assertNotEmpty(results)
 

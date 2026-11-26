@@ -62,26 +62,26 @@ class FleetspeakGRRFEServerTest(flow_test_lib.FlowTestsBaseclass):
 
     session_id = "%s/%s" % (client_id, flow_id)
     fs_client_id = fleetspeak_utils.GRRIDToFleetspeakID(client_id)
-    grr_messages = []
+
+    messages = jobs_pb2.MessageList()
     for i in range(1, 10):
-      grr_message = rdf_flows.GrrMessage(
-          request_id=1,
-          response_id=i + 1,
-          session_id=session_id,
-          payload=rdfvalue.RDFInteger(i),
-      )
-      grr_messages.append(grr_message)
-    packed_messages = rdf_flows.PackedMessageList()
-    communicator.Communicator.EncodeMessageList(
-        rdf_flows.MessageList(job=grr_messages), packed_messages
-    )
+      grr_message = messages.job.add()
+      grr_message.request_id = 1
+      grr_message.response_id = i + 1
+      grr_message.session_id = session_id
+      grr_message.args = str(i).encode("ascii")
+      grr_message.args_rdf_name = "RDFInteger"
+
+    packed_messages = jobs_pb2.PackedMessageList()
+    communicator.PackMessageList(messages, packed_messages)
+
     fs_message = fs_common_pb2.Message(
         message_type="MessageList",
         source=fs_common_pb2.Address(
             client_id=fs_client_id, service_name=FS_SERVICE_NAME
         ),
     )
-    fs_message.data.Pack(packed_messages.AsPrimitiveProto())
+    fs_message.data.Pack(packed_messages)
     fs_message.validation_info.tags["foo"] = "bar"
 
     with test_lib.FakeTime(now):

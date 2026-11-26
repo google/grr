@@ -1,6 +1,9 @@
 #!/usr/bin/env python
 """A simple wrapper to send email alerts."""
 
+from __future__ import annotations
+
+from collections.abc import Iterable, Mapping
 from email import encoders
 from email.mime.base import MIMEBase
 from email.mime.multipart import MIMEMultipart
@@ -23,11 +26,13 @@ class EmailNotSentError(Exception):
 class EmailAlerterBase(metaclass=MetaclassRegistry):
   """The email alerter base class."""
 
-  def RemoveHtmlTags(self, data):
+  def RemoveHtmlTags(self, data: str) -> str:
     p = re.compile(r"<.*?>")
     return p.sub("", data)
 
-  def AddEmailDomain(self, address):
+  def AddEmailDomain(
+      self, address: str | rdf_standard.DomainEmailAddress
+  ) -> str:
     suffix = config.CONFIG["Logging.domain"]
     if isinstance(address, rdf_standard.DomainEmailAddress):
       address = str(address)
@@ -35,30 +40,50 @@ class EmailAlerterBase(metaclass=MetaclassRegistry):
       return address + "@%s" % suffix
     return address
 
-  def SplitEmailsAndAppendEmailDomain(self, address_list):
+  def SplitEmailsAndAppendEmailDomain(
+      self,
+      address_list: (
+          str
+          | rdf_standard.DomainEmailAddress
+          | Iterable[str | rdf_standard.DomainEmailAddress]
+      ),
+  ) -> list[str]:
     """Splits a string of comma-separated emails, appending default domain."""
     result = []
     # Process email addresses, and build up a list.
     if isinstance(address_list, rdf_standard.DomainEmailAddress):
-      address_list = [str(address_list)]
+      addresses: Iterable[str | rdf_standard.DomainEmailAddress] = [
+          str(address_list)
+      ]
     elif isinstance(address_list, str):
-      address_list = [address for address in address_list.split(",") if address]
-    for address in address_list:
+      addresses = [address for address in address_list.split(",") if address]
+    else:
+      addresses = address_list
+    for address in addresses:
       result.append(self.AddEmailDomain(address))
     return result
 
   def SendEmail(
       self,
-      to_addresses,
-      from_address,
-      subject,
-      message,
-      attachments=None,
-      is_html=True,
-      cc_addresses=None,
-      message_id=None,
-      headers=None,
-  ):
+      to_addresses: (
+          str
+          | rdf_standard.DomainEmailAddress
+          | Iterable[str | rdf_standard.DomainEmailAddress]
+      ),
+      from_address: str | rdf_standard.DomainEmailAddress,
+      subject: str,
+      message: str,
+      attachments: Mapping[str, bytes] | None = None,
+      is_html: bool = True,
+      cc_addresses: (
+          str
+          | rdf_standard.DomainEmailAddress
+          | Iterable[str | rdf_standard.DomainEmailAddress]
+          | None
+      ) = None,
+      message_id: str | None = None,
+      headers: Mapping[str, str] | None = None,
+  ) -> None:
     """Sends an email."""
     raise NotImplementedError()
 
@@ -67,16 +92,25 @@ class SMTPEmailAlerter(EmailAlerterBase):
 
   def SendEmail(
       self,
-      to_addresses,
-      from_address,
-      subject,
-      message,
-      attachments=None,
-      is_html=True,
-      cc_addresses=None,
-      message_id=None,
-      headers=None,
-  ):
+      to_addresses: (
+          str
+          | rdf_standard.DomainEmailAddress
+          | Iterable[str | rdf_standard.DomainEmailAddress]
+      ),
+      from_address: str | rdf_standard.DomainEmailAddress,
+      subject: str,
+      message: str,
+      attachments: Mapping[str, bytes] | None = None,
+      is_html: bool = True,
+      cc_addresses: (
+          str
+          | rdf_standard.DomainEmailAddress
+          | Iterable[str | rdf_standard.DomainEmailAddress]
+          | None
+      ) = None,
+      message_id: str | None = None,
+      headers: Mapping[str, str] | None = None,
+  ) -> None:
     """This method sends an email notification.
 
     Args:
@@ -120,14 +154,14 @@ class SMTPEmailAlerter(EmailAlerterBase):
 
     msg["Subject"] = subject
 
-    from_address = self.AddEmailDomain(from_address)
-    to_addresses = self.SplitEmailsAndAppendEmailDomain(to_addresses)
-    cc_addresses = self.SplitEmailsAndAppendEmailDomain(cc_addresses or "")
+    from_addr = self.AddEmailDomain(from_address)
+    to_addrs = self.SplitEmailsAndAppendEmailDomain(to_addresses)
+    cc_addrs = self.SplitEmailsAndAppendEmailDomain(cc_addresses or "")
 
-    msg["From"] = from_address
-    msg["To"] = ",".join(to_addresses)
-    if cc_addresses:
-      msg["CC"] = ",".join(cc_addresses)
+    msg["From"] = from_addr
+    msg["To"] = ",".join(to_addrs)
+    if cc_addrs:
+      msg["CC"] = ",".join(cc_addrs)
 
     if message_id:
       msg.add_header("Message-ID", message_id)
@@ -153,7 +187,7 @@ class SMTPEmailAlerter(EmailAlerterBase):
             config.CONFIG["Worker.smtp_password"],
         )
 
-      s.sendmail(from_address, to_addresses + cc_addresses, msg.as_string())
+      s.sendmail(from_addr, to_addrs + cc_addrs, msg.as_string())
       s.quit()
     except (socket.error, smtplib.SMTPException) as e:
       smtp_server = config.CONFIG["Worker.smtp_server"]
@@ -164,11 +198,11 @@ class SMTPEmailAlerter(EmailAlerterBase):
       ) from e
 
 
-EMAIL_ALERTER = None
+EMAIL_ALERTER: EmailAlerterBase | None = None
 
 
 @utils.RunOnce
-def InitializeEmailAlerterOnce():
+def InitializeEmailAlerterOnce() -> None:
   """Initializes e-mail alerts."""
   global EMAIL_ALERTER
   email_alerter_cls_name = config.CONFIG["Server.email_alerter_class"]

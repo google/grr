@@ -40,7 +40,6 @@ from grr_response_server.databases import db_test_utils
 from grr_response_server.flows.general import collectors
 from grr_response_server.flows.general import file_finder
 from grr_response_server.models import blobs as models_blobs
-from grr_response_server.rdfvalues import objects as rdf_objects
 from grr.test_lib import action_mocks
 from grr.test_lib import artifact_test_lib
 from grr.test_lib import client_test_lib
@@ -139,19 +138,41 @@ class TestArtifactCollectors(
   def testGetArtifact(self):
     """Test we can get a basic artifact."""
     # Dynamically add an ArtifactSource specifying the base path.
-    file_path = os.path.join(self.base_path, "win_hello.exe")
+    tempfile = self.create_tempfile(content=b"FOOBAR")
+
     coll1 = artifact_pb2.ArtifactSource(
         type=artifact_pb2.ArtifactSource.SourceType.FILE,
         attributes=mig_protodict.FromNativeDictToProtoDict(
-            {"paths": [file_path]}
+            {"paths": [tempfile.full_path]}
         ),
     )
     self.fakeartifact.sources.append(coll1)
 
-    self._GetArtifact("FakeArtifact")
+    client_mock = action_mocks.FileFinderClientMock()
+    client_id = self.SetupClient(0, system="Linux")
+
+    flow_test_lib.StartAndRunFlow(
+        collectors.ArtifactCollectorFlow,
+        client_mock,
+        creator=self.test_username,
+        client_id=client_id,
+        flow_args=flows_pb2.ArtifactCollectorFlowArgs(
+            artifact_list=["FakeArtifact"],
+            use_raw_filesystem_access=False,
+        ),
+    )
+
+    components = tempfile.full_path.strip("/").split("/")
+    fd = file_store.OpenFile(
+        db.ClientPath.OS(
+            client_id=client_id,
+            components=components,
+        )
+    )
+    self.assertEqual(fd.read(), b"FOOBAR")
 
   def testArtifactUpload(self):
-    file_path = os.path.join(self.base_path, "win_hello.exe")
+    tempfile = self.create_tempfile(content=b"FOOBAR")
 
     artifact_source = """
   name: ArtifactFromSource
@@ -166,7 +187,7 @@ class TestArtifactCollectors(
       attributes:
         paths:
           - %s
-""" % file_path
+""" % tempfile.full_path
 
     artifact_obj = artifact_registry.ArtifactsFromYaml(artifact_source)[0]
     artifact_registry.REGISTRY._CheckDirty()
@@ -178,40 +199,28 @@ class TestArtifactCollectors(
     with self.assertRaises(rdf_artifacts.ArtifactNotRegisteredError):
       artifact_registry.REGISTRY.GetArtifact("ArtifactFromSource")
 
-    self._GetArtifact("ArtifactFromSource")
-
-  def _GetArtifact(self, artifact_name):
     client_mock = action_mocks.FileFinderClientMock()
     client_id = self.SetupClient(0, system="Linux")
-    file_path = os.path.join(self.base_path, "win_hello.exe")
 
-    artifact_list = [artifact_name]
     flow_test_lib.StartAndRunFlow(
         collectors.ArtifactCollectorFlow,
         client_mock,
         creator=self.test_username,
         client_id=client_id,
         flow_args=flows_pb2.ArtifactCollectorFlowArgs(
-            artifact_list=artifact_list,
+            artifact_list=["ArtifactFromSource"],
             use_raw_filesystem_access=False,
         ),
     )
 
-    fd2 = open(file_path, "rb")
-    fd2.seek(0, 2)
-    expected_size = fd2.tell()
-
-    components = file_path.strip("/").split("/")
+    components = tempfile.full_path.strip("/").split("/")
     fd = file_store.OpenFile(
-        db.ClientPath(
-            client_id,
-            rdf_objects.PathInfo.PathType.OS,
-            components=tuple(components),
+        db.ClientPath.OS(
+            client_id=client_id,
+            components=components,
         )
     )
-    fd.Seek(0, 2)
-    size = fd.Tell()
-    self.assertEqual(size, expected_size)
+    self.assertEqual(fd.read(), b"FOOBAR")
 
   def testRegistryValueArtifact(self):
     client_id = self.SetupClient(0, system="Linux")
@@ -3707,6 +3716,58 @@ class TestArtifactCollectors(
       results = self._RunPathArtifact(client_id, client_mock, ["FakeArtifact"])
       self.assertLen(results, 1)
       self.assertEqual(results[0].pathspec.path, temp_file_path)
+
+  def testInterrogatesClientWithoutKnowledgeBase(self):
+    artifact_registry.REGISTRY.AddDefaultSources()
+    fake_artifact = artifact_registry.REGISTRY.GetArtifact("FakeArtifact")
+    data_store.REL_DB.WriteGRRUser("GRR")
+
+    client_id = db_test_utils.InitializeClient(data_store.REL_DB)
+    startup = jobs_pb2.StartupInfo()
+    startup.client_info.client_name = "GRR"
+    startup.client_info.client_version = 1337
+    data_store.REL_DB.WriteClientStartupInfo(client_id, startup)
+
+    fake_artifact.ClearField("supported_os")
+    fake_artifact.supported_os.append("Linux")
+    fake_artifact.sources.append(
+        artifact_pb2.ArtifactSource(
+            type=artifact_pb2.ArtifactSource.SourceType.PATH,
+            attributes=mig_protodict.FromNativeDictToProtoDict(
+                {"paths": ["/etc/passwd"]}
+            ),
+        )
+    )
+
+    with vfs_test_lib.FakeTestDataVFSOverrider():
+      client_mock = action_mocks.InterrogatedClient()
+      client_mock.InitializeClient(version="14.4", release="Ubuntu")
+
+      flow_id = flow_test_lib.StartAndRunFlow(
+          collectors.ArtifactCollectorFlow,
+          client_mock,
+          creator=self.test_username,
+          client_id=client_id,
+          flow_args=flows_pb2.ArtifactCollectorFlowArgs(
+              artifact_list=["FakeArtifact"],
+          ),
+      )
+
+    flow_store = flows_pb2.ArtifactCollectorFlowStore()
+    self.assertTrue(
+        flow_test_lib.GetFlowStore(client_id, flow_id).Unpack(flow_store)
+    )
+    self.assertEqual(flow_store.knowledge_base.os, "Linux")
+    self.assertEqual(flow_store.knowledge_base.os_major_version, 14)
+    self.assertEqual(flow_store.knowledge_base.os_minor_version, 4)
+
+    results = flow_test_lib.GetUnpackedFlowResults(
+        client_id=client_id,
+        flow_id=flow_id,
+        result_type=jobs_pb2.StatEntry,
+    )
+    self.assertLen(results, 1)
+    self.assertEqual(results[0].pathspec.path, "/etc/passwd")
 
 
 class RelationalTestArtifactCollectors(

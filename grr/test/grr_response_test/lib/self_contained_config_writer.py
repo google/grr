@@ -89,7 +89,6 @@ def main(argv):
   config.CONFIG.Set("API.DefaultRouter", "ApiRootAndNonRootRouter")
 
   config.CONFIG.Set("Server.initialized", True)
-  config.CONFIG.Set("Cron.active", False)
 
   fleetspeak_frontend_port = portpicker.pick_unused_port()
   fleetspeak_admin_port = portpicker.pick_unused_port()

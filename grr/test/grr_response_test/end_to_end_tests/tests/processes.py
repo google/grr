@@ -28,25 +28,18 @@ class TestListProcessesLinux(test_base.EndToEndTest):
 
   def testFilterPID(self):
     args = flows_pb2.ListProcessesArgs()
-    # TODO - By default `filename_regex` is `.` and since it is
-    # not supported by RRG yet, this skips RRG logic entirely. We clear it but
-    # once RRG path support is added for it we can revert back to the default
-    # value.
-    args.filename_regex = ""
     args.pids.append(1)
-    args.pids.append(2)
 
     flow = self.RunFlowAndWait("ListProcesses", args)
 
     results = list(flow.ListResults())
-    self.assertLen(results, 2)
+    self.assertLen(results, 1)
 
     results_by_pid = {result.payload.pid: result.payload for result in results}
     # PID 1 is the init system but this is pluggable so we cannot assert on a
     # specific name.
     self.assertIn(1, results_by_pid)
-    # PID 2 on the other head is guaranteed to be the kernel thread daemon.
-    self.assertEqual(results_by_pid[2].name, "kthreadd")
+    self.assertNotEmpty(results_by_pid[1].name)
 
 
 class TestListProcessesWindows(test_base.EndToEndTest):
@@ -56,10 +49,8 @@ class TestListProcessesWindows(test_base.EndToEndTest):
 
   def testFilterPID(self):
     args = flows_pb2.ListProcessesArgs()
-    # TODO - By default `filename_regex` is `.` and since it is
-    # not supported by RRG yet, this skips RRG logic entirely. We clear it but
-    # once RRG path support is added for it we can revert back to the default
-    # value.
+    # Windows system processes that we lookup here do not have an executable, so
+    # we need to override the default regex (`.`, so "non-empty executable").
     args.filename_regex = ""
     args.pids.append(0)
     args.pids.append(4)
@@ -81,11 +72,6 @@ class TestListProcessesMacos(test_base.EndToEndTest):
 
   def testFilterPID(self):
     args = flows_pb2.ListProcessesArgs()
-    # TODO - By default `filename_regex` is `.` and since it is
-    # not supported by RRG yet, this skips RRG logic entirely. We clear it but
-    # once RRG path support is added for it we can revert back to the default
-    # value.
-    args.filename_regex = ""
     args.pids.append(1)
 
     flow = self.RunFlowAndWait("ListProcesses", args)

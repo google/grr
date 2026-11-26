@@ -3,7 +3,7 @@
 
 from grr_response_server import server_stubs
 
-ACTION_STUB_BY_ID = {
+ACTION_STUB_BY_ID: dict[str, type[server_stubs.ClientActionStub]] = {
     "CollectLargeFile": server_stubs.CollectLargeFile,
     "CheckFreeGRRTempSpace": server_stubs.CheckFreeGRRTempSpace,
     "DeleteGRRTempFiles": server_stubs.DeleteGRRTempFiles,
@@ -51,10 +51,14 @@ ACTION_STUB_BY_ID = {
     "YaraProcessScan": server_stubs.YaraProcessScan,
 }
 
-ID_BY_ACTION_STUB = {stub: name for name, stub in ACTION_STUB_BY_ID.items()}
+ID_BY_ACTION_STUB: dict[type[server_stubs.ClientActionStub], str] = {
+    stub: name for name, stub in ACTION_STUB_BY_ID.items()
+}
 
 
-def RegisterAdditionalTestClientAction(action_cls):
+def RegisterAdditionalTestClientAction(
+    action_cls: type[server_stubs.ClientActionStub],
+) -> None:
   action_name = action_cls.__name__
   if action_name in ACTION_STUB_BY_ID:
     raise ValueError("Action identifier %s already taken." % action_name)

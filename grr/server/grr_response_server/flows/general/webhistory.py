@@ -45,10 +45,6 @@ class CollectBrowserHistory(
 ):
   """Convenience Flow to collect browser history artifacts."""
 
-  friendly_name = "Browser History"
-  category = "/Browser/"
-  behaviours = flow_base.BEHAVIOUR_BASIC
-
   proto_args_type = flows_pb2.CollectBrowserHistoryArgs
   proto_progress_type = flows_pb2.CollectBrowserHistoryProgress
   proto_result_types = (flows_pb2.CollectBrowserHistoryResult,)

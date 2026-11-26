@@ -1,2 +1,3 @@
-include version.ini
-
+include _build_backend.py
+recursive-include grr_response_client *.proto
+recursive-exclude * *.pyc

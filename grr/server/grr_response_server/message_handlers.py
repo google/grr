@@ -1,7 +1,10 @@
 #!/usr/bin/env python
 """Message handlers."""
 
+from collections.abc import Sequence
+
 from grr_response_core.lib import rdfvalue
+from grr_response_server.rdfvalues import objects as rdf_objects
 
 # TODO(amoser): Investigate if we can have a single place (handler_registry.py)
 # where we define all the information needed for running message handlers.
@@ -22,7 +25,9 @@ class MessageHandler(object):
 
   handler_name = ""
 
-  def ProcessMessages(self, msgs):
+  def ProcessMessages(
+      self, msgs: Sequence[rdf_objects.MessageHandlerRequest]
+  ) -> None:
     """This is where messages get processed.
 
     Override in derived classes.

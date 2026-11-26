@@ -4,9 +4,11 @@
 An index of client machines, associating likely identifiers to client IDs.
 """
 
+from __future__ import annotations
+
+from collections.abc import Collection, Iterable, Mapping, Sequence
 import functools
 import operator
-from typing import Collection, Iterable, Mapping, Sequence
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.util import precondition
@@ -17,7 +19,7 @@ from grr_response_server.models import clients as models_clients
 
 def GetClientIDsForHostnames(
     hostnames: Iterable[str],
-) -> Mapping[str, Sequence[str]]:
+) -> Mapping[str, Collection[str]]:
   """Gets all client_ids for a given list of hostnames or FQDNS.
 
   Args:
@@ -37,7 +39,7 @@ def GetClientIDsForHostnames(
       keywords.add("host:%s" % hostname)
   results = index.ReadClientPostingLists(keywords)
 
-  result = {}
+  result: dict[str, Collection[str]] = {}
   for keyword, hits in results.items():
     result[keyword[len("host:") :]] = hits
   return result
@@ -49,16 +51,18 @@ class ClientIndex(object):
   START_TIME_PREFIX = "start_date:"
   START_TIME_PREFIX_LEN = len(START_TIME_PREFIX)
 
-  def _NormalizeKeyword(self, keyword):
+  def _NormalizeKeyword(self, keyword: str) -> str:
     return str(keyword).lower()
 
-  def _AnalyzeKeywords(self, keywords):
+  def _AnalyzeKeywords(
+      self, keywords: Iterable[str]
+  ) -> tuple[rdfvalue.RDFDatetime, list[str]]:
     """Extracts a start time from a list of keywords if present."""
     start_time = max(
         rdfvalue.RDFDatetime.Now() - rdfvalue.Duration.From(180, rdfvalue.DAYS),
         data_store.REL_DB.MinTimestamp(),
     )
-    filtered_keywords = []
+    filtered_keywords: list[str] = []
 
     for k in keywords:
       if k.startswith(self.START_TIME_PREFIX):
@@ -107,7 +111,7 @@ class ClientIndex(object):
 
   def ReadClientPostingLists(
       self, keywords: Iterable[str]
-  ) -> Mapping[str, Sequence[str]]:
+  ) -> Mapping[str, Collection[str]]:
     """Looks up all clients associated with any of the given keywords.
 
     Args:
@@ -123,14 +127,14 @@ class ClientIndex(object):
         filtered_keywords, start_time=start_time
     )
 
-  def AnalyzeClient(self, client: objects_pb2.ClientSnapshot) -> Sequence[str]:
+  def AnalyzeClient(self, client: objects_pb2.ClientSnapshot) -> set[str]:
     """Finds the client_id and keywords for a client.
 
     Args:
       client: A ClientSnapshot object record to find keywords for.
 
     Returns:
-      A Sequence of keywords related to client.
+      A set of keywords related to client.
     """
 
     # Start with a universal keyword, used to find all clients.
@@ -139,9 +143,9 @@ class ClientIndex(object):
     # to do this, i.e., once we have a storage library which can list all
     # clients directly.
 
-    keywords = set(["."])
+    keywords: set[str] = set(["."])
 
-    def TryAppend(prefix, keyword):
+    def TryAppend(prefix: str, keyword: str) -> None:
       precondition.AssertType(prefix, str)
       precondition.AssertType(keyword, str)
       if keyword:
@@ -150,14 +154,14 @@ class ClientIndex(object):
         if prefix:
           keywords.add(prefix + ":" + keyword_string)
 
-    def TryAppendPrefixes(prefix, keyword, delimiter):
+    def TryAppendPrefixes(prefix: str, keyword: str, delimiter: str) -> int:
       TryAppend(prefix, keyword)
       segments = keyword.split(delimiter)
       for i in range(1, len(segments)):
         TryAppend(prefix, delimiter.join(segments[0:i]))
       return len(segments)
 
-    def TryAppendIP(ip):
+    def TryAppendIP(ip: str) -> None:
       TryAppend("ip", ip)
       # IP4v?
       if TryAppendPrefixes("ip", str(ip), ".") == 4:
@@ -165,7 +169,7 @@ class ClientIndex(object):
       # IP6v?
       TryAppendPrefixes("ip", str(ip), ":")
 
-    def TryAppendMac(mac):
+    def TryAppendMac(mac: str) -> None:
       TryAppend("mac", mac)
       if len(mac) == 12:
         # If looks like a mac address without ":" symbols, also add the keyword
@@ -211,7 +215,7 @@ class ClientIndex(object):
 
     return keywords
 
-  def AddClient(self, client: objects_pb2.ClientSnapshot):
+  def AddClient(self, client: objects_pb2.ClientSnapshot) -> None:
     """Adds a client to the index.
 
     Args:
@@ -222,7 +226,7 @@ class ClientIndex(object):
 
     data_store.REL_DB.AddClientKeywords(client.client_id, keywords)
 
-  def AddClientLabels(self, client_id: str, labels: Iterable[str]):
+  def AddClientLabels(self, client_id: str, labels: Collection[str]) -> None:
     self.MultiAddClientLabels([client_id], labels)
 
   def MultiAddClientLabels(
@@ -245,7 +249,7 @@ class ClientIndex(object):
 
     data_store.REL_DB.MultiAddClientKeywords(client_ids, keywords)
 
-  def RemoveAllClientLabels(self, client_id: str):
+  def RemoveAllClientLabels(self, client_id: str) -> None:
     """Removes all labels for a given client.
 
     Args:
@@ -256,7 +260,7 @@ class ClientIndex(object):
     )
     self.RemoveClientLabels(client_id, labels_to_remove)
 
-  def RemoveClientLabels(self, client_id: str, labels: Iterable[str]):
+  def RemoveClientLabels(self, client_id: str, labels: Iterable[str]) -> None:
     """Removes all labels for a given client.
 
     Args:

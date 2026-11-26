@@ -4,7 +4,9 @@
 We can schedule a new flow for a specific client.
 """
 
+from collections.abc import Sequence
 import logging
+from typing import Any
 
 from absl import app
 from absl import flags
@@ -54,7 +56,7 @@ _VERSION = flags.DEFINE_bool(
 )
 
 
-def main(argv):
+def main(argv: Sequence[str]) -> None:
   """Main."""
   del argv  # Unused.
 
@@ -73,7 +75,7 @@ def main(argv):
 
   fleetspeak_connector.Init()
 
-  locals_vars = {
+  locals_vars: dict[str, Any] = {
       "__name__": "GRR Console",
   }
 

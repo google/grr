@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 import collections
+from collections.abc import Iterator
 
 from absl.testing import absltest
 
@@ -81,7 +82,7 @@ class AssertIterableTypeTest(absltest.TestCase):
 
   def testGeneratorIsNotIterable(self):
 
-    def Generator():
+    def Generator() -> Iterator[int]:
       yield 1
       yield 2
       yield 3

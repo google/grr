@@ -7,15 +7,13 @@ from collections.abc import ByteString, Iterator, Sequence
 import copy
 import functools
 import logging
-import struct
-from typing import Optional, TypeVar, cast
+from typing import Any, Optional, TypeVar
 
 from google.protobuf import message as proto2_message
 from google.protobuf import text_format
 
 from google.protobuf import any_pb2
 from google.protobuf import wrappers_pb2
-from grr_response_core import _semantic
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import registry
 from grr_response_core.lib import serialization
@@ -26,149 +24,11 @@ from grr_response_core.lib.util import precondition
 from grr_response_proto import semantic_pb2
 
 
-# pylint: disable=invalid-name
-VarintEncode = _semantic.varint_encode
-VarintReader = _semantic.varint_decode
-SplitBuffer = _semantic.split_buffer
-# pylint: enable=invalid-name
-
-# These numbers identify the wire type of a protocol buffer value.
-# We use the least-significant TAG_TYPE_BITS bits of the varint-encoded
-# tag-and-type to store one of these WIRETYPE_* constants.
-# These values must match WireType enum in google/protobuf/wire_format.h.
-WIRETYPE_VARINT = 0
-WIRETYPE_FIXED64 = 1
-WIRETYPE_LENGTH_DELIMITED = 2
-
-# We do not support these deprecated wire types any more. Nested protobufs are
-# stored using the normal WIRETYPE_LENGTH_DELIMITED tag.
-WIRETYPE_START_GROUP = 3
-WIRETYPE_END_GROUP = 4
-
-WIRETYPE_FIXED32 = 5
-
-
-def SignedVarintEncode(value):
-  """Encode a signed integer as a signed varint."""
-  if value < 0:
-    value += 1 << 64
-
-  return VarintEncode(value)
-
-
-def SignedVarintReader(buf, pos=0):
-  """A signed 64 bit decoder for signed varints."""
-  result, p = VarintReader(buf, pos)
-  if result > 0x7FFFFFFFFFFFFFFF:
-    result -= 1 << 64
-
-  return (result, p)
-
-
-def _GetOrderedEntries(data):
-  """Gets entries of `RDFProtoStruct` in a well-defined order.
-
-  Args:
-    data: A raw data dictionary of `RDFProtoStruct`.
-
-  Returns:
-    Entries of the structured in a well-defined order.
-  """
-
-  # Sort struct entries by their field tag.
-  def Tag(entry):
-    _, wire_format, type_descriptor = entry
-    if type_descriptor is not None:
-      encoded_tag = type_descriptor.encoded_tag
-    elif wire_format is not None:
-      encoded_tag = wire_format[0]
-    else:
-      raise AssertionError(
-          "Each entry is expected to have "
-          "either a type_descriptor or wire_format."
-      )
-
-    return VarintReader(encoded_tag, 0)[0]
-
-  return sorted(data.values(), key=Tag)
-
-
-def _SerializeEntries(entries):
-  """Serializes given triplets of python and wire values and a descriptor."""
-
-  output = []
-  for python_format, wire_format, type_descriptor in entries:
-
-    if wire_format is None or (
-        python_format and type_descriptor.IsDirty(python_format)
-    ):
-      wire_format = type_descriptor.ConvertToWireFormat(python_format)
-
-    precondition.AssertIterableType(wire_format, bytes)
-    output.extend(wire_format)
-
-  return b"".join(output)
-
-
-def ReadIntoObject(buff, index, value_obj, length=0):
-  """Reads all tags until the next end group and store in the value_obj."""
-  raw_data = value_obj.GetRawData()
-  count = 0
-
-  # Split the buffer into tags and wire_format representations, then collect
-  # these into the raw data cache.
-  for encoded_tag, encoded_length, encoded_field in SplitBuffer(
-      buff, index=index, length=length
-  ):
-
-    type_info_obj = value_obj.type_infos_by_encoded_tag.get(encoded_tag)
-
-    # Internal format to store parsed fields.
-    wire_format = (encoded_tag, encoded_length, encoded_field)
-
-    # If the tag is not found we need to skip it. Skipped fields are
-    # inaccessible to this actual object, because they have no type info
-    # describing them, however they are still stored in the raw data
-    # representation because they will be re-serialized back. This way
-    # programs which simply read protobufs and write them back do not need to
-    # know all the fields, some of which were defined in a later version of
-    # the application. In order to avoid having to worry about repeated fields
-    # here, we just insert them into the raw data dict with a key which should
-    # be unique.
-    if type_info_obj is None:
-      # Record an unknown field. The key is unique and ensures we do not collide
-      # the dict on repeated fields of the encoded tag. Note that this field is
-      # not really accessible using Get() and does not have a python format
-      # representation. It will be written back using the same wire format it
-      # was read with, therefore does not require a type descriptor at all.
-      field_nr = VarintReader(encoded_tag, 0)[0] >> 3
-      raw_data["_unknown_field_%d" % field_nr] = (None, wire_format, None)
-
-      count += 1
-
-    # Repeated fields are handled especially.
-    elif type_info_obj.__class__ is ProtoList:
-      value_obj.Get(type_info_obj.name).wrapped_list.append((None, wire_format))
-
-    else:
-      # Set the python_format as None so it gets converted lazily on access.
-      raw_data[type_info_obj.name] = (None, wire_format, type_info_obj)
-
-  value_obj.SetRawData(raw_data)
-
-
 class ProtoType(type_info.TypeInfoObject):
   """A specific type descriptor for protobuf fields.
 
   This is an abstract class - do not instantiate directly.
   """
-
-  # Must be overridden by implementations.
-  wire_type: int
-
-  # We cache the serialized version of the tag here so we just need to do a
-  # string comparison instead of decoding the tag each time.
-  encoded_tag = None
 
   # The semantic type of the object described by this descriptor.
   type = None
@@ -188,12 +48,17 @@ class ProtoType(type_info.TypeInfoObject):
   # access.
   set_default_on_access = False
 
+  # Whether the Python representation of this field should be cached on the
+  # owning RDFStruct instance.
+  should_cache = False
+
   def __init__(
       self,
       field_number=None,
       required=False,
       labels=None,
       set_default_on_access=None,
+      has_presence=True,
       **kwargs,
   ):
     super().__init__(**kwargs)
@@ -201,6 +66,7 @@ class ProtoType(type_info.TypeInfoObject):
     # is always None.
     self.field_number: int = field_number  # pyrefly: ignore[bad-assignment]
     self.required = required
+    self.has_presence = has_presence
     if set_default_on_access is not None:
       self.set_default_on_access = set_default_on_access
 
@@ -208,75 +74,42 @@ class ProtoType(type_info.TypeInfoObject):
     if self.field_number is None:
       raise type_info.TypeValueError("No valid field number specified.")
 
-    self.CalculateTags()
-
   def Copy(self, field_number=None):
     """Returns a copy of descriptor, optionally changing the field number."""
     result = copy.copy(self)
     if field_number is not None:
       result.field_number = field_number
-      result.CalculateTags()
 
     return result
 
-  def CalculateTags(self):
-    # In python Varint encoding is expensive so we want to move as much of the
-    # hard work from the Write() methods which are called frequently to the type
-    # descriptor constructor which is only called once (during protobuf
-    # declaration time). Pre-calculating the tag makes for faster serialization.
-    self.tag = self.field_number << 3 | self.wire_type
-    self.encoded_tag = VarintEncode(self.tag)
+  def HasFieldInProto(self, proto: Any) -> bool:
+    if self.has_presence:
+      return proto.HasField(self.name)
+    return bool(getattr(proto, self.name))
 
-  def IsDirty(self, unused_python_format):
-    """Return and clear the dirty state of the python object."""
-    return False
+  def GetFromProto(self, proto: Any, container: Any = None) -> Any:
+    del container  # Unused.
+    return getattr(proto, self.name)
 
-  def ConvertFromWireFormat(self, value, container=None):
-    """Convert value from the internal type to the real type.
+  def SetInProto(self, proto: Any, value: Any) -> None:
+    setattr(proto, self.name, value)
 
-    When data is being parsed, it might be quicker to store it in a different
-    format internally. This is because we must parse all tags, but only decode
-    those fields which are being accessed.
+  def FlushInProto(self, proto: Any, value: Any) -> None:
+    del proto, value  # Unused.
 
-    This function is called when we retrieve a field on access, so we only pay
-    the penalty once, and cache the result.
+  def ConvertFromEncodedValue(
+      self, raw_value: Any, container: Any = None
+  ) -> Any:
+    del container  # Unused.
+    return raw_value
 
-    Internally the wire format is a tuple of:
-      (encoded_tag, optional_encoded_length, encoded_data)
+  def ConvertToEncodedValue(self, value: Any) -> Any:
+    return value
 
-    All items are strings. For length encoded fields, the
-    optional_encoded_length should be the encoded length of encoded_data,
-    otherwise it should be the empty string. The idea is that the encoder simply
-    concatenates all the wire formats together to form the final message without
-    delegating to the field descriptors.
-
-    This function is HOT.
-
-    Args:
-      value: A parameter stored in the wire format for this type.
-      container: The protobuf that contains this field.
-
-    Returns:
-      The parameter encoded in the python format representation.
-    """
-    raise NotImplementedError
-
-  def ConvertToWireFormat(self, value):
-    """Convert the parameter into the internal storage format.
-
-    This function is the inverse of ConvertFromWireFormat(). See the description
-    above for the exact layout of the internal wire format.
-
-    This function is HOT.
-
-    Args:
-      value: A python format representation of the value as coerced by the
-        Validate() method. This is type specific, but always the same.
-
-    Returns:
-      The parameter encoded in the wire format representation.
-    """
-    raise NotImplementedError
+  def CreateDefaultInProto(self, proto: Any, container: Any = None) -> Any:
+    """Creates and attaches the default value directly in proto if supported."""
+    del proto, container  # Unused.
+    return None
 
   def _FormatDescriptionComment(self):
     result = "".join(["\n  // %s\n" % x for x in self.description.splitlines()])
@@ -328,8 +161,6 @@ class ProtoType(type_info.TypeInfoObject):
 class ProtoString(ProtoType):
   """A string encoded in a protobuf."""
 
-  wire_type = WIRETYPE_LENGTH_DELIMITED
-
   # This descriptor describes unicode strings.
   type = rdfvalue.RDFString
 
@@ -363,18 +194,6 @@ class ProtoString(ProtoType):
         )
     )
 
-  def ConvertFromWireFormat(self, value, container=None):
-    """Internally strings are utf8 encoded."""
-    try:
-      return value[2].decode("utf8")
-    except UnicodeDecodeError:
-      raise rdfvalue.DecodeError("Unicode decoding error")
-
-  def ConvertToWireFormat(self, value):
-    """Internally strings are utf8 encoded."""
-    value = value.encode("utf8")
-    return (self.encoded_tag, VarintEncode(len(value)), value)
-
   def Definition(self):
     """Return a string with the definition of this field."""
     return self._FormatDescriptionComment() + self._FormatField()
@@ -391,8 +210,6 @@ class ProtoString(ProtoType):
 
 class ProtoBinary(ProtoType):
   """A binary string encoded in a protobuf."""
-
-  wire_type = WIRETYPE_LENGTH_DELIMITED
 
   # This descriptor describes strings.
   type = rdfvalue.RDFBytes
@@ -415,12 +232,6 @@ class ProtoBinary(ProtoType):
 
     return value
 
-  def ConvertFromWireFormat(self, value, container=None):
-    return value[2]
-
-  def ConvertToWireFormat(self, value):
-    return (self.encoded_tag, VarintEncode(len(value)), value)
-
   def Definition(self):
     """Return a string with the definition of this field."""
     return self._FormatDescriptionComment() + self._FormatField()
@@ -436,9 +247,7 @@ class ProtoBinary(ProtoType):
 
 
 class ProtoUnsignedInteger(ProtoType):
-  """An unsigned VarInt encoded in the protobuf."""
-
-  wire_type = WIRETYPE_VARINT
+  """An unsigned integer encoded in the protobuf."""
 
   # This descriptor describes integers.
   type = rdfvalue.RDFInteger
@@ -448,17 +257,26 @@ class ProtoUnsignedInteger(ProtoType):
     # Integers default to 0 if not specified.
     super().__init__(default=default, **kwargs)
 
-  def ConvertFromWireFormat(self, value, container=None):
-    return VarintReader(value[2], 0)[0]
-
-  def ConvertToWireFormat(self, value):
-    return (self.encoded_tag, b"", VarintEncode(value))
-
   def Validate(self, value, **_):  # pyrefly: ignore[bad-override]
     try:
       return int(value)
     except ValueError:
       raise type_info.TypeValueError("Invalid value %s for Integer" % value)
+
+  def SetInProto(self, proto: Any, value: Any) -> None:
+    # Legacy accelerated.c (PyArg_ParseTuple "K") wrapped negative Python ints
+    # modulo 2^64 into two's-complement uint64 varints. Preserve this behavior
+    # for callers that store pre-1970 values (e.g. NTFS 1601 timestamps) in
+    # uint64 fields until those fields are migrated to int64.
+    if value < 0:
+      value &= 0xFFFFFFFFFFFFFFFF
+    setattr(proto, self.name, value)
+
+  def ConvertToEncodedValue(self, value: Any) -> Any:
+    # Wrap negative ints mod 2^64 to match legacy accelerated.c uint64 encoding.
+    if value < 0:
+      value &= 0xFFFFFFFFFFFFFFFF
+    return value
 
   def _FormatDefault(self):
     if self.GetDefault():
@@ -468,73 +286,44 @@ class ProtoUnsignedInteger(ProtoType):
 
 
 class ProtoSignedInteger(ProtoUnsignedInteger):
-  """A signed VarInt encoded in the protobuf.
-
-  Note: signed VarInts are more expensive than unsigned VarInts.
-  """
+  """A signed integer encoded in the protobuf."""
 
   proto_type_name = "int64"
 
-  def ConvertFromWireFormat(self, value, container=None):
-    return SignedVarintReader(value[2])[0]
+  def SetInProto(self, proto: Any, value: Any) -> None:
+    setattr(proto, self.name, value)
 
-  def ConvertToWireFormat(self, value):
-    return (self.encoded_tag, b"", SignedVarintEncode(value))
+  def ConvertToEncodedValue(self, value: Any) -> Any:
+    return value
 
 
 class ProtoFixed32(ProtoUnsignedInteger):
-  """A 32 bit fixed unsigned integer.
-
-  The wire format is a 4 byte string, while the python type is an int.
-  """
-
-  _size = 4
+  """A 32 bit fixed unsigned integer."""
 
   proto_type_name = "sfixed32"
-  wire_type = WIRETYPE_FIXED32
 
-  def ConvertToWireFormat(self, value):
-    return (self.encoded_tag, b"", struct.pack("<L", int(value)))
+  def SetInProto(self, proto: Any, value: Any) -> None:
+    setattr(proto, self.name, value)
 
-  def ConvertFromWireFormat(self, value, container=None):
-    return struct.unpack("<L", value[2])[0]
+  def ConvertToEncodedValue(self, value: Any) -> Any:
+    return value
 
 
 class ProtoFixed64(ProtoFixed32):
-  _size = 8
-
   proto_type_name = "sfixed64"
-  wire_type = WIRETYPE_FIXED64
-
-  def ConvertToWireFormat(self, value):
-    return (self.encoded_tag, b"", struct.pack("<Q", int(value)))
-
-  def ConvertFromWireFormat(self, value, container=None):
-    return struct.unpack("<Q", value[2])[0]
 
 
 class ProtoFixedU32(ProtoFixed32):
-  """A 32 bit fixed unsigned integer.
-
-  The wire format is a 4 byte string, while the python type is an int.
-  """
+  """A 32 bit fixed unsigned integer."""
 
   proto_type_name = "fixed32"
 
-  def ConvertToWireFormat(self, value):
-    return (self.encoded_tag, b"", struct.pack("<l", int(value)))
-
-  def ConvertFromWireFormat(self, value, container=None):
-    return struct.unpack("<l", value[2])[0]
-
 
 class ProtoFloat(ProtoFixed32):
-  """A float.
-
-  The wire format is a 4 byte string, while the python type is a float.
-  """
+  """A float."""
 
   proto_type_name = "float"
+  should_cache = True
 
   def Validate(self, value, **_):
     if not rdfvalue.RDFInteger.IsNumeric(value):
@@ -542,18 +331,15 @@ class ProtoFloat(ProtoFixed32):
 
     return value
 
-  def ConvertToWireFormat(self, value):
-    return (self.encoded_tag, b"", struct.pack("<f", float(value)))
+  def SetInProto(self, proto: Any, value: Any) -> None:
+    setattr(proto, self.name, float(value))
 
-  def ConvertFromWireFormat(self, value, container=None):
-    return struct.unpack("<f", value[2])[0]
+  def ConvertToEncodedValue(self, value: Any) -> Any:
+    return float(value)
 
 
 class ProtoDouble(ProtoFixed64):
-  """A double.
-
-  The wire format is a 8 byte string, while the python type is a float.
-  """
+  """A double."""
 
   proto_type_name = "double"
 
@@ -563,11 +349,11 @@ class ProtoDouble(ProtoFixed64):
 
     return value
 
-  def ConvertToWireFormat(self, value):
-    return (self.encoded_tag, b"", struct.pack("<d", float(value)))
+  def SetInProto(self, proto: Any, value: Any) -> None:
+    setattr(proto, self.name, float(value))
 
-  def ConvertFromWireFormat(self, value, container=None):
-    return struct.unpack("<d", value[2])[0]
+  def ConvertToEncodedValue(self, value: Any) -> Any:
+    return float(value)
 
 
 @functools.total_ordering
@@ -766,12 +552,22 @@ class ProtoEnum(ProtoSignedInteger):
   def Format(self, value):
     yield self.reverse_enum.get(value, str(value))
 
-  def ConvertToWireFormat(self, value):
-    return (self.encoded_tag, b"", SignedVarintEncode(int(value)))
+  def GetFromProto(self, proto: Any, container: Any = None) -> Any:
+    del container  # Unused.
+    val = getattr(proto, self.name)
+    return EnumNamedValue(val, name=self.reverse_enum.get(val))
 
-  def ConvertFromWireFormat(self, value, container=None):
-    value = SignedVarintReader(value[2], 0)[0]
-    return EnumNamedValue(value, name=self.reverse_enum.get(value))
+  def SetInProto(self, proto: Any, value: Any) -> None:
+    setattr(proto, self.name, int(value))
+
+  def ConvertFromEncodedValue(
+      self, raw_value: Any, container: Any = None
+  ) -> Any:
+    del container  # Unused.
+    return EnumNamedValue(raw_value, name=self.reverse_enum.get(raw_value))
+
+  def ConvertToEncodedValue(self, value: Any) -> Any:
+    return int(value)
 
 
 class ProtoBoolean(ProtoEnum):
@@ -795,29 +591,30 @@ class ProtoBoolean(ProtoEnum):
 
     return bool(int(super().Validate(value)))
 
-  def ConvertFromWireFormat(self, value, container=None):
-    return bool(int(super().ConvertFromWireFormat(value, container=container)))
+  def GetFromProto(self, proto: Any, container: Any = None) -> Any:
+    del container  # Unused.
+    return bool(getattr(proto, self.name))
 
-  def ConvertToWireFormat(self, value):
-    return super().ConvertToWireFormat(bool(value))
+  def SetInProto(self, proto: Any, value: Any) -> None:
+    setattr(proto, self.name, bool(value))
+
+  def ConvertFromEncodedValue(
+      self, raw_value: Any, container: Any = None
+  ) -> Any:
+    del container  # Unused.
+    return bool(raw_value)
+
+  def ConvertToEncodedValue(self, value: Any) -> Any:
+    return bool(value)
 
 
 class ProtoEmbedded(ProtoType):
-  """A field may be embedded as a serialized protobuf.
-
-  Embedding is more efficient than nesting since the emebedded protobuf does not
-  need to be parsed at all, if the user does not access any elements in it.
-
-  Embedded protobufs are simply serialized as bytes using the wire format
-  WIRETYPE_LENGTH_DELIMITED. Hence the wire format is a simple python string,
-  but the python format representation is an RDFProtoStruct.
-  """
-
-  wire_type = WIRETYPE_LENGTH_DELIMITED
+  """A nested protobuf message field."""
 
   # When we access a nested protobuf we automatically create it and assign it to
   # the owner protobuf.
   set_default_on_access = True
+  should_cache = True
 
   def __init__(self, nested=None, **kwargs):
     super().__init__(**kwargs)
@@ -836,7 +633,7 @@ class ProtoEmbedded(ProtoType):
         # Register a late binding callback.
         rdfvalue.RegisterLateBindingCallback(nested, self.LateBind)
 
-    # Or it can be an subclass of RDFProtoStruct.
+    # Or it can be a subclass of RDFProtoStruct.
     elif issubclass(nested, RDFProtoStruct):  # pyrefly: ignore[bad-argument-type]
       self.type = nested
       self.proto_type_name = nested.__name__
@@ -846,17 +643,33 @@ class ProtoEmbedded(ProtoType):
           "Only RDFProtoStructs can be nested, not %s" % nested.__name__
       )
 
-  def ConvertFromWireFormat(self, value, container=None):
-    """The wire format is simply a string."""
-    result = self.type()  # pyrefly: ignore[not-callable]
-    ReadIntoObject(value[2], 0, result)
+  def GetFromProto(self, proto: Any, container: Any = None) -> Any:
+    del container  # Unused.
+    return self.type._FromProto(getattr(proto, self.name))  # pylint: disable=protected-access  # pyrefly: ignore[missing-attribute]
 
-    return result
+  def SetInProto(self, proto: Any, value: Any) -> None:
+    value._Flush()  # pylint: disable=protected-access
+    sub_proto = getattr(proto, self.name)
+    if value._proto is not sub_proto:  # pylint: disable=protected-access
+      sub_proto.CopyFrom(value._proto)  # pylint: disable=protected-access
 
-  def ConvertToWireFormat(self, value):
-    """Encode the nested protobuf into wire format."""
-    output = _SerializeEntries(_GetOrderedEntries(value.GetRawData()))
-    return (self.encoded_tag, VarintEncode(len(output)), output)
+  def FlushInProto(self, proto: Any, value: Any) -> None:
+    value._Flush()  # pylint: disable=protected-access
+    sub_proto = getattr(proto, self.name)
+    if value._proto is not sub_proto:  # pylint: disable=protected-access
+      sub_proto.CopyFrom(value._proto)  # pylint: disable=protected-access
+
+  def CreateDefaultInProto(self, proto: Any, container: Any = None) -> Any:
+    del container  # Unused.
+    sub_proto = getattr(proto, self.name)
+    sub_proto.SetInParent()
+    return self.type._FromProto(sub_proto)  # pylint: disable=protected-access  # pyrefly: ignore[missing-attribute]
+
+  def ConvertFromEncodedValue(
+      self, raw_value: Any, container: Any = None
+  ) -> Any:
+    del container  # Unused.
+    return self.type._FromProto(raw_value)  # pylint: disable=protected-access  # pyrefly: ignore[missing-attribute]
 
   def LateBind(self, target=None):
     """Late binding callback.
@@ -883,18 +696,6 @@ class ProtoEmbedded(ProtoType):
 
     # Register us in our owner.
     self.owner.AddDescriptor(self)  # pyrefly: ignore[missing-attribute]
-
-  def IsDirty(self, proto):
-    """Return and clear the dirty state of the python object."""
-    if proto.dirty:
-      return True
-
-    for python_format, _, type_descriptor in proto.GetRawData().values():
-      if python_format is not None and type_descriptor.IsDirty(python_format):
-        proto.dirty = True
-        return True
-
-    return False
 
   def GetDefault(self, container=None):
     """When a nested proto is accessed, default to an empty one."""
@@ -937,9 +738,8 @@ class ProtoEmbedded(ProtoType):
 class ProtoDynamicEmbedded(ProtoType):
   """An embedded field which has a dynamic type."""
 
-  wire_type = WIRETYPE_LENGTH_DELIMITED
-
   set_default_on_access = True
+  should_cache = True
 
   proto_type_name = "bytes"
 
@@ -957,14 +757,24 @@ class ProtoDynamicEmbedded(ProtoType):
     super().__init__(**kwargs)
     self._type = dynamic_cb
 
-  def ConvertFromWireFormat(self, value, container=None):
-    """The wire format is simply a string."""
-    return serialization.FromBytes(self._type(container), value[2])  # pyrefly: ignore[not-callable]
+  def GetFromProto(self, proto: Any, container: Any = None) -> Any:
+    return serialization.FromBytes(
+        self._type(container), getattr(proto, self.name)  # pyrefly: ignore[not-callable]
+    )
 
-  def ConvertToWireFormat(self, value):
-    """Encode the nested protobuf into wire format."""
-    data = serialization.ToBytes(value)
-    return (self.encoded_tag, VarintEncode(len(data)), data)
+  def SetInProto(self, proto: Any, value: Any) -> None:
+    setattr(proto, self.name, serialization.ToBytes(value))
+
+  def FlushInProto(self, proto: Any, value: Any) -> None:
+    setattr(proto, self.name, serialization.ToBytes(value))
+
+  def ConvertFromEncodedValue(
+      self, raw_value: Any, container: Any = None
+  ) -> Any:
+    return serialization.FromBytes(self._type(container), raw_value)  # pyrefly: ignore[not-callable]
+
+  def ConvertToEncodedValue(self, value: Any) -> Any:
+    return serialization.ToBytes(value)
 
   def Validate(self, value, container=None):
     if self._type is None:
@@ -996,7 +806,7 @@ class ProtoDynamicEmbedded(ProtoType):
 
 
 class ProtoDynamicAnyValueEmbedded(ProtoDynamicEmbedded):
-  """An embedded dynamic field which that is stored as AnyValue struct."""
+  """An embedded dynamic field which is stored as AnyValue struct."""
 
   proto_type_name = "google.protobuf.Any"
 
@@ -1016,43 +826,27 @@ class ProtoDynamicAnyValueEmbedded(ProtoDynamicEmbedded):
       "UInt64Value": rdfvalue.RDFInteger,
   }
 
-  def ConvertFromWireFormat(self, value, container=None):
-    """The wire format is an AnyValue message."""
-    result = AnyValue()
-    ReadIntoObject(value[2], 0, result)
+  def _DecodeAnyProto(self, any_proto, container=None):
     if self._type is not None:
       converted_value = self._type(container)
     else:
-      converted_value = self._TypeFromAnyValue(result)
+      converted_value = self._TypeFromAnyValue(any_proto)
 
     # If one of the protobuf library wrapper classes is used, unwrap the value.
-    if result.type_url.startswith("type.googleapis.com/google.protobuf."):  # pyrefly: ignore[missing-attribute]
+    if any_proto.type_url.startswith("type.googleapis.com/google.protobuf."):
       wrapper_cls = self.__class__.WRAPPER_BY_TYPE[
           converted_value.protobuf_type
       ]
       wrapper_value = wrapper_cls()
-      wrapper_value.ParseFromString(result.value)  # pyrefly: ignore[missing-attribute]
+      wrapper_value.ParseFromString(any_proto.value)
       return converted_value.FromWireFormat(wrapper_value.value)
     else:
       # TODO(user): Type stored in type_url is currently ignored when value
       # is decoded. We should use it to deserialize the value and then check
       # that value type and dynamic type are compatible.
-      return converted_value.FromSerializedBytes(result.value)  # pyrefly: ignore[missing-attribute]
+      return converted_value.FromSerializedBytes(any_proto.value)
 
-  def _TypeFromAnyValue(self, anyvalue):
-    type_str = anyvalue.type_url.split("/")[-1].split(".")[-1]
-
-    if type_str in self.TYPE_BY_WRAPPER:
-      return self.TYPE_BY_WRAPPER[type_str]
-
-    try:
-      return rdfvalue.RDFValue.classes[type_str]
-    except KeyError:
-      raise TypeError("Can't find RDFValue class for type: %s" % type_str)
-
-  def ConvertToWireFormat(self, value):
-    """Encode the nested protobuf into wire format."""
-
+  def _EncodeToAnyProto(self, any_proto, value):
     try:
       primitive_protobuf_type = serialization.GetProtobufType(type(value))
     except ValueError:
@@ -1083,18 +877,41 @@ class ProtoDynamicAnyValueEmbedded(ProtoDynamicEmbedded):
           "Can't convert value %s to a protobuf.Any value." % value
       )
 
-    any_value = AnyValue(type_url=type_name, value=data)
-    output = _SerializeEntries(_GetOrderedEntries(any_value.GetRawData()))
+    any_proto.type_url = type_name
+    any_proto.value = data
 
-    return (self.encoded_tag, VarintEncode(len(output)), output)
+  def GetFromProto(self, proto: Any, container: Any = None) -> Any:
+    return self._DecodeAnyProto(getattr(proto, self.name), container=container)
+
+  def SetInProto(self, proto: Any, value: Any) -> None:
+    self._EncodeToAnyProto(getattr(proto, self.name), value)
+
+  def FlushInProto(self, proto: Any, value: Any) -> None:
+    self._EncodeToAnyProto(getattr(proto, self.name), value)
+
+  def ConvertFromEncodedValue(
+      self, raw_value: Any, container: Any = None
+  ) -> Any:
+    return self._DecodeAnyProto(raw_value, container=container)
+
+  def _TypeFromAnyValue(self, anyvalue):
+    type_str = anyvalue.type_url.split("/")[-1].split(".")[-1]
+
+    if type_str in self.TYPE_BY_WRAPPER:
+      return self.TYPE_BY_WRAPPER[type_str]
+
+    try:
+      return rdfvalue.RDFValue.classes[type_str]
+    except KeyError:
+      raise TypeError("Can't find RDFValue class for type: %s" % type_str)
 
 
 class ProtoAnyValue(ProtoType):
   """A raw Protocol Buffers `Any` type without dynamic typing magic."""
 
-  wire_type = WIRETYPE_LENGTH_DELIMITED
   proto_type_name = "google.protobuf.Any"
   set_default_on_access = True
+  should_cache = True
 
   def GetDefault(self, container=None):
     del container  # Unused.
@@ -1106,16 +923,33 @@ class ProtoAnyValue(ProtoType):
 
     return value
 
-  def ConvertFromWireFormat(self, value, container=None):
+  def GetFromProto(self, proto: Any, container: Any = None) -> Any:
     del container  # Unused.
+    return AnyValue._FromProto(getattr(proto, self.name))  # pylint: disable=protected-access
 
-    return AnyValue.FromSerializedBytes(value[2])
+  def SetInProto(self, proto: Any, value: Any) -> None:
+    value._Flush()  # pylint: disable=protected-access
+    sub_proto = getattr(proto, self.name)
+    if value._proto is not sub_proto:  # pylint: disable=protected-access
+      sub_proto.CopyFrom(value._proto)  # pylint: disable=protected-access
 
-  def ConvertToWireFormat(self, value):
-    precondition.AssertType(value, AnyValue)
+  def FlushInProto(self, proto: Any, value: Any) -> None:
+    value._Flush()  # pylint: disable=protected-access
+    sub_proto = getattr(proto, self.name)
+    if value._proto is not sub_proto:  # pylint: disable=protected-access
+      sub_proto.CopyFrom(value._proto)  # pylint: disable=protected-access
 
-    data = value.SerializeToBytes()
-    return (self.encoded_tag, VarintEncode(len(data)), data)
+  def CreateDefaultInProto(self, proto: Any, container: Any = None) -> Any:
+    del container  # Unused.
+    sub_proto = getattr(proto, self.name)
+    sub_proto.SetInParent()
+    return AnyValue._FromProto(sub_proto)  # pylint: disable=protected-access
+
+  def ConvertFromEncodedValue(
+      self, raw_value: Any, container: Any = None
+  ) -> Any:
+    del container  # Unused.
+    return AnyValue._FromProto(raw_value)  # pylint: disable=protected-access
 
 
 class RepeatedFieldHelper(abc.Sequence):
@@ -1124,86 +958,201 @@ class RepeatedFieldHelper(abc.Sequence):
   This helper is intended to only be constructed from the RDFProto class.
   """
 
-  def __init__(self, wrapped_list=None, type_descriptor=None, container=None):
+  def __init__(
+      self,
+      wrapped_list=None,
+      type_descriptor=None,
+      container=None,
+      proto_field=None,
+  ):
     """Constructor.
 
     Args:
-      wrapped_list: The list within the protobuf which we wrap.
+      wrapped_list: Optional standalone list of Python values (used for slices
+        or detached copies).
       type_descriptor: A type descriptor describing the type of the list
         elements.
       container: The protobuf which contains this repeated field.
+      proto_field: The underlying protobuf repeated field container.
 
     Raises:
       AttributeError: If parameters are not valid.
     """
-    self.dirty = False
-
-    if wrapped_list is None:
-      self.wrapped_list = []
-
-    # TODO(user): type checker doesn't respect the check below
-    # and doesn't use it to infer the type for wrapped_list.
-    elif wrapped_list.__class__ is RepeatedFieldHelper:
-      self.wrapped_list = cast(RepeatedFieldHelper, wrapped_list).wrapped_list
-
-    else:
-      self.wrapped_list = wrapped_list
-
     if type_descriptor is None:
       raise AttributeError("type_descriptor not specified.")
 
     self.type_descriptor = type_descriptor
     self.container = container
+    self._proto_field = proto_field
+    self._cache = {}
+    self._is_embedded = isinstance(
+        type_descriptor, (ProtoEmbedded, ProtoAnyValue)
+    )
+    self._is_dynamic_any = isinstance(
+        type_descriptor, ProtoDynamicAnyValueEmbedded
+    )
+    self.dirty = False
 
-  def IsDirty(self):
-    """Is this repeated item dirty?
+    if proto_field is not None:
+      self._items = None
+    elif wrapped_list is None:
+      self._items = []
+    elif wrapped_list.__class__ is RepeatedFieldHelper:
+      self._items = list(wrapped_list)
+    else:
+      self._items = list(wrapped_list)
 
-    This is used to invalidate any caches that our owners have of us.
+  def _Flush(self):
+    """Flushes any cached/mutated elements back to the underlying proto."""
+    if self._proto_field is None or not self._cache:
+      return
+    td = self.type_descriptor
+    if self._is_embedded:
+      for idx, item in self._cache.items():
+        item._Flush()  # pylint: disable=protected-access
+        sub_proto = self._proto_field[idx]
+        if item._proto is not sub_proto:  # pylint: disable=protected-access
+          sub_proto.CopyFrom(item._proto)  # pylint: disable=protected-access
+    elif self._is_dynamic_any:
+      for idx, item in self._cache.items():
+        td._EncodeToAnyProto(self._proto_field[idx], item)  # pylint: disable=protected-access
+    elif isinstance(td, ProtoDynamicEmbedded):
+      for idx, item in self._cache.items():
+        self._proto_field[idx] = td.ConvertToEncodedValue(item)
+    elif isinstance(td, ProtoRDFValue):
+      for idx, item in self._cache.items():
+        if item.dirty:
+          self._proto_field[idx] = td.ConvertToEncodedValue(item)
 
-    Returns:
-      True if this object is dirty.
-    """
-    if self.dirty:
-      return True
+  def _AttachToProtoField(self, proto_field):
+    """Copies standalone items into proto_field and binds to it."""
+    items = list(self) if self._items is None else self._items
+    del proto_field[:]
+    self._proto_field = proto_field
+    self._items = None
+    self._cache = {}
+    td = self.type_descriptor
+    if self._is_embedded:
+      for item in items:
+        item._Flush()  # pylint: disable=protected-access
+        sub_proto = proto_field.add()
+        sub_proto.CopyFrom(item._proto)  # pylint: disable=protected-access
+    elif self._is_dynamic_any:
+      for idx, item in enumerate(items):
+        sub_proto = proto_field.add()
+        td._EncodeToAnyProto(sub_proto, item)  # pylint: disable=protected-access
+        self._cache[idx] = item
+    else:
+      for idx, item in enumerate(items):
+        proto_field.append(td.ConvertToEncodedValue(item))
+        if td.should_cache:
+          self._cache[idx] = item
 
-    # If any of the items is dirty we are also dirty.
-    for item in self.wrapped_list:
-      if self.type_descriptor.IsDirty(item[0]):
-        self.dirty = True
-        return True
-
-    return False
+  def _Detach(self) -> None:
+    """Detaches this helper and its cached items from self._proto_field."""
+    if self._proto_field is None:
+      return
+    self._Flush()
+    items = []
+    for i in range(len(self._proto_field)):
+      val = self[i]
+      if self._is_embedded and val._proto is self._proto_field[i]:  # pylint: disable=protected-access
+        val._DetachSubtree()  # pylint: disable=protected-access
+      items.append(val)
+    self._items = items
+    self._proto_field = None
+    self._cache.clear()
 
   def Copy(self):
     return RepeatedFieldHelper(
-        wrapped_list=self.wrapped_list[:], type_descriptor=self.type_descriptor
+        wrapped_list=list(self),
+        type_descriptor=self.type_descriptor,
+        container=self.container,
     )
 
-  def Append(self, rdf_value=utils.NotAValue, wire_format=None, **kwargs):
+  def Append(self, rdf_value: Any = utils.NotAValue, **kwargs: Any) -> Any:
     """Append the value to our internal list."""
-    if rdf_value is utils.NotAValue:
-      if wire_format is None:
-        rdf_value = self.type_descriptor.type(**kwargs)
-        self.dirty = True
-      else:
-        rdf_value = None
+    td = self.type_descriptor
+    created_fresh = rdf_value is utils.NotAValue
+    if created_fresh:
+      if self._proto_field is not None and self._is_embedded:
+        cls = AnyValue if isinstance(td, ProtoAnyValue) else td.type
+        if not cls._has_custom_init_or_set_raw_data:  # pylint: disable=protected-access
+          sub_proto = self._proto_field.add()
+          try:
+            rdf_value = cls._FromProto(sub_proto)  # pylint: disable=protected-access
+            for arg, val in kwargs.items():
+              if not hasattr(cls, arg):
+                if arg in cls.late_bound_type_infos:  # pyrefly: ignore[missing-attribute]
+                  raise AttributeError(
+                      "Field %s refers to an as yet undefined Semantic Type."
+                      % cls.late_bound_type_infos[arg]  # pyrefly: ignore[missing-attribute]
+                  )
+                raise AttributeError(
+                    "Proto %s has no field %s" % (cls.__name__, arg)
+                )
+              setattr(rdf_value, arg, val)
+          except Exception:
+            del self._proto_field[-1]
+            raise
+          self._cache[len(self._proto_field) - 1] = rdf_value
+          self.dirty = True
+          return rdf_value
+      rdf_value = td.type(**kwargs)
+      self.dirty = True
     else:
       # Coerce the value to the required type.
       try:
-        rdf_value = self.type_descriptor.Validate(rdf_value, **kwargs)
+        rdf_value = td.Validate(rdf_value, **kwargs)
       except (TypeError, ValueError) as e:
         raise type_info.TypeValueError(
             "Assignment value must be %s, but %s can not be coerced. Error: %s"
-            % (self.type_descriptor.proto_type_name, type(rdf_value), e)
+            % (td.proto_type_name, type(rdf_value), e)
         )
 
-    self.wrapped_list.append((rdf_value, wire_format))
+    if self._proto_field is not None:
+      idx = len(self._proto_field)
+      if self._is_embedded:
+        rdf_value._Flush()  # pylint: disable=protected-access
+        sub_proto = self._proto_field.add()
+        sub_proto.CopyFrom(rdf_value._proto)  # pylint: disable=protected-access
+        if created_fresh:
+          # Freshly created by Append(**kwargs) (e.g. custom __init__ subclass):
+          # cache it so mutations on the returned object flush to sub_proto.
+          self._cache[idx] = rdf_value
+      elif self._is_dynamic_any:
+        sub_proto = self._proto_field.add()
+        td._EncodeToAnyProto(sub_proto, rdf_value)  # pylint: disable=protected-access
+        self._cache[idx] = rdf_value
+      else:
+        self._proto_field.append(td.ConvertToEncodedValue(rdf_value))
+        if td.should_cache:
+          self._cache[idx] = rdf_value
+    else:
+      self._items.append(rdf_value)  # pyrefly: ignore[missing-attribute]
 
+    self.dirty = True
     return rdf_value
 
-  def Pop(self, item):
-    result = self[item]
-    self.wrapped_list.pop(item)
+  def Pop(self, item: int) -> Any:
+    """Removes and returns the item at the given index."""
+    length = len(self)
+    idx = length + item if item < 0 else item
+    result = self[idx]
+    if self._proto_field is not None:
+      if self._is_embedded and result._proto is self._proto_field[idx]:  # pylint: disable=protected-access
+        result = result.Copy()
+      del self._proto_field[idx]
+      new_cache = {}
+      for k, v in self._cache.items():
+        if k < idx:
+          new_cache[k] = v
+        elif k > idx:
+          new_cache[k - 1] = v
+      self._cache = new_cache
+    else:
+      self._items.pop(idx)  # pyrefly: ignore[missing-attribute]
+    self.dirty = True
     return result
 
   def Extend(self, iterable):
@@ -1217,26 +1166,37 @@ class RepeatedFieldHelper(abc.Sequence):
   def __getitem__(self, item):
     # Ensure we handle slices as well.
     if item.__class__ is slice:
-      result = []
-      for i in range(*item.indices(len(self))):
-        result.append(self.wrapped_list[i])
-
+      result = [self[i] for i in range(*item.indices(len(self)))]
       return self.__class__(
-          wrapped_list=result, type_descriptor=self.type_descriptor
+          wrapped_list=result,
+          type_descriptor=self.type_descriptor,
+          container=self.container,
       )
 
-    python_format, wire_format = self.wrapped_list[item]
-    if python_format is None:
-      python_format = self.type_descriptor.ConvertFromWireFormat(
-          wire_format, container=self.container
-      )
+    if self._proto_field is None:
+      assert self._items is not None
+      return self._items[item]
 
-      self.wrapped_list[item] = (python_format, wire_format)
+    length = len(self._proto_field)
+    idx = length + item if item < 0 else item
+    if idx < 0 or idx >= length:
+      raise IndexError("list index out of range")
 
-    return python_format
+    cached = self._cache.get(idx)
+    if cached is not None:
+      return cached
+
+    val = self.type_descriptor.ConvertFromEncodedValue(
+        self._proto_field[idx], container=self.container
+    )
+    if self.type_descriptor.should_cache:
+      self._cache[idx] = val
+    return val
 
   def __len__(self):
-    return len(self.wrapped_list)
+    if self._proto_field is not None:
+      return len(self._proto_field)
+    return len(self._items)  # pyrefly: ignore[bad-argument-type]
 
   def __ne__(self, other):
     return not self == other  # pylint: disable=g-comparison-negation
@@ -1263,7 +1223,7 @@ class RepeatedFieldHelper(abc.Sequence):
 
   def __repr__(self):
     # Skip self.container and self.type_descriptor to avoid cyclical output.
-    return "<{} {!r}>".format(type(self).__name__, self.wrapped_list)
+    return "<{} {!r}>".format(type(self).__name__, list(self))
 
   def Validate(self):
     for x in self:
@@ -1295,6 +1255,7 @@ class ProtoList(ProtoType):
   #  `              V                '
   # TODO(user)
   set_default_on_access = True
+  should_cache = True
 
   def __init__(self, delegate, labels=None, **kwargs):
     self.delegate = delegate
@@ -1312,8 +1273,6 @@ class ProtoList(ProtoType):
     # our own owner's AddDescriptor() method to ensure we re-register.
     self.late_bound = delegate.late_bound
 
-    self.wire_type = delegate.wire_type
-
     super().__init__(
         name=delegate.name,
         description=delegate.description,
@@ -1322,8 +1281,29 @@ class ProtoList(ProtoType):
         labels=labels,
     )
 
-  def IsDirty(self, value):
-    return value.IsDirty()
+  def HasFieldInProto(self, proto: Any) -> bool:
+    return bool(getattr(proto, self.name))
+
+  def GetFromProto(self, proto: Any, container: Any = None) -> Any:
+    return RepeatedFieldHelper(
+        proto_field=getattr(proto, self.name),
+        type_descriptor=self.delegate,
+        container=container,
+    )
+
+  def CreateDefaultInProto(self, proto: Any, container: Any = None) -> Any:
+    return RepeatedFieldHelper(
+        proto_field=getattr(proto, self.name),
+        type_descriptor=self.delegate,
+        container=container,
+    )
+
+  def SetInProto(self, proto: Any, value: Any) -> None:
+    value._AttachToProtoField(getattr(proto, self.name))  # pylint: disable=protected-access
+
+  def FlushInProto(self, proto: Any, value: Any) -> None:
+    del proto  # Unused.
+    value._Flush()  # pylint: disable=protected-access
 
   def GetDefault(self, container=None):
     # By default an empty RepeatedFieldHelper.
@@ -1331,47 +1311,22 @@ class ProtoList(ProtoType):
         type_descriptor=self.delegate, container=container
     )
 
-  def Validate(self, value, **_):  # pyrefly: ignore[bad-override]
+  def Validate(self, value: Any, container: Any = None, **_: Any) -> RepeatedFieldHelper:  # pyrefly: ignore[bad-override]
     """Check that value is a list of the required type."""
-    # Assigning from same kind can allow us to skip verification since all
-    # elements in a RepeatedFieldHelper already are coerced to the delegate
-    # type. In that case we just make a copy. This only works when the value
-    # wraps the same type as us.
     if (
         value.__class__ is RepeatedFieldHelper
         and value.type_descriptor is self.delegate
     ):
       result = value.Copy()
-
-    # Make sure the base class finds the value valid.
+      result.container = container
     else:
       # The value may be a generator here, so we just iterate over it.
-      result = RepeatedFieldHelper(type_descriptor=self.delegate)
+      result = RepeatedFieldHelper(
+          type_descriptor=self.delegate, container=container
+      )
       result.Extend(value)
 
     return result
-
-  def ConvertFromWireFormat(self, value, container=None):
-    result = RepeatedFieldHelper(type_descriptor=self.delegate)
-    for wire_format in SplitBuffer(value[2]):
-      result.wrapped_list.append((None, wire_format))
-
-    return result
-
-  def ConvertToWireFormat(self, value):
-    """Convert to the wire format.
-
-    Args:
-      value: is of type RepeatedFieldHelper.
-
-    Returns:
-      A wire format representation of the value.
-    """
-    output = _SerializeEntries(
-        (python_format, wire_format, value.type_descriptor)
-        for (python_format, wire_format) in value.wrapped_list
-    )
-    return b"", b"", output
 
   def Format(self, value):
     yield "["
@@ -1401,31 +1356,11 @@ class ProtoList(ProtoType):
     # Just relay it up to our owner.
     self.late_bound = False
     self.delegate = field_desc
-    self.wire_type = self.delegate.wire_type
     self.owner.AddDescriptor(self)  # pyrefly: ignore[missing-attribute]
 
 
 class ProtoRDFValue(ProtoType):
   """Serialize arbitrary rdfvalue members.
-
-  RDFValue members can be serialized in a number of different ways according to
-  their preferred protobuf_type member. We map the descriptions in
-  protobuf_type into a suitable protobuf serialization for optimal
-  serialization. We therefore use a delegate type descriptor to best convert
-  from the RDFValue to the wire type. For example, an RDFDatetime is best
-  represented as an integer (number of microseconds since the epoch). Hence
-  RDFDatetime.SerializeToWireFormat() will return an integer, and the delegate
-  will be ProtoUnsignedInteger().
-
-  To convert from the RDFValue python type to the delegate's wire type we
-  therefore need to make two conversions:
-
-  1) Our python format is the RDFValue -> intermediate data store format using
-  RDFValue.SerializeToWireFormat(). This will produce a python object which is
-  the correct python format for the delegate primitive type descriptor.
-
-  2) Use the delegate to obtain the wire format of its own python type
-  (i.e. self.delegate.ConvertToWireFormat())
 
   NOTE: The default value for an RDFValue is None. It is impossible for us to
   know how to instantiate a valid default value without being told by the
@@ -1433,7 +1368,7 @@ class ProtoRDFValue(ProtoType):
   respectively.
   """
 
-  # We delegate encoding/decoding to a primitive field descriptor based on the
+  # We delegate metadata to a primitive field descriptor based on the
   # semantic type's protobuf_type attribute.
   primitive_desc = None
 
@@ -1442,7 +1377,8 @@ class ProtoRDFValue(ProtoType):
   _kwargs = None
 
   type = None
-  wire_type = WIRETYPE_LENGTH_DELIMITED
+  should_cache = True
+  _unsigned_mask: Optional[int] = None
 
   _PROTO_DATA_STORE_LOOKUP = dict(
       bytes=ProtoBinary,
@@ -1477,7 +1413,7 @@ class ProtoRDFValue(ProtoType):
         # The semantic type was found successfully.
         self._GetPrimitiveEncoder()
 
-    # Or it can be an subclass of RDFValue.
+    # Or it can be a subclass of RDFValue.
     elif issubclass(rdf_type, rdfvalue.RDFValue):  # pyrefly: ignore[bad-argument-type]
       self.type = rdf_type
       self.original_proto_type_name = self.proto_type_name = rdf_type.__name__
@@ -1497,19 +1433,18 @@ class ProtoRDFValue(ProtoType):
 
   def _GetPrimitiveEncoder(self):
     """Finds the primitive encoder according to the type's protobuf_type."""
-    # Decide what should the primitive type be for packing the target rdfvalue
-    # into the protobuf and create a delegate descriptor to control that.
-    primitive_cls = self._PROTO_DATA_STORE_LOOKUP[
-        serialization.GetProtobufType(self.type)
-    ]
+    if self.type is None:
+      raise TypeError("Expected type `type`, got `None`.")
+    pb_type = serialization.GetProtobufType(self.type)
+    primitive_cls = self._PROTO_DATA_STORE_LOOKUP[pb_type]
     self.primitive_desc = primitive_cls(**self._kwargs)  # pyrefly: ignore[bad-unpacking]
-
-    # Our wiretype is the same as the delegate's.
-    self.wire_type = self.primitive_desc.wire_type
     self.proto_type_name = self.primitive_desc.proto_type_name
-
-    # Recalculate our tags.
-    self.CalculateTags()
+    if pb_type == "unsigned_integer":
+      self._unsigned_mask = 0xFFFFFFFFFFFFFFFF
+    elif pb_type == "unsigned_integer_32":
+      self._unsigned_mask = 0xFFFFFFFF
+    else:
+      self._unsigned_mask = None
 
   def GetDefault(self, container=None):
     _ = container
@@ -1519,10 +1454,6 @@ class ProtoRDFValue(ProtoType):
     if self.default.__class__ is not self.type:
       self.default = self.Validate(self.default)
     return self.default
-
-  def IsDirty(self, python_format):
-    """Return the dirty state of the python object."""
-    return python_format.dirty
 
   def Definition(self):
     return (
@@ -1539,22 +1470,32 @@ class ProtoRDFValue(ProtoType):
 
     return value
 
-  def ConvertFromWireFormat(self, value, container=None):
-    # Wire format should be compatible with the protobuf_type for the
-    # rdfvalue. We use the delegate primitive descriptor to perform the
-    # conversion.
-    value = self.primitive_desc.ConvertFromWireFormat(  # pyrefly: ignore[missing-attribute]
-        value, container=container
-    )
+  def GetFromProto(self, proto: Any, container: Any = None) -> Any:
+    del container  # Unused.
+    return self.type(getattr(proto, self.name))  # pyrefly: ignore[not-callable]
 
-    result = self.type(value)  # pyrefly: ignore[not-callable]
+  def SetInProto(self, proto: Any, value: Any) -> None:
+    setattr(proto, self.name, self.ConvertToEncodedValue(value))
 
-    return result
+  def FlushInProto(self, proto: Any, value: Any) -> None:
+    if value.dirty:
+      setattr(proto, self.name, self.ConvertToEncodedValue(value))
 
-  def ConvertToWireFormat(self, value):
-    return self.primitive_desc.ConvertToWireFormat(  # pyrefly: ignore[missing-attribute]
-        value.SerializeToWireFormat()
-    )
+  def ConvertFromEncodedValue(
+      self, raw_value: Any, container: Any = None
+  ) -> Any:
+    del container  # Unused.
+    return self.type(raw_value)  # pyrefly: ignore[not-callable]
+
+  def ConvertToEncodedValue(self, value: Any) -> Any:
+    raw = value.SerializeToWireFormat()
+    # Legacy accelerated.c wrapped negative Python ints modulo 2^64 / 2^32 for
+    # unsigned fields (e.g. NTFS 1601 timestamps in uint64 RDFDatetimeSeconds
+    # fields such as StatEntry.st_atime). Keep wrapping here so google.protobuf
+    # does not reject negative values until those fields migrate to int64.
+    if self._unsigned_mask is not None and raw < 0:
+      raw &= self._unsigned_mask
+    return raw
 
   def Copy(self, field_number=None):
     """Returns descriptor copy, optionally changing field number."""
@@ -1599,11 +1540,6 @@ class RDFStructMetaclass(rdfvalue.RDFValueMetaclass):
     super().__init__(name, bases, env_dict)
 
     # TODO(user):pytype: find a more elegant solution (if possible).
-    # cast() doesn't accept forward references and argument annotations
-    # like Type["RDFStruct"] are not accepted by the type checker. The
-    # biggest caveat here is that RDFStruct is defined *with the help*
-    # of RDFStructMetaclass, so its name is not defined at the time
-    # this code is evaluated.
     cls: type["RDFStruct"] = untyped_cls  # pyrefly: ignore[bad-assignment]
     cls.type_infos = type_info.TypeDescriptorSet()
 
@@ -1611,18 +1547,19 @@ class RDFStructMetaclass(rdfvalue.RDFValueMetaclass):
     cls.late_bound_type_infos = {}
 
     cls.type_infos_by_field_number = {}
-    cls.type_infos_by_encoded_tag = {}
 
     # Build the class by parsing an existing protobuf class.
     if cls.protobuf is not None:
       registry.RegisterRDFProtoStruct(cls.__name__, cls)
       rdf_proto2.DefineFromWireFormat(cls, cls.protobuf)
 
-    # Pre-populate the class using the type_infos class member.
-    if cls.type_description is not None:
-      for field_desc in cls.type_description:
-        cls.AddDescriptor(field_desc)
-
+    cls._has_custom_init_or_set_raw_data = (
+        ("__init__" in env_dict and name not in ("RDFStruct", "RDFProtoStruct"))
+        or ("SetRawData" in env_dict and name != "RDFStruct")
+        or any(
+            getattr(b, "_has_custom_init_or_set_raw_data", False) for b in bases
+        )
+    )
     cls._class_attributes = set(dir(cls))  # pylint: disable=protected-access
 
 
@@ -1630,42 +1567,10 @@ T = TypeVar("T")
 
 
 class RDFStruct(rdfvalue.RDFValue, metaclass=RDFStructMetaclass):  # pylint: disable=invalid-metaclass
-  """An RDFValue object which contains fields like a struct.
+  """An RDFValue object backed by a standard google.protobuf message."""
 
-  Struct members contain values such as integers, strings etc. These are stored
-  in an internal data structure.
-
-  A value can be in two states, the wire format is a serialized format closely
-  resembling the state it appears on the wire. The Decoded format is the
-  representation closely representing an internal python type. The idea is that
-  converting from a serialized wire encoding to the wire format is as cheap as
-  possible. Similarly converting from a python object to the python
-  representation is also very cheap.
-
-  Lazy evaluation occurs when we need to obtain the python representation of a
-  decoded field. This allows us to skip the evaluation of complex data.
-
-  For example, suppose we have a protobuf with several "string" fields
-  (i.e. unicode objects). The wire format for a "string" field is a UTF8 encoded
-  binary string, but the python object is a unicode object.
-
-  Normally when parsing the protobuf we can extract the wire format
-  representation very cheaply, but conversion to a unicode object is quite
-  expensive. If the user never access the specific field, we can keep the
-  internal representation in wire format and not convert it to a unicode object.
-  """
-
-  # This can be populated with a type_info.TypeDescriptorSet() object to
-  # initialize the class.
-  type_description = None
-
-  # This class can be defined using the protobuf definition language (e.g. a
-  # .proto file). If defined here, we parse the .proto file for the message with
-  # the exact same class name and add the field descriptions from it.
-  definition = None
-
-  # This class can be defined in terms of an existing annotated regular
-  # protobuf. See RDFProtoStruct.DefineFromWireFormat().
+  # This class must be defined in terms of an existing annotated regular
+  # protobuf. See proto2.DefineFromWireFormat().
   protobuf = None
 
   # This is where the type infos are constructed.
@@ -1674,15 +1579,25 @@ class RDFStruct(rdfvalue.RDFValue, metaclass=RDFStructMetaclass):  # pylint: dis
   # Mark as dirty each time we modify this object.
   dirty = False
 
-  # Stores the raw data here.
-  _data = None
+  # Backing protobuf message and lazy wrapper cache (declared as class
+  # attributes so subclasses with custom __setattr__ such as AttributedDict
+  # recognize them as internal attributes).
+  _proto: Any = None
+  _cache: dict[str, Any] = None  # pyrefly: ignore[bad-assignment]
+  _prev_hash: Optional[int] = None
+
+  _has_custom_init_or_set_raw_data = False
 
   def __init__(self, initializer=None, **kwargs):
     super().__init__()
+    if self.protobuf is None:
+      raise ValueError(
+          "%s must define a `protobuf` class attribute."
+          % self.__class__.__name__
+      )
 
-    # Maintain the order so that parsing and serializing a proto does not change
-    # the serialized form.
-    self._data = {}
+    self._proto = self.protobuf()  # pylint: disable=not-callable
+    self._cache = {}
     self._prev_hash = None
 
     for arg, value in kwargs.items():
@@ -1713,80 +1628,103 @@ class RDFStruct(rdfvalue.RDFValue, metaclass=RDFStructMetaclass):  # pylint: dis
           % (self.__class__.__name__, type(initializer))
       )
 
-  def CopyConstructor(self, other):
-    """Efficiently copy from other into this object.
+  @classmethod
+  def _FromProto(cls, proto):
+    """Creates an instance wrapping an existing protobuf message."""
+    if cls._has_custom_init_or_set_raw_data:
+      instance = cls()
+      if cls.SetRawData is RDFStruct.SetRawData:
+        instance._proto.MergeFrom(proto)  # pylint: disable=protected-access
+        instance.SetRawData(instance._proto)  # pylint: disable=protected-access
+      else:
+        instance.SetRawData(proto)
+      return instance
 
-    Basic RDFStruct objects are fully represented by their internal raw data. We
-    can easily copy it by simply making a direct copy of the wire format of each
-    field, and not preserving the python format. On access in the copy the field
-    will be re-parsed into a python object.
+    instance = cls.__new__(cls)
+    instance._proto = proto  # pylint: disable=protected-access
+    instance._cache = {}  # pylint: disable=protected-access
+    instance._prev_hash = None  # pylint: disable=protected-access
+    instance.dirty = True
+    return instance
 
-    Args:
-      other: An instance of the same type of this class.
-    """
-    self._data = {}
-    for name, (obj, serialized, t_info) in other.GetRawData().items():
-      if serialized is None:
-        serialized = t_info.ConvertToWireFormat(obj)
+  def _Flush(self):
+    """Flushes any cached/mutated sub-objects back to self._proto."""
+    if not self._cache:
+      return
+    for attr, value in list(self._cache.items()):
+      type_descriptor = self.type_infos.get(attr)
+      if type_descriptor is not None:
+        type_descriptor.FlushInProto(self._proto, value)
 
-      self._data[name] = (None, serialized, t_info)
+  def CopyConstructor(self, other: Any) -> None:
+    """Efficiently copy from other into this object."""
+    self.SetRawData(other._CopyRawData())  # pylint: disable=protected-access
+
+  def _DetachSubtree(self) -> None:
+    """Detaches self._proto and all cached descendants into standalone copies."""
+    new_proto = self._CopyRawData()
+    for attr, cached_val in list(self._cache.items()):
+      type_descriptor = self.type_infos.get(attr)
+      if (
+          isinstance(type_descriptor, (ProtoEmbedded, ProtoAnyValue))
+          and isinstance(cached_val, RDFStruct)
+          and cached_val._proto is getattr(self._proto, attr)  # pylint: disable=protected-access
+      ):
+        cached_val._DetachSubtree()  # pylint: disable=protected-access
+      elif isinstance(cached_val, RepeatedFieldHelper):
+        cached_val._Detach()  # pylint: disable=protected-access
+    self._proto = new_proto
+    self._cache.clear()
+
+  def _DetachCachedEmbedded(self, attr: str, type_descriptor: Any) -> None:
+    """Detaches a cached embedded wrapper before its backing submessage is mutated."""
+    old_cached = self._cache.pop(attr, None)
+    if (
+        old_cached is not None
+        and isinstance(type_descriptor, (ProtoEmbedded, ProtoAnyValue))
+        and old_cached._proto is getattr(self._proto, attr)  # pylint: disable=protected-access
+    ):
+      old_cached._DetachSubtree()  # pylint: disable=protected-access
+    elif isinstance(old_cached, RepeatedFieldHelper):
+      old_cached._Detach()  # pylint: disable=protected-access
 
   def Clear(self):
     """Clear all the fields."""
-    self._data = {}
+    for attr in list(self._cache):
+      type_descriptor = self.type_infos.get(attr)
+      if type_descriptor is not None:
+        self._DetachCachedEmbedded(attr, type_descriptor)
+    self._proto.Clear()
+    self._cache.clear()
+    self.dirty = True
 
   def HasField(self, field_name):
     """Checks if the field exists."""
-    return field_name in self._data  # pyrefly: ignore[not-iterable]
+    if field_name in self._cache:
+      return True
+    type_descriptor = self.type_infos.get(field_name)
+    if type_descriptor is None:
+      return False
+    return type_descriptor.HasFieldInProto(self._proto)
 
   def _CopyRawData(self):
-    new_raw_data = {}
-
-    # We need to copy all entries in _data. Those entries are tuples of
-    # - an object (if it has already been deserialized)
-    # - the serialized object (if it has been serialized)
-    # - the type_info.
-    # To copy this, it's easiest to just copy the serialized object if it
-    # exists. We have to make sure though that the object is not a protobuf.
-    # If it is, someone else might have changed the subobject and the
-    # serialization is not accurate anymore. This is indicated by the dirty
-    # flag. Type_infos can be just copied by reference.
-    for name, (obj, serialized, t_info) in self._data.items():  # pyrefly: ignore[missing-attribute]
-      if serialized is None:
-        obj = copy.copy(obj)
-      else:
-        try:
-          if t_info.IsDirty(obj):
-            obj, serialized = copy.copy(obj), None
-          else:
-            obj = None
-        except AttributeError:
-          obj = None
-
-      new_raw_data[name] = (obj, serialized, t_info)
-    return new_raw_data
+    self._Flush()
+    assert self.protobuf is not None
+    new_proto = self.protobuf()  # pylint: disable=not-callable
+    new_proto.CopyFrom(self._proto)
+    return new_proto
 
   def Copy(self: T) -> T:
     """Make an efficient copy of this protobuf."""
-    result = self.__class__()
-    result.SetRawData(self._CopyRawData())  # pyrefly: ignore[missing-attribute]
-    return result
+    return self.__class__._FromProto(self._CopyRawData())  # pylint: disable=protected-access  # pyrefly: ignore[missing-attribute]
 
   def __deepcopy__(self, memo):
-    result = self.__class__()
-    result.SetRawData(copy.deepcopy(self._data, memo))
-
-    return result
+    del memo  # Unused.
+    return self.Copy()
 
   def GetRawData(self):
-    """Retrieves the raw python representation of the object.
-
-    External users should not make use of the internal raw data structures.
-
-    Returns:
-      the raw python object representation (a dict).
-    """
-    return self._data
+    """Retrieves a copy of the underlying protobuf representation."""
+    return self._CopyRawData()
 
   def ListSetFields(self):
     """Iterates over the fields which are actually set.
@@ -1795,33 +1733,53 @@ class RDFStruct(rdfvalue.RDFValue, metaclass=RDFStructMetaclass):  # pylint: dis
       a tuple of (type_descriptor, value) for each field which is set.
     """
     for type_descriptor in self.type_infos:
-      if type_descriptor.name in self._data:  # pyrefly: ignore[not-iterable]
+      if self.HasField(type_descriptor.name):
         yield type_descriptor, self.Get(type_descriptor.name)
 
   def SetRawData(self, data):
-    self._data = data
+    self._proto = data
+    self._cache = {}
     self.dirty = True
 
   def SerializeToBytes(self):
-    return _SerializeEntries(_GetOrderedEntries(self._data))
+    self._Flush()
+    return self._proto.SerializeToString()
 
   @classmethod
   def FromSerializedBytes(cls, value: bytes):
     precondition.AssertType(value, bytes)
-    instance = cls()
+    if cls.protobuf is None:
+      raise ValueError(
+          "%s must define a `protobuf` class attribute." % cls.__name__
+      )
+    if cls._has_custom_init_or_set_raw_data:
+      instance = cls()
+      try:
+        instance._proto.MergeFromString(value)  # pylint: disable=protected-access
+      except proto2_message.DecodeError as e:
+        logging.error(
+            "Error parsing %s. %d bytes, extract: %r",
+            cls.__name__,
+            len(value),
+            value[:1000],
+        )
+        raise rdfvalue.DecodeError(str(e)) from e
+      instance.SetRawData(instance._proto)  # pylint: disable=protected-access
+      return instance
 
+    proto = cls.protobuf()  # pylint: disable=not-callable
     try:
-      ReadIntoObject(value, 0, instance)
-    except ValueError:
+      proto.ParseFromString(value)
+    except proto2_message.DecodeError as e:
       logging.error(
-          "Error in ReadIntoObject. %d bytes, extract: %r",
+          "Error parsing %s. %d bytes, extract: %r",
+          cls.__name__,
           len(value),
           value[:1000],
       )
-      raise
+      raise rdfvalue.DecodeError(str(e)) from e
 
-    instance.dirty = True
-    return instance
+    return cls._FromProto(proto)
 
   @classmethod
   def FromWireFormat(cls, value):
@@ -1835,18 +1793,16 @@ class RDFStruct(rdfvalue.RDFValue, metaclass=RDFStructMetaclass):  # pylint: dis
       return NotImplemented
 
     # Compare all fields set in `self` or `other`, skipping only fields that
-    # are unset in both `self` and `other`. We deliberately check fields that
-    # are set in one class and not in the other. This allows RDFStructs to be
-    # considered equal, when one has a field set to its default value and the
-    # other has the field unset (where .Get implicitly returns the default
-    # value then).
-    for field in set(self.GetRawData()) | set(other.GetRawData()):
+    # are unset in both `self` and `other`. This allows RDFStructs to be
+    # considered equal when one has a field set to its default value and the
+    # other has the field unset.
+    fields = set(self._cache) | set(other._cache)  # pylint: disable=protected-access
+    for field_desc, _ in self._proto.ListFields():
+      fields.add(field_desc.name)
+    for field_desc, _ in other._proto.ListFields():  # pylint: disable=protected-access
+      fields.add(field_desc.name)
 
-      # Deserializing Protobuf of newer versions can put `_unknown_field_{n}` in
-      # _data. This is a special field without type descriptor, thus raising an
-      # error in Get(). To follow Protobuf semantics, ignore fields that do not
-      # have a type descriptor.
-      # pylint: disable=unsupported-membership-test
+    for field in fields:
       if field not in self.type_infos:
         continue
 
@@ -1865,20 +1821,19 @@ class RDFStruct(rdfvalue.RDFValue, metaclass=RDFStructMetaclass):  # pylint: dis
     """Format a message in a human readable way."""
     yield "message %s {" % self.__class__.__name__
 
-    for k, (python_format, wire_format, type_descriptor) in sorted(
-        self.GetRawData().items()
-    ):
-      if python_format is None:
-        python_format = type_descriptor.ConvertFromWireFormat(
-            wire_format, container=self
-        )
+    fields = set(self._cache)
+    for field_desc, _ in self._proto.ListFields():
+      fields.add(field_desc.name)
 
-      # Skip printing of unknown fields.
-      if isinstance(k, str):
-        prefix = "{} :".format(k)
-        for line in type_descriptor.Format(python_format):
-          yield " %s %s" % (prefix, line)
-          prefix = ""
+    for k in sorted(fields):
+      type_descriptor = self.type_infos.get(k)
+      if type_descriptor is None:
+        continue
+      python_format = self.Get(k, allow_set_default=False)
+      prefix = "{} :".format(k)
+      for line in type_descriptor.Format(python_format):
+        yield " %s %s" % (prefix, line)
+        prefix = ""
 
     yield "}"
 
@@ -1892,17 +1847,35 @@ class RDFStruct(rdfvalue.RDFValue, metaclass=RDFStructMetaclass):  # pylint: dis
   def _Set(self, value, type_descriptor):
     """Validate the value and set the attribute with it."""
     attr = type_descriptor.name
-    prev_value = self.Get(attr, allow_set_default=False)
+    prev_value = None
+    if self._prev_hash is not None:
+      prev_value = self.Get(attr, allow_set_default=False)
 
     # A value of None means we clear the field.
     if value is None:
-      self._data.pop(attr, None)  # pyrefly: ignore[missing-attribute]
+      self._DetachCachedEmbedded(attr, type_descriptor)
+      self._proto.ClearField(attr)
     else:
       # Validate the value and obtain the python format representation.
       value = type_descriptor.Validate(value, container=self)
-
-      # Store the lazy value object.
-      self._data[attr] = (value, None, type_descriptor)  # pyrefly: ignore[unsupported-operation]
+      if isinstance(type_descriptor, (ProtoEmbedded, ProtoAnyValue)):
+        # Flush value before detaching/copying in case value is a submessage
+        # inside self._proto.<attr> (e.g. a.nested = a.nested.nested).
+        value._Flush()  # pylint: disable=protected-access
+        src_proto = value._proto  # pylint: disable=protected-access
+        sub_proto = getattr(self._proto, attr)
+        if src_proto is not sub_proto:
+          tmp_proto = value.protobuf()
+          tmp_proto.CopyFrom(src_proto)
+          self._DetachCachedEmbedded(attr, type_descriptor)
+          sub_proto.CopyFrom(tmp_proto)
+        self._cache[attr] = value
+      else:
+        type_descriptor.SetInProto(self._proto, value)
+        if type_descriptor.should_cache:
+          self._cache[attr] = value
+        else:
+          self._cache.pop(attr, None)
 
     # Make sure to invalidate our parent's cache if needed.
     self.dirty = True
@@ -1950,32 +1923,37 @@ class RDFStruct(rdfvalue.RDFValue, metaclass=RDFStructMetaclass):  # pylint: dis
     Returns:
       The attribute's value, or the attribute's type's default value, if unset.
     """
-    entry = self._data.get(attr)  # pyrefly: ignore[missing-attribute]
-    # We don't have this field, try the defaults.
-    if entry is None:
-      type_descriptor = self._GetTypeDescriptor(attr)
-      default = type_descriptor.GetDefault(container=self)
+    cached = self._cache.get(attr)
+    if cached is not None:
+      return cached
 
+    type_descriptor = self._GetTypeDescriptor(attr)
+
+    if not type_descriptor.HasFieldInProto(self._proto):
+      if allow_set_default and type_descriptor.set_default_on_access:
+        created = type_descriptor.CreateDefaultInProto(
+            self._proto, container=self
+        )
+        if created is not None:
+          if type_descriptor.should_cache:
+            self._cache[attr] = created
+          self.dirty = True
+          return created
+
+      default = type_descriptor.GetDefault(container=self)
       if default is None:
-        return
+        return None
 
       # Assign the default value now.
       if allow_set_default and type_descriptor.set_default_on_access:
-        default = self.Set(attr, default)
+        default = self._Set(default, type_descriptor)
 
       return default
 
-    python_format, wire_format, type_descriptor = entry
-
-    # Decode on demand and cache for next time.
-    if python_format is None:
-      python_format = type_descriptor.ConvertFromWireFormat(
-          wire_format, container=self
-      )
-
-      self._data[attr] = (python_format, wire_format, type_descriptor)  # pyrefly: ignore[unsupported-operation]
-
-    return python_format
+    value = type_descriptor.GetFromProto(self._proto, container=self)
+    if type_descriptor.should_cache:
+      self._cache[attr] = value
+    return value
 
   def ClearFieldsWithLabel(self, label, exceptions=None):
     exceptions = exceptions or []
@@ -2035,28 +2013,15 @@ class EnumContainer:
 
 
 class RDFProtoStruct(RDFStruct):
-  """An RDFStruct which uses protobufs for serialization.
-
-  This implementation is faster than the standard protobuf library.
-  """
+  """An RDFStruct which uses standard protobufs for serialization."""
 
   # TODO(user): if a semantic proto defines a field with the same name as
   # these class variables under some circumstances the proto default value will
   # be set incorrectly.  Figure out a way to make this safe.
 
-  shortest_encoded_tag = 0
-  longest_encoded_tag = 0
-
-  # If set to a standard proto2 generated class, we introspect it and extract
-  # type descriptors from it. This allows this implementation to use an
-  # annotated .proto file to define semantic types.
+  # Must be set to a standard proto2 generated class; we introspect it and
+  # extract type descriptors from it.
   protobuf = None
-
-  # This mapping is used to provide concrete implementations for semantic types
-  # annotated in the .proto file. This is a dict with keys being the semantic
-  # names, and values being the concrete implementations for these types.
-
-  # All RDFValue classes used by this proto have to be specified here.
 
   # Recorded dependencies - used by update_rdf_deps script to update
   # dependencies setting.
@@ -2066,10 +2031,11 @@ class RDFProtoStruct(RDFStruct):
     super().__init__(initializer, **kwargs)
 
   def AsPrimitiveProto(self):
-    """Return an old style protocol buffer object."""
+    """Return a standard protocol buffer object."""
     if self.protobuf:
+      self._Flush()
       result = self.protobuf()
-      result.ParseFromString(self.SerializeToBytes())
+      result.CopyFrom(self._proto)
       return result
 
   def AsDict(self):
@@ -2160,7 +2126,7 @@ class RDFProtoStruct(RDFStruct):
         return value
 
   def __bool__(self):
-    return bool(self._data)
+    return bool(self._cache) or bool(self._proto.ListFields())
 
   @classmethod
   def EmitProto(cls):
@@ -2191,10 +2157,10 @@ class RDFProtoStruct(RDFStruct):
     """Parse this object from a text representation."""
     if cls.protobuf is None:
       raise ValueError("protobuf must be set on cls.")
-    tmp = cls.protobuf()  # pylint: disable=not-callable
-    text_format.Merge(text, tmp)
+    proto = cls.protobuf()  # pylint: disable=not-callable
+    text_format.Parse(text, proto)
 
-    return cls.FromSerializedBytes(tmp.SerializeToString())
+    return cls._FromProto(proto)
 
   @classmethod
   def AddDescriptor(cls, field_desc):
@@ -2222,30 +2188,30 @@ class RDFProtoStruct(RDFStruct):
           % (field_desc.field_number, field_desc.name, cls.__name__)
       )
 
-    # We store an index of the type info by tag values to speed up parsing.
     cls.type_infos_by_field_number[field_desc.field_number] = field_desc  # pyrefly: ignore[missing-attribute]
-    cls.type_infos_by_encoded_tag[field_desc.encoded_tag] = field_desc  # pyrefly: ignore[missing-attribute]
 
     cls.type_infos.Append(field_desc)
     cls.late_bound_type_infos.pop(field_desc.name, None)  # pyrefly: ignore[missing-attribute]
 
     # Add direct accessors only if the class does not already have them.
     if not hasattr(cls, field_desc.name):
-      # This lambda is a class method so pylint: disable=protected-access
-      # This is much faster than __setattr__/__getattr__
+      # This is much faster than __setattr__/__getattr__.
       setattr(
           cls,
           field_desc.name,
           property(
               lambda self: self.Get(field_desc.name),
-              lambda self, x: self._Set(x, field_desc),
+              lambda self, x: self._Set(x, field_desc),  # pylint: disable=protected-access
               None,
               field_desc.description,
           ),
       )
 
   def UnionCast(self):
-    union_field = getattr(self, self.union_field)  # pyrefly: ignore[missing-attribute]
+    union_field_name: Optional[str] = getattr(self, "union_field", None)
+    if not union_field_name:
+      raise AttributeError("union_field not initialized.")
+    union_field = getattr(self, union_field_name)
     cast_field_name = str(union_field).lower()
 
     set_fields = set(

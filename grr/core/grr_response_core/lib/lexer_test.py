@@ -2,6 +2,8 @@
 # Copyright 2011 Google Inc. All Rights Reserved.
 """Tests the query lexer."""
 
+from collections.abc import Sequence
+
 from absl import app
 
 from grr_response_core.lib import lexer
@@ -72,7 +74,7 @@ or 'file name' contains "foo" and date before "2011-10" """).Parse()
       self.assertRaises(lexer.ParseError, parser.Parse)
 
 
-def main(argv):
+def main(argv: Sequence[str]) -> None:
   test_lib.main(argv)
 
 

@@ -52,7 +52,7 @@ class ColabTestMixin(object):
 
     cls._server_thread.Stop()
 
-    _api._API = None  # pylint: disable=protected-access  # pyrefly: ignore[bad-assignment]
+    _api._API = None  # pylint: disable=protected-access
 
 
 class ColabE2ETest(client_action_test_lib.WithAllClientActionsMixin,

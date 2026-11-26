@@ -1,6 +1,10 @@
 #!/usr/bin/env python
 """rdf value representation for artifact collector parameters."""
 
+from __future__ import annotations
+
+from grr_response_proto import artifact_pb2
+
 
 class ConditionError(Exception):
   """An invalid artifact condition was specified."""
@@ -15,7 +19,9 @@ class ArtifactDefinitionError(Exception):
     cause: An optional exception that triggered the exception.
   """
 
-  def __init__(self, target, details, cause=None):
+  def __init__(
+      self, target: object, details: str, cause: Exception | str | None = None
+  ):
     message = "%s: %s" % (target, details)
     if cause:
       message += ": %s" % cause
@@ -32,7 +38,12 @@ class ArtifactSyntaxError(ArtifactDefinitionError):
     cause: An optional exception that triggered the syntax error.
   """
 
-  def __init__(self, artifact, details, cause=None):
+  def __init__(
+      self,
+      artifact: artifact_pb2.Artifact,
+      details: str,
+      cause: Exception | str | None = None,
+  ):
     super().__init__(artifact.name, details, cause)
 
 
@@ -45,7 +56,12 @@ class ArtifactDependencyError(ArtifactDefinitionError):
     cause: An optional exception that triggered the dependency error.
   """
 
-  def __init__(self, artifact, details, cause=None):
+  def __init__(
+      self,
+      artifact: artifact_pb2.Artifact,
+      details: str,
+      cause: Exception | str | None = None,
+  ):
     super().__init__(artifact.name, details, cause)
 
 
@@ -57,7 +73,7 @@ class ArtifactSourceSyntaxError(ArtifactDefinitionError):
     details: A string with more details about syntax problems.
   """
 
-  def __init__(self, source, details):
+  def __init__(self, source: artifact_pb2.ArtifactSource, details: str):
     super().__init__(source.type, details)
 
 

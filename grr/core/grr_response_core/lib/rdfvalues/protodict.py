@@ -346,6 +346,10 @@ class Dict(rdf_structs.RDFProtoStruct):
     for d in self.dat:
       self._values[d.k.GetValue()] = d  # pyrefly: ignore[missing-attribute]
 
+  def _Flush(self):
+    self.dat = self._values.values()  # pyrefly: ignore[missing-attribute]
+    super()._Flush()
+
   def SerializeToBytes(self):
     self.dat = self._values.values()  # pyrefly: ignore[missing-attribute]
     return super().SerializeToBytes()

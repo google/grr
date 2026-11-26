@@ -1,15 +1,19 @@
 #!/usr/bin/env python
 """Router classes route API requests to particular handlers."""
 
+from __future__ import annotations
+
+from collections.abc import Callable, Sequence
 import inspect
 import re
-from typing import Optional
+from typing import Any, NoReturn, Optional, TypeVar
+
+from google.protobuf import message
 
 from grr_response_core.lib.util import precondition
 from grr_response_proto.api import artifact_pb2 as api_artifact_pb2
 from grr_response_proto.api import client_pb2 as api_client_pb2
 from grr_response_proto.api import config_pb2 as api_config_pb2
-from grr_response_proto.api import cron_pb2 as api_cron_pb2
 from grr_response_proto.api import flow_pb2 as api_flow_pb2
 from grr_response_proto.api import hunt_pb2 as api_hunt_pb2
 from grr_response_proto.api import metadata_pb2 as api_metadata_pb2
@@ -32,15 +36,17 @@ from grr_response_server.gui.api_plugins import vfs as api_vfs
 
 _TYPE_URL_PREFIX: str = "type.googleapis.com/"
 
+AnyFunction = TypeVar("AnyFunction", bound=Callable)
+
 
 class Http(object):
   """Decorator that associates URLs with API methods."""
 
-  def __init__(self, method, path):
+  def __init__(self, method: str, path: str):
     self.method = method
     self.path = path
 
-  def __call__(self, func):
+  def __call__(self, func: AnyFunction) -> AnyFunction:
     try:
       http_methods = getattr(func, "__http_methods__")
     except AttributeError:
@@ -55,49 +61,38 @@ class Http(object):
 class ProtoArgsType:
   """Decorator that specifies the proto args type of an API method."""
 
-  def __init__(self, proto_args_type):
+  def __init__(self, proto_args_type: type[message.Message]):
     self.proto_args_type = proto_args_type
 
-  def __call__(self, func):
-    func.__proto_args_type__ = self.proto_args_type
+  def __call__(self, func: AnyFunction) -> AnyFunction:
+    setattr(func, "__proto_args_type__", self.proto_args_type)
     return func
 
 
 class ProtoResultType:
   """Decorator that specifies the proto result type of an API method."""
 
-  def __init__(self, proto_result_type):
+  def __init__(self, proto_result_type: type[message.Message]):
     self.proto_result_type = proto_result_type
 
-  def __call__(self, func):
-    func.__proto_result_type__ = self.proto_result_type
+  def __call__(self, func: AnyFunction) -> AnyFunction:
+    setattr(func, "__proto_result_type__", self.proto_result_type)
     return func
 
 
 class ResultBinaryStream(object):
   """Decorator indicating this API methods will produce a binary stream."""
 
-  def __call__(self, func):
-    func.__is_streaming__ = True
-    return func
-
-
-class Category(object):
-  """Decorator that specifies the category of an API method."""
-
-  def __init__(self, category):
-    self.category = category
-
-  def __call__(self, func):
-    func.__category__ = self.category
+  def __call__(self, func: AnyFunction) -> AnyFunction:
+    setattr(func, "__is_streaming__", True)
     return func
 
 
 class NoAuditLogRequired(object):
   """Decorator indicating that this API method should not be logged."""
 
-  def __call__(self, func):
-    func.__no_audit_log_required__ = True
+  def __call__(self, func: AnyFunction) -> AnyFunction:
+    setattr(func, "__no_audit_log_required__", True)
     return func
 
 
@@ -106,16 +101,15 @@ class RouterMethodMetadata(object):
 
   def __init__(
       self,
-      name,
-      doc=None,
-      proto_args_type=None,
-      args_type_url=None,
-      proto_result_type=None,
-      result_type_url=None,
-      is_streaming=False,
-      category=None,
-      http_methods=None,
-      no_audit_log_required=False,
+      name: str,
+      doc: str | None = None,
+      proto_args_type: type[message.Message] | None = None,
+      args_type_url: str | None = None,
+      proto_result_type: type[message.Message] | None = None,
+      result_type_url: str | None = None,
+      is_streaming: bool = False,
+      http_methods: Sequence[tuple[str, str]] | None = None,
+      no_audit_log_required: bool = False,
   ):
     precondition.AssertType(name, str)
 
@@ -126,13 +120,12 @@ class RouterMethodMetadata(object):
     self.proto_result_type = proto_result_type
     self.result_type_url = result_type_url
     self.is_streaming = is_streaming
-    self.category = category
-    self.http_methods = http_methods or set()
+    self.http_methods: Sequence[tuple[str, str]] = http_methods or []
     self.no_audit_log_required = no_audit_log_required
 
   _RULE_REGEX = re.compile("<([a-zA-Z0-9:_]+)")
 
-  def GetQueryParamsNames(self):
+  def GetQueryParamsNames(self) -> list[str]:
     """Extracts all mandatory and optional parameters from URLs for logging.
 
     This extracts names of all mandatory parameters that are sent inside the
@@ -183,7 +176,7 @@ class ApiCallRouter:
   # using the "params" keyword argument.
   proto_params_type = None
 
-  def __init__(self, params=None):
+  def __init__(self, params: Any = None):
     """Constructor.
 
     Accepts optional router parameters.
@@ -195,10 +188,10 @@ class ApiCallRouter:
     _ = params
 
   @classmethod
-  def GetAnnotatedMethods(cls):
+  def GetAnnotatedMethods(cls) -> dict[str, RouterMethodMetadata]:
     """Returns a dictionary of annotated router methods."""
 
-    result = {}
+    result: dict[str, RouterMethodMetadata] = {}
 
     # We want methods with the highest call-order to be processed last,
     # so that their annotations have precedence.
@@ -238,8 +231,7 @@ class ApiCallRouter:
             ),
             result_type_url=result_type_url,
             is_streaming=getattr(cls_method, "__is_streaming__", False),
-            category=getattr(cls_method, "__category__", None),
-            http_methods=getattr(cls_method, "__http_methods__", set()),
+            http_methods=getattr(cls_method, "__http_methods__", []),
             no_audit_log_required=getattr(
                 cls_method, "__no_audit_log_required__", False
             ),
@@ -254,7 +246,6 @@ class ApiCallRouterStub(ApiCallRouter):
   # Artifacts methods.
   # =================
   #
-  @Category("Artifacts")
   @ProtoArgsType(api_artifact_pb2.ApiListArtifactsArgs)
   @ProtoResultType(api_artifact_pb2.ApiListArtifactsResult)
   @Http("GET", "/api/v2/artifacts")
@@ -268,7 +259,6 @@ class ApiCallRouterStub(ApiCallRouter):
 
     raise NotImplementedError()
 
-  @Category("Artifacts")
   @ProtoArgsType(api_artifact_pb2.ApiUploadArtifactArgs)
   @Http("POST", "/api/v2/artifacts")
   @NoAuditLogRequired()
@@ -281,7 +271,6 @@ class ApiCallRouterStub(ApiCallRouter):
 
     raise NotImplementedError()
 
-  @Category("Artifacts")
   @ProtoArgsType(api_artifact_pb2.ApiDeleteArtifactArgs)
   @Http("DELETE", "/api/v2/artifacts/<name>")
   @NoAuditLogRequired()
@@ -297,7 +286,6 @@ class ApiCallRouterStub(ApiCallRouter):
   # Clients methods.
   # ===============
   #
-  @Category("Clients")
   @ProtoArgsType(api_client_pb2.ApiSearchClientsArgs)
   @ProtoResultType(api_client_pb2.ApiSearchClientsResult)
   @Http("GET", "/api/v2/clients")
@@ -310,7 +298,6 @@ class ApiCallRouterStub(ApiCallRouter):
 
     raise NotImplementedError()
 
-  @Category("Clients")
   @ProtoArgsType(api_client_pb2.ApiVerifyAccessArgs)
   @ProtoResultType(api_client_pb2.ApiVerifyAccessResult)
   @Http("GET", "/api/v2/clients/<client_id>/access")
@@ -323,7 +310,6 @@ class ApiCallRouterStub(ApiCallRouter):
 
     raise NotImplementedError()
 
-  @Category("Clients")
   @ProtoArgsType(api_client_pb2.ApiGetClientArgs)
   @ProtoResultType(api_client_pb2.ApiClient)
   @Http("GET", "/api/v2/clients/<client_id>")
@@ -336,7 +322,6 @@ class ApiCallRouterStub(ApiCallRouter):
 
     raise NotImplementedError()
 
-  @Category("Clients")
   @ProtoArgsType(api_client_pb2.ApiGetClientSnapshotsArgs)
   @ProtoResultType(api_client_pb2.ApiGetClientSnapshotsResult)
   @Http("GET", "/api/v2/clients/<client_id>/snapshots")
@@ -354,7 +339,6 @@ class ApiCallRouterStub(ApiCallRouter):
 
     raise NotImplementedError()
 
-  @Category("Clients")
   @ProtoArgsType(api_client_pb2.ApiGetClientStartupInfosArgs)
   @ProtoResultType(api_client_pb2.ApiGetClientStartupInfosResult)
   @Http("GET", "/api/v2/clients/<client_id>/startup-infos")
@@ -372,7 +356,6 @@ class ApiCallRouterStub(ApiCallRouter):
 
     raise NotImplementedError()
 
-  @Category("Clients")
   @ProtoArgsType(api_client_pb2.ApiGetClientVersionsArgs)
   @ProtoResultType(api_client_pb2.ApiGetClientVersionsResult)
   @Http("GET", "/api/v2/clients/<client_id>/versions")
@@ -385,7 +368,6 @@ class ApiCallRouterStub(ApiCallRouter):
 
     raise NotImplementedError()
 
-  @Category("Clients")
   @ProtoArgsType(api_client_pb2.ApiGetClientVersionTimesArgs)
   @ProtoResultType(api_client_pb2.ApiGetClientVersionTimesResult)
   @Http("GET", "/api/v2/clients/<client_id>/version-times")
@@ -398,7 +380,6 @@ class ApiCallRouterStub(ApiCallRouter):
 
     raise NotImplementedError()
 
-  @Category("Clients")
   @ProtoArgsType(api_client_pb2.ApiInterrogateClientArgs)
   @ProtoResultType(api_client_pb2.ApiInterrogateClientResult)
   @Http("POST", "/api/v2/clients/<client_id>/actions/interrogate")
@@ -411,7 +392,6 @@ class ApiCallRouterStub(ApiCallRouter):
 
     raise NotImplementedError()
 
-  @Category("Clients")
   @ProtoArgsType(api_client_pb2.ApiListClientCrashesArgs)
   @ProtoResultType(api_client_pb2.ApiListClientCrashesResult)
   @Http("GET", "/api/v2/clients/<client_id>/crashes")
@@ -424,7 +404,6 @@ class ApiCallRouterStub(ApiCallRouter):
 
     raise NotImplementedError()
 
-  @Category("Clients")
   @ProtoArgsType(api_client_pb2.ApiKillFleetspeakArgs)
   @Http("PATCH", "/api/v2/clients/<client_id>/fleetspeak/kill")
   def KillFleetspeak(
@@ -434,7 +413,6 @@ class ApiCallRouterStub(ApiCallRouter):
   ) -> api_client.ApiKillFleetspeakHandler:
     raise NotImplementedError()
 
-  @Category("Clients")
   @ProtoArgsType(api_client_pb2.ApiRestartFleetspeakGrrServiceArgs)
   @Http("PATCH", "/api/v2/clients/<client_id>/fleetspeak/grr/restart")
   def RestartFleetspeakGrrService(
@@ -444,7 +422,6 @@ class ApiCallRouterStub(ApiCallRouter):
   ) -> api_client.ApiRestartFleetspeakGrrServiceHandler:
     raise NotImplementedError()
 
-  @Category("Clients")
   @ProtoArgsType(api_client_pb2.ApiDeleteFleetspeakPendingMessagesArgs)
   @Http("DELETE", "/api/v2/clients/<client_id>/fleetspeak/messages/pending")
   def DeleteFleetspeakPendingMessages(
@@ -454,7 +431,6 @@ class ApiCallRouterStub(ApiCallRouter):
   ) -> api_client.ApiDeleteFleetspeakPendingMessagesHandler:
     raise NotImplementedError()
 
-  @Category("Clients")
   @ProtoArgsType(api_client_pb2.ApiGetFleetspeakPendingMessageCountArgs)
   @ProtoResultType(api_client_pb2.ApiGetFleetspeakPendingMessageCountResult)
   @Http("GET", "/api/v2/clients/<client_id>/fleetspeak/messages/pending/count")
@@ -468,7 +444,6 @@ class ApiCallRouterStub(ApiCallRouter):
   # Virtual file system methods.
   # ===========================
   #
-  @Category("Vfs")
   @ProtoArgsType(api_vfs_pb2.ApiListFilesArgs)
   @ProtoResultType(api_vfs_pb2.ApiListFilesResult)
   @Http("GET", "/api/v2/clients/<client_id>/vfs-index/")
@@ -485,7 +460,6 @@ class ApiCallRouterStub(ApiCallRouter):
     # To allow optional url arguments, two url patterns need to be specified.
     raise NotImplementedError()
 
-  @Category("Vfs")
   @ProtoArgsType(api_vfs_pb2.ApiBrowseFilesystemArgs)
   @ProtoResultType(api_vfs_pb2.ApiBrowseFilesystemResult)
   @Http("GET", "/api/v2/clients/<client_id>/filesystem/")
@@ -519,7 +493,6 @@ class ApiCallRouterStub(ApiCallRouter):
     # To allow optional url arguments, two url patterns need to be specified.
     raise NotImplementedError()
 
-  @Category("Vfs")
   @ProtoArgsType(api_vfs_pb2.ApiGetVfsFilesArchiveArgs)
   @ResultBinaryStream()
   @Http("GET", "/api/v2/clients/<client_id>/vfs-files-archive/")
@@ -545,7 +518,6 @@ class ApiCallRouterStub(ApiCallRouter):
 
     raise NotImplementedError()
 
-  @Category("Vfs")
   @ProtoArgsType(api_vfs_pb2.ApiGetFileDetailsArgs)
   @ProtoResultType(api_vfs_pb2.ApiGetFileDetailsResult)
   @Http("GET", "/api/v2/clients/<client_id>/vfs-details/<path:file_path>")
@@ -558,7 +530,6 @@ class ApiCallRouterStub(ApiCallRouter):
 
     raise NotImplementedError()
 
-  @Category("Vfs")
   @ProtoArgsType(api_vfs_pb2.ApiGetFileTextArgs)
   @ProtoResultType(api_vfs_pb2.ApiGetFileTextResult)
   @Http("GET", "/api/v2/clients/<client_id>/vfs-text/<path:file_path>")
@@ -571,7 +542,6 @@ class ApiCallRouterStub(ApiCallRouter):
 
     raise NotImplementedError()
 
-  @Category("Vfs")
   @ProtoArgsType(api_vfs_pb2.ApiGetFileBlobArgs)
   @ResultBinaryStream()
   @Http("GET", "/api/v2/clients/<client_id>/vfs-blob/<path:file_path>")
@@ -584,7 +554,6 @@ class ApiCallRouterStub(ApiCallRouter):
 
     raise NotImplementedError()
 
-  @Category("Vfs")
   @ProtoArgsType(api_vfs_pb2.ApiGetFileVersionTimesArgs)
   @ProtoResultType(api_vfs_pb2.ApiGetFileVersionTimesResult)
   @Http("GET", "/api/v2/clients/<client_id>/vfs-version-times/<path:file_path>")
@@ -597,7 +566,6 @@ class ApiCallRouterStub(ApiCallRouter):
 
     raise NotImplementedError()
 
-  @Category("Vfs")
   @ProtoArgsType(api_vfs_pb2.ApiGetFileDownloadCommandArgs)
   @ProtoResultType(api_vfs_pb2.ApiGetFileDownloadCommandResult)
   @Http(
@@ -612,7 +580,6 @@ class ApiCallRouterStub(ApiCallRouter):
 
     raise NotImplementedError()
 
-  @Category("Vfs")
   @ProtoArgsType(api_vfs_pb2.ApiCreateVfsRefreshOperationArgs)
   @ProtoResultType(api_vfs_pb2.ApiCreateVfsRefreshOperationResult)
   @Http("POST", "/api/v2/clients/<client_id>/vfs-refresh-operations")
@@ -625,7 +592,6 @@ class ApiCallRouterStub(ApiCallRouter):
 
     raise NotImplementedError()
 
-  @Category("Vfs")
   @ProtoArgsType(api_vfs_pb2.ApiGetVfsRefreshOperationStateArgs)
   @ProtoResultType(api_vfs_pb2.ApiGetVfsRefreshOperationStateResult)
   @Http(
@@ -641,7 +607,6 @@ class ApiCallRouterStub(ApiCallRouter):
 
     raise NotImplementedError()
 
-  @Category("Vfs")
   @ProtoArgsType(api_vfs_pb2.ApiGetVfsTimelineArgs)
   @ProtoResultType(api_vfs_pb2.ApiGetVfsTimelineResult)
   @Http("GET", "/api/v2/clients/<client_id>/vfs-timeline/<path:file_path>")
@@ -654,7 +619,6 @@ class ApiCallRouterStub(ApiCallRouter):
 
     raise NotImplementedError()
 
-  @Category("Vfs")
   @ProtoArgsType(api_vfs_pb2.ApiGetVfsTimelineAsCsvArgs)
   @ResultBinaryStream()
   @Http("GET", "/api/v2/clients/<client_id>/vfs-timeline-csv/<path:file_path>")
@@ -667,7 +631,6 @@ class ApiCallRouterStub(ApiCallRouter):
 
     raise NotImplementedError()
 
-  @Category("Vfs")
   @ProtoArgsType(api_vfs_pb2.ApiUpdateVfsFileContentArgs)
   @ProtoResultType(api_vfs_pb2.ApiUpdateVfsFileContentResult)
   @Http("POST", "/api/v2/clients/<client_id>/vfs-update")
@@ -680,7 +643,6 @@ class ApiCallRouterStub(ApiCallRouter):
 
     raise NotImplementedError()
 
-  @Category("Vfs")
   @ProtoArgsType(api_vfs_pb2.ApiGetVfsFileContentUpdateStateArgs)
   @ProtoResultType(api_vfs_pb2.ApiGetVfsFileContentUpdateStateResult)
   @Http("GET", "/api/v2/clients/<client_id>/vfs-update/<path:operation_id>")
@@ -696,7 +658,6 @@ class ApiCallRouterStub(ApiCallRouter):
   # Clients labels methods.
   # ======================
   #
-  @Category("Clients")
   @ProtoResultType(api_client_pb2.ApiListClientsLabelsResult)
   @Http("GET", "/api/v2/clients/labels")
   @NoAuditLogRequired()
@@ -709,7 +670,6 @@ class ApiCallRouterStub(ApiCallRouter):
 
     raise NotImplementedError()
 
-  @Category("Clients")
   @ProtoArgsType(api_client_pb2.ApiAddClientsLabelsArgs)
   @Http("POST", "/api/v2/clients/labels/add")
   @NoAuditLogRequired()
@@ -722,7 +682,6 @@ class ApiCallRouterStub(ApiCallRouter):
 
     raise NotImplementedError()
 
-  @Category("Clients")
   @ProtoArgsType(api_client_pb2.ApiRemoveClientsLabelsArgs)
   @Http("POST", "/api/v2/clients/labels/remove")
   @NoAuditLogRequired()
@@ -738,7 +697,6 @@ class ApiCallRouterStub(ApiCallRouter):
   # Clients flows methods.
   # =====================
   #
-  @Category("Flows")
   @ProtoArgsType(api_flow_pb2.ApiListFlowsArgs)
   @ProtoResultType(api_flow_pb2.ApiListFlowsResult)
   @Http("GET", "/api/v2/clients/<client_id>/flows")
@@ -751,7 +709,6 @@ class ApiCallRouterStub(ApiCallRouter):
 
     raise NotImplementedError()
 
-  @Category("Flows")
   @ProtoArgsType(api_flow_pb2.ApiGetFlowArgs)
   @ProtoResultType(api_flow_pb2.ApiFlow)
   @Http("GET", "/api/v2/clients/<client_id>/flows/<path:flow_id>")
@@ -764,7 +721,6 @@ class ApiCallRouterStub(ApiCallRouter):
 
     raise NotImplementedError()
 
-  @Category("Flows")
   @ProtoArgsType(api_flow_pb2.ApiCreateFlowArgs)
   @ProtoResultType(api_flow_pb2.ApiFlow)
   @Http("POST", "/api/v2/clients/<client_id>/flows")
@@ -777,7 +733,6 @@ class ApiCallRouterStub(ApiCallRouter):
 
     raise NotImplementedError()
 
-  @Category("Flows")
   @ProtoArgsType(api_flow_pb2.ApiCancelFlowArgs)
   @ProtoResultType(api_flow_pb2.ApiFlow)
   @Http(
@@ -792,7 +747,6 @@ class ApiCallRouterStub(ApiCallRouter):
 
     raise NotImplementedError()
 
-  @Category("Flows")
   @ProtoArgsType(api_flow_pb2.ApiListFlowRequestsArgs)
   @ProtoResultType(api_flow_pb2.ApiListFlowRequestsResult)
   @Http("GET", "/api/v2/clients/<client_id>/flows/<path:flow_id>/requests")
@@ -805,7 +759,6 @@ class ApiCallRouterStub(ApiCallRouter):
 
     raise NotImplementedError()
 
-  @Category("Flows")
   @ProtoArgsType(api_flow_pb2.ApiListFlowResultsArgs)
   @ProtoResultType(api_flow_pb2.ApiListFlowResultsResult)
   @Http("GET", "/api/v2/clients/<client_id>/flows/<path:flow_id>/results")
@@ -818,7 +771,6 @@ class ApiCallRouterStub(ApiCallRouter):
 
     raise NotImplementedError()
 
-  @Category("Flows")
   @ProtoArgsType(api_flow_pb2.ApiGetExportedFlowResultsArgs)
   @ResultBinaryStream()
   @Http(
@@ -835,7 +787,6 @@ class ApiCallRouterStub(ApiCallRouter):
 
     raise NotImplementedError()
 
-  @Category("Flows")
   @ProtoArgsType(api_flow_pb2.ApiGetFlowResultsExportCommandArgs)
   @ProtoResultType(api_flow_pb2.ApiGetFlowResultsExportCommandResult)
   @Http(
@@ -851,7 +802,6 @@ class ApiCallRouterStub(ApiCallRouter):
 
     raise NotImplementedError()
 
-  @Category("Flows")
   @ProtoArgsType(api_flow_pb2.ApiGetFlowFilesArchiveArgs)
   @ResultBinaryStream()
   @Http(
@@ -867,7 +817,6 @@ class ApiCallRouterStub(ApiCallRouter):
 
     raise NotImplementedError()
 
-  @Category("Flows")
   @ProtoArgsType(api_flow_pb2.ApiListFlowOutputPluginsArgs)
   @ProtoResultType(api_flow_pb2.ApiListFlowOutputPluginsResult)
   @Http(
@@ -882,7 +831,6 @@ class ApiCallRouterStub(ApiCallRouter):
 
     raise NotImplementedError()
 
-  @Category("Flows")
   @ProtoArgsType(api_flow_pb2.ApiListFlowOutputPluginLogsArgs)
   @ProtoResultType(api_flow_pb2.ApiListFlowOutputPluginLogsResult)
   @Http(
@@ -899,7 +847,6 @@ class ApiCallRouterStub(ApiCallRouter):
 
     raise NotImplementedError()
 
-  @Category("Flows")
   @ProtoArgsType(api_flow_pb2.ApiListFlowOutputPluginErrorsArgs)
   @ProtoResultType(api_flow_pb2.ApiListFlowOutputPluginErrorsResult)
   @Http(
@@ -916,7 +863,6 @@ class ApiCallRouterStub(ApiCallRouter):
 
     raise NotImplementedError()
 
-  @Category("Flows")
   @ProtoArgsType(api_flow_pb2.ApiListAllFlowOutputPluginLogsArgs)
   @ProtoResultType(api_flow_pb2.ApiListAllFlowOutputPluginLogsResult)
   @Http(
@@ -932,7 +878,6 @@ class ApiCallRouterStub(ApiCallRouter):
 
     raise NotImplementedError()
 
-  @Category("Flows")
   @ProtoArgsType(api_flow_pb2.ApiListFlowLogsArgs)
   @ProtoResultType(api_flow_pb2.ApiListFlowLogsResult)
   @Http("GET", "/api/v2/clients/<client_id>/flows/<path:flow_id>/log")
@@ -945,7 +890,6 @@ class ApiCallRouterStub(ApiCallRouter):
 
     raise NotImplementedError()
 
-  @Category("Flows")
   @ProtoArgsType(api_timeline_pb2.ApiGetCollectedTimelineArgs)
   @ResultBinaryStream()
   @Http("GET", "/api/v2/clients/<client_id>/flows/<flow_id>/timeline/<format>")
@@ -957,7 +901,6 @@ class ApiCallRouterStub(ApiCallRouter):
     """Exports results of a timeline flow to the specific format."""
     raise NotImplementedError()
 
-  @Category("Flows")
   @ProtoArgsType(api_yara_pb2.ApiUploadYaraSignatureArgs)
   @ProtoResultType(api_yara_pb2.ApiUploadYaraSignatureResult)
   @Http("POST", "/api/v2/yara-signatures")
@@ -968,7 +911,6 @@ class ApiCallRouterStub(ApiCallRouter):
   ):
     raise NotImplementedError()
 
-  @Category("Flows")
   @ProtoArgsType(api_flow_pb2.ApiExplainGlobExpressionArgs)
   @ProtoResultType(api_flow_pb2.ApiExplainGlobExpressionResult)
   @Http("POST", "/api/v2/clients/<client_id>/glob-expressions:explain")
@@ -979,7 +921,6 @@ class ApiCallRouterStub(ApiCallRouter):
   ) -> api_flow.ApiExplainGlobExpressionHandler:
     raise NotImplementedError()
 
-  @Category("Flows")
   @ProtoArgsType(api_flow_pb2.ApiCreateFlowArgs)
   @ProtoResultType(api_flow_pb2.ApiScheduledFlow)
   @Http("POST", "/api/v2/clients/<client_id>/scheduled-flows")
@@ -991,7 +932,6 @@ class ApiCallRouterStub(ApiCallRouter):
     """Schedules a flow on a client, to be started upon approval grant."""
     raise NotImplementedError()
 
-  @Category("Flows")
   @ProtoArgsType(api_flow_pb2.ApiListScheduledFlowsArgs)
   @ProtoResultType(api_flow_pb2.ApiListScheduledFlowsResult)
   @Http("GET", "/api/v2/clients/<client_id>/scheduled-flows/<creator>")
@@ -1003,7 +943,6 @@ class ApiCallRouterStub(ApiCallRouter):
     """Lists all scheduled flows from a user on a client."""
     raise NotImplementedError()
 
-  @Category("Flows")
   @ProtoArgsType(api_flow_pb2.ApiUnscheduleFlowArgs)
   @ProtoResultType(api_flow_pb2.ApiUnscheduleFlowResult)
   @Http(
@@ -1018,7 +957,6 @@ class ApiCallRouterStub(ApiCallRouter):
     """Unschedules and deletes a previously scheduled flow."""
     raise NotImplementedError()
 
-  @Category("Flows")
   @ProtoArgsType(api_osquery_pb2.ApiGetOsqueryResultsArgs)
   @ResultBinaryStream()
   @Http(
@@ -1036,7 +974,6 @@ class ApiCallRouterStub(ApiCallRouter):
   # Signed commands methods.
   # ========================
   #
-  @Category("SignedCommands")
   @ProtoResultType(api_signed_commands_pb2.ApiListSignedCommandsResult)
   @Http("GET", "/api/v2/signed-commands")
   def ListSignedCommands(
@@ -1047,103 +984,9 @@ class ApiCallRouterStub(ApiCallRouter):
     """Get all signed commands."""
     raise NotImplementedError()
 
-  # Cron jobs methods.
-  # =================
-  #
-  @Category("Cron")
-  @ProtoArgsType(api_cron_pb2.ApiListCronJobsArgs)
-  @ProtoResultType(api_cron_pb2.ApiListCronJobsResult)
-  @NoAuditLogRequired()
-  @Http("GET", "/api/v2/cron-jobs")
-  def ListCronJobs(
-      self,
-      args: api_cron_pb2.ApiListCronJobsArgs,
-      context: Optional[api_call_context.ApiCallContext] = None,
-  ):
-    """List available cron jobs."""
-
-    raise NotImplementedError()
-
-  @Category("Cron")
-  @ProtoArgsType(api_cron_pb2.ApiGetCronJobArgs)
-  @ProtoResultType(api_cron_pb2.ApiCronJob)
-  @Http("GET", "/api/v2/cron-jobs/<cron_job_id>")
-  def GetCronJob(
-      self,
-      args: api_cron_pb2.ApiGetCronJobArgs,
-      context: Optional[api_call_context.ApiCallContext] = None,
-  ):
-    """Get details of a given cron job."""
-
-    raise NotImplementedError()
-
-  @Category("Cron")
-  @ProtoArgsType(api_cron_pb2.ApiForceRunCronJobArgs)
-  @Http("POST", "/api/v2/cron-jobs/<cron_job_id>/actions/force-run")
-  def ForceRunCronJob(
-      self,
-      args: api_cron_pb2.ApiForceRunCronJobArgs,
-      context: Optional[api_call_context.ApiCallContext] = None,
-  ):
-    """Force an out-of-schedule run of a given cron job."""
-
-    raise NotImplementedError()
-
-  @Category("Hunts")
-  @ProtoArgsType(api_cron_pb2.ApiModifyCronJobArgs)
-  @ProtoResultType(api_cron_pb2.ApiCronJob)
-  @Http("PATCH", "/api/v2/cron-jobs/<cron_job_id>")
-  def ModifyCronJob(
-      self,
-      args: api_cron_pb2.ApiModifyCronJobArgs,
-      context: Optional[api_call_context.ApiCallContext] = None,
-  ):
-    """Modify cron job (includes enabling/disabling)."""
-
-    raise NotImplementedError()
-
-  @Category("Cron")
-  @ProtoArgsType(api_cron_pb2.ApiListCronJobRunsArgs)
-  @ProtoResultType(api_cron_pb2.ApiListCronJobRunsResult)
-  @Http("GET", "/api/v2/cron-jobs/<cron_job_id>/runs")
-  def ListCronJobRuns(
-      self,
-      args: api_cron_pb2.ApiListCronJobRunsArgs,
-      context: Optional[api_call_context.ApiCallContext] = None,
-  ):
-    """List runs initiated by the given cron job."""
-
-    raise NotImplementedError()
-
-  @Category("Cron")
-  @ProtoArgsType(api_cron_pb2.ApiGetCronJobRunArgs)
-  @ProtoResultType(api_cron_pb2.ApiCronJobRun)
-  @Http("GET", "/api/v2/cron-jobs/<cron_job_id>/runs/<run_id>")
-  def GetCronJobRun(
-      self,
-      args: api_cron_pb2.ApiGetCronJobRunArgs,
-      context: Optional[api_call_context.ApiCallContext] = None,
-  ):
-    """Get details of a run started by a cron job."""
-
-    raise NotImplementedError()
-
-  @Category("Cron")
-  @ProtoArgsType(api_cron_pb2.ApiDeleteCronJobArgs)
-  @Http("DELETE", "/api/v2/cron-jobs/<cron_job_id>")
-  def DeleteCronJob(
-      self,
-      args: api_cron_pb2.ApiDeleteCronJobArgs,
-      context: Optional[api_call_context.ApiCallContext] = None,
-  ):
-    """Delete given cron job and all its flows."""
-
-    raise NotImplementedError()
-
   # Hunts methods.
   # =============
   #
-  @Category("Hunts")
   @ProtoArgsType(api_hunt_pb2.ApiListHuntsArgs)
   @ProtoResultType(api_hunt_pb2.ApiListHuntsResult)
   @Http("GET", "/api/v2/hunts")
@@ -1157,7 +1000,6 @@ class ApiCallRouterStub(ApiCallRouter):
 
     raise NotImplementedError()
 
-  @Category("Hunts")
   @ProtoArgsType(api_hunt_pb2.ApiVerifyHuntAccessArgs)
   @ProtoResultType(api_hunt_pb2.ApiVerifyHuntAccessResult)
   @Http("GET", "/api/v2/hunts/<hunt_id>/access")
@@ -1170,7 +1012,6 @@ class ApiCallRouterStub(ApiCallRouter):
 
     raise NotImplementedError()
 
-  @Category("Hunts")
   @ProtoArgsType(api_hunt_pb2.ApiGetHuntArgs)
   @ProtoResultType(api_hunt_pb2.ApiHunt)
   @Http("GET", "/api/v2/hunts/<hunt_id>")
@@ -1183,7 +1024,6 @@ class ApiCallRouterStub(ApiCallRouter):
 
     raise NotImplementedError()
 
-  @Category("Hunts")
   @ProtoArgsType(api_hunt_pb2.ApiListHuntErrorsArgs)
   @ProtoResultType(api_hunt_pb2.ApiListHuntErrorsResult)
   @Http("GET", "/api/v2/hunts/<hunt_id>/errors")
@@ -1196,7 +1036,6 @@ class ApiCallRouterStub(ApiCallRouter):
 
     raise NotImplementedError()
 
-  @Category("Hunts")
   @ProtoArgsType(api_hunt_pb2.ApiListHuntLogsArgs)
   @ProtoResultType(api_hunt_pb2.ApiListHuntLogsResult)
   @Http("GET", "/api/v2/hunts/<hunt_id>/log")
@@ -1209,7 +1048,6 @@ class ApiCallRouterStub(ApiCallRouter):
 
     raise NotImplementedError()
 
-  @Category("Hunts")
   @ProtoArgsType(api_hunt_pb2.ApiListHuntResultsArgs)
   @ProtoResultType(api_hunt_pb2.ApiListHuntResultsResult)
   @Http("GET", "/api/v2/hunts/<hunt_id>/results")
@@ -1222,7 +1060,6 @@ class ApiCallRouterStub(ApiCallRouter):
 
     raise NotImplementedError()
 
-  @Category("Hunts")
   @ProtoArgsType(api_hunt_pb2.ApiCountHuntResultsByTypeArgs)
   @ProtoResultType(api_hunt_pb2.ApiCountHuntResultsByTypeResult)
   @Http("GET", "/api/v2/hunts/<hunt_id>/result-counts")
@@ -1235,7 +1072,6 @@ class ApiCallRouterStub(ApiCallRouter):
 
     raise NotImplementedError()
 
-  @Category("Hunts")
   @ProtoArgsType(api_hunt_pb2.ApiGetExportedHuntResultsArgs)
   @ResultBinaryStream()
   @Http("GET", "/api/v2/hunts/<hunt_id>/exported-results/<plugin_name>")
@@ -1248,7 +1084,6 @@ class ApiCallRouterStub(ApiCallRouter):
 
     raise NotImplementedError()
 
-  @Category("Hunts")
   @ProtoArgsType(api_hunt_pb2.ApiGetHuntResultsExportCommandArgs)
   @ProtoResultType(api_hunt_pb2.ApiGetHuntResultsExportCommandResult)
   @Http("GET", "/api/v2/hunts/<hunt_id>/results/export-command")
@@ -1261,7 +1096,6 @@ class ApiCallRouterStub(ApiCallRouter):
 
     raise NotImplementedError()
 
-  @Category("Hunts")
   @ProtoArgsType(api_hunt_pb2.ApiListHuntOutputPluginLogsArgs)
   @ProtoResultType(api_hunt_pb2.ApiListHuntOutputPluginLogsResult)
   @Http("GET", "/api/v2/hunts/<hunt_id>/output-plugins/<plugin_id>/logs")
@@ -1274,7 +1108,6 @@ class ApiCallRouterStub(ApiCallRouter):
 
     raise NotImplementedError()
 
-  @Category("Hunts")
   @ProtoArgsType(api_hunt_pb2.ApiListHuntOutputPluginErrorsArgs)
   @ProtoResultType(api_hunt_pb2.ApiListHuntOutputPluginErrorsResult)
   @Http("GET", "/api/v2/hunts/<hunt_id>/output-plugins/<plugin_id>/errors")
@@ -1287,7 +1120,6 @@ class ApiCallRouterStub(ApiCallRouter):
 
     raise NotImplementedError()
 
-  @Category("Hunts")
   @ProtoArgsType(api_hunt_pb2.ApiListHuntCrashesArgs)
   @ProtoResultType(api_hunt_pb2.ApiListHuntCrashesResult)
   @Http("GET", "/api/v2/hunts/<hunt_id>/crashes")
@@ -1300,7 +1132,6 @@ class ApiCallRouterStub(ApiCallRouter):
 
     raise NotImplementedError()
 
-  @Category("Hunts")
   @ProtoArgsType(api_hunt_pb2.ApiGetHuntClientCompletionStatsArgs)
   @ProtoResultType(api_hunt_pb2.ApiGetHuntClientCompletionStatsResult)
   @Http("GET", "/api/v2/hunts/<hunt_id>/client-completion-stats")
@@ -1313,7 +1144,6 @@ class ApiCallRouterStub(ApiCallRouter):
 
     raise NotImplementedError()
 
-  @Category("Hunts")
   @ProtoArgsType(api_hunt_pb2.ApiGetHuntStatsArgs)
   @ProtoResultType(api_hunt_pb2.ApiGetHuntStatsResult)
   @Http("GET", "/api/v2/hunts/<hunt_id>/stats")
@@ -1326,7 +1156,6 @@ class ApiCallRouterStub(ApiCallRouter):
 
     raise NotImplementedError()
 
-  @Category("Hunts")
   @ProtoArgsType(api_hunt_pb2.ApiListHuntClientsArgs)
   @ProtoResultType(api_hunt_pb2.ApiListHuntClientsResult)
   @Http("GET", "/api/v2/hunts/<hunt_id>/clients/<client_status>")
@@ -1339,7 +1168,6 @@ class ApiCallRouterStub(ApiCallRouter):
 
     raise NotImplementedError()
 
-  @Category("Hunts")
   @ProtoArgsType(api_hunt_pb2.ApiGetHuntContextArgs)
   @ProtoResultType(api_hunt_pb2.ApiGetHuntContextResult)
   @Http("GET", "/api/v2/hunts/<hunt_id>/context")
@@ -1352,7 +1180,6 @@ class ApiCallRouterStub(ApiCallRouter):
 
     raise NotImplementedError()
 
-  @Category("Hunts")
   @ProtoArgsType(api_hunt_pb2.ApiCreateHuntArgs)
   @ProtoResultType(api_hunt_pb2.ApiHunt)
   @Http("POST", "/api/v2/hunts")
@@ -1365,7 +1192,6 @@ class ApiCallRouterStub(ApiCallRouter):
 
     raise NotImplementedError()
 
-  @Category("Hunts")
   @ProtoArgsType(api_hunt_pb2.ApiModifyHuntArgs)
   @ProtoResultType(api_hunt_pb2.ApiHunt)
   @Http("PATCH", "/api/v2/hunts/<hunt_id>")
@@ -1378,7 +1204,6 @@ class ApiCallRouterStub(ApiCallRouter):
 
     raise NotImplementedError()
 
-  @Category("Hunts")
   @ProtoArgsType(api_hunt_pb2.ApiDeleteHuntArgs)
   @Http("DELETE", "/api/v2/hunts/<hunt_id>")
   def DeleteHunt(
@@ -1390,7 +1215,6 @@ class ApiCallRouterStub(ApiCallRouter):
 
     raise NotImplementedError()
 
-  @Category("Hunts")
   @ProtoArgsType(api_hunt_pb2.ApiGetHuntFilesArchiveArgs)
   @ResultBinaryStream()
   @Http("GET", "/api/v2/hunts/<hunt_id>/results/files-archive")
@@ -1403,7 +1227,6 @@ class ApiCallRouterStub(ApiCallRouter):
 
     raise NotImplementedError()
 
-  @Category("Hunts")
   @ProtoArgsType(api_hunt_pb2.ApiGetHuntFileArgs)
   @ResultBinaryStream()
   @Http(
@@ -1420,7 +1243,6 @@ class ApiCallRouterStub(ApiCallRouter):
 
     raise NotImplementedError()
 
-  @Category("Hunts")
   @ProtoArgsType(api_timeline_pb2.ApiGetCollectedHuntTimelinesArgs)
   @ResultBinaryStream()
   @Http("GET", "/api/v2/hunts/<hunt_id>/timelines/<format>")
@@ -1447,7 +1269,6 @@ class ApiCallRouterStub(ApiCallRouter):
   # Approvals methods.
   # =================
   #
-  @Category("User")
   @ProtoArgsType(api_user_pb2.ApiCreateClientApprovalArgs)
   @ProtoResultType(api_user_pb2.ApiClientApproval)
   @Http("POST", "/api/v2/users/me/approvals/client/<client_id>")
@@ -1460,7 +1281,6 @@ class ApiCallRouterStub(ApiCallRouter):
 
     raise NotImplementedError()
 
-  @Category("User")
   @ProtoArgsType(api_user_pb2.ApiGetClientApprovalArgs)
   @ProtoResultType(api_user_pb2.ApiClientApproval)
   @NoAuditLogRequired()
@@ -1476,7 +1296,6 @@ class ApiCallRouterStub(ApiCallRouter):
     """Get client approval identified by approval id, client id and username."""
     raise NotImplementedError()
 
-  @Category("User")
   @ProtoArgsType(api_user_pb2.ApiGrantClientApprovalArgs)
   @ProtoResultType(api_user_pb2.ApiClientApproval)
   @Http(
@@ -1493,7 +1312,6 @@ class ApiCallRouterStub(ApiCallRouter):
 
     raise NotImplementedError()
 
-  @Category("User")
   @ProtoArgsType(api_user_pb2.ApiListClientApprovalsArgs)
   @ProtoResultType(api_user_pb2.ApiListClientApprovalsResult)
   @NoAuditLogRequired()
@@ -1508,7 +1326,6 @@ class ApiCallRouterStub(ApiCallRouter):
 
     raise NotImplementedError()
 
-  @Category("User")
   @ProtoArgsType(api_user_pb2.ApiCreateHuntApprovalArgs)
   @ProtoResultType(api_user_pb2.ApiHuntApproval)
   @NoAuditLogRequired()
@@ -1522,7 +1339,6 @@ class ApiCallRouterStub(ApiCallRouter):
 
     raise NotImplementedError()
 
-  @Category("User")
   @ProtoArgsType(api_user_pb2.ApiGetHuntApprovalArgs)
   @ProtoResultType(api_user_pb2.ApiHuntApproval)
   @NoAuditLogRequired()
@@ -1537,7 +1353,6 @@ class ApiCallRouterStub(ApiCallRouter):
     """Get hunt approval identified by approval id, hunt id and username."""
     raise NotImplementedError()
 
-  @Category("User")
   @ProtoArgsType(api_user_pb2.ApiGrantHuntApprovalArgs)
   @ProtoResultType(api_user_pb2.ApiHuntApproval)
   @Http(
@@ -1554,7 +1369,6 @@ class ApiCallRouterStub(ApiCallRouter):
 
     raise NotImplementedError()
 
-  @Category("User")
   @ProtoArgsType(api_user_pb2.ApiListHuntApprovalsArgs)
   @ProtoResultType(api_user_pb2.ApiListHuntApprovalsResult)
   @NoAuditLogRequired()
@@ -1569,68 +1383,6 @@ class ApiCallRouterStub(ApiCallRouter):
 
     raise NotImplementedError()
 
-  @Category("User")
-  @ProtoArgsType(api_user_pb2.ApiCreateCronJobApprovalArgs)
-  @ProtoResultType(api_user_pb2.ApiCronJobApproval)
-  @Http("POST", "/api/v2/users/me/approvals/cron-job/<cron_job_id>")
-  def CreateCronJobApproval(
-      self,
-      args: api_user_pb2.ApiCreateCronJobApprovalArgs,
-      context: Optional[api_call_context.ApiCallContext] = None,
-  ):
-    """Create new cron job approval."""
-
-    raise NotImplementedError()
-
-  @Category("User")
-  @ProtoArgsType(api_user_pb2.ApiGetCronJobApprovalArgs)
-  @ProtoResultType(api_user_pb2.ApiCronJobApproval)
-  @NoAuditLogRequired()
-  @Http(
-      "GET",
-      "/api/v2/users/<username>/approvals/cron-job/<cron_job_id>/<approval_id>",
-  )
-  def GetCronJobApproval(
-      self,
-      args: api_user_pb2.ApiGetCronJobApprovalArgs,
-      context: Optional[api_call_context.ApiCallContext] = None,
-  ):
-    """Get cron job approval identified by approval id, cron id and username."""
-
-    raise NotImplementedError()
-
-  @Category("User")
-  @ProtoArgsType(api_user_pb2.ApiGrantCronJobApprovalArgs)
-  @ProtoResultType(api_user_pb2.ApiCronJobApproval)
-  @Http(
-      "POST",
-      "/api/v2/users/<username>/approvals/cron-job/<cron_job_id>/<approval_id>/"
-      "actions/grant",
-  )
-  def GrantCronJobApproval(
-      self,
-      args: api_user_pb2.ApiGrantCronJobApprovalArgs,
-      context: Optional[api_call_context.ApiCallContext] = None,
-  ):
-    """Grant cron job approval."""
-
-    raise NotImplementedError()
-
-  @Category("User")
-  @ProtoArgsType(api_user_pb2.ApiListCronJobApprovalsArgs)
-  @ProtoResultType(api_user_pb2.ApiListCronJobApprovalsResult)
-  @NoAuditLogRequired()
-  @Http("GET", "/api/v2/users/me/approvals/cron-job")
-  def ListCronJobApprovals(
-      self,
-      args: api_user_pb2.ApiListCronJobApprovalsArgs,
-      context: Optional[api_call_context.ApiCallContext] = None,
-  ):
-    """List cron job approvals of a current user."""
-
-    raise NotImplementedError()
-
-  @Category("User")
   @ProtoArgsType(api_user_pb2.ApiListApproverSuggestionsArgs)
   @ProtoResultType(api_user_pb2.ApiListApproverSuggestionsResult)
   @Http("GET", "/api/v2/users/approver-suggestions")
@@ -1646,7 +1398,6 @@ class ApiCallRouterStub(ApiCallRouter):
   # User settings methods.
   # =====================
   #
-  @Category("User")
   @ProtoResultType(api_user_pb2.ApiGetPendingUserNotificationsCountResult)
   @Http("GET", "/api/v2/users/me/notifications/pending/count")
   @NoAuditLogRequired()
@@ -1659,7 +1410,6 @@ class ApiCallRouterStub(ApiCallRouter):
 
     raise NotImplementedError()
 
-  @Category("User")
   @ProtoArgsType(api_user_pb2.ApiListPendingUserNotificationsArgs)
   @ProtoResultType(api_user_pb2.ApiListPendingUserNotificationsResult)
   @Http("GET", "/api/v2/users/me/notifications/pending")
@@ -1673,7 +1423,6 @@ class ApiCallRouterStub(ApiCallRouter):
 
     raise NotImplementedError()
 
-  @Category("User")
   @ProtoArgsType(api_user_pb2.ApiDeletePendingUserNotificationArgs)
   @Http("DELETE", "/api/v2/users/me/notifications/pending/<timestamp>")
   @NoAuditLogRequired()
@@ -1686,7 +1435,6 @@ class ApiCallRouterStub(ApiCallRouter):
 
     raise NotImplementedError()
 
-  @Category("User")
   @ProtoArgsType(api_user_pb2.ApiListAndResetUserNotificationsArgs)
   @ProtoResultType(api_user_pb2.ApiListAndResetUserNotificationsResult)
   @Http("POST", "/api/v2/users/me/notifications")
@@ -1700,7 +1448,6 @@ class ApiCallRouterStub(ApiCallRouter):
 
     raise NotImplementedError()
 
-  @Category("User")
   @ProtoResultType(api_user_pb2.ApiGrrUser)
   @Http("GET", "/api/v2/users/me")
   @NoAuditLogRequired()
@@ -1713,7 +1460,6 @@ class ApiCallRouterStub(ApiCallRouter):
 
     raise NotImplementedError()
 
-  @Category("User")
   @ProtoArgsType(api_user_pb2.ApiGrrUser)
   @ProtoResultType(api_user_pb2.ApiGrrUser)
   @Http("POST", "/api/v2/users/me")
@@ -1730,7 +1476,6 @@ class ApiCallRouterStub(ApiCallRouter):
   # Config methods.
   # ==============
   #
-  @Category("Settings")
   @ProtoResultType(api_config_pb2.ApiGetConfigResult)
   @Http("GET", "/api/v2/config")
   @NoAuditLogRequired()
@@ -1743,7 +1488,6 @@ class ApiCallRouterStub(ApiCallRouter):
 
     raise NotImplementedError()
 
-  @Category("Settings")
   @ProtoArgsType(api_config_pb2.ApiGetConfigOptionArgs)
   @ProtoResultType(api_config_pb2.ApiConfigOption)
   @Http("GET", "/api/v2/config/<name>")
@@ -1757,7 +1501,6 @@ class ApiCallRouterStub(ApiCallRouter):
 
     raise NotImplementedError()
 
-  @Category("Settings")
   @ProtoArgsType(api_config_pb2.ApiListGrrBinariesArgs)
   @ProtoResultType(api_config_pb2.ApiListGrrBinariesResult)
   @Http("GET", "/api/v2/config/binaries")
@@ -1771,7 +1514,6 @@ class ApiCallRouterStub(ApiCallRouter):
 
     raise NotImplementedError()
 
-  @Category("Settings")
   @ProtoArgsType(api_config_pb2.ApiGetGrrBinaryArgs)
   @ProtoResultType(api_config_pb2.ApiGrrBinary)
   @Http("GET", "/api/v2/config/binaries/<type>/<path:path>")
@@ -1785,7 +1527,6 @@ class ApiCallRouterStub(ApiCallRouter):
 
     raise NotImplementedError()
 
-  @Category("Settings")
   @ProtoArgsType(api_config_pb2.ApiGetGrrBinaryBlobArgs)
   @ResultBinaryStream()
   @Http("GET", "/api/v2/config/binaries-blobs/<type>/<path:path>")
@@ -1799,7 +1540,6 @@ class ApiCallRouterStub(ApiCallRouter):
 
     raise NotImplementedError()
 
-  @Category("Settings")
   @ProtoResultType(api_config_pb2.ApiUiConfig)
   @Http("GET", "/api/v2/config/ui")
   @NoAuditLogRequired()
@@ -1815,7 +1555,6 @@ class ApiCallRouterStub(ApiCallRouter):
   # Reflection methods.
   # ==================
   #
-  @Category("Reflection")
   @ProtoResultType(api_client_pb2.ApiListKbFieldsResult)
   @Http("GET", "/api/v2/clients/kb-fields")
   @NoAuditLogRequired()
@@ -1828,7 +1567,6 @@ class ApiCallRouterStub(ApiCallRouter):
 
     raise NotImplementedError()
 
-  @Category("Reflection")
   @ProtoResultType(api_flow_pb2.ApiListFlowDescriptorsResult)
   @Http("GET", "/api/v2/flows/descriptors")
   @NoAuditLogRequired()
@@ -1842,7 +1580,6 @@ class ApiCallRouterStub(ApiCallRouter):
     raise NotImplementedError()
 
   # Note: fix the name in ApiOutputPluginsListHandler
-  @Category("Reflection")
   @ProtoResultType(api_reflection_pb2.ApiListOutputPluginDescriptorsResult)
   @Http("GET", "/api/v2/output-plugins/all")
   @NoAuditLogRequired()
@@ -1855,7 +1592,6 @@ class ApiCallRouterStub(ApiCallRouter):
 
     raise NotImplementedError()
 
-  @Category("Reflection")
   @ProtoResultType(api_reflection_pb2.ApiListApiMethodsResult)
   @Http("GET", "/api/v2/reflection/api-methods")
   @NoAuditLogRequired()
@@ -1868,7 +1604,6 @@ class ApiCallRouterStub(ApiCallRouter):
 
     raise NotImplementedError()
 
-  @Category("Metadata")
   @ProtoResultType(api_metadata_pb2.ApiGetGrrVersionResult)
   @Http("GET", "/api/v2/metadata/version")
   @NoAuditLogRequired()
@@ -1880,7 +1615,6 @@ class ApiCallRouterStub(ApiCallRouter):
     """Returns version of the GRR server."""
     raise NotImplementedError()
 
-  @Category("Metadata")
   @ProtoResultType(api_metadata_pb2.ApiGetOpenApiDescriptionResult)
   @Http("GET", "/api/v2/metadata/openapi")
   @NoAuditLogRequired()
@@ -1905,13 +1639,15 @@ class ApiCallRouterStub(ApiCallRouter):
 class DisabledApiCallRouter(ApiCallRouterStub):
   """Fallback Router if no other Router is matching the user's request."""
 
-  def __init__(self, params=None):
+  def __init__(self, params: Any = None):
     super().__init__(params)
 
     # Construct handlers explicitly to avoid cell-var-from-loop issue.
-    def _MakeAccessForbiddenHandler(method_name):
+    def _MakeAccessForbiddenHandler(
+        method_name: str,
+    ) -> Callable[..., NoReturn]:
 
-      def _AccessForbidden(*args, **kwargs):
+      def _AccessForbidden(*args: Any, **kwargs: Any) -> NoReturn:
         raise access_control.UnauthorizedAccess(
             f"No authorized route for {method_name}. "
             "Requestor has no access to GRR or the given API endpoint."

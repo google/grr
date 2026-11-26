@@ -14,6 +14,7 @@ from grr_response_proto.rrg.action import dump_process_memory_pb2 as rrg_dump_pr
 from grr_response_proto.rrg.action import execute_signed_command_pb2 as rrg_execute_signed_command_pb2
 from grr_response_proto.rrg.action import get_file_contents_kmx_pb2 as rrg_get_file_contents_kmx_pb2
 from grr_response_proto.rrg.action import get_file_contents_pb2 as rrg_get_file_contents_pb2
+from grr_response_proto.rrg.action import get_file_metadata_kmx_pb2 as rrg_get_file_metadata_kmx_pb2
 from grr_response_proto.rrg.action import get_file_metadata_pb2 as rrg_get_file_metadata_pb2
 from grr_response_proto.rrg.action import get_file_sha256_kmx_pb2 as rrg_get_file_sha256_kmx_pb2
 from grr_response_proto.rrg.action import get_file_sha256_pb2 as rrg_get_file_sha256_pb2
@@ -34,10 +35,27 @@ from grr_response_proto.rrg.action import store_filestore_part_pb2 as rrg_store_
 class _FlowStateMethod(Protocol):
   """Protocol for a flow state method."""
 
-  __self__: flow_base.FlowBase
-  __name__: str
+  # TODO: https://github.com/python/mypy/issues/14235 - Constraint `self` type
+  # to `FlowBase`.
+  #
+  # One solution would be to make `@UseProto2AnyResponses` to return some more
+  # concrete wrapper but we want to move away from this annotation, so this only
+  # pushes tech debt.
+  #
+  # So we just wait until bound methods are properly supported in type-checkers.
+  @property
+  def __self__(self) -> object:
+    ...
 
-  def __call__(self, responses: flow_responses.Responses[any_pb2.Any]) -> None:
+  @property
+  def __name__(self) -> str:
+    ...
+
+  def __call__(
+      self,
+      responses: flow_responses.Responses[any_pb2.Any],
+      /,
+  ) -> None:
     ...
 
 
@@ -79,7 +97,12 @@ class Action(Generic[_Args]):
     return self._context
 
   def Call(self, next_state: _FlowStateMethod) -> None:
-    next_state.__self__.CallRRG(
+    flow_obj = next_state.__self__
+
+    if not isinstance(flow_obj, flow_base.FlowBase):
+      raise TypeError(f"State method not on flow class (but {type(flow_obj)})")
+
+    flow_obj.CallRRG(
         action=self._action,
         args=self._args,
         filters=self._filters,
@@ -106,6 +129,13 @@ def GetFileMetadata() -> Action[rrg_get_file_metadata_pb2.Args]:
   return Action(
       action=rrg_pb2.Action.GET_FILE_METADATA,
       args_type=rrg_get_file_metadata_pb2.Args,
+  )
+
+
+def GetFileMetadataKmx() -> Action[rrg_get_file_metadata_kmx_pb2.Args]:
+  return Action(
+      action=rrg_pb2.Action.GET_FILE_METADATA_KMX,
+      args_type=rrg_get_file_metadata_kmx_pb2.Args,
   )
 
 

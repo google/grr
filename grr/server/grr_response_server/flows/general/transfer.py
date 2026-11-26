@@ -89,9 +89,6 @@ class MultiGetFile(
   proto_progress_type = flows_pb2.MultiGetFileProgress
   proto_store_type = flows_pb2.MultiGetFileStore
 
-  category = "/Filesystem/"
-  behaviours = flow_base.BEHAVIOUR_DEBUG
-
   CHUNK_SIZE = 512 * 1024
 
   # Batch calls to the filestore to at least to group this many items. This
@@ -1273,8 +1270,7 @@ class MultiGetFile(
       blob_dict[blob_index_by_offset[response.offset]] = blob_ref
 
     if len(blob_dict) != index_to_tracker.tracker.expected_chunks:
-      # TODO - Replace with `clear()` once upgraded in open-source.
-      del index_to_tracker.tracker.index_to_buffers[:]
+      index_to_tracker.tracker.index_to_buffers.clear()
       index_to_tracker.tracker.index_to_buffers.extend(
           _BuildIndexToBuffers(blob_dict)
       )
@@ -1319,9 +1315,8 @@ class MultiGetFile(
 
     data_store.REL_DB.WritePathInfos(self.client_id, [path_info])
 
-    # TODO - Replace with `clear()` once upgraded in open-source.
-    del index_to_tracker.tracker.index_to_buffers[:]
-    del index_to_tracker.tracker.hash_list[:]
+    index_to_tracker.tracker.index_to_buffers.clear()
+    index_to_tracker.tracker.hash_list.clear()
 
     self._ReceiveFetchedFile(index_to_tracker.tracker)
     self.store.num_files_fetched += 1
@@ -1360,8 +1355,7 @@ class MultiGetFile(
 
     if len(blob_dict) != file_tracker.expected_chunks:
       # We need more data before we can write the file.
-      # TODO - Replace with `clear()` once upgraded in OpenSource.
-      del file_tracker.index_to_buffers[:]
+      file_tracker.index_to_buffers.clear()
       file_tracker.index_to_buffers.extend(_BuildIndexToBuffers(blob_dict))
       return
 
@@ -1516,9 +1510,6 @@ class GetMBR(
     The retrieved MBR.
   """
 
-  category = "/Filesystem/"
-  behaviours = flow_base.BEHAVIOUR_BASIC
-
   proto_args_type = flows_pb2.GetMBRArgs
   proto_result_types = [config_pb2.BytesValue]
   proto_store_type = flows_pb2.GetMBRStore
@@ -1536,8 +1527,7 @@ class GetMBR(
     self.store.bytes_downloaded = 0
     # An array to collect buffers. This is not very efficient, MBR
     # data should be kept short though so this is not a big deal.
-    # TODO - Replace with `clear()` once upgraded.
-    del self.store.buffers[:]
+    self.store.buffers.clear()
 
     if not self.proto_args.length:
       self.proto_args.length = self.DEFAULT_MBR_LENGTH
@@ -1578,8 +1568,7 @@ class GetMBR(
 
     if self.store.bytes_downloaded >= self.proto_args.length:
       mbr_data = b"".join(self.store.buffers)
-      # TODO - Replace with `clear()` once upgraded.
-      del self.store.buffers[:]
+      self.store.buffers.clear()
 
       self.Log("Successfully collected the MBR (%d bytes)." % len(mbr_data))
       self.SendReplyProto(config_pb2.BytesValue(value=mbr_data))

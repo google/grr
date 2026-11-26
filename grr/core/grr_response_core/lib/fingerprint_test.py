@@ -16,16 +16,18 @@ class FingerprinterTest(absltest.TestCase):
     # Check if the limit on maximum blocksize for processing still holds.
     dummy = io.BytesIO(b'')
     fp = fingerprint.Fingerprinter(dummy)
-    big_finger = fingerprint.Finger(None, [fingerprint.Range(0, 1000001)], None)
+    big_finger = fingerprint.Finger([], [fingerprint.Range(0, 1000001)], {})
     fp.fingers.append(big_finger)
-    start, stop = fp._GetNextInterval()
+    interval = fp._GetNextInterval()
+    assert interval is not None
+    start, stop = interval
     self.assertEqual(0, start)
     self.assertEqual(1000000, stop)
 
   def testAdjustments(self):
     dummy = io.BytesIO(b'')
     fp = fingerprint.Fingerprinter(dummy)
-    big_finger = fingerprint.Finger(None, [fingerprint.Range(10, 20)], None)
+    big_finger = fingerprint.Finger([], [fingerprint.Range(10, 20)], {})
     fp.fingers.append(big_finger)
 
     # The remaining range should not yet be touched...
@@ -49,18 +51,17 @@ class FingerprinterTest(absltest.TestCase):
     def __init__(self):
       self.seen = b''
 
-    def update(self, content):  # pylint: disable=g-bad-name
+    def update(self, content: bytes) -> None:  # pylint: disable=g-bad-name
       self.seen += content
 
   def testHashBlock(self):
     # Does it invoke a hash function?
     dummy = b'12345'
     fp = fingerprint.Fingerprinter(io.BytesIO(dummy))
-    big_finger = fingerprint.Finger(
-        None, [fingerprint.Range(0, len(dummy))], None
-    )
     hasher = self.MockHasher()
-    big_finger.hashers = [hasher]
+    big_finger = fingerprint.Finger(
+        [hasher], [fingerprint.Range(0, len(dummy))], {}
+    )
     fp.fingers.append(big_finger)
     # Let's process the block
     fp._HashBlock(dummy, 0, len(dummy))
@@ -72,6 +73,7 @@ class FingerprinterTest(absltest.TestCase):
           'grr-response-test',
           os.path.join('grr_response_test', 'test_data', 'fingerprint', fname),
       )
+      assert path is not None
       with io.open(path, 'rb') as f:
         fp = fingerprint.Fingerprinter(f)
         fp.EvalGeneric()

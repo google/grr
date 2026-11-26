@@ -107,7 +107,16 @@ def Sign(
     with open(path_on_server, mode="rb") as file:
       # TODO - Migrate to `hashlib.file_digest` once we are on
       # Python 3.11+.
-      rrg_command.filestore_file_sha256 = hashlib.sha256(file.read()).digest()
+      file_sha256 = hashlib.sha256(file.read()).digest()
+
+    if bytes.fromhex(command.path_on_server_sha256) != file_sha256:
+      raise ValueError(
+          f"SHA-256 mismatch for '{command.id}' ({path_on_server}): "
+          f"expected '{command.path_on_server_sha256}' but "
+          f"got '{file_sha256.hex()}' instead"
+      )
+
+    rrg_command.filestore_file_sha256 = file_sha256
 
     result.server_executable_path = path_on_server
   else:

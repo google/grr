@@ -4,7 +4,6 @@ import datetime
 import getpass
 import inspect
 import logging
-import math
 import os
 import sys
 import time
@@ -14,9 +13,7 @@ from urllib import parse as urlparse
 import requests
 
 from grr_api_client import api
-from grr_response_core.lib import package
 from grr_response_core.lib.util import retry
-from grr_response_server import maintenance_utils
 from grr_response_test.end_to_end_tests import test_base
 
 # We need to import all test classes so they can be added in test_base.REGISTRY
@@ -44,10 +41,6 @@ class E2ETestRunner(object):
   LOGFILE_FAILURE_RESULT = "[ FAIL ]"
   APPVEYOR_SUCCESS_RESULT = "Passed"
   APPVEYOR_FAILURE_RESULT = "Failed"
-  LINUX_TEST_BINARY_NAME = "linux_hello"
-  LINUX_TEST_BINARY_PATH = "linux/test/linux_hello"
-  WINDOWS_TEST_BINARY_NAME = "win_hello.exe"
-  WINDOWS_TEST_BINARY_PATH = "windows/test/win_hello.exe"
 
   def __init__(self,
                api_endpoint="",
@@ -56,7 +49,6 @@ class E2ETestRunner(object):
                run_only_tests=None,
                skip_tests=None,
                manual_tests=None,
-               upload_test_binaries=True,
                api_retry_period_secs=30.0,
                api_retry_deadline_secs=500.0,
                max_test_attempts=1):
@@ -78,7 +70,6 @@ class E2ETestRunner(object):
     self._run_only_tests = set(run_only_tests or set())
     self._skip_tests = set(skip_tests or set())
     self._manual_tests = set(manual_tests or [])
-    self._upload_test_binaries = upload_test_binaries
     self._api_retry_period_secs = api_retry_period_secs
     self._api_retry_deadline_secs = api_retry_deadline_secs
     self._max_test_attempts = max_test_attempts
@@ -107,48 +98,6 @@ class E2ETestRunner(object):
                                  "user '%s': " % self._api_user)
     self._grr_api = api.InitHttp(
         api_endpoint=self._api_endpoint, auth=(self._api_user, password))
-
-    # Make sure binaries required by tests are uploaded to the datastore.
-    if self._upload_test_binaries:
-      binary_paths = self._GetUploadedBinaries()
-      if self.LINUX_TEST_BINARY_PATH not in binary_paths:
-        self._UploadBinary(self.LINUX_TEST_BINARY_NAME,
-                           self.LINUX_TEST_BINARY_PATH)
-      if self.WINDOWS_TEST_BINARY_PATH not in binary_paths:
-        self._UploadBinary(self.WINDOWS_TEST_BINARY_NAME,
-                           self.WINDOWS_TEST_BINARY_PATH)
-
-  def _GetUploadedBinaries(self):
-    """Fetches all binaries that have been uploaded to GRR."""
-    if self._api_retry_deadline_secs == 0.0:
-      attempts = 1
-    elif self._api_retry_period_secs == 0.0:
-      attempts = sys.maxsize
-    else:
-      attempts = math.ceil(
-          self._api_retry_deadline_secs / self._api_retry_period_secs
-      )
-
-    @retry.On(
-        requests.ConnectionError,
-        opts=retry.Opts(
-            attempts=attempts,
-            init_delay=datetime.timedelta(seconds=self._api_retry_period_secs),
-        ),
-    )
-    def Retry():
-      return {item.path for item in self._grr_api.ListGrrBinaries()}
-
-    return Retry()
-
-  def _UploadBinary(self, bin_name, server_path):
-    """Uploads a binary from the GRR installation dir to the datastore."""
-    # TODO(user): Upload binaries via the GRR API.
-    logging.info("Uploading %s binary to server.", server_path)
-    package_dir = package.ResourcePath("grr-response-test", "grr_response_test")
-    with open(os.path.join(package_dir, "test_data", bin_name), "rb") as f:
-      maintenance_utils.UploadSignedConfigBlob(
-          f.read(), "aff4:/config/executables/%s" % server_path)
 
   def RunTestsAgainstClient(self, client_id):
     """Runs all applicable end-to-end tests against the given client."""

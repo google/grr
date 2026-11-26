@@ -12,7 +12,6 @@ import re
 import socket
 import sys
 
-import distro
 import psutil
 
 from grr_response_core.lib import rdfvalue
@@ -103,18 +102,11 @@ class ClientURN(rdfvalue.RDFURN):
     return rdfvalue.RDFURN(utils.JoinPath(self._value, path))
 
 
-class PwEntry(rdf_structs.RDFProtoStruct):
-  """Information about password structures."""
-
-  protobuf = knowledge_base_pb2.PwEntry
-
-
 class User(rdf_structs.RDFProtoStruct):
   """Information about the users."""
 
   protobuf = knowledge_base_pb2.User
   rdf_deps = [
-      PwEntry,
       rdfvalue.RDFDatetime,
   ]
 
@@ -488,6 +480,10 @@ class Uname(rdf_structs.RDFProtoStruct):
       version = platform.mac_ver()[0]  # 10.8.2
     elif system == "Linux":
       kernel = uname[2]  # 3.2.5
+
+      # TODO - Move back to the top once the Debugpy issue is fixed.
+      import distro  # pylint: disable=g-import-not-at-top
+
       release = distro.name()
       version = distro.version()
 

@@ -35,7 +35,7 @@ _TEST_DATA_STORE = flags.DEFINE_string(
 )
 
 
-def TestInit():
+def TestInit() -> None:
   """Only used in tests and will rerun all the hooks to create a clean state."""
   global INIT_RAN
 
@@ -89,6 +89,7 @@ def TestInit():
 
   if not utils.TimeBasedCache.house_keeper_thread:
     utils.TimeBasedCache()
+  assert utils.TimeBasedCache.house_keeper_thread is not None
   utils.TimeBasedCache.house_keeper_thread.exit = True
   utils.TimeBasedCache.house_keeper_thread.join()
 

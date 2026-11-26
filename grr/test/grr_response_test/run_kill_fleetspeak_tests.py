@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """Runs an end-to-end test of the kill fleetspeak feature."""
 
+import os
 import sys
 import time
 
@@ -29,18 +30,20 @@ _MYSQL_PASSWORD = flags.DEFINE_string("mysql_password", None,
 _LOGGING_PATH = flags.DEFINE_string(
     "logging_path", None, "Base logging path for server components to use.")
 
+_RRG_PATH = flags.DEFINE_string(
+    "rrg_path",
+    default=None,
+    required=True,
+    help="A path to the RRG executable.",
+)
 
-def FindGrrClientProcess(config_path: str) -> psutil.Process:
+
+def FindGrrClientProcess() -> psutil.Process:
   """Finds the running GRR process."""
-  for proc in psutil.process_iter(["pid", "cmdline", "create_time"]):
-    name_found = False
-    config_found = False
-    for arg in proc.cmdline():
-      if "grr_fs_client" in arg:
-        name_found = True
-      if config_path in arg:
-        config_found = True
-    if name_found and config_found:
+  for proc in psutil.process_iter(["exe"]):
+    if not (exe := proc.info["exe"]):
+      continue
+    if os.path.samefile(exe, _RRG_PATH.value):
       return proc
   raise RuntimeError("Couldn't find GRR client process.")
 
@@ -73,6 +76,7 @@ def main(argv):
       mysql_username=_MYSQL_USERNAME.value,
       mysql_password=_MYSQL_PASSWORD.value,
       logging_path=_LOGGING_PATH.value,
+      rrg_path=_RRG_PATH.value,
   )
 
   server_processes = self_contained_components.StartServerProcesses(
@@ -86,13 +90,28 @@ def main(argv):
   if list(grr_api.SearchClients()):
     raise Exception("This tests expects to be run on an empty database.")
 
+  # TODO - Below we wait for the client to enroll by searching for
+  # clients with a query like `.`. For this to work though the client has to
+  # have at least one keyword and these are assigned during interrogation.
+  #
+  # There are two ways to fix this properly:
+  # * Determine the identifier of the started client and wait until we can see
+  #   see it in the database (no keywords required).
+  # * Wait for the automatic interrogation triggered by the agent startup. This
+  #   does not currently work for RRG.
+  #
+  # As a temporary measure we just create a hunt (which is how it worked before
+  # we disabled the cronjobs that spawned it).
+  interrogate = grr_api.CreateHunt("Interrogate")
+  interrogate.Start()
+
   client_p = self_contained_components.StartClientProcess(fleetspeak_configs)
 
   client_id = api_helpers.WaitForClientToEnroll(grr_api)
 
   print("client_id is", client_id)
 
-  client_proc_before = FindGrrClientProcess(grr_configs.client_config)
+  client_proc_before = FindGrrClientProcess()
 
   print("GRR process has process ID {}.".format(client_proc_before.pid))
 
@@ -112,7 +131,7 @@ def main(argv):
   # time window, the reply is lost.
   time.sleep(10)
 
-  client_proc_after = FindGrrClientProcess(grr_configs.client_config)
+  client_proc_after = FindGrrClientProcess()
   print("GRR process has process ID {} after restart.".format(
       client_proc_before.pid))
 

@@ -18,7 +18,7 @@ from grr_response_core.lib import utils
 class DarwinClientRepacker(build.ClientRepacker):
   """Repackage OSX clients."""
 
-  def MakeDeployableBinary(self, template_path, output_path):
+  def MakeDeployableBinary(self, template_path: str, output_path: str) -> str:
     context = self.context + ["Client Context"]
     utils.EnsureDirExists(os.path.dirname(output_path))
 

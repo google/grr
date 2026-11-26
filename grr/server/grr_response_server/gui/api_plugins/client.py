@@ -385,7 +385,7 @@ def _GetAddrFromFleetspeak(client_id):
   # last_contact_address typically includes a port
   parsed = urlparse.urlparse("//{}".format(res.clients[0].last_contact_address))
   ip_str = parsed.hostname
-  return ip_str, ipaddress.ip_address(ip_str)  # pyrefly: ignore[bad-argument-type]
+  return ip_str, ipaddress.ip_address(ip_str)
 
 
 class ApiListClientCrashesHandler(api_call_handler_base.ApiCallHandler):
@@ -479,7 +479,7 @@ class ApiListClientsLabelsHandler(api_call_handler_base.ApiCallHandler):
       label_objects.append(objects_pb2.ClientLabel(name=name))
 
     return client_pb2.ApiListClientsLabelsResult(
-        items=sorted(label_objects, key=lambda l: l.name)
+        items=sorted(label_objects, key=lambda l: l.name)  # pyrefly: ignore[missing-attribute]
     )
 
 

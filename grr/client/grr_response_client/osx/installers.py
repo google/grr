@@ -10,7 +10,7 @@ from grr_response_core.lib import config_parser
 from grr_response_core.lib import type_info
 
 
-def Run():
+def Run() -> None:
   """Extracts a config file from the .pkg file."""
   logging.info("Extracting config file from .pkg.")
   pkg_path = os.environ.get("PACKAGE_PATH", None)

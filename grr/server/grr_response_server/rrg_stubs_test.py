@@ -59,9 +59,9 @@ class ActionTest(absltest.TestCase):
       def Start(self) -> None:
         action = rrg_stubs.GetFileMetadata()
         action.args.paths.add().raw_bytes = "/foo/bar".encode("utf-8")
-        action.Call(self.Process)  # pyrefly: ignore[bad-argument-type]
+        action.Call(self.Process)
 
-      @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+      @flow_base.UseProto2AnyResponses
       def Process(
           self,
           responses: flow_responses.Responses[any_pb2.Any],
@@ -114,9 +114,9 @@ class ActionTest(absltest.TestCase):
         action = rrg_stubs.GetSystemMetadata()
         action.context["foo"] = "quux"
         action.context["bar"] = "norf"
-        action.Call(self.Process)  # pyrefly: ignore[bad-argument-type]
+        action.Call(self.Process)
 
-      @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+      @flow_base.UseProto2AnyResponses
       def Process(
           self,
           responses: flow_responses.Responses[any_pb2.Any],
@@ -186,9 +186,9 @@ class ActionTest(absltest.TestCase):
             rrg_fs_pb2.Path.RAW_BYTES_FIELD_NUMBER,
         )
 
-        action.Call(self.Process)  # pyrefly: ignore[bad-argument-type]
+        action.Call(self.Process)
 
-      @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+      @flow_base.UseProto2AnyResponses
       def Process(
           self,
           responses: flow_responses.Responses[any_pb2.Any],

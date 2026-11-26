@@ -7,6 +7,8 @@ baseclass will have the member classes as a dict containing class name by key
 and class as value.
 """
 
+from __future__ import annotations
+
 # The following are abstract base classes
 import abc
 from collections.abc import Mapping
@@ -32,7 +34,7 @@ def GetAllRDFProtoStructs() -> Mapping[str, type[Any]]:
 class MetaclassRegistry(abc.ABCMeta):
   """Automatic Plugin Registration through metaclasses."""
 
-  def IsAbstract(cls):
+  def IsAbstract(cls) -> bool:
     # Abstract classes should not be registered. We define classes as abstract
     # by giving them the __abstract attribute (this is not inheritable) or by
     # naming them Abstract<ClassName>.
@@ -42,10 +44,12 @@ class MetaclassRegistry(abc.ABCMeta):
         cls, abstract_attribute
     )
 
-  def IsDeprecated(cls):
+  def IsDeprecated(cls) -> bool:
     return hasattr(cls, "deprecated")
 
-  def __init__(cls, name, bases, env_dict):
+  def __init__(
+      cls, name: str, bases: tuple[type[Any], ...], env_dict: dict[str, Any]
+  ):
     abc.ABCMeta.__init__(cls, name, bases, env_dict)
 
     if not cls.IsAbstract():
@@ -94,7 +98,7 @@ class MetaclassRegistry(abc.ABCMeta):
       if not hasattr(cls, "classes_by_name"):
         cls.classes_by_name = {}
 
-  def GetPlugin(cls, name):
+  def GetPlugin(cls, name: str) -> type[Any]:
     """Return the class of the implementation that carries that name.
 
     Args:
@@ -115,7 +119,9 @@ class EventRegistry(MetaclassRegistry):
   EVENT_NAME_MAP = {}
   EVENTS = []
 
-  def __init__(cls, name, bases, env_dict):
+  def __init__(
+      cls, name: str, bases: tuple[type[Any], ...], env_dict: dict[str, Any]
+  ):
     MetaclassRegistry.__init__(cls, name, bases, env_dict)
 
     if not cls.IsAbstract():
@@ -130,7 +136,9 @@ class FlowRegistry(MetaclassRegistry):
   FLOW_REGISTRY = {}
   DEPRECATED_FLOWS = {}
 
-  def __init__(cls, name, bases, env_dict):
+  def __init__(
+      cls, name: str, bases: tuple[type[Any], ...], env_dict: dict[str, Any]
+  ):
     MetaclassRegistry.__init__(cls, name, bases, env_dict)
 
     if cls.IsAbstract():
@@ -141,7 +149,7 @@ class FlowRegistry(MetaclassRegistry):
       cls.FLOW_REGISTRY[name] = cls
 
   @classmethod
-  def FlowClassByName(mcs, flow_name):
+  def FlowClassByName(mcs, flow_name: str) -> type[Any]:
     flow_cls = mcs.FLOW_REGISTRY.get(flow_name)
     if flow_cls is None:
       flow_cls = mcs.DEPRECATED_FLOWS.get(flow_name)
@@ -151,46 +159,6 @@ class FlowRegistry(MetaclassRegistry):
     return flow_cls
 
 
-class CronJobRegistry(MetaclassRegistry):
-  """A dedicated registry that only contains cron jobs."""
-
-  CRON_REGISTRY = {}
-
-  def __init__(cls, name, bases, env_dict):
-    MetaclassRegistry.__init__(cls, name, bases, env_dict)
-
-    if not cls.IsAbstract():
-      cls.CRON_REGISTRY[name] = cls
-
-  @classmethod
-  def CronJobClassByName(mcs, job_name):
-    job_cls = mcs.CRON_REGISTRY.get(job_name)
-    if job_cls is None:
-      raise ValueError("CronJob '%s' not known." % job_name)
-
-    return job_cls
-
-
-class SystemCronJobRegistry(CronJobRegistry):
-  """A dedicated registry that only contains cron jobs."""
-
-  SYSTEM_CRON_REGISTRY = {}
-
-  def __init__(cls, name, bases, env_dict):
-    super().__init__(name, bases, env_dict)
-
-    if not cls.IsAbstract():
-      cls.SYSTEM_CRON_REGISTRY[name] = cls
-
-  @classmethod
-  def CronJobClassByName(mcs, job_name):
-    job_cls = mcs.SYSTEM_CRON_REGISTRY.get(job_name)
-    if job_cls is None:
-      raise ValueError("CronJob '%s' not known." % job_name)
-
-    return job_cls
-
-
 # TODO - Remove this registry once Flow/Hunt RDF values don't
 # depend on it anymore. The registry itself is no longer referenced.
 class OutputPluginRegistry(MetaclassRegistry):
@@ -198,12 +166,14 @@ class OutputPluginRegistry(MetaclassRegistry):
 
   PLUGIN_REGISTRY = {}
 
-  def __init__(cls, name, bases, env_dict):
+  def __init__(
+      cls, name: str, bases: tuple[type[Any], ...], env_dict: dict[str, Any]
+  ):
     MetaclassRegistry.__init__(cls, name, bases, env_dict)
 
     if not cls.IsAbstract():
       cls.PLUGIN_REGISTRY[name] = cls
 
   @classmethod
-  def PluginClassByName(mcs, plugin_name):
+  def PluginClassByName(mcs, plugin_name: str) -> type[Any] | None:
     return mcs.PLUGIN_REGISTRY.get(plugin_name)

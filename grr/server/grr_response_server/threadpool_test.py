@@ -1,10 +1,14 @@
 #!/usr/bin/env python
 """Tests for the ThreadPool class."""
 
+from __future__ import annotations
+
+from collections.abc import Callable, Sequence
 import logging
 import queue
 import threading
 import time
+from typing import Any
 from unittest import mock
 
 from absl import app
@@ -34,7 +38,9 @@ class ThreadPoolTest(stats_test_lib.StatsTestMixin, test_lib.GRRBaseTest):
     self.test_pool.Start()
     self.addCleanup(self.test_pool.Stop)
 
-  def WaitUntil(self, condition_cb, timeout=5):
+  def WaitUntil(
+      self, condition_cb: Callable[[], Any], timeout: float = 5
+  ) -> Any:
     """Wait a fixed time until the condition is true."""
     for _ in range(int(timeout / self.sleep_time)):
       res = condition_cb()
@@ -45,7 +51,7 @@ class ThreadPoolTest(stats_test_lib.StatsTestMixin, test_lib.GRRBaseTest):
 
     raise RuntimeError("Timeout exceeded. Condition not true")
 
-  def Count(self, thread_name):
+  def Count(self, thread_name: str) -> int:
     worker_threads = [
         thread for thread in threading.enumerate() if thread_name in thread.name
     ]
@@ -84,11 +90,11 @@ class ThreadPoolTest(stats_test_lib.StatsTestMixin, test_lib.GRRBaseTest):
 
     self.lock = threading.Lock()
 
-    def Insert(list_obj, element):
+    def Insert(list_obj: list[int], element: int) -> None:
       with self.lock:
         list_obj.append(element)
 
-    test_list = []
+    test_list: list[int] = []
     for i in range(self.NUMBER_OF_TASKS):
       self.test_pool.AddTask(Insert, (test_list, i))
 
@@ -101,9 +107,11 @@ class ThreadPoolTest(stats_test_lib.StatsTestMixin, test_lib.GRRBaseTest):
     signal_event_1, signal_event_2 = threading.Event(), threading.Event()
 
     try:
-      sample = []
+      sample: list[int] = []
 
-      def RunFn(signal_event, wait_event, num):
+      def RunFn(
+          signal_event: threading.Event, wait_event: threading.Event, num: int
+      ) -> None:
         sample.append(num)
         signal_event.set()
         wait_event.wait()
@@ -134,15 +142,15 @@ class ThreadPoolTest(stats_test_lib.StatsTestMixin, test_lib.GRRBaseTest):
 
     self.lock = threading.Lock()
 
-    def IRaise(some_obj):
+    def IRaise(some_obj: Any) -> None:
       """This method just raises an exception."""
       with self.lock:
         # This simulates an error by calling a non-existent function.
         some_obj.process()
 
-    self.exception_args = []
+    self.exception_args: Sequence[Any] = []
 
-    def MockException(*args):
+    def MockException(*args: Any) -> None:
       self.exception_args = args
 
     with self.assertStatsCounterDelta(
@@ -164,10 +172,10 @@ class ThreadPoolTest(stats_test_lib.StatsTestMixin, test_lib.GRRBaseTest):
 
     done_event = threading.Event()
 
-    def Block(done):
+    def Block(done: threading.Event) -> None:
       done.wait()
 
-    def RaisingStart(_):
+    def RaisingStart(_: Any) -> None:
       raise threading.ThreadError()
 
     # Now simulate failure of creating threads.
@@ -204,12 +212,12 @@ class ThreadPoolTest(stats_test_lib.StatsTestMixin, test_lib.GRRBaseTest):
 
     done_event = threading.Event()
     self.lock = threading.Lock()
-    res = []
+    res: list[int] = []
 
-    def Block(done):
+    def Block(done: threading.Event) -> None:
       done.wait()
 
-    def Insert(list_obj, element):
+    def Insert(list_obj: list[int], element: int) -> None:
       with self.lock:
         list_obj.append(element)
 
@@ -271,9 +279,9 @@ class ThreadPoolTest(stats_test_lib.StatsTestMixin, test_lib.GRRBaseTest):
     ):
       done_event = threading.Event()
 
-      res = []
+      res: list[int] = []
 
-      def Block(done, count):
+      def Block(done: threading.Event, count: int) -> None:
         done.wait()
         res.append(count)
 
@@ -299,7 +307,7 @@ class ThreadPoolTest(stats_test_lib.StatsTestMixin, test_lib.GRRBaseTest):
     """Tests if the outstanding tasks variable is exported correctly."""
     signal_event, wait_event = threading.Event(), threading.Event()
 
-    def RunFn():
+    def RunFn() -> None:
       signal_event.set()
       wait_event.wait()
 
@@ -351,23 +359,23 @@ class ThreadPoolTest(stats_test_lib.StatsTestMixin, test_lib.GRRBaseTest):
 
   def testAnonymousThreadpool(self):
     """Tests that we can't starts anonymous threadpools."""
-    prefix = None
+    prefix: Any = None
     with self.assertRaises(ValueError):
       threadpool.ThreadPool.Factory(prefix, 10)
 
 
 class DummyConverter(threadpool.BatchConverter):
 
-  def __init__(self, **kwargs):
-    self.sleep_time = kwargs.pop("sleep_time")
+  def __init__(self, **kwargs: Any):
+    self.sleep_time: float = kwargs.pop("sleep_time")
 
     super().__init__(**kwargs)
 
-    self.batches = []
-    self.threads = []
-    self.results = []
+    self.batches: list[list[str]] = []
+    self.threads: list[int | None] = []
+    self.results: list[str] = []
 
-  def ConvertBatch(self, batch):
+  def ConvertBatch(self, batch: list[str]) -> None:
     time.sleep(self.sleep_time)
 
     self.batches.append(batch)
@@ -421,7 +429,7 @@ class BatchConverterTest(test_lib.GRRBaseTest):
       self.assertEqual(r, str(i) + "*")
 
 
-def main(argv):
+def main(argv: Sequence[str]) -> None:
   test_lib.main(argv)
 
 

@@ -13,7 +13,7 @@ from grr_response_proto import flows_pb2
 from grr_response_proto import jobs_pb2
 
 
-class FileSystem(object):
+class FileSystem:
   """Wrapper for filesystem operations on GRR Client.
 
   Attributes:
@@ -56,7 +56,7 @@ class FileSystem(object):
       try:
         ls = self._client.CreateFlow(name='RecursiveListDirectory', args=args)
       except api_errors.AccessForbiddenError as e:
-        raise errors.ApprovalMissingError(self.id, e)
+        raise errors.ApprovalMissingError(self.id) from e
 
     else:
       args = flows_pb2.ListDirectoryArgs()
@@ -66,7 +66,7 @@ class FileSystem(object):
       try:
         ls = self._client.CreateFlow(name='ListDirectory', args=args)
       except api_errors.AccessForbiddenError as e:
-        raise errors.ApprovalMissingError(self.id, e)
+        raise errors.ApprovalMissingError(self.id) from e
 
     _timeout.await_flow(ls)
     return representer.StatEntryList([_.payload for _ in ls.ListResults()])
@@ -87,7 +87,7 @@ class FileSystem(object):
     try:
       cff = self._client.CreateFlow(name='ClientFileFinder', args=args)
     except api_errors.AccessForbiddenError as e:
-      raise errors.ApprovalMissingError(self.id, e)
+      raise errors.ApprovalMissingError(self.id) from e
 
     _timeout.await_flow(cff)
     res = []
@@ -144,6 +144,6 @@ class FileSystem(object):
     try:
       cff = self._client.CreateFlow(name='FileFinder', args=args)
     except api_errors.AccessForbiddenError as e:
-      raise errors.ApprovalMissingError(self.id, e)
+      raise errors.ApprovalMissingError(self.id) from e
 
     _timeout.await_flow(cff)

@@ -10,13 +10,15 @@ For applications running in the App Engine standard environment, use
 App Engine's Users API instead.
 """
 
+from __future__ import annotations
+
 import jwt
 import requests
 
 # Used to cache the Identity-Aware Proxy public keys.  This code only
 # refetches the file when a JWT is signed with a key not present in
 # this cache.
-_KEY_CACHE = {}
+_KEY_CACHE: dict[str, str] = {}
 
 
 class Error(Exception):
@@ -36,8 +38,10 @@ class IAPValidationFailedError(Error):
 
 
 def ValidateIapJwtFromComputeEngine(
-    iap_jwt, cloud_project_number, backend_service_id
-):
+    iap_jwt: str,
+    cloud_project_number: str | int,
+    backend_service_id: str | int,
+) -> tuple[str, str]:
   """Validates an IAP JWT for your (Compute|Container) Engine service.
 
   Args:
@@ -61,7 +65,7 @@ def ValidateIapJwtFromComputeEngine(
   return ValidateIapJwt(iap_jwt, expected_audience)
 
 
-def ValidateIapJwt(iap_jwt, expected_audience):
+def ValidateIapJwt(iap_jwt: str, expected_audience: str) -> tuple[str, str]:
   """Validates an IAP JWT."""
 
   try:
@@ -80,7 +84,7 @@ def ValidateIapJwt(iap_jwt, expected_audience):
     raise IAPValidationFailedError(e)
 
 
-def GetIapKey(key_id):
+def GetIapKey(key_id: str) -> str:
   """Retrieves a public key from the list published by Identity-Aware Proxy.
 
   The key file is re-fetched if necessary.

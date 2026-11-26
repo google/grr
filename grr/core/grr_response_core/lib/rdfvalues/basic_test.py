@@ -1,6 +1,9 @@
 #!/usr/bin/env python
 """Basic rdfvalue tests."""
 
+from __future__ import annotations
+
+from collections.abc import Sequence
 import datetime
 import time
 
@@ -17,14 +20,14 @@ BILLION = 1000000000
 class RDFBytesTest(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
   rdfvalue_class = rdfvalue.RDFBytes
 
-  def GenerateSample(self, number=0):
+  def GenerateSample(self, number: int = 0) -> rdfvalue.RDFBytes:
     return rdfvalue.RDFBytes(b"\x00hello%s\x01" % str(number).encode("ascii"))
 
 
 class RDFStringTest(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
   rdfvalue_class = rdfvalue.RDFString
 
-  def GenerateSample(self, number=0):
+  def GenerateSample(self, number: int = 0) -> rdfvalue.RDFString:
     return rdfvalue.RDFString("Grüezi %s" % number)
 
   def testRDFStringGetItem(self):
@@ -37,7 +40,7 @@ class RDFStringTest(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
 class RDFIntegerTest(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
   rdfvalue_class = rdfvalue.RDFInteger
 
-  def GenerateSample(self, number=0):
+  def GenerateSample(self, number: int = 0) -> rdfvalue.RDFInteger:
     return rdfvalue.RDFInteger(number)
 
   def testComparableToPrimiviteInts(self):
@@ -55,7 +58,7 @@ class RDFIntegerTest(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
     self.assertEqual(10 * rdfvalue.RDFInteger(10), 100)
 
   def testUsableInBitwiseOr(self):
-    def TestOr(val1, val2, expected):
+    def TestOr(val1: bool, val2: bool, expected: bool) -> None:
       self.assertEqual(rdfvalue.RDFInteger(val1) | val2, expected)
       self.assertEqual(val1 | rdfvalue.RDFInteger(val2), expected)
 
@@ -73,7 +76,7 @@ class RDFIntegerTest(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
     TestOr(True, True, True)
 
   def testUsableInBitwiseAnd(self):
-    def TestAnd(val1, val2, expected):
+    def TestAnd(val1: bool, val2: bool, expected: bool) -> None:
       self.assertEqual(rdfvalue.RDFInteger(val1) & val2, expected)
       self.assertEqual(val1 & rdfvalue.RDFInteger(val2), expected)
 
@@ -96,7 +99,7 @@ class DurationSecondsTest(
 ):
   rdfvalue_class = rdfvalue.DurationSeconds
 
-  def GenerateSample(self, number=5):
+  def GenerateSample(self, number: int = 5) -> rdfvalue.DurationSeconds:
     return rdfvalue.DurationSeconds("%ds" % number)
 
   def testStringRepresentationIsTransitive(self):
@@ -121,7 +124,7 @@ class DurationSecondsTest(
 class ByteSizeTest(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
   rdfvalue_class = rdfvalue.ByteSize
 
-  def GenerateSample(self, number=5):
+  def GenerateSample(self, number: int = 5) -> rdfvalue.ByteSize:
     return rdfvalue.ByteSize("%sKib" % number)
 
   def testParsing(self):
@@ -142,7 +145,7 @@ class ByteSizeTest(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
 class RDFURNTest(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
   rdfvalue_class = rdfvalue.RDFURN
 
-  def GenerateSample(self, number=0):
+  def GenerateSample(self, number: int | str = 0) -> rdfvalue.RDFURN:
     return rdfvalue.RDFURN("aff4:/C.12342%s/fs/os/" % number)
 
   def testRDFURN(self):
@@ -209,7 +212,7 @@ class RDFURNTest(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
 
     self.CheckRDFValue(self.rdfvalue_class(sample), sample)
 
-  def testSerialization(self, sample=None):
+  def testSerialization(self, sample: rdfvalue.RDFURN | None = None) -> None:
     sample = self.GenerateSample("aff4:/")
     super().testSerialization(sample=sample)
 
@@ -217,7 +220,7 @@ class RDFURNTest(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
 class RDFDatetimeTest(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
   rdfvalue_class = rdfvalue.RDFDatetime
 
-  def GenerateSample(self, number=0):
+  def GenerateSample(self, number: int = 0) -> rdfvalue.RDFDatetime:
     result = self.rdfvalue_class.FromHumanReadable(
         "2011/11/%02d" % (number + 1)
     )
@@ -354,7 +357,7 @@ class RDFDatetimeSecondsTest(RDFDatetimeTest):
 class HashDigestTest(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
   rdfvalue_class = rdfvalue.HashDigest
 
-  def GenerateSample(self, number=0):
+  def GenerateSample(self, number: int = 0) -> rdfvalue.HashDigest:
     return rdfvalue.HashDigest(
         b"\xca\x97\x81\x12\xca\x1b\xbd\xca\xfa\xc21\xb3"
         b"\x9a#\xdcM\xa7\x86\xef\xf8\x14|Nr\xb9\x80w\x85"
@@ -378,7 +381,7 @@ class HashDigestTest(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
     self.assertNotEqual(str(sample), "deadbeef")
 
 
-def main(argv):
+def main(argv: Sequence[str]) -> None:
   # Run the full test suite
   test_lib.main(argv)
 

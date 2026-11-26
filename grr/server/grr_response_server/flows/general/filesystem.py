@@ -21,13 +21,16 @@ from grr_response_server import notification
 from grr_response_server import rrg_fs
 from grr_response_server import rrg_path
 from grr_response_server import rrg_stubs
+from grr_response_server import rrg_winreg
 from grr_response_server import server_stubs
 from grr_response_server.models import paths as models_paths
 from grr_response_server.rdfvalues import objects as rdf_objects
 from grr_response_proto.rrg import fs_pb2 as rrg_fs_pb2
 from grr_response_proto.rrg import os_pb2 as rrg_os_pb2
+from grr_response_proto.rrg.action import get_file_metadata_kmx_pb2 as rrg_get_file_metadata_kmx_pb2
 from grr_response_proto.rrg.action import get_file_metadata_pb2 as rrg_get_file_metadata_pb2
-
+from grr_response_proto.rrg.action import list_winreg_keys_pb2 as rrg_list_winreg_keys_pb2
+from grr_response_proto.rrg.action import list_winreg_values_pb2 as rrg_list_winreg_values_pb2
 
 # This is all bits that define the type of the file in the stat mode. Equal to
 # 0b1111000000000000.
@@ -189,9 +192,6 @@ class ListDirectory(
 ):
   """List files in a directory."""
 
-  category = "/Filesystem/"
-  behaviours = flow_base.BEHAVIOUR_ADVANCED
-
   proto_args_type = flows_pb2.ListDirectoryArgs
   proto_result_types = (jobs_pb2.StatEntry,)
   proto_store_type = flows_pb2.ListDirectoryStore
@@ -215,7 +215,105 @@ class ListDirectory(
       action = rrg_stubs.GetFileMetadata()
       action.args.paths.add().raw_bytes = path_raw_bytes
       action.args.max_depth = 1
-      action.Call(self.HandleRRGGetFileMetadata)  # pyrefly: ignore[bad-argument-type]
+      action.Call(self.HandleRRGGetFileMetadata)
+    elif (
+        self.proto_args.pathspec.pathtype == jobs_pb2.PathSpec.PathType.NTFS
+        # Support for `get_file_metadata_kmx` with file details and volume path
+        # inference was added in v0.0.14.
+        and self.rrg_version >= (0, 0, 14)
+        # TODO - Enable by default once Keramics is fixed.
+        and self.rrg_mode == flows_pb2.FlowRunnerArgs.RrgMode.FORCED
+    ):
+      if self.rrg_os_type != rrg_os_pb2.WINDOWS:
+        raise flow_base.FlowError(
+            f"Unsupported system for NTFS path: {self.rrg_os_type}",
+        )
+
+      if self.proto_args.pathspec.nested_path.path:
+        raise NotImplementedError("Nested paths are not supported")
+
+      path = rrg_path.PureWindowsPath(
+          # TODO - Remove stripping once we no longer mangle the
+          # paths.
+          self.proto_args.pathspec.path.removeprefix("/")
+      )
+
+      get_file_metadata_kmx = rrg_stubs.GetFileMetadataKmx()
+      get_file_metadata_kmx.args.volume_mount_path.raw_bytes = (
+          path.anchor.encode("utf-8")
+      )
+      get_file_metadata_kmx.args.path.raw_bytes = bytes(
+          # Path relative to anchor will not have leading `\` that is needed by
+          # Keramics so we prepend that explicitly.
+          # pyformat: disable
+          "\\" / path.relative_to(path.anchor)
+          # pyformat: enable
+      )
+      get_file_metadata_kmx.args.max_depth = 1
+      get_file_metadata_kmx.Call(self._HandleRRGGetFileMetadataKmx)
+    elif (
+        self.rrg_support
+        and self.proto_args.pathspec.pathtype == jobs_pb2.PathSpec.REGISTRY
+    ):
+      # TODO - Sometimes paths are given with forward- and sometimes
+      # with back-slashes.
+      path = self.proto_args.pathspec.path.replace("/", "\\")
+      # TODO - Sometimes paths have a leading or trailing `\`.
+      path = path.removeprefix("\\").removesuffix("\\")
+
+      # TODO - There seems to be a special case that we need to
+      # support: listing root keys. Not even Windows APIs properly support it
+      # but I guess this is a consequence of bolting our registry navigation
+      # ontop of filesystem abstraction where we want to bootstrap navigation
+      # from "nothing".
+      #
+      # Once we have proper abstraction for registry navigation, this should be
+      # removed.
+      if not path:
+        path_infos = []
+
+        for hkey in rrg_winreg.HKEY_STR.values():
+          result = jobs_pb2.StatEntry()
+          result.pathspec.pathtype = jobs_pb2.PathSpec.PathType.REGISTRY
+          result.pathspec.path = hkey
+          result.st_mode = stat.S_IFDIR
+          self.SendReplyProto(result)
+
+          path_info = objects_pb2.PathInfo()
+          path_info.path_type = objects_pb2.PathInfo.PathType.REGISTRY
+          path_info.components.append(hkey)
+          path_info.directory = True
+          path_info.stat_entry.CopyFrom(result)
+          path_infos.append(path_info)
+
+        # TODO - Write to a new registry abstraction instead.
+        data_store.REL_DB.WritePathInfos(self.client_id, path_infos)
+
+        return
+
+      try:
+        hkey, _, key = path.partition("\\")
+      except ValueError as error:
+        raise flow_base.FlowError(
+            f"Invalid registry path {self.proto_args.pathspec.path!r}",
+        ) from error
+
+      try:
+        key_root = rrg_winreg.HKEY_ENUM[hkey]
+      except KeyError:
+        raise flow_base.FlowError(
+            f"Unexpected root key: {hkey}",
+        ) from None
+
+      list_winreg_keys = rrg_stubs.ListWinregKeys()
+      list_winreg_keys.args.root = key_root
+      list_winreg_keys.args.key = key
+      list_winreg_keys.Call(self._HandleRRGListWinregKeys)
+
+      list_winreg_values = rrg_stubs.ListWinregValues()
+      list_winreg_values.args.root = key_root
+      list_winreg_values.args.key = key
+      list_winreg_values.Call(self._HandleRRGListWinregValues)
     else:
       request = jobs_pb2.GetFileStatRequest(
           pathspec=self.proto_args.pathspec,
@@ -234,7 +332,7 @@ class ListDirectory(
           next_state=self.List.__name__,
       )
 
-  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+  @flow_base.UseProto2AnyResponses
   def HandleRRGGetFileMetadata(
       self,
       responses_any: flow_responses.Responses[any_pb2.Any],
@@ -287,7 +385,7 @@ class ListDirectory(
           (dir_path.parent / dir_symlink).normal
       )
       get_file_metadata.args.max_depth = 1
-      get_file_metadata.Call(self.HandleRRGGetFileMetadata)  # pyrefly: ignore[bad-argument-type]
+      get_file_metadata.Call(self.HandleRRGGetFileMetadata)
 
     if response_dir.metadata.type not in [
         rrg_fs_pb2.FileMetadata.Type.DIR,
@@ -325,7 +423,145 @@ class ListDirectory(
 
     data_store.REL_DB.WritePathInfos(self.client_id, path_infos)
 
-  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+  @flow_base.UseProto2AnyResponses
+  def _HandleRRGGetFileMetadataKmx(
+      self,
+      responses_any: flow_responses.Responses[any_pb2.Any],
+  ) -> None:
+    if not responses_any.success or not responses_any:
+      raise flow_base.FlowError(
+          f"File metadata collection failure: {responses_any.status}",
+      )
+
+    responses: list[rrg_get_file_metadata_kmx_pb2.Result] = []
+    for response_any in responses_any:
+      response = rrg_get_file_metadata_kmx_pb2.Result()
+      response.ParseFromString(response_any.value)
+
+      responses.append(response)
+
+    responses.sort(key=lambda _: rrg_path.PureWindowsPath(_.path).parts)
+    response_dir, *responses = responses
+
+    if response_dir.metadata.type == rrg_fs_pb2.FileMetadata.SYMLINK:
+      # TODO - Add support for following symlinks once symlink
+      # target reporting is supported in Keramics.
+      raise NotImplementedError("Symlinks not supported with Keramics")
+
+    if response_dir.metadata.type != rrg_fs_pb2.FileMetadata.DIR:
+      raise flow_base.FlowError(f"Unexpected file type in: {response_dir}")
+
+    # Path in the results is relative to the volume mount point, so we need to
+    # prepend it in the results.
+    anchor = rrg_path.PureWindowsPath(self.proto_args.pathspec.path).anchor
+
+    dir_path_full = anchor / rrg_path.PureWindowsPath(response_dir.path)
+
+    path_info_dir = rrg_fs.PathInfo(response_dir.metadata)
+    path_info_dir.path_type = objects_pb2.PathInfo.PathType.NTFS
+    path_info_dir.components.extend(dir_path_full.components)
+    path_info_dir.stat_entry.pathspec.pathtype = jobs_pb2.PathSpec.PathType.NTFS
+    path_info_dir.stat_entry.pathspec.path = (
+        # TODO - For compatibility reasons we need to report paths
+        # with forward-slashes even though these are Windows results.
+        str(dir_path_full).replace("\\", "/")
+    )
+
+    self.store.stat_entry.CopyFrom(path_info_dir.stat_entry)
+    self.store.urn = str(
+        mig_client_fs.ToRDFStatEntry(path_info_dir.stat_entry).AFF4Path(
+            self.client_urn
+        )
+    )
+
+    path_infos = [path_info_dir]
+
+    for response in responses:
+      path_full = anchor / rrg_path.PureWindowsPath(response.path)
+
+      path_info = rrg_fs.PathInfo(response.metadata)
+      path_info.path_type = objects_pb2.PathInfo.PathType.NTFS
+      path_info.components.extend(path_full.components)
+      path_info.stat_entry.pathspec.pathtype = jobs_pb2.PathSpec.PathType.NTFS
+      # TODO - For compatibility reasons we need to report paths
+      # with forward-slashes even though these are Windows results.
+      path_info.stat_entry.pathspec.path = str(path_full).replace("\\", "/")
+
+      self.SendReplyProto(path_info.stat_entry)
+      path_infos.append(path_info)
+
+    data_store.REL_DB.WritePathInfos(self.client_id, path_infos)
+
+  @flow_base.UseProto2AnyResponses
+  def _HandleRRGListWinregKeys(
+      self,
+      responses_any: flow_responses.Responses[any_pb2.Any],
+  ) -> None:
+    if not responses_any.success:
+      raise flow_base.FlowError(
+          f"Failed to list registry keys: {responses_any.status}",
+      )
+
+    path_infos = []
+
+    for response_any in responses_any:
+      response = rrg_list_winreg_keys_pb2.Result()
+      response.ParseFromString(response_any.value)
+
+      result = rrg_winreg.StatEntryOfKeyResult(response)
+      self.SendReplyProto(result)
+
+      path_info = objects_pb2.PathInfo()
+      path_info.path_type = objects_pb2.PathInfo.PathType.REGISTRY
+      path_info.components.extend(result.pathspec.path.split("\\"))
+      path_info.directory = True
+      path_info.stat_entry.CopyFrom(result)
+      path_infos.append(path_info)
+
+    # TODO - Write to a new registry abstraction instead.
+    data_store.REL_DB.WritePathInfos(self.client_id, path_infos)
+
+  @flow_base.UseProto2AnyResponses
+  def _HandleRRGListWinregValues(
+      self,
+      responses_any: flow_responses.Responses[any_pb2.Any],
+  ) -> None:
+    if not responses_any.success:
+      raise flow_base.FlowError(
+          f"Failed to list registry values: {responses_any.status}",
+      )
+
+    path_infos = []
+
+    for response_any in responses_any:
+      response = rrg_list_winreg_values_pb2.Result()
+      response.ParseFromString(response_any.value)
+
+      result = rrg_winreg.StatEntryOfValueResult(response)
+      self.SendReplyProto(result)
+
+      path_info = objects_pb2.PathInfo()
+      path_info.path_type = objects_pb2.PathInfo.PathType.REGISTRY
+      path_info.components.extend(result.pathspec.path.split("\\"))
+      path_info.stat_entry.CopyFrom(result)
+      if not response.value.name:
+        # We know that the default value must correspond to a key and thus we do
+        # not want to unset its "directory" bit (otherwise we might not be able
+        # to list it).
+        path_info.directory = True
+        # Even though this is a value, we still set the directory bit on the
+        # mode for consistency. But this only proves that the a new registry
+        # abstraction is needed.
+        #
+        # Note that we do not set it for the flow result (since it does not
+        # end up in VFS there is no point).
+        path_info.stat_entry.st_mode |= stat.S_IFDIR
+      path_infos.append(path_info)
+
+    # TODO - Write to a new registry abstraction instead.
+    data_store.REL_DB.WritePathInfos(self.client_id, path_infos)
+
+  @flow_base.UseProto2AnyResponses
   def Stat(self, responses: flow_responses.Responses[any_pb2.Any]) -> None:
     """Save stat information on the directory."""
     # Did it work?
@@ -344,7 +580,7 @@ class ListDirectory(
         mig_client_fs.ToRDFStatEntry(stat_entry).AFF4Path(self.client_urn)
     )
 
-  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+  @flow_base.UseProto2AnyResponses
   def List(self, responses: flow_responses.Responses[any_pb2.Any]) -> None:
     """Collect the directory listing and store in the datastore."""
     if not responses.success:
@@ -403,8 +639,6 @@ class RecursiveListDirectory(
 ):
   """Recursively list directory on the client."""
 
-  category = "/Filesystem/"
-
   proto_args_type = flows_pb2.RecursiveListDirectoryArgs
   proto_result_types = (jobs_pb2.StatEntry,)
   proto_store_type = flows_pb2.RecursiveListDirectoryStore
@@ -434,7 +668,7 @@ class RecursiveListDirectory(
       action = rrg_stubs.GetFileMetadata()
       action.args.paths.add().raw_bytes = path_raw_bytes
       action.args.max_depth = self.proto_args.max_depth
-      action.Call(self._ProcessGetFileMetadata)  # pyrefly: ignore[bad-argument-type]
+      action.Call(self._ProcessGetFileMetadata)
       return
 
     self.CallClientProto(
@@ -443,7 +677,7 @@ class RecursiveListDirectory(
         next_state=self.ProcessDirectory.__name__,
     )
 
-  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+  @flow_base.UseProto2AnyResponses
   def _ProcessGetFileMetadata(
       self,
       responses_any: flow_responses.Responses[any_pb2.Any],
@@ -486,7 +720,7 @@ class RecursiveListDirectory(
 
     data_store.REL_DB.WritePathInfos(self.client_id, path_infos)
 
-  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+  @flow_base.UseProto2AnyResponses
   def ProcessDirectory(
       self, responses: flow_responses.Responses[any_pb2.Any]
   ) -> None:

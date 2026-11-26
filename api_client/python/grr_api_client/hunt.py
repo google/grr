@@ -6,6 +6,7 @@ from typing import Optional, Union
 
 from google.protobuf import message
 
+from google.protobuf import any_pb2
 from grr_api_client import client
 from grr_api_client import context as context_lib
 from grr_api_client import utils
@@ -449,7 +450,10 @@ def CreateHunt(
 
   request = hunt_pb2.ApiCreateHuntArgs(flow_name=flow_name)
   if flow_args:
-    request.flow_args.Pack(flow_args)
+    if isinstance(flow_args, any_pb2.Any):
+      request.flow_args.CopyFrom(flow_args)
+    else:
+      request.flow_args.Pack(flow_args)
 
   if hunt_runner_args:
     request.hunt_runner_args.CopyFrom(hunt_runner_args)

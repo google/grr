@@ -1,6 +1,9 @@
 #!/usr/bin/env python
 """A test utilities for interacting with filesystem."""
 
+from __future__ import annotations
+
+from collections.abc import Sequence
 import io
 import os
 import platform
@@ -33,7 +36,12 @@ def CreateFile(filepath: str, content: bytes = b"") -> None:
     filedesc.write(content)
 
 
-def Command(name, args=None, system=None, message=None):
+def Command(
+    name: str,
+    args: Sequence[str | bytes] | None = None,
+    system: str | None = None,
+    message: str | None = None,
+) -> None:
   """Executes given command as a subprocess for testing purposes.
 
   If the command fails, is not available or is not compatible with the operating
@@ -53,11 +61,11 @@ def Command(name, args=None, system=None, message=None):
     raise unittest.SkipTest("`%s` available only on `%s`" % (name, system))
   if subprocess.call(["which", name], stdout=open("/dev/null", "w")) != 0:
     raise unittest.SkipTest("`%s` command is not available" % name)
-  if subprocess.call([name] + args, stdout=open("/dev/null", "w")) != 0:
+  if subprocess.call([name, *args], stdout=open("/dev/null", "w")) != 0:
     raise unittest.SkipTest(message or "`%s` call failed" % name)
 
 
-def Chflags(filepath, flags=None):
+def Chflags(filepath: str, flags: Sequence[str] | None = None) -> None:
   """Executes a `chflags` command with specified flags for testing purposes.
 
   Calling this on platforms different than macOS will skip the test.
@@ -70,7 +78,7 @@ def Chflags(filepath, flags=None):
   Command("chflags", args=[",".join(flags), filepath], system="Darwin")
 
 
-def Chattr(filepath, attrs=None):
+def Chattr(filepath: str, attrs: Sequence[str] | None = None) -> None:
   """Executes a `chattr` command with specified attributes for testing purposes.
 
   Calling this on platforms different than Linux will skip the test.
@@ -81,10 +89,10 @@ def Chattr(filepath, attrs=None):
   """
   attrs = attrs or []
   message = "file attributes not supported by filesystem"
-  Command("chattr", args=attrs + [filepath], system="Linux", message=message)
+  Command("chattr", args=[*attrs, filepath], system="Linux", message=message)
 
 
-def SetExtAttr(filepath, name, value):
+def SetExtAttr(filepath: str, name: str | bytes, value: str | bytes) -> None:
   """Sets an extended file attribute of a given file for testing purposes.
 
   Calling this on platforms different than Linux or macOS will skip the test.
@@ -107,13 +115,17 @@ def SetExtAttr(filepath, name, value):
     raise unittest.SkipTest(message)
 
 
-def _SetExtAttrLinux(filepath, name, value):
+def _SetExtAttrLinux(
+    filepath: str, name: str | bytes, value: str | bytes
+) -> None:
   args = ["-n", name, "-v", value, filepath]
   message = "extended attributes not supported by filesystem"
   Command("setfattr", args=args, system="Linux", message=message)
 
 
-def _SetExtAttrOsx(filepath, name, value):
+def _SetExtAttrOsx(
+    filepath: str, name: str | bytes, value: str | bytes
+) -> None:
   args = ["-w", name, value, filepath]
   message = "extended attributes are not supported"
   Command("xattr", args=args, system="Drawin", message=message)

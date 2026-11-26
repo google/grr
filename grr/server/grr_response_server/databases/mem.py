@@ -20,7 +20,6 @@ from grr_response_server.databases import mem_artifacts
 from grr_response_server.databases import mem_blob_keys
 from grr_response_server.databases import mem_blobs
 from grr_response_server.databases import mem_clients
-from grr_response_server.databases import mem_cronjobs
 from grr_response_server.databases import mem_events
 from grr_response_server.databases import mem_flows
 from grr_response_server.databases import mem_foreman_rules
@@ -41,7 +40,6 @@ class InMemoryDB(
     mem_blob_keys.InMemoryDBBlobKeysMixin,
     mem_blobs.InMemoryDBBlobsMixin,
     mem_clients.InMemoryDBClientMixin,
-    mem_cronjobs.InMemoryDBCronJobMixin,
     mem_events.InMemoryDBEventMixin,
     mem_flows.InMemoryDBFlowMixin,
     mem_foreman_rules.InMemoryDBForemanRulesMixin,
@@ -100,11 +98,6 @@ class InMemoryDB(
     self.path_records: dict[
         tuple[str, "objects_pb2.PathInfo.PathType", tuple[str, ...]], Any
     ] = {}
-    # Maps cron_job_id to cron_job
-    self.cronjobs: dict[str, flows_pb2.CronJob] = {}
-    self.cronjob_leases: dict[str, tuple[int, str]] = {}
-    # Maps (cron_job_id, run_id) to cron_job_run
-    self.cronjob_runs: dict[tuple[str, str], flows_pb2.CronJobRun] = {}
     self.blobs: dict[models_blobs.BlobID, bytes] = {}
     self.blob_refs_by_hashes: dict[
         rdf_objects.SHA256HashID, list[objects_pb2.BlobReference]

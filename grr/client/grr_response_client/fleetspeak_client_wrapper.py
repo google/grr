@@ -11,6 +11,7 @@ Requirements for running this script:
  * Fleetspeak has been enabled.
 """
 
+from collections.abc import Sequence
 import os
 import platform
 import subprocess
@@ -35,7 +36,7 @@ class Error(Exception):
 def _CreateClientConfig(tmp_dir: str) -> str:
   """Creates and returns the path to a fleetspeak client config."""
 
-  def TmpPath(*args):
+  def TmpPath(*args: str) -> str:
     return os.path.join(tmp_dir, *args)
 
   server_config_dir = package.ResourcePath(
@@ -116,7 +117,7 @@ def _RunClient(tmp_dir: str) -> None:
   subprocess.check_call(command)
 
 
-def main(argv):
+def main(argv: Sequence[str]) -> None:
   del argv  # unused
   config_lib.ParseConfigCommandLine()
   with temp.AutoTempDirPath(remove_non_empty=True) as tmp_dir:

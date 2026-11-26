@@ -1,8 +1,12 @@
 #!/usr/bin/env python
 """Helper library for config testing."""
 
+from __future__ import annotations
+
+from collections.abc import Iterable
 import copy
 import logging
+from typing import Any
 from unittest import mock
 
 from grr_response_core import config
@@ -23,7 +27,9 @@ class BuildConfigTestsBase(test_lib.GRRBaseTest):
   # package, which is big.
   disabled_filters = ["resource", "file"]
 
-  def ValidateConfig(self, config_file=None):
+  def ValidateConfig(
+      self, config_file: config_lib.GrrConfigManager | str | None = None
+  ) -> dict[str, Any]:
     """Iterate over all the sections in the config file and validate them."""
     logging.debug("Processing %s", config_file)
 
@@ -41,7 +47,9 @@ class BuildConfigTestsBase(test_lib.GRRBaseTest):
 
     return errors
 
-  def ValidateConfigs(self, configs):
+  def ValidateConfigs(
+      self, configs: Iterable[config_lib.GrrConfigManager | str]
+  ) -> None:
     test_filter_map = copy.deepcopy(config_lib.ConfigFilter.classes_by_name)
     for filter_name in self.disabled_filters:
       test_filter_map[filter_name] = config_lib.ConfigFilter

@@ -18,7 +18,6 @@ from grr_response_core.lib.rdfvalues import deprecated as rdf_deprecated
 # pylint: enable=unused-import
 from grr_response_core.stats import stats_collector_instance
 from grr_response_server import artifact
-from grr_response_server import cronjobs
 from grr_response_server import data_store
 from grr_response_server import email_alerts
 from grr_response_server import prometheus_stats_collector
@@ -42,7 +41,7 @@ if platform.system() != "Windows":
 # pylint: enable=g-import-not-at-top
 
 
-def DropPrivileges():
+def DropPrivileges() -> None:
   """Attempt to drop privileges if required."""
   if config.CONFIG["Server.username"]:
     try:
@@ -55,7 +54,7 @@ def DropPrivileges():
 
 
 @utils.RunOnce  # Make sure we do not reinitialize multiple times.
-def Init():
+def Init() -> None:
   """Run all required startup routines and initialization hooks."""
   # Set up a temporary syslog handler so we have somewhere to log problems
   # with ConfigInit() which needs to happen before we can start our create our
@@ -99,7 +98,6 @@ def Init():
 
   artifact.LoadArtifactsOnce()  # Requires aff4.AFF4Init.
   client_approval_auth.InitializeClientApprovalAuthorizationManagerOnce()
-  cronjobs.InitializeCronWorkerOnce()
   email_alerts.InitializeEmailAlerterOnce()
   http_api.InitializeHttpRequestHandlerOnce()
   stats_server.InitializeStatsServerOnce()

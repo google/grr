@@ -41,7 +41,7 @@ echo "Installation of server deb completed."
 
 tar xzf "$GITHUB_WORKSPACE"/_artifacts/grr-server_*.tar.gz
 source /usr/share/grr-server/bin/activate
-pip install --no-index --find-links=grr/local_pypi grr/local_pypi/grr-response-test-*.zip
+pip install --no-index --find-links=grr/local_pypi grr/local_pypi/grr_response_test-*.tar.gz
 deactivate
 
 cd "${INITIAL_DIR}"

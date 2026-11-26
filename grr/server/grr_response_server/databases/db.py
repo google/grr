@@ -47,8 +47,6 @@ MAX_LABEL_LENGTH = 100
 
 MAX_ARTIFACT_NAME_LENGTH = 100
 
-MAX_CRON_JOB_ID_LENGTH = 100
-
 MAX_MESSAGE_HANDLER_NAME_LENGTH = 128
 
 _MAX_CLIENT_PLATFORM_LENGTH = 100
@@ -224,14 +222,6 @@ class UnknownGRRUserError(NotFoundError):
 
 
 class UnknownApprovalRequestError(NotFoundError):
-  pass
-
-
-class UnknownCronJobError(NotFoundError):
-  pass
-
-
-class UnknownCronJobRunError(NotFoundError):
   pass
 
 
@@ -1788,182 +1778,6 @@ class Database(metaclass=abc.ABCMeta):
 
     Args:
       timeout: A timeout in seconds for joining the handler thread.
-    """
-
-  @abc.abstractmethod
-  def WriteCronJob(self, cronjob: flows_pb2.CronJob) -> None:
-    """Writes a cronjob to the database.
-
-    Args:
-      cronjob: A cronjobs.CronJob object.
-    """
-
-  def ReadCronJob(self, cronjob_id: str) -> flows_pb2.CronJob:
-    """Reads a cronjob from the database.
-
-    Args:
-      cronjob_id: The id of the cron job to read.
-
-    Returns:
-      A flows_pb2.CronJob object.
-
-    Raises:
-      UnknownCronJobError: A cron job with the given id does not exist.
-    """
-    return self.ReadCronJobs(cronjob_ids=[cronjob_id])[0]
-
-  @abc.abstractmethod
-  def ReadCronJobs(
-      self, cronjob_ids: Optional[Sequence[str]] = None
-  ) -> Sequence[flows_pb2.CronJob]:
-    """Reads all cronjobs from the database.
-
-    Args:
-      cronjob_ids: A list of cronjob ids to read. If not set, returns all cron
-        jobs in the database.
-
-    Returns:
-      A list of flows_pb2.CronJob objects.
-
-    Raises:
-      UnknownCronJobError: A cron job for at least one of the given ids
-                           does not exist.
-    """
-
-  @abc.abstractmethod
-  def EnableCronJob(self, cronjob_id: str) -> None:
-    """Enables a cronjob.
-
-    Args:
-      cronjob_id: The id of the cron job to enable.
-
-    Raises:
-      UnknownCronJobError: A cron job with the given id does not exist.
-    """
-
-  @abc.abstractmethod
-  def DisableCronJob(self, cronjob_id: str) -> None:
-    """Disables a cronjob.
-
-    Args:
-      cronjob_id: The id of the cron job to disable.
-
-    Raises:
-      UnknownCronJobError: A cron job with the given id does not exist.
-    """
-
-  @abc.abstractmethod
-  def DeleteCronJob(self, cronjob_id: str) -> None:
-    """Deletes a cronjob along with all its runs.
-
-    Args:
-      cronjob_id: The id of the cron job to delete.
-
-    Raises:
-      UnknownCronJobError: A cron job with the given id does not exist.
-    """
-
-  @abc.abstractmethod
-  def UpdateCronJob(
-      self,
-      cronjob_id: str,
-      last_run_status: Union[
-          "flows_pb2.CronJobRun.CronJobRunStatus", Literal[UNCHANGED]  # pyrefly: ignore[not-a-type]
-      ] = UNCHANGED,
-      last_run_time: Union[
-          rdfvalue.RDFDatetime, Literal[UNCHANGED]  # pyrefly: ignore[not-a-type]
-      ] = UNCHANGED,
-      current_run_id: Union[str, Literal[UNCHANGED]] = UNCHANGED,  # pyrefly: ignore[not-a-type]
-      state: Union[jobs_pb2.AttributedDict, Literal[UNCHANGED]] = UNCHANGED,  # pyrefly: ignore[not-a-type]
-      forced_run_requested: Union[bool, Literal[UNCHANGED]] = UNCHANGED,  # pyrefly: ignore[not-a-type]
-  ) -> None:
-    """Updates run information for an existing cron job.
-
-    Args:
-      cronjob_id: The id of the cron job to update.
-      last_run_status: A CronJobRunStatus object.
-      last_run_time: The last time a run was started for this cron job.
-      current_run_id: The id of the currently active run.
-      state: The state dict for stateful cron jobs.
-      forced_run_requested: A boolean indicating if a forced run is pending for
-        this job.
-
-    Raises:
-      UnknownCronJobError: A cron job with the given id does not exist.
-    """
-
-  @abc.abstractmethod
-  def LeaseCronJobs(
-      self,
-      cronjob_ids: Optional[Sequence[str]] = None,
-      lease_time: Optional[rdfvalue.Duration] = None,
-  ) -> Sequence[flows_pb2.CronJob]:
-    """Leases all available cron jobs.
-
-    Args:
-      cronjob_ids: A list of cronjob ids that should be leased. If None, all
-        available cronjobs will be leased.
-      lease_time: rdfvalue.Duration indicating how long the lease should be
-        valid.
-
-    Returns:
-      A list of flows_pb2.CronJob objects that were leased.
-    """
-
-  @abc.abstractmethod
-  def ReturnLeasedCronJobs(self, jobs: Sequence[flows_pb2.CronJob]) -> None:
-    """Makes leased cron jobs available for leasing again.
-
-    Args:
-      jobs: A list of leased cronjobs.
-
-    Raises:
-      ValueError: If not all of the cronjobs are leased.
-    """
-
-  @abc.abstractmethod
-  def WriteCronJobRun(self, run_object: flows_pb2.CronJobRun) -> None:
-    """Stores a cron job run object in the database.
-
-    Args:
-      run_object: A flows_pb2.CronJobRun object to store.
-    """
-
-  @abc.abstractmethod
-  def ReadCronJobRuns(self, job_id: str) -> Sequence[flows_pb2.CronJobRun]:
-    """Reads all cron job runs for a given job id.
-
-    Args:
-      job_id: Runs will be returned for the job with the given id.
-
-    Returns:
-      A list of flows_pb2.CronJobRun objects.
-    """
-
-  @abc.abstractmethod
-  def ReadCronJobRun(self, job_id: str, run_id: str) -> flows_pb2.CronJobRun:
-    """Reads a single cron job run from the db.
-
-    Args:
-      job_id: The job_id of the run to be read.
-      run_id: The run_id of the run to be read.
-
-    Returns:
-      An flows_pb2.CronJobRun object.
-    """
-
-  @abc.abstractmethod
-  def DeleteOldCronJobRuns(
-      self, cutoff_timestamp: rdfvalue.RDFDatetime
-  ) -> None:
-    """Deletes cron job runs that are older than cutoff_timestamp.
-
-    Args:
-      cutoff_timestamp: This method deletes all runs that were started before
-        cutoff_timestamp.
-
-    Returns:
-      The number of deleted runs.
     """
 
   @abc.abstractmethod
@@ -4221,107 +4035,6 @@ class DatabaseValidationWrapper(Database):
   ) -> None:
     return self.delegate.UnregisterMessageHandler(timeout=timeout)
 
-  def WriteCronJob(self, cronjob: flows_pb2.CronJob):
-    precondition.AssertType(cronjob, flows_pb2.CronJob)
-    _ValidateCronJobId(cronjob.cron_job_id)
-    return self.delegate.WriteCronJob(cronjob)
-
-  def ReadCronJob(self, cronjob_id: str) -> flows_pb2.CronJob:
-    _ValidateCronJobId(cronjob_id)
-    return self.delegate.ReadCronJob(cronjob_id)
-
-  def ReadCronJobs(
-      self, cronjob_ids: Optional[Sequence[str]] = None
-  ) -> Sequence[flows_pb2.CronJob]:
-    if cronjob_ids is not None:
-      for cronjob_id in cronjob_ids:
-        _ValidateCronJobId(cronjob_id)
-    return self.delegate.ReadCronJobs(cronjob_ids=cronjob_ids)
-
-  def EnableCronJob(self, cronjob_id: str) -> None:
-    _ValidateCronJobId(cronjob_id)
-    return self.delegate.EnableCronJob(cronjob_id)
-
-  def DisableCronJob(self, cronjob_id: str) -> None:
-    _ValidateCronJobId(cronjob_id)
-    return self.delegate.DisableCronJob(cronjob_id)
-
-  def DeleteCronJob(self, cronjob_id: str) -> None:
-    _ValidateCronJobId(cronjob_id)
-    return self.delegate.DeleteCronJob(cronjob_id)
-
-  def UpdateCronJob(
-      self,
-      cronjob_id: str,
-      last_run_status: Union[
-          "flows_pb2.CronJobRun.CronJobRunStatus", Literal[UNCHANGED]  # pyrefly: ignore[not-a-type]
-      ] = UNCHANGED,
-      last_run_time: Union[
-          rdfvalue.RDFDatetime, Literal[UNCHANGED]  # pyrefly: ignore[not-a-type]
-      ] = UNCHANGED,
-      current_run_id: Union[str, Literal[UNCHANGED]] = UNCHANGED,  # pyrefly: ignore[not-a-type]
-      state: Union[jobs_pb2.AttributedDict, Literal[UNCHANGED]] = UNCHANGED,  # pyrefly: ignore[not-a-type]
-      forced_run_requested: Union[bool, Literal[UNCHANGED]] = UNCHANGED,  # pyrefly: ignore[not-a-type]
-  ) -> None:
-    _ValidateCronJobId(cronjob_id)
-    if current_run_id is not None and current_run_id != Database.UNCHANGED:
-      _ValidateCronJobRunId(current_run_id)
-    if last_run_time is not None and last_run_time != Database.UNCHANGED:
-      precondition.AssertType(last_run_time, rdfvalue.RDFDatetime)
-    if state is not None and state != Database.UNCHANGED:
-      precondition.AssertType(state, jobs_pb2.AttributedDict)
-    if (
-        forced_run_requested is not None
-        and forced_run_requested != Database.UNCHANGED
-    ):
-      precondition.AssertType(forced_run_requested, bool)
-
-    return self.delegate.UpdateCronJob(
-        cronjob_id,
-        last_run_status=last_run_status,
-        last_run_time=last_run_time,
-        current_run_id=current_run_id,
-        state=state,
-        forced_run_requested=forced_run_requested,
-    )
-
-  def LeaseCronJobs(
-      self,
-      cronjob_ids: Optional[Sequence[str]] = None,
-      lease_time: Optional[rdfvalue.Duration] = None,
-  ) -> Sequence[flows_pb2.CronJob]:
-    if cronjob_ids:
-      for cronjob_id in cronjob_ids:
-        _ValidateCronJobId(cronjob_id)
-    _ValidateDuration(lease_time)
-    return self.delegate.LeaseCronJobs(
-        cronjob_ids=cronjob_ids, lease_time=lease_time
-    )
-
-  def ReturnLeasedCronJobs(self, jobs: Sequence[flows_pb2.CronJob]) -> None:
-    for job in jobs:
-      precondition.AssertType(job, flows_pb2.CronJob)
-    return self.delegate.ReturnLeasedCronJobs(jobs)
-
-  def WriteCronJobRun(self, run_object: flows_pb2.CronJobRun) -> None:
-    precondition.AssertType(run_object, flows_pb2.CronJobRun)
-    return self.delegate.WriteCronJobRun(run_object)
-
-  def ReadCronJobRun(self, job_id: str, run_id: str) -> flows_pb2.CronJobRun:
-    _ValidateCronJobId(job_id)
-    _ValidateCronJobRunId(run_id)
-    return self.delegate.ReadCronJobRun(job_id, run_id)
-
-  def ReadCronJobRuns(self, job_id: str) -> Sequence[flows_pb2.CronJobRun]:
-    _ValidateCronJobId(job_id)
-    return self.delegate.ReadCronJobRuns(job_id)
-
-  def DeleteOldCronJobRuns(
-      self, cutoff_timestamp: rdfvalue.RDFDatetime
-  ) -> None:
-    self._ValidateTimestamp(cutoff_timestamp)
-    return self.delegate.DeleteOldCronJobRuns(cutoff_timestamp)
-
   def WriteHashBlobReferences(
       self,
       references_by_hash: Mapping[
@@ -5465,19 +5178,6 @@ def _ValidateOutputPluginId(output_plugin_id):
 
 def _ValidateHuntId(hunt_id):
   _ValidateStringId("hunt_id", hunt_id)
-
-
-def _ValidateCronJobId(cron_job_id):
-  _ValidateStringId("cron_job_id", cron_job_id)
-  _ValidateStringLength("cron_job_id", cron_job_id, MAX_CRON_JOB_ID_LENGTH)
-
-
-def _ValidateCronJobRunId(cron_job_run_id):
-  _ValidateStringId("cron_job_run_id", cron_job_run_id)
-  # Raises TypeError if cron_job_id is not a valid hex number.
-  int(cron_job_run_id, 16)
-  if len(cron_job_run_id) != 8:
-    raise ValueError("Invalid cron job run id: %s" % cron_job_run_id)
 
 
 def _ValidateApprovalId(approval_id):

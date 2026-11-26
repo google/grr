@@ -63,7 +63,7 @@ def _ResponseToApprovalsWithGrants(response):
     yield cur_approval_request
 
 
-class MySQLDBUsersMixin(object):
+class MySQLDBUsersMixin:
   """MySQLDB mixin for GRR users and approval related functions."""
 
   @db_utils.CallLogged
@@ -147,7 +147,7 @@ class MySQLDBUsersMixin(object):
   def ReadGRRUsers(
       self,
       offset: int = 0,
-      count: int = None,
+      count: Optional[int] = None,
       cursor: Optional[MySQLdb.cursors.Cursor] = None,
   ) -> Sequence[objects_pb2.GRRUser]:
     """Reads GRR users with optional pagination, sorted by username."""

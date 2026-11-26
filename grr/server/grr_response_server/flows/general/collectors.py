@@ -26,7 +26,7 @@ from grr_response_server import server_stubs
 from grr_response_server.flows.general import discovery
 from grr_response_server.flows.general import file_finder
 from grr_response_server.flows.general import filesystem
-from grr_response_server.flows.general import transfer
+from grr_response_server.flows.general import registry_finder
 from grr_response_proto.rrg import winreg_pb2 as rrg_winreg_pb2
 from grr_response_proto.rrg.action import execute_signed_command_pb2 as rrg_execute_signed_command_pb2
 from grr_response_proto.rrg.action import list_winreg_keys_pb2 as rrg_list_winreg_keys_pb2
@@ -44,17 +44,13 @@ def _GetKnowledgeBase(
       raise artifact_utils.KnowledgeBaseUninitializedError(
           "No client snapshot given."
       )
-    if client_snapshot.knowledge_base is None:
-      raise artifact_utils.KnowledgeBaseUninitializedError(
-          "KnowledgeBase empty for %s." % client_snapshot.client_id
-      )
     kb = client_snapshot.knowledge_base
     if not kb.os:
       raise artifact_utils.KnowledgeBaseAttributesMissingError(
           "KnowledgeBase missing OS for %s. Knowledgebase content: %s"
           % (client_snapshot.client_id, kb)
       )
-  if client_snapshot is None or client_snapshot.knowledge_base is None:
+  if client_snapshot is None:
     return knowledge_base_pb2.KnowledgeBase()
 
   version = client_snapshot.os_version.split(".")
@@ -106,7 +102,6 @@ class ArtifactCollectorFlow(
   2. Written to a collection.
   """
 
-  category = "/Collectors/"
   proto_args_type = flows_pb2.ArtifactCollectorFlowArgs
   proto_progress_type = flows_pb2.ArtifactCollectorFlowProgress
   proto_store_type = flows_pb2.ArtifactCollectorFlowStore
@@ -116,7 +111,6 @@ class ArtifactCollectorFlow(
       jobs_pb2.ExecuteResponse,
       jobs_pb2.Dict,
   )
-  behaviours = flow_base.BEHAVIOUR_BASIC
 
   @classmethod
   def ValidateArgs(cls, args: flows_pb2.ArtifactCollectorFlowArgs) -> None:
@@ -161,7 +155,7 @@ class ArtifactCollectorFlow(
       artifact_registry.REGISTRY.ReloadDatastoreArtifacts()
       return artifact_registry.REGISTRY.GetArtifact(name)
 
-  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+  @flow_base.UseProto2AnyResponses
   def StartCollection(
       self, responses: flow_responses.Responses[any_pb2.Any]
   ) -> None:
@@ -171,7 +165,7 @@ class ArtifactCollectorFlow(
           "Attempt to initialize Knowledge Base failed."
       )
 
-    if not self.store.knowledge_base:
+    if not self.store.HasField("knowledge_base"):
       self.store.knowledge_base.CopyFrom(
           _ReadClientKnowledgeBase(self.client_id, allow_uninitialized=True)
       )
@@ -291,7 +285,7 @@ class ArtifactCollectorFlow(
         next_state=self.ProcessFileFinderResults.__name__,
     )
 
-  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+  @flow_base.UseProto2AnyResponses
   def ProcessFileFinderResults(
       self, responses: flow_responses.Responses[any_pb2.Any]
   ) -> None:
@@ -370,7 +364,7 @@ class ArtifactCollectorFlow(
             ])
 
             list_winreg_values.context["artifact_name"] = artifact_name
-            list_winreg_values.Call(self._ProcessRRGListWinregValues)  # pyrefly: ignore[bad-argument-type]
+            list_winreg_values.Call(self._ProcessRRGListWinregValues)
 
             # We only need to do extra filtering if there is a glob. If there is
             # no globbing, we simply return all subkeys.
@@ -389,19 +383,15 @@ class ArtifactCollectorFlow(
               list_winreg_keys.AddFilter().conditions.append(subkey_glob_cond)
 
             list_winreg_keys.context["artifact_name"] = artifact_name
-            list_winreg_keys.Call(self._ProcessRRGListWinregKeys)  # pyrefly: ignore[bad-argument-type]
+            list_winreg_keys.Call(self._ProcessRRGListWinregKeys)
 
       return
 
     attributes = mig_protodict.FromProtoDictToNativeDict(source.attributes)
     self.CallFlowProto(
-        file_finder.ClientFileFinder.__name__,
-        flow_args=flows_pb2.FileFinderArgs(
-            paths=self._InterpolateList(attributes.get("keys", [])),
-            pathtype=jobs_pb2.PathSpec.PathType.REGISTRY,
-            action=flows_pb2.FileFinderAction(
-                action_type=flows_pb2.FileFinderAction.Action.STAT
-            ),
+        registry_finder.RegistryFinder.__name__,
+        flow_args=flows_pb2.RegistryFinderArgs(
+            keys_paths=self._InterpolateList(attributes.get("keys", [])),
         ),
         request_data={
             "artifact_name": self.current_artifact_name,
@@ -409,7 +399,7 @@ class ArtifactCollectorFlow(
         next_state=self.ProcessFileFinderKeys.__name__,
     )
 
-  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+  @flow_base.UseProto2AnyResponses
   def _ProcessRRGListWinregValues(
       self,
       responses: flow_responses.Responses[any_pb2.Any],
@@ -437,7 +427,7 @@ class ArtifactCollectorFlow(
           tag=f"artifact:{artifact_name}",
       )
 
-  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+  @flow_base.UseProto2AnyResponses
   def _ProcessRRGListWinregKeys(
       self,
       responses: flow_responses.Responses[any_pb2.Any],
@@ -536,7 +526,7 @@ class ArtifactCollectorFlow(
           ])
 
           action.context["artifact_name"] = str(self.current_artifact_name)
-          action.Call(self._ProcessRRGListWinregValues)  # pyrefly: ignore[bad-argument-type]
+          action.Call(self._ProcessRRGListWinregValues)
 
       return
 
@@ -577,13 +567,9 @@ class ArtifactCollectorFlow(
 
     if has_glob:
       self.CallFlowProto(
-          file_finder.ClientFileFinder.__name__,
-          flow_args=flows_pb2.FileFinderArgs(
-              paths=new_paths,
-              pathtype=jobs_pb2.PathSpec.PathType.REGISTRY,
-              action=flows_pb2.FileFinderAction(
-                  action_type=flows_pb2.FileFinderAction.Action.STAT
-              ),
+          registry_finder.RegistryFinder.__name__,
+          flow_args=flows_pb2.RegistryFinderArgs(
+              keys_paths=new_paths,
           ),
           request_data={
               "artifact_name": self.current_artifact_name,
@@ -608,7 +594,7 @@ class ArtifactCollectorFlow(
             next_state=self.ProcessCollectedRegistryStatEntry.__name__,
         )
 
-  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+  @flow_base.UseProto2AnyResponses
   def ProcessFileFinderKeys(
       self,
       responses: flow_responses.Responses[any_pb2.Any],
@@ -687,7 +673,7 @@ class ArtifactCollectorFlow(
       action.args.command_ed25519_signature = command.ed25519_signature
       action.args.timeout.seconds = 30
       action.context["artifact_name"] = str(self.current_artifact_name)
-      action.Call(self._ProcessRRGCommand)  # pyrefly: ignore[bad-argument-type]
+      action.Call(self._ProcessRRGCommand)
     else:
       self.CallClientProto(
           server_stubs.ExecuteCommand,
@@ -720,7 +706,7 @@ class ArtifactCollectorFlow(
           raise flow_base.FlowError(f"Invalid WMI base object: {base_object}")
 
         action.context["artifact_name"] = str(self.current_artifact_name)
-        action.Call(self._ProcessRRGWMIQuery)  # pyrefly: ignore[bad-argument-type]
+        action.Call(self._ProcessRRGWMIQuery)
       else:
         self.CallClientProto(
             server_stubs.WmiQuery,
@@ -779,7 +765,7 @@ class ArtifactCollectorFlow(
 
     return interpolation.results
 
-  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+  @flow_base.UseProto2AnyResponses
   def ProcessCollected(
       self, responses: flow_responses.Responses[any_pb2.Any]
   ) -> None:
@@ -830,7 +816,6 @@ class ArtifactCollectorFlow(
       #   * RunCommand - jobs_pb2.ExecuteResponse
       #   * WMIQuery - jobs_pb2.Dict
       #   * ProcessCollectedRegistryStatEntry - jobs_pb2.StatEntry
-      #   * ProcessCollectedArtifactFiles/MultiGetFile - jobs_pb2.StatEntry
       if result.Is(jobs_pb2.StatEntry.DESCRIPTOR):
         unpacked_result = jobs_pb2.StatEntry()
       elif result.Is(jobs_pb2.ExecuteResponse.DESCRIPTOR):
@@ -850,7 +835,7 @@ class ArtifactCollectorFlow(
           ", ".join(skipped_result_types),
       )
 
-  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+  @flow_base.UseProto2AnyResponses
   def _ProcessRRGCommand(
       self,
       responses: flow_responses.Responses[any_pb2.Any],
@@ -892,7 +877,7 @@ class ArtifactCollectorFlow(
 
       self.SendReplyProto(result, tag=f"artifact:{artifact_name}")
 
-  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+  @flow_base.UseProto2AnyResponses
   def _ProcessRRGWMIQuery(
       self,
       responses: flow_responses.Responses[any_pb2.Any],
@@ -940,7 +925,7 @@ class ArtifactCollectorFlow(
 
       self.SendReplyProto(result, tag=f"artifact:{artifact_name}")
 
-  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+  @flow_base.UseProto2AnyResponses
   def ProcessCollectedRegistryStatEntry(
       self, responses: flow_responses.Responses[any_pb2.Any]
   ) -> None:
@@ -971,58 +956,6 @@ class ArtifactCollectorFlow(
         request_data=responses.request_data,
         messages=stat_entries,
     )
-
-  def ProcessCollectedArtifactFiles(self, responses):
-    """Schedule files for download based on pathspec attribute.
-
-    Args:
-      responses: Response objects from the artifact source.
-
-    Raises:
-      RuntimeError: if pathspec value is not a PathSpec instance and not
-                    a str.
-    """
-    self.download_list = []
-    for response in responses:
-      pathspec = response
-
-      # Check the default .pathspec attribute.
-      if not isinstance(pathspec, rdf_paths.PathSpec):
-        try:
-          pathspec = response.pathspec
-        except AttributeError:
-          pass
-
-      if isinstance(pathspec, str):
-        pathspec = rdf_paths.PathSpec(path=pathspec)
-
-      if isinstance(pathspec, rdf_paths.PathSpec):
-        if not pathspec.path:  # pyrefly: ignore[missing-attribute]
-          self.Log("Skipping empty pathspec.")
-          continue
-        if self.proto_args.use_raw_filesystem_access:
-          pathspec.pathtype = rdf_paths.PathSpec.PathType.TSK  # pyrefly: ignore[missing-attribute]
-        else:
-          pathspec.pathtype = rdf_paths.PathSpec.PathType.OS  # pyrefly: ignore[missing-attribute]
-
-        self.download_list.append(pathspec)
-
-      else:
-        raise RuntimeError(
-            "Response must be a string path, a pathspec, or have "
-            "pathspec_attribute set. Got: %s" % pathspec
-        )
-
-    if self.download_list:
-      request_data = responses.request_data.ToDict()
-      self.CallFlowProto(
-          transfer.MultiGetFile.__name__,
-          flow_args=flows_pb2.MultiGetFileArgs(pathspecs=self.download_list),
-          request_data=request_data,
-          next_state=self.ProcessCollected.__name__,
-      )
-    else:
-      self.Log("No files to download")
 
   def GetProgressProto(self) -> flows_pb2.ArtifactCollectorFlowProgress:
     return self.progress

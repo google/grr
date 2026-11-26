@@ -23,6 +23,7 @@ import {MatInputModule} from '@angular/material/input';
 import {MatTooltipModule} from '@angular/material/tooltip';
 import {ActivatedRoute} from '@angular/router';
 
+import {toDurationString} from '../../../lib/duration_conversion';
 import {HumanReadableDurationPipe} from '../../../pipes/human_readable/human_readable_duration_pipe';
 import {ClientStore} from '../../../store/client_store';
 import {GlobalStore} from '../../../store/global_store';
@@ -99,7 +100,9 @@ export class ClientApprovalForm {
       if (maxAccessDurationSeconds) {
         this.controls.accessDuration.setValidators([
           requiredInput(),
-          maxValue(maxAccessDurationSeconds),
+          maxValue(maxAccessDurationSeconds, (value) =>
+            toDurationString(value, 'long'),
+          ),
         ]);
       }
     });

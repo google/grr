@@ -26,7 +26,7 @@ else:
   installers = None
 
 
-def RunInstaller():
+def RunInstaller() -> None:
   """Runs installers for the current platform."""
 
   try:

@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 """Test for the flow state class."""
 
+from collections.abc import Sequence
+
 from absl import app
 
 from grr_response_core.lib import rdfvalue
@@ -13,7 +15,7 @@ class SessionIDTest(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
 
   rdfvalue_class = rdfvalue.SessionID
 
-  def GenerateSample(self, number=0):
+  def GenerateSample(self, number: int = 0) -> rdfvalue.SessionID:
     id_str = "%08X" % (number % 2**32)
     return rdfvalue.SessionID(flow_name=id_str)
 
@@ -65,7 +67,7 @@ class SessionIDTest(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
     )
 
 
-def main(argv):
+def main(argv: Sequence[str]) -> None:
   # Run the full test suite
   test_lib.main(argv)
 

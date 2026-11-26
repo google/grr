@@ -1,0 +1,65 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "_build_backend"
+backend-path = ["."]
+
+[project]
+name = "grr-response-server"
+version = "4.0.0.post0"
+description = "The GRR Rapid Response Server."
+license = "Apache-2.0"
+maintainers = [
+  {name = "GRR Development Team", email = "grr-dev@googlegroups.com"},
+]
+requires-python = ">=3.9"
+dependencies = [
+  "artifacts==20260421",
+  'fleetspeak-server-bin==0.1.13; sys_platform == "linux"',
+  "google-auth==2.29.0",
+  "google-cloud-pubsub==2.30.0",
+  "google-cloud-storage==2.16.0",
+  "grr-api-client==4.0.0.post0",
+  "grr-response-client-builder==4.0.0.post0",
+  "grr-response-core==4.0.0.post0",
+  "ipython==7.15.0",
+  "Jinja2==3.1.2",
+  "pexpect==4.8.0",
+  "portpicker==1.6.0b1",
+  "prometheus_client==0.16.0",
+  "pyjwt==2.6.0",
+  "python-debian==0.1.49",
+  "Werkzeug==2.1.2",
+]
+
+[project.optional-dependencies]
+# Install to get MySQL data store support:
+#   pip install grr-response-server[mysqldatastore]
+# When installing from .deb, the system python3-mysqldb package is used instead
+# to avoid incompatibilities with system mysqlclient/mariadbclient libraries.
+mysqldatastore = [
+  "mysqlclient==2.1.1",
+]
+
+[project.urls]
+Homepage = "https://github.com/google/grr"
+
+[project.scripts]
+grr_console = "grr_response_server.distro_entry:Console"
+grr_api_shell_raw_access = "grr_response_server.distro_entry:ApiShellRawAccess"
+grr_config_updater = "grr_response_server.distro_entry:ConfigUpdater"
+grr_command_signer = "grr_response_server.distro_entry:CommandSigner"
+grr_frontend = "grr_response_server.distro_entry:GrrFrontend"
+grr_server = "grr_response_server.distro_entry:GrrServer"
+grr_worker = "grr_response_server.distro_entry:Worker"
+grr_admin_ui = "grr_response_server.distro_entry:AdminUI"
+fleetspeak_server = "grr_response_server.distro_entry:FleetspeakServer"
+
+[tool.setuptools]
+include-package-data = true
+
+[tool.setuptools.packages.find]
+include = ["grr_response_server*"]
+exclude = [
+  "grr_response_server.gui.ui*",
+]
+namespaces = true

@@ -12,7 +12,7 @@ class WithDatabaseTest(absltest.TestCase):
   def testDatabaseIsProvided(self):
 
     @db_test_lib.WithDatabase
-    def TestMethod(db: abstract_db.Database):
+    def TestMethod(db: abstract_db.Database) -> None:
       self.assertIsInstance(db, abstract_db.Database)
 
     TestMethod()  # pylint: disable=no-value-for-parameter
@@ -21,7 +21,7 @@ class WithDatabaseTest(absltest.TestCase):
     now = rdfvalue.RDFDatetime.Now()
 
     @db_test_lib.WithDatabase
-    def TestMethod(self, db: abstract_db.Database):
+    def TestMethod(self, db: abstract_db.Database) -> None:
       client_id = "C.0123456789abcdef"
       db.WriteClientMetadata(client_id, first_seen=now)
 
@@ -33,7 +33,7 @@ class WithDatabaseTest(absltest.TestCase):
   def testDatabaseIsFresh(self):
 
     @db_test_lib.WithDatabase
-    def TestMethod(db: abstract_db.Database):
+    def TestMethod(db: abstract_db.Database) -> None:
       self.assertEqual(db.CountGRRUsers(), 0)
 
       db.WriteGRRUser("foo")
@@ -47,7 +47,7 @@ class WithDatabaseTest(absltest.TestCase):
   def testPassesArguments(self):
 
     @db_test_lib.WithDatabase
-    def TestMethod(self, username: str, db: abstract_db.Database):
+    def TestMethod(self, username: str, db: abstract_db.Database) -> None:
       db.WriteGRRUser(username)
 
       user = db.ReadGRRUser(username)
@@ -64,7 +64,7 @@ class WithDatabaseBlobstore(absltest.TestCase):
     del db  # Unused.
 
     @db_test_lib.WithDatabaseBlobstore
-    def TestMethod(bs: blob_store.BlobStore):
+    def TestMethod(bs: blob_store.BlobStore) -> None:
       self.assertIsInstance(bs, blob_store.BlobStore)
 
     TestMethod()  # pylint: disable=no-value-for-parameter
@@ -74,7 +74,7 @@ class WithDatabaseBlobstore(absltest.TestCase):
     del db  # Unused.
 
     @db_test_lib.WithDatabaseBlobstore
-    def TestMethod(bs: blob_store.BlobStore):
+    def TestMethod(bs: blob_store.BlobStore) -> None:
       blob_id = bs.WriteBlobWithUnknownHash(b"foobarbaz")
       self.assertEqual(bs.ReadBlob(blob_id), b"foobarbaz")
 
@@ -85,7 +85,7 @@ class WithDatabaseBlobstore(absltest.TestCase):
     del db  # Unused.
 
     @db_test_lib.WithDatabaseBlobstore
-    def TestMethod(self, data: bytes, bs: blob_store.BlobStore):
+    def TestMethod(self, data: bytes, bs: blob_store.BlobStore) -> None:
       blob_id = bs.WriteBlobWithUnknownHash(data)
       self.assertEqual(bs.ReadBlob(blob_id), data)
 

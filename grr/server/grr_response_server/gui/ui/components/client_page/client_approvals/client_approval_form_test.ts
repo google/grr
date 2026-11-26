@@ -132,7 +132,7 @@ describe('Client Approval Form', () => {
     await harness.setAccessDuration('4 d');
 
     expect(await harness.getAccessDurationErrors()).toEqual([
-      'Maximum value is 86400.',
+      'Maximum value is 1 day.',
     ]);
     expect(await harness.isSubmitButtonDisabled()).toBeTrue();
   }));
@@ -177,7 +177,7 @@ describe('Client Approval Form', () => {
     expect(await harness.getReason()).toEqual('foo/t/abcd');
   });
 
-  it('correctly calls requestClientApproval when submitted with minimum required fields', async () => {
+  it('correctly calls requestClientApproval when submitted with minimum required fields', fakeAsync(async () => {
     jasmine.clock().mockDate(new Date('2020-07-01T13:00:00.000+00:00'));
 
     clientStoreMock.clientId = signal('C.1234');
@@ -193,7 +193,7 @@ describe('Client Approval Form', () => {
       1 * 60 * 60,
       [],
     );
-  });
+  }));
 
   it('correctly calls requestClientApproval when submitted with all fields set', fakeAsync(async () => {
     jasmine.clock().mockDate(new Date('2020-07-01T13:00:00.000+00:00'));

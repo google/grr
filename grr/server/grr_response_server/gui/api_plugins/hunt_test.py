@@ -109,6 +109,16 @@ class ApiCreateHuntHandlerTest(
         ValueError, self.handler.Handle, args, context=self.context
     )
 
+  def testCreateHunt_raisesErrorForInvalidFlowArgs(self):
+    flow_args = any_pb2.Any()
+    flow_args.Pack(jobs_pb2.LogMessage(data="invalid_flow_args"))
+    args = api_hunt_pb2.ApiCreateHuntArgs(
+        flow_name=file_finder.ClientFileFinder.__name__,
+        flow_args=flow_args,
+    )
+    with self.assertRaisesRegex(ValueError, "Failed to unpack flow_args"):
+      self.handler.Handle(args, context=self.context)
+
   def testPresubmit_HasPresbmitRule(self):
     hunt_cfg = rdf_config.AdminUIHuntConfig(
         default_exclude_labels=["no-no"],

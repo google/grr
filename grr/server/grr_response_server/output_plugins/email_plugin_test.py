@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 """Tests for email output plugin."""
 
+from collections.abc import Sequence
+from typing import Any
 from unittest import mock
 
 from absl import app
@@ -49,8 +51,11 @@ class EmailOutputPluginTest(absltest.TestCase):
         ),
     )
 
-    email_messages = []
-    def SendEmail(address, sender, title, message, **_):
+    email_messages: list[dict[str, str]] = []
+
+    def SendEmail(
+        address: str, sender: str, title: str, message: str, **_: Any
+    ) -> None:
       email_messages.append(
           dict(address=address, sender=sender, title=title, message=message)
       )
@@ -73,7 +78,7 @@ class EmailOutputPluginTest(absltest.TestCase):
     self.assertIn("somehostname", msg["message"])
 
 
-def main(argv):
+def main(argv: Sequence[str]) -> None:
   test_lib.main(argv)
 
 

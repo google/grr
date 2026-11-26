@@ -3,6 +3,7 @@
 
 import os
 import time
+from typing import Any
 
 from grr_response_core.lib import config_lib
 from grr_response_core.lib import type_info
@@ -67,11 +68,11 @@ config_lib.DEFINE_string(
 class PathTypeInfo(type_info.String):
   """A path to a file or a directory."""
 
-  def __init__(self, must_exist=True, **kwargs):
+  def __init__(self, must_exist: bool = True, **kwargs: Any):
     self.must_exist = must_exist
     super().__init__(**kwargs)
 
-  def Validate(self, value):
+  def Validate(self, value: str) -> str:
     value = super().Validate(value)
     if self.must_exist and not os.access(value, os.R_OK):
       raise type_info.TypeValueError(
@@ -79,7 +80,7 @@ class PathTypeInfo(type_info.String):
 
     return value
 
-  def FromString(self, string):
+  def FromString(self, string: str) -> str:
     return os.path.normpath(string)
 
 

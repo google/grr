@@ -757,12 +757,38 @@ class StreamingZipGenerator(object):
   # relevant only for dates). Once we remove this class and switch back to the
   # native implementation, it should be possible to fill this information again.
   def WriteFileHeader(self, arcname=None, compress_type=None, st=None):
-    del compress_type, st  # Unused.
+    """Starts a new archive member.
+
+    Args:
+      arcname: Name of the member in the archive.
+      compress_type: Unused.
+      st: Stat of the member, if known. Only its size is used, to keep members
+        that are small enough in the classic (non-ZIP64) format.
+
+    Returns:
+      Archive bytes produced by starting the member (its local file header).
+
+    Raises:
+      ArchiveAlreadyClosedError: If the archive has already been closed.
+    """
+    del compress_type  # Unused.
 
     if not self._stream:
       raise ArchiveAlreadyClosedError()
 
-    self._zipopen = self._zipfile.open(arcname, mode="w")  # pyrefly: ignore[bad-argument-type]
+    zinfo = zipfile.ZipInfo(arcname)  # pyrefly: ignore[bad-argument-type]
+    zinfo.compress_type = self._compression
+    if st is not None:
+      # `ZipFile` uses ZIP64 if the expected size requires it.
+      zinfo.file_size = st.st_size
+      force_zip64 = False
+    else:
+      # The archive is streamed, so the header has to commit to a format before
+      # the size is known. Without ZIP64, `ZipFile` fails to finish a member
+      # above 2 GiB (after all of its data has already been streamed).
+      force_zip64 = True
+
+    self._zipopen = self._zipfile.open(zinfo, mode="w", force_zip64=force_zip64)
     self._zipopen.__enter__()
 
     return self._stream.GetValueAndReset()

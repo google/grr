@@ -9,11 +9,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Removed
 
+* Built-in cron job scheduling and execution engine, system cron jobs, and
+  `Cron.*` configuration options.
 * API Changes:
+  * Removed `ListCronJobs`, `GetCronJob`, `ForceRunCronJob`, `ModifyCronJob`,
+    `ListCronJobRuns`, `GetCronJobRun`, and `DeleteCronJob`.
+  * Removed `CreateCronJobApproval`, `GetCronJobApproval`,
+    `GrantCronJobApproval`, and `ListCronJobApprovals`.
   * Removed `ListHuntOutputPlugins`.
   * Removed `GetLastClientIPAddress`.
   * Removed `top_flows_only` option from `ListFlows`.
   * Removed `GetFleetspeakPendingMessages`.
+  * Removed `category` property from `ApiMethod` reflection objects.
 
 ### Changed
 

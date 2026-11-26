@@ -1,13 +1,18 @@
 #!/usr/bin/env python
 """A module with assertion functions for checking preconditions."""
 
+from __future__ import annotations
+
 import collections
 from collections import abc
 from collections.abc import Sized
 import re
+from typing import Any
 
 
-def AssertType(value, expected_type):
+def AssertType(
+    value: object, expected_type: type[Any] | tuple[type[Any], ...]
+) -> None:
   """Ensures that given value has certain type.
 
   Args:
@@ -23,7 +28,9 @@ def AssertType(value, expected_type):
     raise TypeError(message)
 
 
-def AssertOptionalType(value, expected_type):
+def AssertOptionalType(
+    value: object, expected_type: type[Any] | tuple[type[Any], ...]
+) -> None:
   """Ensures that given value, if not `None`, has certain type.
 
   Args:
@@ -37,7 +44,9 @@ def AssertOptionalType(value, expected_type):
     AssertType(value, expected_type)
 
 
-def AssertIterableType(iterable, expected_item_type):
+def AssertIterableType(
+    iterable: object, expected_item_type: type[Any] | tuple[type[Any], ...]
+) -> None:
   """Ensures that given iterable container has certain type.
 
   Args:
@@ -60,11 +69,16 @@ def AssertIterableType(iterable, expected_item_type):
     raise TypeError(message)
 
   AssertType(iterable, abc.Iterable)
+  assert isinstance(iterable, abc.Iterable)
   for item in iterable:
     AssertType(item, expected_item_type)
 
 
-def AssertDictType(dct, expected_key_type, expected_value_type):
+def AssertDictType(
+    dct: object,
+    expected_key_type: type[Any] | tuple[type[Any], ...],
+    expected_value_type: type[Any] | tuple[type[Any], ...],
+) -> None:
   """Ensures that given dictionary is actually a dictionary of specified type.
 
   Args:
@@ -77,25 +91,27 @@ def AssertDictType(dct, expected_key_type, expected_value_type):
                keys and values have the expected type.
   """
   AssertType(dct, abc.Mapping)
+  assert isinstance(dct, abc.Mapping)
   for key, value in dct.items():
     AssertType(key, expected_key_type)
     AssertType(value, expected_value_type)
 
 
-def AssertNotEmpty(typename, value):
+def AssertNotEmpty(typename: str, value: object) -> None:
   """Raises, if the given value is empty or has no __len__."""
   AssertType(value, Sized)
+  assert isinstance(value, Sized)
   if len(value) == 0:  # pylint: disable=g-explicit-length-test
     message = "Expected {} `{}` to be non-empty".format(typename, value)
     raise ValueError(message)
 
 
-def _ValidateStringId(typename, value):
+def _ValidateStringId(typename: str, value: object) -> None:
   AssertType(value, str)
   AssertNotEmpty(typename, value)
 
 
-def ValidateClientId(client_id):
+def ValidateClientId(client_id: str) -> None:
   """Raises, if the given value is not a valid ClientId string."""
   _ValidateStringId("client_id", client_id)
   # TODO(hanuszczak): Eventually, we should allow only either lower or upper
@@ -104,7 +120,7 @@ def ValidateClientId(client_id):
     raise ValueError("Client id has incorrect format: `%s`" % client_id)
 
 
-def ValidateFlowId(flow_id):
+def ValidateFlowId(flow_id: str) -> None:
   """Raises, if the given value is not a valid FlowId string."""
   _ValidateStringId("flow_id", flow_id)
   if (

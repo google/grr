@@ -6,13 +6,15 @@ import re
 import stat
 
 from google.protobuf import any_pb2
+from grr_response_core.lib import artifact_utils
 from grr_response_proto import flows_pb2
 from grr_response_proto import jobs_pb2
 from grr_response_server import flow_base
 from grr_response_server import flow_responses
 from grr_response_server import rrg_stubs
 from grr_response_server import rrg_winreg
-from grr_response_server.flows.general import file_finder
+from grr_response_server import server_stubs
+from grr_response_server.flows.general import filesystem
 from grr_response_proto.rrg import os_pb2 as rrg_os_pb2
 from grr_response_proto.rrg import winreg_pb2 as rrg_winreg_pb2
 from grr_response_proto.rrg.action import list_winreg_values_pb2 as rrg_list_winreg_values_pb2
@@ -76,10 +78,6 @@ class ClientRegistryFinder(
 ):
   """This flow looks for registry items matching given criteria."""
 
-  friendly_name = "Client Side Registry Finder"
-  category = "/Registry/"
-  behaviours = flow_base.BEHAVIOUR_ADVANCED
-
   proto_args_type = flows_pb2.RegistryFinderArgs
   proto_result_types = (flows_pb2.FileFinderResult,)
 
@@ -91,6 +89,21 @@ class ClientRegistryFinder(
     )
 
   def Start(self):
+    key_paths = []
+    for key_path_glob in self.proto_args.keys_paths:
+      interpolation = artifact_utils.KnowledgeBaseInterpolation(
+          pattern=str(key_path_glob),
+          kb=self.client_knowledge_base,
+      )
+
+      for log in interpolation.logs:
+        self.Log("registry path %r interpolation: %s", key_path_glob, log)
+
+      key_paths.extend(interpolation.results)
+
+    if not key_paths:
+      raise flow_base.FlowError("No key paths to collect")
+
     if self.rrg_support and all(
         cond.condition_type
         in [
@@ -100,28 +113,27 @@ class ClientRegistryFinder(
         ]
         for cond in self.proto_args.conditions
     ):
-      return self._StartRRG()
+      return self._StartRRG(key_paths)
+    else:
+      args = flows_pb2.FileFinderArgs()
+      args.paths.extend(key_paths)
+      args.pathtype = jobs_pb2.PathSpec.PathType.REGISTRY
+      args.conditions.extend(
+          _ConditionsToFileFinderConditions(self.proto_args.conditions)
+      )
+      args.action.action_type = flows_pb2.FileFinderAction.Action.STAT
 
-    self.CallFlowProto(
-        file_finder.ClientFileFinder.__name__,
-        flow_args=flows_pb2.FileFinderArgs(
-            paths=self.proto_args.keys_paths,
-            pathtype=jobs_pb2.PathSpec.PathType.REGISTRY,
-            conditions=_ConditionsToFileFinderConditions(
-                self.proto_args.conditions
-            ),
-            action=flows_pb2.FileFinderAction(
-                action_type=flows_pb2.FileFinderAction.Action.STAT
-            ),
-        ),
-        next_state=self.Done.__name__,
-    )
+      self.CallClientProto(
+          server_stubs.VfsFileFinder,
+          action_args=args,
+          next_state=self.Done.__name__,
+      )
 
-  def _StartRRG(self):
+  def _StartRRG(self, key_paths: list[str]):
     if self.rrg_os_type != rrg_os_pb2.Type.WINDOWS:
       raise flow_base.FlowError(f"Non-Windows endpoint: {self.rrg_os_type}")
 
-    for path in self.proto_args.keys_paths:
+    for path in key_paths:
       list_winreg_values = rrg_stubs.ListWinregValues()
 
       # Special case for recursive glob at the end: we need to "unfold" it to
@@ -230,9 +242,9 @@ class ClientRegistryFinder(
         else:
           raise ValueError(f"Unsupported condtion type: {cond.condition_type}")
 
-      list_winreg_values.Call(self._ProcessRRGListWinregValues)  # pyrefly: ignore[bad-argument-type]
+      list_winreg_values.Call(self._ProcessRRGListWinregValues)
 
-  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+  @flow_base.UseProto2AnyResponses
   def _ProcessRRGListWinregValues(
       self,
       responses: flow_responses.Responses[any_pb2.Any],
@@ -254,19 +266,24 @@ class ClientRegistryFinder(
 
       self.SendReplyProto(result)
 
-  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+  @flow_base.UseProto2AnyResponses
   def Done(self, responses: flow_responses.Responses[any_pb2.Any]) -> None:
     if not responses.success:
       raise flow_base.FlowError("Registry search failed %s" % responses.status)
+
+    unpacked_responses = []
 
     for response_any in responses:
       unpacked_response = flows_pb2.FileFinderResult()
       unpacked_response.ParseFromString(response_any.value)
       self.SendReplyProto(unpacked_response)
 
+      unpacked_responses.append(unpacked_response)
+
+    # TODO - Consider not doing this. RRG already does not write to
+    # VFS and we want to have a separate Windows Registry browser anyway.
+    filesystem.WriteFileFinderResults(unpacked_responses, self.client_id)
+
 
 class RegistryFinder(ClientRegistryFinder):
   """Legacy alias for ClientRegistryFinder."""
-
-  friendly_name = "Registry Finder"
-  behaviours = flow_base.BEHAVIOUR_DEBUG

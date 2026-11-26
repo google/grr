@@ -99,20 +99,6 @@ def ToRDFFlow(proto: flows_pb2.Flow) -> rdf_flow_objects.Flow:
   return rdf_flow_objects.Flow.FromSerializedBytes(proto.SerializeToString())
 
 
-def ToProtoScheduledFlow(
-    rdf: rdf_flow_objects.ScheduledFlow,
-) -> flows_pb2.ScheduledFlow:
-  return rdf.AsPrimitiveProto()
-
-
-def ToRDFScheduledFlow(
-    proto: flows_pb2.ScheduledFlow,
-) -> rdf_flow_objects.ScheduledFlow:
-  return rdf_flow_objects.ScheduledFlow.FromSerializedBytes(
-      proto.SerializeToString()
-  )
-
-
 def ToProtoFlowResultCount(
     rdf: rdf_flow_objects.FlowResultCount,
 ) -> flows_pb2.FlowResultCount:

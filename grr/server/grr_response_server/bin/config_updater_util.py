@@ -5,6 +5,7 @@ import argparse
 from collections.abc import Generator
 import datetime
 import getpass
+import importlib.metadata
 import os
 import re
 import socket
@@ -18,7 +19,6 @@ from google.protobuf import text_format
 import MySQLdb
 from MySQLdb.constants import CR as mysql_conn_errors
 from MySQLdb.constants import ER as general_mysql_errors
-import pkg_resources
 
 from grr_api_client import errors as api_errors
 from grr_api_client import root as api_root
@@ -724,9 +724,7 @@ def InstallTemplatePackage():
 
   # Install the GRR server component to satisfy the dependency below.
   major_minor_version = ".".join(
-      pkg_resources.get_distribution("grr-response-core").version.split(".")[
-          0:2
-      ]
+      importlib.metadata.version("grr-response-core").split(".")[0:2]
   )
   # Note that this version spec requires a recent version of pip
   subprocess.check_call([

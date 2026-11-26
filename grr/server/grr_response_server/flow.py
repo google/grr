@@ -37,7 +37,6 @@ from grr_response_proto import output_plugin_pb2
 from grr_response_server import data_store
 from grr_response_server import output_plugin_registry
 from grr_response_server.databases import db
-from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
 
 
 GRR_FLOW_INVALID_FLOW_COUNT = metrics.Counter("grr_flow_invalid_flow_count")
@@ -410,7 +409,7 @@ def UnscheduleFlow(
 def ListScheduledFlows(
     client_id: str,
     creator: str,
-) -> Sequence[rdf_flow_objects.ScheduledFlow]:
+) -> Sequence[flows_pb2.ScheduledFlow]:
   """Lists all scheduled flows of a user on a client."""
   return data_store.REL_DB.ListScheduledFlows(
       client_id=client_id, creator=creator

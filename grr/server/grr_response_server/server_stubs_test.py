@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 """Tests for server stubs for client actions."""
 
+from collections.abc import Sequence
+
 from absl import app
 
 from grr_response_client import client_actions
@@ -45,7 +47,7 @@ class ClientActionStubTest(
       )
 
 
-def main(argv):
+def main(argv: Sequence[str]) -> None:
   # Run the full test suite
   test_lib.main(argv)
 

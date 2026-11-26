@@ -25,7 +25,7 @@ class MySQLDBSignedBinariesMixin(object):
       binary_id: objects_pb2.SignedBinaryID,
       references: objects_pb2.BlobReferences,
       cursor: Optional[MySQLdb.cursors.Cursor] = None,
-  ):
+  ) -> None:
     """Writes blob references for a signed binary to the DB."""
     assert cursor is not None
 

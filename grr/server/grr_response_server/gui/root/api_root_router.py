@@ -6,7 +6,7 @@ and must be accessed from a machine that runs GRR services directly (it runs
 on top of a server bound to "localhost").
 """
 
-from typing import Any, Optional
+from typing import Any, NoReturn, Optional
 
 from grr_response_proto.api import metadata_pb2 as api_metadata_pb2
 from grr_response_proto.api import reflection_pb2 as api_reflection_pb2
@@ -30,7 +30,6 @@ class ApiRootRouter(api_call_router.ApiCallRouter):
   # User management.
   # ================
   #
-  @api_call_router.Category("User management")
   @api_call_router.ProtoArgsType(user_management_pb2.ApiCreateGrrUserArgs)
   @api_call_router.ProtoResultType(api_user_pb2.ApiGrrUser)
   @api_call_router.Http("POST", "/api/v2/root/grr-users")
@@ -41,7 +40,6 @@ class ApiRootRouter(api_call_router.ApiCallRouter):
   ) -> api_user_management.ApiCreateGrrUserHandler:
     return api_user_management.ApiCreateGrrUserHandler()
 
-  @api_call_router.Category("User management")
   @api_call_router.ProtoArgsType(user_management_pb2.ApiDeleteGrrUserArgs)
   @api_call_router.Http("DELETE", "/api/v2/root/grr-users/<username>")
   def DeleteGrrUser(
@@ -51,7 +49,6 @@ class ApiRootRouter(api_call_router.ApiCallRouter):
   ) -> api_user_management.ApiDeleteGrrUserHandler:
     return api_user_management.ApiDeleteGrrUserHandler()
 
-  @api_call_router.Category("User management")
   @api_call_router.ProtoArgsType(user_management_pb2.ApiModifyGrrUserArgs)
   @api_call_router.ProtoResultType(api_user_pb2.ApiGrrUser)
   @api_call_router.Http("PATCH", "/api/v2/root/grr-users/<username>")
@@ -62,7 +59,6 @@ class ApiRootRouter(api_call_router.ApiCallRouter):
   ) -> api_user_management.ApiModifyGrrUserHandler:
     return api_user_management.ApiModifyGrrUserHandler()
 
-  @api_call_router.Category("User management")
   @api_call_router.ProtoArgsType(user_management_pb2.ApiListGrrUsersArgs)
   @api_call_router.ProtoResultType(user_management_pb2.ApiListGrrUsersResult)
   @api_call_router.Http("GET", "/api/v2/root/grr-users")
@@ -73,7 +69,6 @@ class ApiRootRouter(api_call_router.ApiCallRouter):
   ) -> api_user_management.ApiListGrrUsersHandler:
     return api_user_management.ApiListGrrUsersHandler()
 
-  @api_call_router.Category("User management")
   @api_call_router.ProtoArgsType(user_management_pb2.ApiGetGrrUserArgs)
   @api_call_router.ProtoResultType(api_user_pb2.ApiGrrUser)
   @api_call_router.Http("GET", "/api/v2/root/grr-users/<username>")
@@ -87,7 +82,6 @@ class ApiRootRouter(api_call_router.ApiCallRouter):
   # Binary management.
   # ====================
   #
-  @api_call_router.Category("Binary management")
   @api_call_router.ProtoArgsType(binary_management_pb2.ApiUploadGrrBinaryArgs)
   @api_call_router.Http("POST", "/api/v2/root/grr-binaries/<type>/<path:path>")
   def UploadGrrBinary(
@@ -97,7 +91,6 @@ class ApiRootRouter(api_call_router.ApiCallRouter):
   ) -> api_binary_management.ApiUploadGrrBinaryHandler:
     return api_binary_management.ApiUploadGrrBinaryHandler()
 
-  @api_call_router.Category("Binary management")
   @api_call_router.ProtoArgsType(binary_management_pb2.ApiDeleteGrrBinaryArgs)
   @api_call_router.Http(
       "DELETE", "/api/v2/root/grr-binaries/<type>/<path:path>"
@@ -112,7 +105,6 @@ class ApiRootRouter(api_call_router.ApiCallRouter):
   # Signed commands methods.
   # ========================
   #
-  @api_call_router.Category("SignedCommands")
   @api_call_router.ProtoArgsType(
       api_signed_commands_pb2.ApiCreateSignedCommandsArgs
   )
@@ -124,7 +116,6 @@ class ApiRootRouter(api_call_router.ApiCallRouter):
   ) -> api_signed_commands.ApiCreateSignedCommandsHandler:
     return api_signed_commands.ApiCreateSignedCommandsHandler()
 
-  @api_call_router.Category("SignedCommands")
   @api_call_router.Http("DELETE", "/api/v2/signed-commands")
   def DeleteAllSignedCommands(
       self,
@@ -136,7 +127,6 @@ class ApiRootRouter(api_call_router.ApiCallRouter):
   # Reflection methods (needed for client libraries to work).
   # ===========================================================
   #
-  @api_call_router.Category("Reflection")
   @api_call_router.ProtoResultType(api_reflection_pb2.ApiListApiMethodsResult)
   @api_call_router.Http("GET", "/api/v2/reflection/api-methods")
   @api_call_router.NoAuditLogRequired()
@@ -150,7 +140,6 @@ class ApiRootRouter(api_call_router.ApiCallRouter):
   # Metadata methods.
   # ===========================================================
   #
-  @api_call_router.Category("Metadata")
   @api_call_router.ProtoResultType(
       api_metadata_pb2.ApiGetOpenApiDescriptionResult
   )
@@ -175,7 +164,7 @@ class ApiRootAndNonRootRouter(
       self,
       args: Any,
       context: Optional[api_call_context.ApiCallContext] = None,
-  ) -> api_user_management.ApiGetGrrUserHandler:
+  ) -> NoReturn:
     # There is no sensible way to handle these requests (`RawConnector` does so
     # by inspecting argument types but we don't want that) so for now we just
     # bail out since you are not supposed to use this router unless you know

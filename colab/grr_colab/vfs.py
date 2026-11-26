@@ -3,7 +3,7 @@
 
 The module contains classes that interact with VFS.
 """
-from collections.abc import Callable, Iterator
+from collections.abc import Callable, Iterable, Iterator
 import io
 from typing import Optional
 
@@ -25,7 +25,6 @@ class VfsFile(io.BufferedIOBase):
   Currently this file is readable only, not seekable and not writable. Read
   operations are buffered.
   """
-  _buffer_pos: int = None  # pyrefly: ignore[bad-assignment]
 
   def __init__(self, fetch: Callable[[int], Iterator[bytes]]) -> None:
     super().__init__()
@@ -120,7 +119,7 @@ class VfsFile(io.BufferedIOBase):
   def write(self, b):
     raise io.UnsupportedOperation()
 
-  def writelines(self, lines: list[str]) -> None:  # pyrefly: ignore[bad-override]
+  def writelines(self, lines: Iterable[bytes]) -> None:  # pyrefly: ignore[bad-override]
     raise io.UnsupportedOperation()
 
   def detach(self) -> None:  # pyrefly: ignore[bad-override]
@@ -159,7 +158,7 @@ class VfsFile(io.BufferedIOBase):
     return len(data)
 
 
-class VFS(object):
+class VFS:
   """Wrapper for VFS.
 
   Offers easy to use interface to perform operations on GRR VFS from Colab.
@@ -188,7 +187,7 @@ class VFS(object):
     try:
       f = self._get_file(path).Get()
     except api_errors.AccessForbiddenError as e:
-      raise errors.ApprovalMissingError(self._client.client_id, e)
+      raise errors.ApprovalMissingError(self._client.client_id) from e
 
     if not f.is_directory:
       raise errors.NotDirectoryError(self._client.client_id, path)
@@ -196,14 +195,14 @@ class VFS(object):
     try:
       stat_entries = [_.data.stat for _ in f.ListFiles()]
     except api_errors.AccessForbiddenError as e:
-      raise errors.ApprovalMissingError(self._client.client_id, e)
+      raise errors.ApprovalMissingError(self._client.client_id) from e
 
     inner_entries = []
     for entry in stat_entries:
       try:
         inner_entries += self.ls(entry.pathspec.path, max_depth - 1)
       except errors.NotDirectoryError:
-        inner_entries += []
+        pass
     return representer.StatEntryList(stat_entries + inner_entries)
 
   def refresh(self, path: str, max_depth: int = 1) -> None:
@@ -226,7 +225,7 @@ class VFS(object):
       else:
         f.Refresh().WaitUntilDone()
     except api_errors.AccessForbiddenError as e:
-      raise errors.ApprovalMissingError(self._client.client_id, e)
+      raise errors.ApprovalMissingError(self._client.client_id) from e
 
   def open(self, path: str) -> VfsFile:
     """Opens a file object corresponding to the given path in the VFS.
@@ -244,7 +243,7 @@ class VFS(object):
     try:
       self._client.VerifyAccess()
     except api_errors.AccessForbiddenError as e:
-      raise errors.ApprovalMissingError(self._client.client_id, e)
+      raise errors.ApprovalMissingError(self._client.client_id) from e
 
     return VfsFile(f.GetBlobWithOffset)
 
@@ -263,7 +262,7 @@ class VFS(object):
     try:
       f = self._get_file(path).Get()
     except api_errors.AccessForbiddenError as e:
-      raise errors.ApprovalMissingError(self._client.client_id, e)
+      raise errors.ApprovalMissingError(self._client.client_id) from e
 
     if f.is_directory:
       raise ValueError('`{}` is a directory'.format(path))

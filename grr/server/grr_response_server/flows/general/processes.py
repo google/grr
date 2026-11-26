@@ -31,9 +31,6 @@ class ListProcesses(
 ):
   """List running processes on a system."""
 
-  category = "/Processes/"
-  behaviours = flow_base.BEHAVIOUR_BASIC
-
   proto_args_type = flows_pb2.ListProcessesArgs
   proto_store_type = flows_pb2.ListProcessesStore
   proto_result_types = (sysinfo_pb2.Process, jobs_pb2.StatEntry)
@@ -66,7 +63,7 @@ class ListProcesses(
           f"^/proc(/{pid_pattern}(/(exe|cwd)?)?)?$"
       )
 
-      get_file_metadata.Call(self._ProcessProcfsGetFileMetadata)  # pyrefly: ignore[bad-argument-type]
+      get_file_metadata.Call(self._ProcessProcfsGetFileMetadata)
     elif (
         self.rrg_support
         and self.rrg_os_type == rrg_os_pb2.WINDOWS
@@ -96,7 +93,7 @@ class ListProcesses(
         )
 
       query_wmi.args.namespace = "root\\cimv2"
-      query_wmi.Call(self._ProcessQueryWMI)  # pyrefly: ignore[bad-argument-type]
+      query_wmi.Call(self._ProcessQueryWMI)
     elif (
         self.rrg_version >= (0, 0, 10)
         and self.rrg_os_type == rrg_os_pb2.MACOS
@@ -120,14 +117,14 @@ class ListProcesses(
         ])
         cond_exe.bytes_match = self.proto_args.filename_regex
 
-      list_processes.Call(self._ProcessListProcesses)  # pyrefly: ignore[bad-argument-type]
+      list_processes.Call(self._ProcessListProcesses)
     else:
       self.CallClientProto(
           server_stubs.ListProcesses,
           next_state=self.IterateProcesses.__name__,
       )
 
-  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+  @flow_base.UseProto2AnyResponses
   def _ProcessProcfsGetFileMetadata(
       self,
       responses_any: flow_responses.Responses[any_pb2.Any],
@@ -178,8 +175,7 @@ class ListProcesses(
         )
 
     processes = list(self.store.processes)
-    # TODO - Replace with `clear()` once upgraded.
-    del self.store.processes[:]
+    self.store.processes.clear()
     self.store.processes.extend(
         process
         for process in processes
@@ -207,9 +203,9 @@ class ListProcesses(
           raw_bytes=f"/proc/{pid}/status".encode("ascii"),
       )
 
-    get_file_contents.Call(self._ProcessProcfsGetFileContents)  # pyrefly: ignore[bad-argument-type]
+    get_file_contents.Call(self._ProcessProcfsGetFileContents)
 
-  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+  @flow_base.UseProto2AnyResponses
   def _ProcessProcfsGetFileContents(
       self,
       responses_any: flow_responses.Responses[any_pb2.Any],
@@ -295,7 +291,7 @@ class ListProcesses(
 
       self.SendReplyProto(result)
 
-  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+  @flow_base.UseProto2AnyResponses
   def _ProcessQueryWMI(
       self,
       responses_any: flow_responses.Responses[any_pb2.Any],
@@ -310,16 +306,20 @@ class ListProcesses(
       response.ParseFromString(response_any.value)
 
       result = self.store.processes.add()
-      result.pid = rrg_wmi.UInt32(response.row["ProcessId"])
-      result.ppid = rrg_wmi.UInt32(response.row["ParentProcessId"])
+      if (pid := rrg_wmi.UInt32(response.row["ProcessId"])) is not None:
+        result.pid = pid
+      if (ppid := rrg_wmi.UInt32(response.row["ParentProcessId"])) is not None:
+        result.ppid = ppid
       result.name = response.row["Name"].string
       result.exe = response.row["ExecutablePath"].string
       # TODO - `.split()` will not work well in case the arguments
       # contain a space (in which case they are quoted). We need to do some
       # parsing or use `shlex` accounting for some potential incompatibilities.
       result.cmdline.extend(response.row["CommandLine"].string.split())
-      result.nice = rrg_wmi.UInt32(response.row["Priority"])
-      result.num_threads = rrg_wmi.UInt32(response.row["ThreadCount"])
+      if (nice := rrg_wmi.UInt32(response.row["Priority"])) is not None:
+        result.nice = nice
+      if (nthreads := rrg_wmi.UInt32(response.row["ThreadCount"])) is not None:
+        result.num_threads = nthreads
       # `*ModeTime` columns are specified in nanoseconds [1, 2], `*_cpu_time`
       # fields are in floating point seconds.
       #
@@ -327,22 +327,24 @@ class ListProcesses(
       # [1]: https://learn.microsoft.com/en-us/windows/win32/cimwin32prov/win32-process#:~:text=UserModeTime
       # [2]: https://learn.microsoft.com/en-us/windows/win32/cimwin32prov/win32-process#:~:text=KernelModeTime
       # pylint: enable=line-too-long
-      result.user_cpu_time = rrg_wmi.UInt64(response.row["UserModeTime"]) / 1e7
-      result.system_cpu_time = (
-          rrg_wmi.UInt64(response.row["KernelModeTime"]) / 1e7
-      )
+      if (utime := rrg_wmi.UInt64(response.row["UserModeTime"])) is not None:
+        result.user_cpu_time = utime / 1e7
+      if (stime := rrg_wmi.UInt64(response.row["KernelModeTime"])) is not None:
+        result.system_cpu_time = stime / 1e7
       # The `PageFileUsage` column is given in kilobytes [1].
       #
       # pylint: disable=line-too-long
       # [1]: https://learn.microsoft.com/en-us/windows/win32/cimwin32prov/win32-process#:~:text=PageFileUsage
       # pylint: enable=line-too-long
-      result.VMS_size = rrg_wmi.UInt32(response.row["PageFileUsage"]) * 1024
+      if (vms := rrg_wmi.UInt32(response.row["PageFileUsage"])) is not None:
+        result.VMS_size = vms * 1024
       # The `WorkingSetSize` column is give in bytes [1].
       #
       # pylint: disable=line-too-long
       # [1]: https://learn.microsoft.com/en-us/windows/win32/cimwin32prov/win32-process#:~:text=WorkingSetSize
       # pylint: enable=line-too-long
-      result.RSS_size = rrg_wmi.UInt64(response.row["WorkingSetSize"])
+      if (rss := rrg_wmi.UInt64(response.row["WorkingSetSize"])) is not None:
+        result.RSS_size = rss
 
       if not re.search(self.proto_args.process_name_regex, result.name):
         continue
@@ -353,7 +355,7 @@ class ListProcesses(
 
       self.SendReplyProto(result)
 
-  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+  @flow_base.UseProto2AnyResponses
   def _ProcessListProcesses(
       self,
       responses_any: flow_responses.Responses[any_pb2.Any],
@@ -386,7 +388,7 @@ class ListProcesses(
       return True
     return bool(re.compile(self.proto_args.filename_regex).match(process.exe))
 
-  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+  @flow_base.UseProto2AnyResponses
   def IterateProcesses(
       self, responses_any: flow_responses.Responses[any_pb2.Any]
   ) -> None:
@@ -463,7 +465,7 @@ class ListProcesses(
       if skipped:
         self.Log("Skipped %s entries, missing path for regex" % skipped)
 
-  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+  @flow_base.UseProto2AnyResponses
   def HandleDownloadedFiles(
       self, responses: flow_responses.Responses[any_pb2.Any]
   ) -> None:

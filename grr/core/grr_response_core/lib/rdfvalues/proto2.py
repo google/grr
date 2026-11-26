@@ -128,6 +128,7 @@ def DefineFromWireFormat(cls, protobuf):
         friendly_name=options.friendly_name,
         field_number=field.number,
         labels=list(options.label),
+        has_presence=field.has_presence,
     )
 
     if field.has_default_value:

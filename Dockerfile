@@ -84,7 +84,7 @@ ENV GRR_SOURCE=/usr/src/grr
 RUN python -m venv --system-site-packages $VIRTUAL_ENV
 ENV PATH=${VIRTUAL_ENV}/bin:${PATH}
 
-RUN ${VIRTUAL_ENV}/bin/python -m pip install wheel nodeenv grpcio-tools==1.60
+RUN ${VIRTUAL_ENV}/bin/python -m pip install wheel nodeenv
 
 RUN ${VIRTUAL_ENV}/bin/nodeenv -p --prebuilt --node=22.14.0
 
@@ -101,7 +101,5 @@ RUN ${VIRTUAL_ENV}/bin/python -m pip install \
   -e grr/client_builder \
   -e api_client/python
 
-RUN ${VIRTUAL_ENV}/bin/python grr/proto/makefile.py && \
-  ${VIRTUAL_ENV}/bin/python grr/core/grr_response_core/artifacts/makefile.py
 
 ENTRYPOINT [ "grr_server" ]

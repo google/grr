@@ -3,6 +3,7 @@
 
 import logging
 import threading
+from typing import Any
 
 from grr_response_core.lib import utils
 from grr_response_server.gui import wsgiapp
@@ -13,24 +14,24 @@ class ServerThread(threading.Thread):
 
   daemon = True
 
-  def __init__(self, port, **kwargs):
+  def __init__(self, port: int, **kwargs: Any):
     super().__init__(**kwargs)
     self.ready_to_serve = threading.Event()
     self.done_serving = threading.Event()
     self.port = port
 
-  def StartAndWaitUntilServing(self):
+  def StartAndWaitUntilServing(self) -> None:
     self.start()
     if not self.ready_to_serve.wait(60.0):
       raise RuntimeError("Server thread did not initialize properly.")
 
-  def Stop(self):
+  def Stop(self) -> None:
     self.server.shutdown()
 
     if not self.done_serving.wait(60):
       raise RuntimeError("Server thread did not shut down properly.")
 
-  def run(self):
+  def run(self) -> None:
     """Run the WSGI server in a thread."""
     logging.info("Listening on port %d.", self.port)
 

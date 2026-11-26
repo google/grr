@@ -1,22 +1,23 @@
 #!/usr/bin/env python
 """A facade for the GRR-FS server-side connection."""
 
+from __future__ import annotations
+
 import logging
-from typing import Optional
 
 from grr_response_core import config
 from fleetspeak.server_connector import connector as fs_client
 
 # The singleton instance of the Fleetspeak connector.
-CONN: Optional[fs_client.ServiceClient] = None
+CONN: fs_client.ServiceClient | None = None
 
 # Singleton information mapping Fleetspeak labels to GRR labels.
-label_map = {}
+label_map: dict[str, str] = {}
 
-unknown_label = None
+unknown_label: str | None = None
 
 
-def Init(service_client=None):
+def Init(service_client: fs_client.ServiceClient | None = None) -> None:
   """Initializes the Fleetspeak connector."""
   global CONN
   global label_map

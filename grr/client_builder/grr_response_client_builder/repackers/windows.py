@@ -40,10 +40,10 @@ class StringEntry:
     self.value = value
     self.refcount = refcount
 
-  def __repr__(self):
+  def __repr__(self) -> str:
     return repr(self.value)
 
-  def Size(self):
+  def Size(self) -> int:
     return len(self.value)
 
 
@@ -182,7 +182,7 @@ class SummaryInformation:
     return self._data
 
 
-def _SignCabFiles(directory_path: str, signer):
+def _SignCabFiles(directory_path: str, signer: Any) -> None:
   """Signs EXE and DLL files in `directory_path`."""
   file_paths = []
   for file_name in os.listdir(directory_path):
@@ -204,7 +204,7 @@ class MsiFile:
     self._stack = contextlib.ExitStack()
     self._tmp_dir = self._stack.enter_context(utils.TempDirectory())
 
-    def ReadStream(name):
+    def ReadStream(name: str) -> bytes:
       with self._olefile.openstream(name) as stream:
         return stream.read(self._olefile.get_size(name))
 

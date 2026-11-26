@@ -2,31 +2,48 @@
 """A module with functions for working with GRR packages."""
 
 import importlib
+import importlib.metadata
 import inspect
+import json
 import logging
 import os
 import sys
-
-import pkg_resources
+from typing import Optional
+import urllib.parse
+import urllib.request
 
 
 def _GetPkgResources(package_name, filepath):
   """A wrapper for the `pkg_resource.resource_filename` function."""
-  requirement = pkg_resources.Requirement.parse(package_name)
   try:
-    return pkg_resources.resource_filename(requirement, filepath)
-  except pkg_resources.DistributionNotFound:
-    # It may be that the working set is not in sync (e.g. if sys.path was
-    # manipulated). Try to reload it just in case.
-    pkg_resources.working_set = pkg_resources.WorkingSet()
-    try:
-      return pkg_resources.resource_filename(requirement, filepath)
-    except pkg_resources.DistributionNotFound:
-      logging.error("Distribution %s not found. Is it installed?", package_name)
-      return None
+    return str(
+        importlib.metadata.distribution(package_name).locate_file(filepath)
+    )
+  except importlib.metadata.PackageNotFoundError:
+    logging.error("Distribution %s not found. Is it installed?", package_name)
+    return None
 
 
-def ResourcePath(package_name, filepath):
+def _GetEditableRoot(package_name: str) -> Optional[str]:
+  """Returns the editable install root from PEP 610 `direct_url.json`."""
+  try:
+    dist = importlib.metadata.distribution(package_name)
+  except importlib.metadata.PackageNotFoundError:
+    logging.error("Distribution %s not found. Is it installed?", package_name)
+    return None
+  direct_url_text = dist.read_text("direct_url.json")
+  if direct_url_text is None:
+    return None
+  direct_url = json.loads(direct_url_text)
+  if not direct_url.get("dir_info", {}).get("editable", False):
+    return None
+  url = urllib.parse.urlparse(direct_url["url"])
+  if url.scheme != "file":
+    raise ValueError(f"Unexpected editable URL scheme: {direct_url['url']!r}")
+  return urllib.request.url2pathname(url.path)
+
+
+def ResourcePath(package_name: str, filepath: str) -> Optional[str]:
   """Computes a path to the specified package resource.
 
   Args:
@@ -36,6 +53,8 @@ def ResourcePath(package_name, filepath):
   Returns:
     A path to the resource or `None` if the resource cannot be found.
   """
+  # TODO - Remove the `sys.frozen` check once the legacy Python
+  # agent (PyInstaller) code is deleted.
   # If we are running a pyinstaller-built binary we rely on the sys.prefix
   # code below and avoid running this which will generate confusing error
   # messages.
@@ -44,9 +63,17 @@ def ResourcePath(package_name, filepath):
     if target and os.access(target, os.R_OK):
       return target
 
-  # Installing from wheel places data_files relative to sys.prefix and not
-  # site-packages. If we can not find in site-packages, check sys.prefix
-  # instead.
+    editable_root = _GetEditableRoot(package_name)
+    if editable_root:
+      target = os.path.join(editable_root, filepath)
+      if os.access(target, os.R_OK):
+        return target
+
+  # Installing from a wheel places `data-files` (used by `grr-response-core`,
+  # `grr-response-templates`, and `fleetspeak-server-bin`) relative to
+  # `sys.prefix` rather than `site-packages`. PyInstaller-frozen binaries also
+  # rely on this fallback. If we cannot find it in `site-packages`, check
+  # `sys.prefix` instead.
   # https://python-packaging-user-guide.readthedocs.io/en/latest/distributing/#data-files
   target = os.path.join(sys.prefix, filepath)
   if target and os.access(target, os.R_OK):

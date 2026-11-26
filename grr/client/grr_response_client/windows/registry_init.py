@@ -5,5 +5,5 @@ from grr_response_client.windows import regconfig
 from grr_response_core.lib import config_parser
 
 
-def RegisterPlugins():
+def RegisterPlugins() -> None:
   config_parser.RegisterParserClass("reg", regconfig.RegistryConfigParser)

@@ -46,10 +46,6 @@ class TimelineFlow(
   [1]: https://wiki.sleuthkit.org/index.php?title=Body_file
   """
 
-  friendly_name = "Timeline"
-  category = "/Collectors/"
-  behaviours = flow_base.BEHAVIOUR_BASIC
-
   proto_args_type = timeline_pb2.TimelineArgs
   proto_progress_type = timeline_pb2.TimelineProgress
   proto_result_types = (timeline_pb2.TimelineResult,)
@@ -74,7 +70,7 @@ class TimelineFlow(
 
       action = rrg_stubs.GetFilesystemTimeline()
       action.args.root.CopyFrom(root)
-      action.Call(self.HandleRRGGetFilesystemTimeline)  # pyrefly: ignore[bad-argument-type]
+      action.Call(self.HandleRRGGetFilesystemTimeline)
     else:
       self.CallClientProto(
           action_cls=server_stubs.Timeline,
@@ -82,7 +78,7 @@ class TimelineFlow(
           next_state=self.Process.__name__,
       )
 
-  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+  @flow_base.UseProto2AnyResponses
   def Process(
       self,
       responses: flow_responses.Responses[any_pb2.Any],
@@ -107,7 +103,7 @@ class TimelineFlow(
       self.SendReplyProto(response)
       self.progress.total_entry_count += response.entry_count
 
-  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+  @flow_base.UseProto2AnyResponses
   def HandleRRGGetFilesystemTimeline(
       self,
       responses: flow_responses.Responses[any_pb2.Any],

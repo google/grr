@@ -1,6 +1,9 @@
 #!/usr/bin/env python
 """Raw access server-side only API shell."""
 
+from __future__ import annotations
+
+from collections.abc import Sequence
 import os
 import sys
 
@@ -56,7 +59,7 @@ _VERSION = flags.DEFINE_bool(
 )
 
 
-def main(argv=None):
+def main(argv: Sequence[str] | None = None) -> None:
   del argv  # Unused.
 
   if _VERSION.value:

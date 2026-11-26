@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 """Test for client comms."""
 
+from collections.abc import Sequence
+
 from absl import app
 
 from grr_response_client import comms
@@ -25,7 +27,7 @@ class GRRClientWorkerTest(test_lib.GRRBaseTest):
     self.assertEqual(messages[0].payload, rdfvalue.RDFDatetime(0))
 
 
-def main(argv):
+def main(argv: Sequence[str]) -> None:
   test_lib.main(argv)
 
 

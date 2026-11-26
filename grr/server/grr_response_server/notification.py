@@ -8,7 +8,7 @@ from grr_response_server import access_control
 from grr_response_server import data_store
 
 
-def _HostPrefix(client_id):
+def _HostPrefix(client_id: str) -> str:
   """Build a host prefix for a notification message based on a client id."""
   if not client_id:
     return ""

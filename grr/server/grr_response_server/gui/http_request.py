@@ -1,6 +1,10 @@
 #!/usr/bin/env python
 """HTTP request wrapper."""
 
+from __future__ import annotations
+
+from typing import Any
+
 from werkzeug import wrappers as werkzeug_wrappers
 
 from grr_response_core.lib import rdfvalue
@@ -16,18 +20,18 @@ class HttpRequest(werkzeug_wrappers.Request):
   charset = "utf-8"
   encoding_errors = "strict"
 
-  def __init__(self, *args, **kwargs):
+  def __init__(self, *args: Any, **kwargs: Any):
     super().__init__(*args, **kwargs)
 
-    self._user = None
-    self.email = None
+    self._user: str | None = None
+    self.email: str | None = None
 
     self.timestamp = rdfvalue.RDFDatetime.Now().AsMicrosecondsSinceEpoch()
 
-    self.parsed_args = None
+    self.parsed_args: Any = None
 
   @property
-  def user(self):
+  def user(self) -> str:
     if self._user is None:
       raise RequestHasNoUserError(
           "Trying to access Request.user while user is unset."
@@ -41,7 +45,7 @@ class HttpRequest(werkzeug_wrappers.Request):
     return self._user
 
   @user.setter
-  def user(self, value):
+  def user(self, value: str) -> None:
     if not isinstance(value, str):
       message = "Expected instance of '%s' but got value '%s' of type '%s'"
       message %= (str, value, type(value))

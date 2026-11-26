@@ -4,10 +4,15 @@
 
 from grr_response_core.lib import config_lib
 
-config_lib.DEFINE_list("Artifacts.artifact_dirs", [
-    "%(grr_response_core/artifacts@grr-response-core|resource)",
-    "%(grr_response_core/artifacts/local@grr-response-core|resource)"
-], "A list directories to load artifacts from.")
+config_lib.DEFINE_list(
+    "Artifacts.artifact_dirs",
+    [
+        "%(grr_response_core/artifacts@grr-response-core|resource)",
+        "%(grr_response_core/artifacts/local@grr-response-core|resource)",
+        "%(artifacts/data@artifacts|resource)",
+    ],
+    "A list directories to load artifacts from.",
+)
 
 config_lib.DEFINE_list(
     "Artifacts.netgroup_filter_regexes", [],

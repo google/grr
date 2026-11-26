@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 """Contains tests for api_call_handler_utils."""
 
+from collections.abc import Sequence
+
 from absl import app
 
 from grr_response_proto import jobs_pb2
@@ -14,7 +16,7 @@ class FilterListTest(test_lib.GRRBaseTest):
   def setUp(self):
     super().setUp()
 
-    self.l = []
+    self.l: list[jobs_pb2.PathSpec] = []
     for i in range(10):
       self.l.append(
           jobs_pb2.PathSpec(
@@ -49,7 +51,7 @@ class FilterListTest(test_lib.GRRBaseTest):
     self.assertEqual(data[0].path, "/var/os/tmp-8")
 
 
-def main(argv):
+def main(argv: Sequence[str]) -> None:
   test_lib.main(argv)
 
 

@@ -11,9 +11,6 @@ from grr_response_server import server_stubs
 class ListRunningServices(flow_base.FlowBase):
   """Flow that lists services (launchd jobs) running on the endpoint."""
 
-  category = "/Processes/"
-  behaviours = flow_base.BEHAVIOUR_BASIC
-
   proto_result_types = (sysinfo_pb2.OSXServiceInformation,)
 
   def Start(self):
@@ -25,7 +22,7 @@ class ListRunningServices(flow_base.FlowBase):
         next_state=self._ProcessOSXEnumerateRunningServices.__name__,
     )
 
-  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+  @flow_base.UseProto2AnyResponses
   def _ProcessOSXEnumerateRunningServices(
       self,
       responses: flow_responses.Responses[any_pb2.Any],

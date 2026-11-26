@@ -25,10 +25,6 @@ class ListContainers(
     A ListContainersFlowResult with a list of ContainerDetails.
   """
 
-  friendly_name = "List Containers"
-  category = "/Processes/"
-  behaviours = flow_base.BEHAVIOUR_BASIC
-
   proto_args_type = containers_pb2.ListContainersFlowArgs
   proto_result_types = (containers_pb2.ListContainersFlowResult,)
 
@@ -40,7 +36,7 @@ class ListContainers(
     containers = []
     if binary == "crictl":
       stdout = json_decoder.decode(stdout)
-      for line in stdout["containers"]:
+      for line in stdout["containers"]:  # pyrefly: ignore[bad-index]
         container = containers_pb2.ContainerDetails()
         container.container_id = line["id"]
         container.image_name = line["image"]["image"]
@@ -140,7 +136,7 @@ class ListContainers(
         next_state=self.ReceiveActionOutput.__name__,
     )
 
-  @flow_base.UseProto2AnyResponses  # pyrefly: ignore[bad-argument-type]
+  @flow_base.UseProto2AnyResponses
   def ReceiveActionOutput(
       self,
       responses: flow_responses.Responses[any_pb2.Any],

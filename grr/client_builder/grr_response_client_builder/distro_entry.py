@@ -4,6 +4,6 @@
 # pylint: disable=g-import-not-at-top
 
 
-def ClientBuild():
+def ClientBuild() -> None:
   from grr_response_client_builder import client_build
   client_build.Run()

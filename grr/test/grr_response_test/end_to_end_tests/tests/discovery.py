@@ -23,7 +23,10 @@ class TestClientInterrogate(test_base.EndToEndTest):
       self.assertNotEmpty(u.username)
 
       if self.platform == test_base.EndToEndTest.Platform.LINUX:
-        self.assertTrue(u.uid)
+        if u.username == "root":
+          self.assertEqual(u.uid, 0)
+        else:
+          self.assertGreater(u.uid, 0)
       elif self.platform == test_base.EndToEndTest.Platform.WINDOWS:
         self.assertNotEmpty(u.sid)
         self.assertNotEmpty(u.userprofile)

@@ -1,8 +1,12 @@
 #!/usr/bin/env python
 """Base test classes for API handlers tests."""
 
+from __future__ import annotations
+
+from collections.abc import Callable
 import functools
-from typing import Type
+import types
+from typing import Any
 
 from grr_response_server.gui import api_call_context
 # This import guarantees that all API-related RDF types will get imported
@@ -17,7 +21,7 @@ from grr.test_lib import test_lib
 
 class ApiCallHandlerTest(test_lib.GRRBaseTest):
 
-  def setUp(self):
+  def setUp(self) -> None:
     super().setUp()
     # The user we use for API tests.
     self.context = api_call_context.ApiCallContext("api_test_user")
@@ -26,8 +30,8 @@ class ApiCallHandlerTest(test_lib.GRRBaseTest):
 
 
 def WithApiCallRouter(
-    name, api_call_router_cls: Type[api_call_router.ApiCallRouter]
-):
+    name: str, api_call_router_cls: type[api_call_router.ApiCallRouter]
+) -> Callable[[Callable[..., Any]], Callable[..., None]]:
   """Makes given function execute with specified router registered.
 
   Args:
@@ -38,10 +42,10 @@ def WithApiCallRouter(
     A decorator function that registers and unregisters the ApiCallRouter.
   """
 
-  def Decorator(func):
+  def Decorator(func: Callable[..., Any]) -> Callable[..., None]:
 
     @functools.wraps(func)
-    def Wrapper(*args, **kwargs):
+    def Wrapper(*args: Any, **kwargs: Any) -> None:
       with _ApiCallRouterContext(name, api_call_router_cls):
         func(*args, **kwargs)
 
@@ -53,16 +57,23 @@ def WithApiCallRouter(
 class _ApiCallRouterContext(object):
   """A context manager for execution with certain ApiCallRouter registered."""
 
-  def __init__(self, name, api_call_router_cls):
+  def __init__(
+      self, name: str, api_call_router_cls: type[api_call_router.ApiCallRouter]
+  ):
     self._name = name
     self._api_call_router = api_call_router_cls
 
-  def __enter__(self):
+  def __enter__(self) -> None:
     api_call_router_registry.RegisterApiCallRouter(
         self._name, self._api_call_router
     )
 
-  def __exit__(self, exc_type, exc_value, traceback):
+  def __exit__(
+      self,
+      exc_type: type[BaseException] | None,
+      exc_value: BaseException | None,
+      traceback: types.TracebackType | None,
+  ) -> None:
     del exc_type, exc_value, traceback  # Unused.
 
     api_call_router_registry.UnregisterApiCallRouter(self._name)

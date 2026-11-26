@@ -1,0 +1,39 @@
+[build-system]
+requires = [
+
+  "grpcio==1.78.0",
+  "grpcio-tools==1.78.0",
+  "protobuf==6.33.6",
+
+  "setuptools>=77",
+]
+build-backend = "_build_backend"
+backend-path = ["."]
+
+[project]
+name = "grr-response-proto"
+version = "4.0.0.post0"
+description = "GRR API client library"
+license = "Apache-2.0"
+maintainers = [
+  {name = "GRR Development Team", email = "grr-dev@googlegroups.com"},
+]
+requires-python = ">=3.9"
+dependencies = [
+
+  "protobuf==6.33.6",
+
+]
+
+[project.urls]
+Homepage = "https://github.com/google/grr/tree/master/proto"
+
+[tool.setuptools]
+include-package-data = true
+
+[tool.setuptools.packages.find]
+include = ["grr_response_proto*"]
+namespaces = true
+
+[tool.setuptools.package-data]
+"*" = ["py.typed", "*.pyi", "*.proto"]

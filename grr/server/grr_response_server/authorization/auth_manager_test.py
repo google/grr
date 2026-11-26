@@ -1,4 +1,8 @@
 #!/usr/bin/env python
+from __future__ import annotations
+
+from collections.abc import Sequence
+from typing import Any
 from unittest import mock
 
 from absl import app
@@ -11,7 +15,7 @@ from grr.test_lib import test_lib
 class DummyAuthorization(object):
   """Dummy authorization object for test purposes."""
 
-  def __init__(self, **kw_args):
+  def __init__(self, **kw_args: Any):
     self.data = kw_args
     self.key = kw_args["router"]
 
@@ -35,14 +39,20 @@ users:
 """
     self.auth_reader.CreateAuthorizations(yaml_data, DummyAuthorization)
 
+    robot_auth = self.auth_reader.GetAuthorizationForSubject(
+        "ApiCallRobotRouter"
+    )
+    self.assertIsNotNone(robot_auth)
     self.assertEqual(
-        self.auth_reader.GetAuthorizationForSubject("ApiCallRobotRouter").data,
+        robot_auth.data,
         dict(router="ApiCallRobotRouter", users=["foo", "bar"]),
     )
+    disabled_auth = self.auth_reader.GetAuthorizationForSubject(
+        "ApiCallDisabledRouter"
+    )
+    self.assertIsNotNone(disabled_auth)
     self.assertEqual(
-        self.auth_reader.GetAuthorizationForSubject(
-            "ApiCallDisabledRouter"
-        ).data,
+        disabled_auth.data,
         dict(router="ApiCallDisabledRouter", users=["blah"]),
     )
 
@@ -135,7 +145,7 @@ class AuthorizationManagerTest(test_lib.GRRBaseTest):
       )
 
 
-def main(argv):
+def main(argv: Sequence[str]) -> None:
   # Run the full test suite
   test_lib.main(argv)
 

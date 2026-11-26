@@ -381,8 +381,8 @@ class GlobComponentTest(absltest.TestCase):
 
     # `*` and `?` are disallowed in names of files on Windows.
     if platform.system() != "Windows":
-      filepaths.append("*")
-      filepaths.append("?")
+      filepaths.append(("*",))
+      filepaths.append(("?",))
 
     with DirHierarchy(filepaths) as hierarchy:
       component = globbing.GlobComponent("[][-]")
@@ -613,7 +613,11 @@ class ParsePathItemTest(absltest.TestCase):
 
 class ParsePathTest(absltest.TestCase):
 
-  def assertAreInstances(self, instances, classes):
+  def assertAreInstances(
+      self,
+      instances: Sequence[globbing.PathComponent],
+      classes: Sequence[type[globbing.PathComponent]],
+  ) -> None:
     for instance, clazz in zip(instances, classes):
       self.assertIsInstance(instance, clazz)
     self.assertLen(instances, len(classes))
@@ -1021,7 +1025,7 @@ def DirHierarchy(
       files.FlushHandleCache()
 
 
-def main(argv):
+def main(argv: Sequence[str]) -> None:
   test_lib.main(argv)
 
 

@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """Util for modifying the GRR server configuration."""
 
+import argparse
 import io
 import sys
 
@@ -249,11 +250,14 @@ parser_repack_clients.add_argument(
 )
 
 
-def _ExtendWithUploadArgs(upload_parser):
+def _ExtendWithUploadArgs(upload_parser: argparse.ArgumentParser) -> None:
   upload_parser.add_argument("--file", help="The file to upload", required=True)
 
 
-def _ExtendWithUploadSignedArgs(upload_signed_parser):
+def _ExtendWithUploadSignedArgs(
+    upload_signed_parser: argparse.ArgumentParser,
+) -> None:
+  """Adds signed-upload arguments to the subparser."""
   upload_signed_parser.add_argument(
       "--platform",
       required=True,
@@ -341,7 +345,7 @@ parser_rotate_key.add_argument(
 )
 
 
-def main(args):
+def main(args: argparse.Namespace) -> None:
   """Main."""
   grr_config.CONFIG.AddContext(contexts.COMMAND_LINE_CONTEXT)
   grr_config.CONFIG.AddContext(contexts.CONFIG_UPDATER_CONTEXT)
@@ -481,7 +485,7 @@ You are about to rotate the Fleetspeak server key. Note that:
       print("Fleetspeak server key rotated, please restart fleetspeak-server.")
 
 
-def Run():
+def Run() -> None:
   app.run(main, flags_parser=lambda argv: parser.parse_args(argv[1:]))
 
 
